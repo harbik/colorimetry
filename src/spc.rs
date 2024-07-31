@@ -1,20 +1,22 @@
-use std::{array, error::Error, ops::{Add, Mul, MulAssign}};
+use std::{error::Error, ops::{Add, Mul, MulAssign}};
 
 use url::Url;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 use nalgebra::SMatrix;
 
-use crate::{obs::Observer, data::{A, D50, D65}, physics::{self, led_ohno, planck, stefan_boltzmann}};
+use crate::{obs::Observer, data::{A, D50, D65}, physics::{led_ohno, planck, stefan_boltzmann}};
 
 
 #[derive(PartialEq, Eq, Clone, Copy)]
-pub enum SpCategory { 
-    Illuminant, 
-    Colorant, // Pigment, Paint
-    Filter,  // Light Filter
-    Stimulus,  // Light from object we are looking at
-    Undefined
+pub enum Category { 
+    Illuminant, // one or more sources, illuminating a color sample
+    Filter,     // Light Filter, such as a wratten or glass filter
+    Substrate,  // e.g. Paper, Glass
+    Colorant,   // e.g. Pigment, Paint, Ink, viewed in reflection
+    Stimulus,   // A ray of light from object we are looking at, ultimately
+                // creating a sensation of color in our mind
+    Unknown,   
 }
 
 // Standard Spectrum domain ranging from 380 to 780 nanometer,
@@ -28,7 +30,8 @@ pub type SpDataVec = SMatrix<f64, 1, NS>;
 #[derive(Clone, Copy)]
 pub struct Spectrum {
     pub(crate) data: SpDataVec,
-    pub(crate) category: SpCategory,
+    pub(crate) cat: Category,
+    pub(crate) total: Option<f64>, // total irradiance/reflectivity/transimissivity (power based)
 
 }
 
@@ -50,14 +53,16 @@ impl Spectrum {
     pub fn grey(gval: f64) -> Self {
         Self{ 
             data: SpDataVec::repeat(gval.clamp(0.0, 1.0)),
-            category: SpCategory::Colorant
+            cat: Category::Colorant,
+            total: None,
         }
     }
 
     pub fn grey_filter(gval: f64) -> Self {
         Self{ 
             data: SpDataVec::repeat(gval.clamp(0.0, 1.0)),
-            category: SpCategory::Filter
+            cat: Category::Filter,
+            total: None,
         }
     }
 
@@ -75,8 +80,10 @@ impl Spectrum {
         let s = 1./NS as f64;
         Self{ 
             data: SpDataVec::repeat(s),
-            category: SpCategory::Illuminant
+            cat: Category::Illuminant,
+            total: Some(1.0)
         }
+
 
     }
 
@@ -85,7 +92,7 @@ impl Spectrum {
         let data = SpDataVec::from_fn(|_i,j|
             led_ohno((j+380) as f64 * 1E-9, center_m, width_m) * 1E-9
         );
-        Self { data, category: SpCategory::Illuminant }
+        Self { data, cat: Category::Illuminant, total: Some(1.0) }
     }
 
 }
@@ -105,7 +112,7 @@ impl Spectrum {
     /// The generated spectrum is scaled to have a total power, over the full
     /// spectrum (including infrared), of 1 Watt.
     /// ```
-    /// use crate::cie::{Spectrum, CIE1931};
+    /// use crate::colorimetry::{Spectrum, CIE1931};
     /// use approx::assert_ulps_eq;
     /// 
     /// let p3000 = Spectrum::planckian(3000.0);
@@ -117,27 +124,33 @@ impl Spectrum {
     /// ```
     pub fn planckian(cct: f64) -> Self {
         let s = 1E-9/stefan_boltzmann(cct); // 1W/m2 total irradiance
-        let data = SpDataVec::from_fn(|i,j|s * planck((j+380) as f64*1e-9, cct));
+        let data = SpDataVec::from_fn(|_i,j|s * planck((j+380) as f64*1e-9, cct));
         Self {
             data,
-            category: SpCategory::Illuminant
+            cat: Category::Illuminant,
+            total: Some(1.0),
         }
     }
 
     // Sets irradiance, tyically expressed in units of Watt per square meter.
     // Also overwrite spectrum type to irradiance.
     pub fn set_irradiance(&mut self, irradiance: f64) -> &mut Self {
-        let s = irradiance/ self.data.sum();
+        let s = if let Some(t) = self.total {
+            irradiance/t
+        } else {
+            irradiance/self.data.sum()
+        };
         self.data.iter_mut().for_each(|v|*v = *v *s);
-        self.category = SpCategory::Illuminant;
+        self.cat = Category::Illuminant;
+        self.total = Some(irradiance);
         self
     }
 
     // Calculate a spectrum's irradiance if it is an illuminant.
     // Produces a "Not A Number" value, if not an illuminant.
     pub fn irradiance(&self) -> f64 {
-        if self.category == SpCategory::Illuminant {
-            self.data.sum()
+        if self.cat == Category::Illuminant && self.total.is_some() {
+            self.total.unwrap()
         } else {
             f64::NAN
         }
@@ -146,12 +159,12 @@ impl Spectrum {
     pub fn set_illuminance(&mut self, obs: &Observer, illuminance: f64) -> &mut Self {
         let l = illuminance / (self.data * obs.data.column(1) * obs.lumconst).x;
         self.data.iter_mut().for_each(|v| *v = *v * l);
-        self.category = SpCategory::Illuminant;
+        self.cat = Category::Illuminant;
         self
     }
 
     pub fn illuminance(&self, obs: &Observer) -> f64 {
-        if self.category == SpCategory::Illuminant {
+        if self.cat == Category::Illuminant {
             (self.data * obs.data.column(1) * obs.lumconst).x
         } else {
             f64::NAN
@@ -160,26 +173,26 @@ impl Spectrum {
 
     /// Downloads a spectrum
     pub async fn fetch(loc: &str) -> Result<Self, Box<dyn Error>> {
-        let url = Url::parse(loc)?;
+        let _url = Url::parse(loc)?;
         todo!()
 
     }
 
 }
 
-fn mixed_category(s1: &Spectrum, s2: &Spectrum) -> SpCategory {
+fn mixed_category(s1: &Spectrum, s2: &Spectrum) -> Category {
     if 
-        (s1.category == SpCategory::Illuminant && s2.category == SpCategory::Colorant) ||
-        (s1.category == SpCategory::Colorant && s2.category == SpCategory::Illuminant) ||
-        (s1.category == SpCategory::Illuminant && s2.category == SpCategory::Filter) ||
-        (s1.category == SpCategory::Filter && s2.category == SpCategory::Illuminant) {
-        return SpCategory::Stimulus
-    } else if s1.category == SpCategory::Filter && s2.category == SpCategory::Filter {
-            SpCategory::Filter
-    } else if s1.category == SpCategory::Colorant && s2.category == SpCategory::Colorant {
-            SpCategory::Colorant
+        (s1.cat == Category::Illuminant && s2.cat == Category::Colorant) ||
+        (s1.cat == Category::Colorant && s2.cat == Category::Illuminant) ||
+        (s1.cat == Category::Illuminant && s2.cat == Category::Filter) ||
+        (s1.cat == Category::Filter && s2.cat == Category::Illuminant) {
+        return Category::Stimulus
+    } else if s1.cat == Category::Filter && s2.cat == Category::Filter {
+            Category::Filter
+    } else if s1.cat == Category::Colorant && s2.cat == Category::Colorant {
+            Category::Colorant
     } else {
-            SpCategory::Undefined
+            Category::Unknown
     }
 }
 
@@ -191,8 +204,9 @@ impl Mul for Spectrum {
     // multiply two cie spectra
     fn mul(self, rhs: Self) -> Self::Output {
         Self{
-            category: mixed_category(&self, &rhs), 
-            data: self.data.component_mul(&(rhs.data))
+            cat: mixed_category(&self, &rhs), 
+            data: self.data.component_mul(&(rhs.data)),
+            total: None,
         }
     }
 }
@@ -200,7 +214,7 @@ impl Mul for Spectrum {
 impl Mul<f64> for Spectrum {
     /// Multiply a spectrum with a scalar f64 value.
     /// ```
-    ///     use crate::cie::Spectrum;
+    ///     use crate::colorimetry::Spectrum;
     ///     use approx::assert_ulps_eq;
     ///
     ///     let mut led = Spectrum::led(550.0, 25.0);
@@ -215,8 +229,9 @@ impl Mul<f64> for Spectrum {
     // spectrum * scalar
     fn mul(self, rhs: f64) -> Self::Output {
         Self{
-            category: self.category,
-            data: self.data * rhs
+            cat: self.cat,
+            data: self.data * rhs,
+            total: None
         }
     }
 }
@@ -224,7 +239,7 @@ impl Mul<f64> for Spectrum {
 impl Mul<Spectrum> for f64 {
     /// Multiply a spectrum with a scalar f64 value.
     /// ```
-    ///     use crate::cie::Spectrum;
+    ///     use crate::colorimetry::Spectrum;
     ///     use approx::assert_ulps_eq;
     ///
     ///     let mut led = Spectrum::led(550.0, 25.0);
@@ -239,8 +254,9 @@ impl Mul<Spectrum> for f64 {
     // scalar * spectrum
     fn mul(self, rhs: Spectrum) -> Self::Output {
         Self::Output {
-            category: rhs.category,
-            data: self * rhs.data
+            cat: rhs.cat,
+            data: self * rhs.data,
+            total: None
         }
     }
 }
@@ -253,14 +269,15 @@ impl Add for Spectrum {
 
     // multiply two cie spectra
     fn add(self, rhs: Self) -> Self::Output {
-        let category = if self.category == SpCategory::Illuminant && rhs.category == SpCategory::Illuminant {
-            SpCategory::Illuminant
+        let category = if self.cat == Category::Illuminant && rhs.cat == Category::Illuminant {
+            Category::Illuminant
         } else {
-            SpCategory::Undefined
+            Category::Unknown
         };
         Self{
-            category,
-            data: self.data.component_mul(&(rhs.data))
+            cat: category,
+            data: self.data.component_mul(&(rhs.data)),
+            total: None
         }
     }
 }
@@ -280,7 +297,7 @@ impl MulAssign<f64> for Spectrum {
     /// - for a colorant, this scales the total reflectivity.
     /// - for a filter, it changes its transmission.
     /// ```
-    ///     use crate::cie::Spectrum;
+    ///     use crate::colorimetry::Spectrum;
     ///     use approx::assert_ulps_eq;
     ///
     ///     let mut led = Spectrum::led(550.0, 25.0);

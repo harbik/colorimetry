@@ -1,7 +1,7 @@
 use nalgebra::{Matrix3, RowVector3};
 
 use wasm_bindgen::prelude::wasm_bindgen;
-use crate::{obs::ObsId, spc::Spectrum, xyz::XYZ};
+use crate::spc::Spectrum;
 
 
 #[wasm_bindgen]

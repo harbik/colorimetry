@@ -1,7 +1,7 @@
 use std::sync::OnceLock;
 use wasm_bindgen::prelude::wasm_bindgen;
 use nalgebra::SMatrix;
-use crate::{lab::Lab, physics::planck, rgb::RGB, spc::{Spectrum, SpCategory, NS}, xyz::XYZ};
+use crate::{lab::Lab, physics::planck, rgb::RGB, spc::{Spectrum, Category, NS}, xyz::XYZ};
 
 
 
@@ -34,7 +34,7 @@ impl Observer {
         let t = s.data * self.data;
         XYZ {
            data:  t * self.lumconst,
-           obs: self.id
+           obs_id: self.id
         }
     }
 
@@ -46,7 +46,7 @@ impl Observer {
         let t = s1.data.component_mul(&s2.data) * self.data;
         XYZ {
            data:  t * self.lumconst,
-           obs: self.id
+           obs_id: self.id
         }
     }
 
@@ -55,7 +55,7 @@ impl Observer {
     /// Accepts a Filter or Colorant Spectrum only.
     /// Returns f64::NAN's otherwise.
     pub fn lab_d65(&self, s: &Spectrum) -> Lab {
-        if s.category != SpCategory::Filter && s.category != SpCategory::Colorant { // invalid
+        if s.cat != Category::Filter && s.cat != Category::Colorant { // invalid
             Lab::new(f64::NAN, f64::NAN, f64::NAN, self.d65())
         } else {
             let &[x, y, z] = self.xyz2(&crate::data::D65,s).data.as_ref();
@@ -81,7 +81,7 @@ impl Observer {
         XYZ::new(self.id, x * scale, y * scale, z * scale)
     }
 
-    pub fn planckian_slope(&self, cct: f64) -> f64 {
+    pub fn planckian_slope(&self, _cct: f64) -> f64 {
         todo!()
     }
 
@@ -128,7 +128,7 @@ impl Observer {
         });
         
         // Get table row, or calculate when not done yet.
-        let uvm = robertson_table[im].get_or_init(||{
+        let _uvm = robertson_table[im].get_or_init(||{
                 let cct = im2t(im);
                 let [u,v] = self.xyz_planck(cct).uv60();
                 let m = self.planckian_slope(cct);

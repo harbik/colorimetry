@@ -1,6 +1,6 @@
 use nalgebra::{ArrayStorage, SMatrix};
 
-use crate::{obs::{ObsId, Observer}, spc::{Spectrum, SpCategory, NS}};
+use crate::{obs::{ObsId, Observer}, spc::{Spectrum, Category, NS}};
 
 pub static CIE1931: Observer = Observer{id: ObsId::Std1931, lumconst: 683.0, data: SMatrix::<f64, NS, 3>::from_array_storage( ArrayStorage([
     [   
@@ -100,7 +100,8 @@ pub static CIE1931: Observer = Observer{id: ObsId::Std1931, lumconst: 683.0, dat
 /// D65 CIE Standard Illuminant.
 /// Data from https://cie.co.at/datatable/cie-standard-illuminant-d65, truncated to a range from 380 to 780 nanometer.
 pub static D65: Spectrum = Spectrum {
-    category: SpCategory::Illuminant,
+    cat: Category::Illuminant,
+    total: None,
     data: SMatrix::<f64, 1, NS>::from_array_storage(ArrayStorage([
         [49.9755], [50.4428], [50.91], [51.3773], [51.8446], [52.3118], [52.7791], [53.2464], [53.7137], [54.1809], [54.6482], [57.4589], [60.2695], [63.0802], [65.8909], [68.7015], [71.5122], [74.3229], [77.1336], [79.9442], 
         [82.7549], [83.628], [84.5011], [85.3742], [86.2473], [87.1204], [87.9936], [88.8667], [89.7398], [90.6129], [91.486], [91.6806], [91.8752], [92.0697], [92.2643], [92.4589], [92.6535], [92.8481], [93.0426], [93.2372], 
@@ -130,7 +131,8 @@ pub static D65: Spectrum = Spectrum {
 /// Data from  https://cie.co.at/datatable/cie-standard-illuminant-1-nm,
 /// truncated to a range from 380 to 780 nanometer.
 pub static D50: Spectrum = Spectrum {
-    category: SpCategory::Illuminant,
+    cat: Category::Illuminant,
+    total: None,
     data: SMatrix::<f64, 1, NS>::from_array_storage(ArrayStorage([
         [24.4875], [25.0258], [25.5641], [26.1024], [26.6407], [27.179], [27.7174], [28.2557], [28.794], [29.3323], [29.8706], [31.8144], [33.7581], [35.7018], [37.6456], [39.5894], [41.5331], [43.4768],
         [45.4206], [47.3644], [49.3081], [50.0286], [50.749], [51.4695], [52.19], [52.9104], [53.6309], [54.3514], [55.0719], [55.7923], [56.5128], [56.8649], [57.217], [57.5691], [57.9212], [58.2733],
@@ -163,7 +165,8 @@ pub static D50: Spectrum = Spectrum {
 /// https://doi.org/10.25039/CIE.DS.8jsxjrsn truncated to a range from 380 to
 /// 780 nanometer.
 pub static A: Spectrum = Spectrum {
-    category: SpCategory::Illuminant,
+    cat: Category::Illuminant,
+    total: None,
     data: SMatrix::<f64, 1, NS>::from_array_storage(ArrayStorage([
         [9.7951], [10.0096], [10.2273], [10.4481], [10.6722], [10.8996], [11.1302], [11.364], [11.6012], [11.8416], [12.0853],
         [12.3324], [12.5828], [12.8366], [13.0938], [13.3543], [13.6182], [13.8855], [14.1563], [14.4304], [14.708], [14.9891],

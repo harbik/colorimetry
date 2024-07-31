@@ -1,6 +1,8 @@
+
 //! # Overview
 //!
-//! `cie` is a Rust and WebAssembly/JavaScript toolbox for color calculations in Illumination and Engineering projects.
+//!
+//! `colorimetry` is a Rust and WebAssembly/JavaScript toolbox for color calculations in illumination and engineering projects.
 //! It implements algorithms as recommended by the International Commission on Illumination,
 //! the International Color Consortium, the Illumination Engineering Society, and many others.
 //!
@@ -8,8 +10,9 @@
 //! This example calculates the Illuminance and CIE 1931 (x, y) chromaticity
 //! coordinates for a Planckian (thermal emission based) illuminator, with a
 //! Correlated Color Temperature of 3000 Kelvin.
+//!
 //! ```rust
-//! use crate::cie::{Spectrum, CIE1931};
+//! use crate::colorimetry::{Spectrum, CIE1931};
 //! use approx::assert_ulps_eq;
 //! 
 //! let p3000 = Spectrum::planckian(3000.0);
@@ -20,11 +23,11 @@
 //! assert_ulps_eq!(y, 0.404_083, epsilon = 1E-6);
 //! ```
 //! 
-//! And here is an example of this function, 
 //! The `Spectrum` class has many constructors, and in this case the `planckian` constructor is used.
 //! Many other illuminant constructors are availables, such as CIE D65, D50, A, Led.
 //! 
 //! `Spectrum` data are defined over a domain from 380 to 780 nanometer, with an interval size of 1 nanometer.
+//! For Illuminants the values are supposed to have an SI unit of Watt per square meter per nanometer.
 //! 
 //! `CIE1931` is and instance of the `Observer` class representing colorimetric
 //! standard observers, and also includes the CIE 1976 10º standard observers,
@@ -34,6 +37,7 @@
 //!
 //! Tristimulus values are the basis for many color madels.
 
+#![allow(dead_code)]
 
 pub use spc::Spectrum;
 pub use obs::ObsId;

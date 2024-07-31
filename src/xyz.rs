@@ -1,6 +1,6 @@
 use nalgebra::RowVector3;
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
-use crate::{obs::ObsId, Spectrum};
+use crate::obs::ObsId;
 
 #[wasm_bindgen]
 #[derive(Clone, Copy)]
@@ -10,7 +10,7 @@ use crate::{obs::ObsId, Spectrum};
 /// XYZ values are not often used directly, but form the basis for many colorimetric models,
 /// such as CIELAB and CIECAM.
 pub struct XYZ {
-     pub(crate) obs: ObsId,
+     pub(crate) obs_id: ObsId,
      pub(crate) data:  RowVector3<f64>
 }
 
@@ -21,14 +21,14 @@ impl XYZ {
     /// associated observer, such as `Cie::Std1931` or `Cie::Std2015`.
     pub fn new(obs: ObsId, x: f64, y: f64, z: f64) -> Self {
         let data = RowVector3::new(x,y,z);
-        Self { obs: obs, data}
+        Self { obs_id: obs, data}
     }
     
 
 
     /// XYZ Tristimulus values in a [f64;3] form [X, Y, Z]
     /// ```
-    /// use crate::cie::{Spectrum, CIE1931};
+    /// use crate::colorimetry::{Spectrum, CIE1931};
     /// use approx::assert_ulps_eq;
     ///
     /// let d65_xyz = CIE1931.xyz(&Spectrum::d65()).set_illuminance(100.0);
@@ -43,7 +43,7 @@ impl XYZ {
     }
 
     pub fn set_illuminance(mut self, illuminance: f64) -> Self {
-        let [x, y, z] = self.xyz();
+        let [_x, y, _z] = self.xyz();
         let s = illuminance/y;
         self.data.iter_mut().for_each(|v|*v = *v * s);
         self
@@ -52,7 +52,7 @@ impl XYZ {
     /// Calulate Luminous value, and two dimensional (x,y) chromaticity
     /// coordinates as an array [L,x,y].
     /// ```
-    /// use crate::cie::{Spectrum, CIE1931};
+    /// use crate::colorimetry::{Spectrum, CIE1931};
     /// use approx::assert_ulps_eq;
     ///
     /// let d65_xyz = CIE1931.xyz(&Spectrum::d65());
@@ -104,7 +104,7 @@ impl XYZ {
 
 impl Default for XYZ {
     fn default() -> Self {
-        Self { obs: Default::default(), data: Default::default() }
+        Self { obs_id: Default::default(), data: Default::default() }
     }
 }
 
@@ -120,7 +120,7 @@ impl XYZ {
     /// - X, Y, and Z tristimulus values, and standard Observer ID as 4th argument
 
     #[wasm_bindgen(constructor)]
-    pub fn new_js(x: f64, y:f64, z:JsValue, obs: JsValue) -> Self {
+    pub fn new_js(_x: f64, _y:f64, _z:JsValue, _obs: JsValue) -> Self {
         todo!()
     }
 }
