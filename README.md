@@ -2,10 +2,14 @@
 # Overview
 The Colorimetry Library is a library for color calculations in illumination and engineering projects.
 It can be used for Rust projects and provides JavaScript/WebAssembly interfaces.
-The algorithms implemented try to follow the recommendations by the International Commission on Illumination,
+The algorithms implemented try to follow the recommendations of the International Commission on Illumination,
 the International Color Consortium, the Illumination Engineering Society, and many others.
 
-# The `Spectrum` class is used for all spectral calculations
+Here is a brief overview of the main objects in this library, with some introductory examples.
+
+# Rust Examples
+
+## Use `Spectrum` for spectral data
 All spectral calculations in this library use the `Spectrum` class, which contains the spectral data and spectrum type.
 For practical considerations, it uses a wavelength domain from 380 to 780 nanometers, with 1 nanometer intervals, as recommended in [CIE15:2004](https://archive.org/details/gov.law.cie.15.2004).
 This results in some inconsistencies with older data, as in the past, other wavelength domains were often being used for integration.
@@ -30,15 +34,25 @@ assert_ulps_eq!(y, 0.404_083, epsilon = 1E-6);
 Besides the `Spectrum::planck` constructor, `Spectrum` has many other constructors.
 For example, `Spectrum::d65`, `Spectrum::d50`, and `Spectrm::a` provide spectral distributions of the CIE D65, D50, and A standard illuminants.
 
-# The CIE Standard Colorimetric `Observer`
+## The CIE Standard Colorimetric `Observer`
 `CIE1931` is an instance of the `Observer` class representing colorimetric standard observers and also includes the CIE 1976 10º standard observers and the CIE 2015 2º and 10º cone fundamental derived observers.
-Its primary function `xyz`(s: &Spectrum) -> XYZ` takes a spectral distribution as a single argument with an instance of the `XYZ` class, encapsulating the X, Y, and Z tristimulus values.
+Other instances are `CIE1976`, for the CIE 10º standard observer and `CIE2015``, and `CIE2015_10` for the 2º and 10º observers derived from the Cone Fundamentals.
 
-# `XYZ` Tristimulus Values
+Its primary function `CIE1931.xyz` takes a spectral distribution as a single argument with an instance of the `XYZ` class, encapsulating the X, Y, and Z tristimulus values.
+Likewise, the `CIE1931.lab_d65` and `CIE1931.lab_d50` methods can be used to get CIELAB coordinates for a spectrum measured from a color sample.
+These result in an instance of the `Lab` class.
 
-# `Lab` Color Model
 
-# `RGB` Color Spaces
+## `XYZ` Tristimulus Values
+
+## `Lab` Color Model
+
+## `RGB` Color Spaces
+
+
+# Deno/TypeScript Examples
+
+# Use in Web Applications
 
 # License
 All content &copy;2024 Harbers Bik LLC, and licensed under either of
