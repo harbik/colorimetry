@@ -9,18 +9,18 @@
 export function stefanBoltzmann(temperature: number): number;
 /**
 */
-export enum RGBSpace {
-  SRGB = 0,
-  SRGBFloat = 1,
-  SRGB16 = 2,
-}
-/**
-*/
 export enum ObsId {
   Std1931 = 0,
   Std1976 = 1,
   Std2015 = 2,
   Std2015_10 = 3,
+}
+/**
+*/
+export enum RGBSpace {
+  SRGB = 0,
+  SRGBFloat = 1,
+  SRGB16 = 2,
 }
 /**
 */
@@ -108,46 +108,3 @@ export class XYZ {
 */
   constructor(_x: number, _y: number, _z: any, _obs: any);
 }
-
-export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
-
-export interface InitOutput {
-  readonly memory: WebAssembly.Memory;
-  readonly __wbg_spectrum_free: (a: number) => void;
-  readonly spectrum_d65: () => number;
-  readonly spectrum_d50: () => number;
-  readonly spectrum_a: () => number;
-  readonly spectrum_grey: (a: number) => number;
-  readonly spectrum_grey_filter: (a: number) => number;
-  readonly spectrum_white: () => number;
-  readonly spectrum_black: () => number;
-  readonly spectrum_equal_energy: () => number;
-  readonly spectrum_led: (a: number, b: number) => number;
-  readonly __wbg_observer_free: (a: number) => void;
-  readonly __wbg_xyz_free: (a: number) => void;
-  readonly xyz_new_js: (a: number, b: number, c: number, d: number) => number;
-  readonly __wbg_lab_free: (a: number) => void;
-  readonly __wbg_rgb_free: (a: number) => void;
-  readonly stefanBoltzmann: (a: number) => number;
-}
-
-export type SyncInitInput = BufferSource | WebAssembly.Module;
-/**
-* Instantiates the given `module`, which can either be bytes or
-* a precompiled `WebAssembly.Module`.
-*
-* @param {SyncInitInput} module
-*
-* @returns {InitOutput}
-*/
-export function initSync(module: SyncInitInput): InitOutput;
-
-/**
-* If `module_or_path` is {RequestInfo} or {URL}, makes a request and
-* for everything else, calls `WebAssembly.instantiate` directly.
-*
-* @param {InitInput | Promise<InitInput>} module_or_path
-*
-* @returns {Promise<InitOutput>}
-*/
-export default function __wbg_init (module_or_path?: InitInput | Promise<InitInput>): Promise<InitOutput>;
