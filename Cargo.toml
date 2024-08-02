@@ -5,7 +5,7 @@ edition = "2021"
 description = "Rust library for color modeling with JavaScript/WASM interfaces"
 authors = ["Gerard Harbers", "Harbers Bik LLC"]
 repository = "https://github.com/harbik/colorimetry"
-keywords = ["CIE", "CIELAB", "CIECAM16", "Color Models"]
+keywords = ["CIE", "CIELAB", "CIECAM16", "Colorimetry"]
 license = "MIT OR Apache-2.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
