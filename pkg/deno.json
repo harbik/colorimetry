@@ -1,5 +1,5 @@
 {
     "name": "@harbik/colorimetry",
-    "version": "0.0.1",
+    "version": "0.0.0",
     "exports": "./colorimetry.d.ts"
   }
