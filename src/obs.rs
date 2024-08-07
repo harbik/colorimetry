@@ -40,7 +40,7 @@ impl Observer {
 
     /// Calulates Tristimulus values from a multiplicative combination of two standard spectra.
     /// There are no checks on spectral categories.
-    /// Most commonly, one will be an illuminant, the other a Filter or Reflection.
+    /// Most commonly, one will be an illuminant, the other a Filter or Colorant.
     pub fn xyz2(&self, s1: &Spectrum, s2: &Spectrum) -> XYZ {
 
         let t = s1.data.component_mul(&s2.data) * self.data;
@@ -51,11 +51,11 @@ impl Observer {
     }
 
 
-    /// Calculates the L*a*b* CIELAB D65 values of a Reflection or Filter, using D65 as an illuminant.
-    /// Accepts a Filter or Reflection Spectrum only.
+    /// Calculates the L*a*b* CIELAB D65 values of a Colorant or Filter, using D65 as an illuminant.
+    /// Accepts a Filter or Colorant Spectrum only.
     /// Returns f64::NAN's otherwise.
     pub fn lab_d65(&self, s: &Spectrum) -> Lab {
-        if s.cat != Category::Filter && s.cat != Category::Reflection { // invalid
+        if s.cat != Category::Filter && s.cat != Category::Colorant { // invalid
             Lab::new(f64::NAN, f64::NAN, f64::NAN, self.d65())
         } else {
             let &[x, y, z] = self.xyz2(&crate::data::D65,s).data.as_ref();

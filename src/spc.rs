@@ -13,7 +13,7 @@ use crate::{data::{A, D50, D65}, obs::Observer, physics::{gaussian_peak_one, led
 pub enum Category { 
     Illuminant, // one or more sources, illuminating a color sample
     Filter,     // Light Filter, such as a wratten or glass filter
-    Reflection,   // e.g. A Pigment, Paint, Ink, layer viewed in reflection
+    Colorant,   // e.g. A Pigment, Paint, Ink, layer viewed in colorant
     Stimulus,   // A ray of light from object we are looking at, ultimately
                 // creating a sensation of color in our mind
     Unknown,   
@@ -40,8 +40,8 @@ The categories are:
     0.0 to 1.0, and the `total` value representing the total power transmission of
     the filter.
 - `Substrate`: a spectral transmission function when combined with a `Filter`
-    and spectral reflectivity function combined with a `Reflection`.
-- `Reflection`: a spectral reflectivity function with unitless values ranging from
+    and spectral reflectivity function combined with a `Colorant`.
+- `Colorant`: a spectral reflectivity function with unitless values ranging from
     0.0 to 1.0.
 - `Stimulus`: a spectral radiance distribution of a beam of light entering
     through the pupil of our eyes, on its way to be processed and triggering a
@@ -220,10 +220,10 @@ impl Spectrum {
     /// Theoretical spectrum of a perfect grey color patch, consisting of 401
     /// values equal to the value given in the argument, over a range from 380
     /// to 780 nanometer. Mainly used for color mixing calculations.
-    pub fn gray_reflection(gval: f64) -> Self {
+    pub fn gray(gval: f64) -> Self {
         Self{ 
             data: SpcVector::repeat(gval.clamp(0.0, 1.0)),
-            cat: Category::Reflection,
+            cat: Category::Colorant,
             total: None,
         }
     }
@@ -231,15 +231,15 @@ impl Spectrum {
     /// Theoretical spectrum of a perfect white color patch, consisting of 401
     /// 1.0 values over a range from 380 to 780 nanometer. Mainly used for
     /// color mixing calculations.
-    pub fn white_reflection() -> Self {
-        Self::gray_Reflection(1.0)
+    pub fn white() -> Self {
+        Self::gray(1.0)
     }
 
     /// Theoretical spectrum of a perfect black color patch, consisting of 401
     /// zero values over a range from 380 to 780 nanometer. Mainly used for
     /// color mixing calculations.
-    pub fn black_reflection() -> Self {
-        Self::gray_Reflection(0.0)
+    pub fn black() -> Self {
+        Self::gray(0.0)
     }
 
     /// E, or Equal Energy Illuminant with an irradiance of 1 Watt per square
@@ -391,22 +391,22 @@ impl Spectrum {
 
 fn mixed_category(s1: &Spectrum, s2: &Spectrum) -> Category {
     if 
-        (s1.cat == Category::Illuminant && s2.cat == Category::Reflection) ||
-        (s1.cat == Category::Reflection && s2.cat == Category::Illuminant) ||
+        (s1.cat == Category::Illuminant && s2.cat == Category::Colorant) ||
+        (s1.cat == Category::Colorant && s2.cat == Category::Illuminant) ||
         (s1.cat == Category::Illuminant && s2.cat == Category::Filter) ||
         (s1.cat == Category::Filter && s2.cat == Category::Illuminant) {
         return Category::Stimulus
     } else if s1.cat == Category::Filter && s2.cat == Category::Filter {
             Category::Filter
-    } else if s1.cat == Category::Reflection && s2.cat == Category::Reflection {
-            Category::Reflection
+    } else if s1.cat == Category::Colorant && s2.cat == Category::Colorant {
+            Category::Colorant
     } else {
             Category::Unknown
     }
 }
 
-// Multiplication of Spectral, typically for cominations of an illuminant and a filter or Reflection,
-// or when combining multiple Reflections or filters. Subtractive Mixing.
+// Multiplication of Spectral, typically for cominations of an illuminant and a filter or Colorant,
+// or when combining multiple Colorants or filters. Subtractive Mixing.
 impl Mul for Spectrum {
     type Output = Self;
 
@@ -503,7 +503,7 @@ impl MulAssign<f64> for Spectrum {
     /// Scale a spectrum with a scaler value.
     /// Depending on the type of spectrum this has different meanings.
     /// - for an illuminant, this scales the irradiance,
-    /// - for a Reflection, this scales the total reflectivity.
+    /// - for a Colorant, this scales the total reflectivity.
     /// - for a filter, it changes its transmission.
     /// ```
     ///     use crate::colorimetry::Spectrum;
