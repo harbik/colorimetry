@@ -6,8 +6,9 @@ The algorithms implemented try to follow the recommendations of the Internationa
 the International Color Consortium, the Illumination Engineering Society, and many others.
 
 Here is a brief overview of the main objects in this library, with some introductory examples for use in Rust, Deno/TypeScript, and Web Applications.
+For detailed documentation, check either [crates.io](https://crates.io/crates/colorimetry) for Rust or [jsr.io](https://jsr.io/@harbik/colorimetry) for use in JavaScript Runtime applications.
 
-# Rust
+# Use in Rust applications
 
 To use this library in Rust applications, run the command:
  ```bash
@@ -59,7 +60,7 @@ These result in an instance of the `Lab` class.
 ## `RGB` Color Spaces
 
 
-# Deno/TypeScript
+# Use with Deno/TypeScript
 
 
 

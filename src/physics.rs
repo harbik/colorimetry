@@ -62,7 +62,7 @@ const B: f64 = 1.08480681239; // scaling factor for width (l_w = B * l_fwhm)
 
 /// LED Spectrum model
 ///
-/// See Ohno, Spectral Design considerations for white LED Color Rendering, Optical Engineering 44(11), November 20005
+/// See Ohno, Spectral Design considerations for white LED Color Rendering, Optical Engineering 44(11), November 2005
 /// Scale by spectralWidth
 pub fn led_ohno(wl: f64, center: f64, width: f64) -> f64 {
     let width = B * width;
@@ -71,3 +71,31 @@ pub fn led_ohno(wl: f64, center: f64, width: f64) -> f64 {
     (g + 2.0 * g.powi(5)) / (3.0 * A * width)
 }
 
+
+use std::f64::consts::PI;
+
+/*
+fn main() {
+    // Define the mean (mu) and standard deviation (sigma)
+    let mu = 0.0;
+    let sigma = 1.0;
+
+    // Generate values from -3 to 3 with a step of 0.5 to evaluate the Gaussian function
+    for x in (-60..61).map(|i| i as f64 / 10.0) {
+        let y = gaussian(x, mu, sigma);
+        println!("f({}) = {}", x, y);
+    }
+}
+ */
+
+#[inline]
+pub fn gaussian_peak_one(x: f64, mu: f64, sigma: f64) -> f64 {
+    let exponent = -((x - mu).powi(2)) / (2.0 * sigma.powi(2));
+    exponent.exp()
+}
+
+#[inline]
+pub fn gaussian_normalized(x: f64, mu: f64, sigma: f64) -> f64 {
+    let exponent = -((x - mu).powi(2)) / (2.0 * sigma.powi(2));
+    (1.0 / (sigma * (2.0 * PI).sqrt())) * exponent.exp()
+}
