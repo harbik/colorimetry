@@ -7,7 +7,7 @@
         "exclude": ["!./pkg/**", "./src", "./Cargo.*"] 
     },
     "imports": {
-        "@harbik/colorimetry": "jsr:@harbik/colorimetry@^0.0.1"
+        "@harbik/colorimetry": "jsr:@harbik/colorimetry@^0.0.2"
     },
     "tasks": {
         "test": "deno test -Aq --parallel",
