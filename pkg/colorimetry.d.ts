@@ -9,21 +9,6 @@
 export function stefanBoltzmann(temperature: number): number;
 /**
 */
-export enum ObsId {
-  Std1931 = 0,
-  Std1976 = 1,
-  Std2015 = 2,
-  Std2015_10 = 3,
-}
-/**
-*/
-export enum RGBSpace {
-  SRGB = 0,
-  SRGBFloat = 1,
-  SRGB16 = 2,
-}
-/**
-*/
 export enum Category {
 /**
 * The spectral distribution of onne or more sources, illuminating a color sample
@@ -45,6 +30,21 @@ export enum Category {
 * The type of spectrum is unknown.
 */
   Unknown = 4,
+}
+/**
+*/
+export enum RGBSpace {
+  SRGB = 0,
+  SRGBFloat = 1,
+  SRGB16 = 2,
+}
+/**
+*/
+export enum ObsId {
+  Std1931 = 0,
+  Std1976 = 1,
+  Std2015 = 2,
+  Std2015_10 = 3,
 }
 /**
 */
@@ -143,15 +143,27 @@ export class XYZ {
 *    value is set to 100.0 candela per square meter.
 *
 *    ```javascript, ignore
-*    // D65 CIE 1931 chromaticity coordinates
+*    // Create a new XYZ object using D65 CIE 1931 chromaticity coordinates
 *    const xyz = new cmt.XYZ(0.31272, 0.32903);
-*
-*    // Tristimulus values, with a luminous value of 100.0
+*    
+*    // Get and check the corresponding tristimulus values, with a luminous value
+*    // of 100.0
 *    const [x, y, z] = xyz.values();
-*    assert.assertAlmostEquals(x, 95.047, 5E-3);
+*    assert.assertAlmostEquals(x, 95.047, 5E-3); // D65 wikipedia
 *    assert.assertAlmostEquals(y, 100.0);
 *    assert.assertAlmostEquals(z, 108.883, 5E-3);
 *
+*    // and get back the orgiinal chromaticity coordinates:
+*    const [xc, yc] = xyz.chromaticity();
+*    assert.assertAlmostEquals(xc, 0.31272);
+*    assert.assertAlmostEquals(yc, 0.32903);
+*
+*
+*    // to get the luminous value:
+*    const l = xyz.luminousValue();
+*    assert.assertAlmostEquals(l, 100.0);
+*    // D65 CIE 1931 chromaticity coordinates
+*    const xyz = new cmt.XYZ(0.31272, 0.32903);
 *    ```
 *    
 * @param {number} x

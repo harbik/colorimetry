@@ -1,10 +1,17 @@
 {
-  "test": {
-    "exclude": ["book/book"]
-  },
-  "tasks": {
-    "test": "deno test -Aq --parallel",
-    "build": "wasm-pack build --target web && deno test -Aq --parallel",
-    "serve-book": "mdbook serve book"
+    "name": "@harbik/colorimetry",
+    "version": "0.0.1",
+    "exports": "./pkg/colorimetry.js",
+    "types": "./pkg/colorimetry.d.ts",
+    "publish": {
+        "exclude": ["!./pkg/**"] 
+    },
+    "imports": {
+        "@harbik/colorimetry": "jsr:@harbik/colorimetry@^0.0.1"
+    },
+    "tasks": {
+        "test": "deno test -Aq --parallel",
+        "build": "wasm-pack build --target web && deno test -Aq --parallel",
+    }
   }
-}
+

@@ -1,9 +1,24 @@
 {
   "version": "3",
+  "packages": {
+    "specifiers": {
+      "jsr:@harbik/colorimetry@^0.0.1": "jsr:@harbik/colorimetry@0.0.1"
+    },
+    "jsr": {
+      "@harbik/colorimetry@0.0.1": {
+        "integrity": "a8ea1e26f4416eebbfb5be77b850cca4ad6b442f7575ea4dc5e4eb7f2456fc99"
+      }
+    }
+  },
   "remote": {
     "https://deno.land/std@0.156.0/fmt/colors.ts": "ff7dc9c9f33a72bd48bc24b21bbc1b4545d8494a431f17894dbc5fe92a938fc4",
     "https://deno.land/std@0.156.0/testing/_diff.ts": "a23e7fc2b4d8daa3e158fa06856bedf5334ce2a2831e8bf9e509717f455adb2c",
     "https://deno.land/std@0.156.0/testing/_format.ts": "cd11136e1797791045e639e9f0f4640d5b4166148796cad37e6ef75f7d7f3832",
     "https://deno.land/std@0.156.0/testing/asserts.ts": "8696c488bc98d8d175e74dc652a0ffbc7fca93858da01edc57ed33c1148345da"
+  },
+  "workspace": {
+    "dependencies": [
+      "jsr:@harbik/colorimetry@^0.0.1"
+    ]
   }
 }

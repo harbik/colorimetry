@@ -1,5 +1,7 @@
-// @deno-types="../pkg/colorimetry.d.ts"
+/// <reference types="../pkg/colorimetry.d.ts"
+//import init, * as cmt from "@harbik/colorimetry"; // this does not work, it does not see the init as default
 import init, * as cmt from "../pkg//colorimetry.js";
+
 import  * as  assert from "https://deno.land/std@0.156.0/testing/asserts.ts";
 await init();
 
