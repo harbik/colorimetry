@@ -33,7 +33,7 @@ Correlated Color Temperature of 3000 Kelvin using the CIE 1931 standard observer
 use crate::colorimetry::{Spectrum, CIE1931};
 use approx::assert_ulps_eq;
 
-let p3000 = Spectrum::planckian(3000.0);
+let p3000 = Spectrum::planckian_illuminant(3000.0);
 let [l, x, y] = CIE1931.xyz(&p3000).lxy();
 
 assert_ulps_eq!(l, 20.668_927, epsilon = 1E-6);

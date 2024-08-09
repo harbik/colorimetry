@@ -20,7 +20,7 @@ pub enum ObsId {
 /// These are defined in the form of three discrete representations of color matching functions.
 #[wasm_bindgen]
 pub struct Observer {
-    pub(crate) data: SMatrix<f64, NS, 3>,
+    pub(crate) data: SMatrix<f64, 3, NS>,
     pub(crate) lumconst: f64,
     pub(crate) id: ObsId,
 }
@@ -31,7 +31,7 @@ impl Observer {
     /// For example used with illuminants, or stimuli.
     /// Tristimulus values are the basis for all calculations in CIE Colorimetry.
     pub fn xyz(&self, s: &Spectrum) -> XYZ {
-        let t = s.data * self.data;
+        let t = self.data * s.data;
         XYZ {
            data:  t * self.lumconst,
            obs_id: self.id
@@ -40,10 +40,10 @@ impl Observer {
 
     /// Calulates Tristimulus values from a multiplicative combination of two standard spectra.
     /// There are no checks on spectral categories.
-    /// Most commonly, one will be an illuminant, the other a Filter or Colorant.
+    /// Most commonly, one will be an illuminant, the other a Filter or ColorPatch.
     pub fn xyz2(&self, s1: &Spectrum, s2: &Spectrum) -> XYZ {
 
-        let t = s1.data.component_mul(&s2.data) * self.data;
+        let t = self.data * s1.data.component_mul(&s2.data);
         XYZ {
            data:  t * self.lumconst,
            obs_id: self.id
@@ -51,11 +51,11 @@ impl Observer {
     }
 
 
-    /// Calculates the L*a*b* CIELAB D65 values of a Colorant or Filter, using D65 as an illuminant.
-    /// Accepts a Filter or Colorant Spectrum only.
+    /// Calculates the L*a*b* CIELAB D65 values of a ColorPatch or Filter, using D65 as an illuminant.
+    /// Accepts a Filter or ColorPatch Spectrum only.
     /// Returns f64::NAN's otherwise.
     pub fn lab_d65(&self, s: &Spectrum) -> Lab {
-        if s.cat != Category::Filter && s.cat != Category::Colorant { // invalid
+        if s.cat != Category::Filter && s.cat != Category::ColorPatch { // invalid
             Lab::new(f64::NAN, f64::NAN, f64::NAN, self.d65())
         } else {
             let &[x, y, z] = self.xyz2(&crate::data::D65,s).data.as_ref();

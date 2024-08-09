@@ -1,6 +1,7 @@
-use nalgebra::RowVector3;
-use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
+use nalgebra::Vector3;
 use crate::obs::ObsId;
+use wasm_bindgen::prelude::wasm_bindgen; 
+
 
 #[wasm_bindgen]
 #[derive(Clone, Copy)]
@@ -11,7 +12,7 @@ use crate::obs::ObsId;
 /// such as CIELAB and CIECAM.
 pub struct XYZ {
      pub(crate) obs_id: ObsId,
-     pub(crate) data:  RowVector3<f64>
+     pub(crate) data:  Vector3<f64>
 }
 
 
@@ -20,7 +21,7 @@ impl XYZ {
     /// Define a set of XYZ-values directly, using an identifier for its
     /// associated observer, such as `Cie::Std1931` or `Cie::Std2015`.
     pub fn new(obs: ObsId, x: f64, y: f64, z: f64) -> Self {
-        let data = RowVector3::new(x,y,z);
+        let data = Vector3::new(x,y,z);
         Self { obs_id: obs, data}
     }
     
@@ -31,39 +32,48 @@ impl XYZ {
     /// use crate::colorimetry::{Spectrum, CIE1931};
     /// use approx::assert_ulps_eq;
     ///
-    /// let d65_xyz = CIE1931.xyz(&Spectrum::d65()).set_illuminance(100.0);
+    /// let d65_xyz = CIE1931.xyz(&Spectrum::d65_illuminant()).set_illuminance(100.0);
     /// let [x, y, z] = d65_xyz.xyz();
     /// // Calculated Spreadsheet Values from CIE Datasets, over a range from 380 to 780nm
     /// assert_ulps_eq!(x, 95.042_267, epsilon = 1E-6);
     /// assert_ulps_eq!(y, 100.0);
     /// assert_ulps_eq!(z, 108.861_036, epsilon = 1E-6);
     /// ```
-    pub fn xyz(&self) -> [f64; 3] {
+    pub fn values(&self) -> [f64; 3] {
         self.data.as_ref().clone()
     }
 
     pub fn set_illuminance(mut self, illuminance: f64) -> Self {
-        let [_x, y, _z] = self.xyz();
+        let [_x, y, _z] = self.values();
         let s = illuminance/y;
         self.data.iter_mut().for_each(|v|*v = *v * s);
         self
     }
     
-    /// Calulate Luminous value, and two dimensional (x,y) chromaticity
-    /// coordinates as an array [L,x,y].
+    /// The chromaticity coordinates as an array [x,y].
     /// ```
     /// use crate::colorimetry::{Spectrum, CIE1931};
     /// use approx::assert_ulps_eq;
     ///
-    /// let d65_xyz = CIE1931.xyz(&Spectrum::d65());
+    /// let d65_xyz = CIE1931.xyz(&Spectrum::d65_illuminant());
     /// let [l,x,y] = d65_xyz.lxy();
     /// assert_ulps_eq!(x, 0.312_738, epsilon = 1E-6);
     /// assert_ulps_eq!(y, 0.329_052, epsilon = 1E-6);
     /// ```
-    pub fn lxy(&self) -> [f64; 3] {
-        let [x,y,z] = self.xyz();
+    pub fn chromaticity(&self) -> [f64; 2] {
+        let [x,y,z] = self.values();
         let s = x + y + z;
-        [y, x/s, y/s]
+        [x/s, y/s]
+    }
+
+    /// Luminous value Y of the tristimulus values.
+    /// 
+    /// This value is associated with different types of photometric quantities -
+    /// see Wikipedia's article on [Luminous Intensity](https://en.wikipedia.org/wiki/Luminous_intensity).
+    /// As a stimuilus, this value has a unit of candela per square meters,
+    /// as an illuminant lux, or lumen per square meter.
+    pub fn luminous_value(&self) -> f64 {
+        self.data.y
     }
 
     /// CIE 1960 UCS Color Space uv coordinates *Deprecated* by the CIE, but
@@ -108,19 +118,97 @@ impl Default for XYZ {
     }
 }
 
+// JS-WASM Interface code
+#[cfg(target_arch="wasm32")]
 #[wasm_bindgen]
 impl XYZ {
 
-    /// XYZ Tristimuls Values JavaScript Constructor
-    /// 
-    /// Accepts as arguments 
-    /// - x and y chromaticity coordinates only , using the "Cie::Std1931" observer as default
-    /// - x and y chromaticity coordinates, and standard observer ID as 3rd argument
-    /// - X, Y, and Z tristimulus values, using the "Cie::Std1931" observer as default
-    /// - X, Y, and Z tristimulus values, and standard Observer ID as 4th argument
+    /**
+    Create an XYZ Tristimuls Values object.
 
-    #[wasm_bindgen(constructor)]
-    pub fn new_js(_x: f64, _y:f64, _z:JsValue, _obs: JsValue) -> Self {
-        todo!()
+    Accepts as arguments 
+
+    - x and y chromaticity coordinates only , using the "Cie::Std1931" observer as default
+    - x and y chromaticity coordinates, and standard observer ID as 3rd argument
+    - X, Y, and Z tristimulus values, using the "Cie::Std1931" observer as default
+    - X, Y, and Z tristimulus values, and a standard Observer ID as 4th argument
+
+    When only x and y chromaticity coordinates are specified, the luminous
+    value is set to 100.0 candela per square meter.
+
+    ```javascript, ignore
+    // Create a new XYZ object using D65 CIE 1931 chromaticity coordinates
+    const xyz = new cmt.XYZ(0.31272, 0.32903);
+    
+    // Get and check the corresponding tristimulus values, with a luminous value
+    // of 100.0
+    const [x, y, z] = xyz.values();
+    assert.assertAlmostEquals(x, 95.047, 5E-3); // D65 wikipedia
+    assert.assertAlmostEquals(y, 100.0);
+    assert.assertAlmostEquals(z, 108.883, 5E-3);
+
+    // and get back the orgiinal chromaticity coordinates:
+    const [xc, yc] = xyz.chromaticity();
+    assert.assertAlmostEquals(xc, 0.31272);
+    assert.assertAlmostEquals(yc, 0.32903);
+
+
+    // to get the luminous value:
+    const l = xyz.luminousValue();
+    assert.assertAlmostEquals(l, 100.0);
+    // D65 CIE 1931 chromaticity coordinates
+    const xyz = new cmt.XYZ(0.31272, 0.32903);
+    ```
+    */
+
+    #[wasm_bindgen(constructor, variadic)]
+    pub fn new_js(x: f64, y:f64, opt : &js_sys::Array) -> Result<XYZ, crate::CmError> {
+        use wasm_bindgen::convert::TryFromJsValue;
+        use crate::CmError; 
+        let (x, y, z, obs) = match opt.length() {
+            0 => (x * 100.0/y, 100.0, (1.0 - x - y) * 100.0/y, ObsId::Std1931),
+            1 => {
+                if opt.get(0).as_f64().is_some() {
+                    (x, y, opt.get(0).as_f64().unwrap(), ObsId::Std1931)
+                } else {
+                    let obs = ObsId::try_from_js_value(opt.get(0))?;
+                    (x * 100.0/y, 100.0, (1.0 - x - y) * 100.0/y, obs)
+                }
+            }
+            2 => {
+                let z = opt.get(0).as_f64().ok_or(crate::CmError::ErrorString("please provide a z value as number".into()))?;
+                let obs = ObsId::try_from_js_value(opt.get(1))?;
+                (x, y, z, obs)
+            }
+            _ => {
+                return Err(CmError::ErrorString("Invalid Arguments for XYZ constructor".into()));
+            }
+        };
+        if x<0.0 || y<0.0 || z<0.0 {
+                return Err(CmError::ErrorString("XYZ values should be all positive values".into()));
+        }
+        Ok(XYZ::new(obs, x, y, z))
+    }
+
+
+    /// Get the XYZ tristimulus value as an array.
+    #[wasm_bindgen(js_name=values)]
+    pub fn values_js(&self)->js_sys::Array {
+        let &[x, y, z] = self.data.as_ref();
+        js_sys::Array::of3(&x.into(), &y.into(), &z.into())
+
+    }
+
+    /// Get the chromaticity coordinates
+    #[wasm_bindgen(js_name=chromaticity)]
+    pub fn chromaticity_js(&self)->js_sys::Array {
+        let [x, y] = self.chromaticity();
+        js_sys::Array::of2(&x.into(), &y.into())
+    }
+
+    /// Get the luminous value
+    #[wasm_bindgen(js_name=luminousValue)]
+    pub fn luminous_value_js(&self)->f64 {
+        self.luminous_value()
     }
 }

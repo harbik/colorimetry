@@ -1,0 +1,18 @@
+{
+    "lint": {
+      "files": {
+        "exclude": ["pkg/"]
+      },
+      "rules": {
+        "tags": ["recommended"]
+      }
+  },
+  "test": {
+    "exclude": ["book/book"]
+  },
+  "tasks": {
+    "test": "deno test -Aq --parallel",
+    "build": "wasm-pack build --target web && deno test -Aq --parallel",
+    "serve-book": "mdbook serve book"
+  }
+}

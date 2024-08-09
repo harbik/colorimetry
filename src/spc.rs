@@ -1,9 +1,9 @@
-use std::{collections::BTreeMap, error::Error, ops::{Add, Mul, MulAssign}};
+use std::{collections::BTreeMap, error::Error, ops::{Add, Deref, Index, IndexMut, Mul, MulAssign}};
 
 use url::Url;
 use wasm_bindgen::prelude::wasm_bindgen;
 
-use nalgebra::SMatrix;
+use nalgebra::{DVector, SVector};
 
 use crate::{data::{A, D50, D65}, obs::Observer, physics::{gaussian_peak_one, led_ohno, planck, stefan_boltzmann}, CmError};
 
@@ -11,11 +11,19 @@ use crate::{data::{A, D50, D65}, obs::Observer, physics::{gaussian_peak_one, led
 #[wasm_bindgen]
 #[derive(PartialEq, Eq, Clone, Copy)]
 pub enum Category { 
-    Illuminant, // one or more sources, illuminating a color sample
-    Filter,     // Light Filter, such as a wratten or glass filter
-    Colorant,   // e.g. A Pigment, Paint, Ink, layer viewed in colorant
-    Stimulus,   // A ray of light from object we are looking at, ultimately
-                // creating a sensation of color in our mind
+    /// The spectral distribution of onne or more sources, illuminating a color sample
+    Illuminant, 
+
+    /// A Filter spectrum , such as a wratten or glass filter, which changes the properties of an illuminant.
+    Filter,     
+
+    /// The spectrum of a color patch, typically consisting of a paint or ink on a substrate, as measured with a spectrophotomteer.
+    ColorPatch,
+
+    /// A ray of light from object we are looking at, typically an illuminated by an illuminant.
+    Stimulus,   
+    
+    /// The type of spectrum is unknown.
     Unknown,   
 }
 
@@ -23,7 +31,7 @@ pub enum Category {
 // with 401 values.
 pub const NS: usize = 401;
 
-pub type SpcVector = SMatrix<f64, 1, NS>;
+//pub type SVector::<f64,NS> = SVector<f64, NS>;
 
 /**
 This container holds spectral values within a wavelength domain ranging from 380
@@ -40,8 +48,8 @@ The categories are:
     0.0 to 1.0, and the `total` value representing the total power transmission of
     the filter.
 - `Substrate`: a spectral transmission function when combined with a `Filter`
-    and spectral reflectivity function combined with a `Colorant`.
-- `Colorant`: a spectral reflectivity function with unitless values ranging from
+    and spectral reflectivity function combined with a `ColorPatch`.
+- `ColorPatch`: a spectral reflectivity function with unitless values ranging from
     0.0 to 1.0.
 - `Stimulus`: a spectral radiance distribution of a beam of light entering
     through the pupil of our eyes, on its way to be processed and triggering a
@@ -56,7 +64,7 @@ display.
 #[wasm_bindgen]
 #[derive(Clone, Copy)]
 pub struct Spectrum {
-    pub(crate) data: SpcVector,
+    pub(crate) data: SVector<f64, NS>,
     pub(crate) cat: Category,
     pub(crate) total: Option<f64>, // total irradiance/reflectivity/transimissivity (power based)
 
@@ -70,7 +78,7 @@ impl Spectrum {
             Ok(
                 Self {
                     cat,
-                    data: SpcVector::from_iterator(data.into_iter().copied()),
+                    data: SVector::<f64, NS>::from_iterator(data.into_iter().copied()),
                     total
                 }
             )
@@ -139,18 +147,15 @@ impl Spectrum {
     }
 
     /**
-    Smooth a Spectrum using a Gaussian filter 
+    Smooth a Spectrum by convolution with a Gaussian function
      */
     pub fn smoothing_filter(mut self, mut width: f64) -> Self {
         if width < 1E-3 { width *= 1E6 }; // to nanometer
         let sigma = width / ((8.0 * 2f64.ln()).sqrt());
-        let sd6 = (6.0 * sigma).floor() as i32;
-        let kernel: Vec<f64> =  (-sd6..=sd6).into_iter().map(|i| gaussian_peak_one(i as f64, 0.0, sigma) ).collect();
-   //     let d = self.data.transpose().convolve_same(kernel);
-   //     let d2 = self.data.convolve_same(kernel);
-
-        todo!();
-
+        let sd3 = (3.0 * sigma).floor() as i32;
+        let kernel =  DVector::<f64>::from_iterator((2*sd3+1) as usize, (-sd3..=sd3).into_iter().map(|i| gaussian_peak_one(i as f64, 0.0, sigma)));
+        self.data = self.data.convolve_same(kernel);
+        self
     }
 
     /**
@@ -192,14 +197,48 @@ impl Spectrum {
         A.clone()
     }
 
+    /// A Rectangular Band Filter, specified by a central wavelength, and a
+    /// width, both in units of meter, or nanometer.
+    ///
+    /// The filter has a peak value of 1.0
+    /// ```rust
+    /// # use approx::assert_ulps_eq;
+    /// use colorimetry as cmt;
+    /// let bandfilter = cmt::Spectrum::band_filter(550.0, 1.0).values();
+    /// assert_ulps_eq!(bandfilter[549-380], 0.0);
+    /// assert_ulps_eq!(bandfilter[550-380], 1.0);
+    /// assert_ulps_eq!(bandfilter[551-380], 0.0);
+    ///
+    /// let bandfilter = cmt::Spectrum::band_filter(550.0, 2.0).values();
+    /// assert_ulps_eq!(bandfilter[548-380], 0.0);
+    /// assert_ulps_eq!(bandfilter[549-380], 1.0);
+    /// assert_ulps_eq!(bandfilter[550-380], 1.0);
+    /// assert_ulps_eq!(bandfilter[551-380], 1.0);
+    /// assert_ulps_eq!(bandfilter[552-380], 0.0);
+    /// 
+    /// ```
+    pub fn band_filter(center: f64, width: f64) -> Self {
+        let [center_m, width_m] = to_meter([center, width]);
+        let data = SVector::<f64,NS>::from_fn(|i,_j|
+            {
+                let w = (i+380) as f64 * 1E-9;
+                let left = center_m - width_m/2.0;
+                let right = center_m + width_m/2.0;
+                if w < left - f64::EPSILON || w > right + f64::EPSILON { 0.0}
+                else {1.0}
+            }
+        );
+        Self { data, cat: Category::Filter, total: None }
+    }
+
     /// A Gaussian Filter, specified by a central wavelength, and a
     /// full-width-half-maximum value, both in units of meter, or nanometer.
     ///
     /// The filter has a peak value of 1.0
     pub fn gaussian_filter(center: f64, width: f64) -> Self {
         let [center_m, width_m] = to_meter([center, width]);
-        let data = SpcVector::from_fn(|_i,j|
-            gaussian_peak_one((j+380) as f64 * 1E-9, center_m, width_m)
+        let data = SVector::<f64,NS>::from_fn(|i,_j|
+            gaussian_peak_one((i+380) as f64 * 1E-9, center_m, width_m)
         );
         Self { data, cat: Category::Filter, total: None }
     }
@@ -211,7 +250,7 @@ impl Spectrum {
     /// to 0.0 for negative values, and 1.0 for values greater than 1.0.
     pub fn gray_filter(gval: f64) -> Self {
         Self{ 
-            data: SpcVector::repeat(gval.clamp(0.0, 1.0)),
+            data: SVector::<f64,NS>::repeat(gval.clamp(0.0, 1.0)),
             cat: Category::Filter,
             total: None,
         }
@@ -222,8 +261,8 @@ impl Spectrum {
     /// to 780 nanometer. Mainly used for color mixing calculations.
     pub fn gray(gval: f64) -> Self {
         Self{ 
-            data: SpcVector::repeat(gval.clamp(0.0, 1.0)),
-            cat: Category::Colorant,
+            data: SVector::<f64,NS>::repeat(gval.clamp(0.0, 1.0)),
+            cat: Category::ColorPatch,
             total: None,
         }
     }
@@ -247,7 +286,7 @@ impl Spectrum {
     pub fn equal_energy_illuminant() -> Self {
         let s = 1./NS as f64;
         Self{ 
-            data: SpcVector::repeat(s),
+            data: SVector::<f64,NS>::repeat(s),
             cat: Category::Illuminant,
             total: Some(1.0)
         }
@@ -263,7 +302,7 @@ impl Spectrum {
     /// # use crate::colorimetry::{Spectrum, CIE1931};
     /// # use approx::assert_ulps_eq;
     /// 
-    /// let p3000 = Spectrum::planckian(3000.0);
+    /// let p3000 = Spectrum::planckian_illuminant(3000.0);
     /// let [l, x, y] = CIE1931.xyz(&p3000).lxy();
     /// assert_ulps_eq!(l, 20.668_927, epsilon = 1E-6);
     /// assert_ulps_eq!(x, 0.436_935, epsilon = 1E-6);
@@ -276,7 +315,7 @@ impl Spectrum {
     pub fn planckian_illuminant(cct: f64) -> Self {
 
         let s = 1E-9/stefan_boltzmann(cct); // 1W/m2 total irradiance
-        let data = SpcVector::from_fn(|_i,j|s * planck((j+380) as f64*1e-9, cct));
+        let data = SVector::<f64,NS>::from_fn(|i,_j|s * planck((i+380) as f64*1e-9, cct));
         Self {
             data,
             cat: Category::Illuminant,
@@ -295,7 +334,7 @@ impl Spectrum {
     /// November 2005.
     pub fn led_illuminant(center: f64, width: f64) -> Self {
         let [center_m, width_m] = to_meter([center, width]);
-        let data = SpcVector::from_fn(|_i,j|
+        let data = SVector::<f64,NS>::from_fn(|_i,j|
             led_ohno((j+380) as f64 * 1E-9, center_m, width_m) * 1E-9
         );
         Self { data, cat: Category::Illuminant, total: Some(1.0) }
@@ -326,7 +365,7 @@ impl Spectrum {
     }
 
     pub fn set_illuminance(&mut self, obs: &Observer, illuminance: f64) -> &mut Self {
-        let l = illuminance / (self.data * obs.data.column(1) * obs.lumconst).x;
+        let l = illuminance / (obs.data.row(1) *  self.data * obs.lumconst).x;
         self.data.iter_mut().for_each(|v| *v = *v * l);
         self.cat = Category::Illuminant;
         self
@@ -334,7 +373,7 @@ impl Spectrum {
 
     pub fn illuminance(&self, obs: &Observer) -> f64 {
         if self.cat == Category::Illuminant {
-            (self.data * obs.data.column(1) * obs.lumconst).x
+            (obs.data.row(1) * self.data *  obs.lumconst).x
         } else {
             f64::NAN
         }
@@ -391,22 +430,22 @@ impl Spectrum {
 
 fn mixed_category(s1: &Spectrum, s2: &Spectrum) -> Category {
     if 
-        (s1.cat == Category::Illuminant && s2.cat == Category::Colorant) ||
-        (s1.cat == Category::Colorant && s2.cat == Category::Illuminant) ||
+        (s1.cat == Category::Illuminant && s2.cat == Category::ColorPatch) ||
+        (s1.cat == Category::ColorPatch && s2.cat == Category::Illuminant) ||
         (s1.cat == Category::Illuminant && s2.cat == Category::Filter) ||
         (s1.cat == Category::Filter && s2.cat == Category::Illuminant) {
         return Category::Stimulus
     } else if s1.cat == Category::Filter && s2.cat == Category::Filter {
             Category::Filter
-    } else if s1.cat == Category::Colorant && s2.cat == Category::Colorant {
-            Category::Colorant
+    } else if s1.cat == Category::ColorPatch && s2.cat == Category::ColorPatch {
+            Category::ColorPatch
     } else {
             Category::Unknown
     }
 }
 
-// Multiplication of Spectral, typically for cominations of an illuminant and a filter or Colorant,
-// or when combining multiple Colorants or filters. Subtractive Mixing.
+// Multiplication of two spectra, typically for a combinations of an illuminant and a filter or ColorPatch,
+// or when combining multiple ColorPatchs or filters. Subtractive Mixing.
 impl Mul for Spectrum {
     type Output = Self;
 
@@ -426,7 +465,7 @@ impl Mul<f64> for Spectrum {
     ///     use crate::colorimetry::Spectrum;
     ///     use approx::assert_ulps_eq;
     ///
-    ///     let mut led = Spectrum::led(550.0, 25.0);
+    ///     let mut led = Spectrum::led_illuminant(550.0, 25.0);
     ///     let mut irradiance = led.irradiance();
     ///     assert_ulps_eq!(led.irradiance(), 1.0, epsilon = 1E-10);
     ///
@@ -437,10 +476,15 @@ impl Mul<f64> for Spectrum {
 
     // spectrum * scalar
     fn mul(self, rhs: f64) -> Self::Output {
+        let total = if let Some(t) = self.total {
+            Some(t * rhs)
+        } else {
+            None
+        };
         Self{
             cat: self.cat,
             data: self.data * rhs,
-            total: None
+            total
         }
     }
 }
@@ -451,7 +495,7 @@ impl Mul<Spectrum> for f64 {
     ///     use crate::colorimetry::Spectrum;
     ///     use approx::assert_ulps_eq;
     ///
-    ///     let mut led = Spectrum::led(550.0, 25.0);
+    ///     let mut led = Spectrum::led_illuminant(550.0, 25.0);
     ///     let mut irradiance = led.irradiance();
     ///     assert_ulps_eq!(led.irradiance(), 1.0, epsilon = 1E-10);
     ///
@@ -462,10 +506,15 @@ impl Mul<Spectrum> for f64 {
 
     // scalar * spectrum
     fn mul(self, rhs: Spectrum) -> Self::Output {
+        let total = if let Some(t) = rhs.total {
+            Some(t * self)
+        } else {
+            None
+        };
         Self::Output {
             cat: rhs.cat,
             data: self * rhs.data,
-            total: None
+            total
         }
     }
 }
@@ -503,22 +552,73 @@ impl MulAssign<f64> for Spectrum {
     /// Scale a spectrum with a scaler value.
     /// Depending on the type of spectrum this has different meanings.
     /// - for an illuminant, this scales the irradiance,
-    /// - for a Colorant, this scales the total reflectivity.
+    /// - for a ColorPatch, this scales the total reflectivity.
     /// - for a filter, it changes its transmission.
     /// ```
     ///     use crate::colorimetry::Spectrum;
     ///     use approx::assert_ulps_eq;
     ///
-    ///     let mut led = Spectrum::led(550.0, 25.0);
+    ///     let mut led = Spectrum::led_illuminant(550.0, 25.0);
     ///     assert_ulps_eq!(led.irradiance(), 1.0, epsilon = 1E-10);
     ///
     ///     led *= 10.0;
     ///     assert_ulps_eq!(led.irradiance(), 10.0, epsilon = 1E-10);
     /// ```
     fn mul_assign(&mut self, rhs: f64) {
+        self.total = if let Some(t) = self.total {
+            Some(t * rhs)
+        } else {
+            None
+        };
         self.data.iter_mut().for_each(|v| *v *= rhs);
 
     }
+}
+
+/// Read a spectrum value by an integer wavelength value in the range from 380..=780
+/// nanometer.
+/// 
+/// Invalid indices will result in a f64::NAN value.
+impl Index<usize> for Spectrum {
+    type Output = f64;
+
+    fn index(&self, i: usize) -> &Self::Output {
+        if i<380 || i>780 {
+            &f64::NAN
+        } else {
+            &self.data[(i-380,0)]
+
+        }
+    }
+}
+
+/// Mutable Access a spectrum value by an integer wavelength value in the range from 380..=780
+/// nanometer.
+/// 
+/// Out of range indices will set the edge values.
+impl IndexMut<usize> for Spectrum {
+
+    fn index_mut(&mut self, i: usize) -> &mut Self::Output {
+        match i {
+            380..=780 => &mut self.data[(i-380,0)],
+            ..380 => &mut self.data[(0,0)],
+            781.. => &mut self.data[(400,0)],
+        }
+    }
+}
+#[test]
+fn index_test(){
+    use approx::assert_ulps_eq;
+    let mut s = Spectrum::white();
+
+    // Set a spectral value
+    let v = s[500];
+    s[500] = 0.5;
+    assert_ulps_eq!(s[500], 0.5);
+
+    // A read from an index out of the 380..=780 range with given f64::NAN.
+    s[300] = 0.5;
+    assert!(s[300].is_nan());
 }
 
 /// Convenience function for specifying wavelengths in nanometers or meters.
@@ -560,35 +660,31 @@ mod tests {
 
     #[test]
     fn ee() {
-        let [l, x, y ] = CIE1931.xyz(&&Spectrum::equal_energy_illuminant().set_illuminance(&CIE1931, 100.0)).lxy();
-        assert_ulps_eq!(l, 100.0, epsilon = f64::EPSILON);
+        let [x, y ] = CIE1931.xyz(&&Spectrum::equal_energy_illuminant().set_illuminance(&CIE1931, 100.0)).chromaticity();
         assert_ulps_eq!(x, 0.333_3, epsilon = 5E-5);
         assert_ulps_eq!(y, 0.333_3, epsilon = 5E-5);
     }
 
     #[test]
     fn d65() {
-        let [l, x, y ] = CIE1931.xyz(&Spectrum::d65_illuminant().set_illuminance(&CIE1931, 100.0)).lxy();
+        let [x, y ] = CIE1931.xyz(&Spectrum::d65_illuminant().set_illuminance(&CIE1931, 100.0)).chromaticity();
         // See table T3 CIE15:2004 (calculated with 5nm intervals, instead of 1nm, as used here)
-        assert_ulps_eq!(l, 100.0, epsilon = f64::EPSILON);
         assert_ulps_eq!(x, 0.312_72, epsilon = 5E-5);
         assert_ulps_eq!(y, 0.329_03, epsilon = 5E-5);
     }
 
     #[test]
     fn d50() {
-        let [l, x, y ] = CIE1931.xyz(&Spectrum::d50_illuminant().set_illuminance(&CIE1931, 100.0)).lxy();
+        let [x, y ] = CIE1931.xyz(&Spectrum::d50_illuminant().set_illuminance(&CIE1931, 100.0)).chromaticity();
         // See table T3 CIE15:2004 (calculated with 5nm intervals, instead of 1nm, as used here)
-        assert_ulps_eq!(l, 100.0, epsilon = 1E-8);
         assert_ulps_eq!(x, 0.345_67, epsilon = 5E-5);
         assert_ulps_eq!(y, 0.358_51, epsilon = 5E-5);
     }
 
     #[test]
     fn a() {
-        let [l, x, y ] = CIE1931.xyz(&Spectrum::a_illuminant().set_illuminance(&CIE1931, 100.0)).lxy();
+        let [x, y ] = CIE1931.xyz(&Spectrum::a_illuminant().set_illuminance(&CIE1931, 100.0)).chromaticity();
         // See table T3 CIE15:2004 (calculated with 5nm intervals, instead of 1nm, as used here)
-        assert_ulps_eq!(l, 100.0, epsilon = f64::EPSILON);
         assert_ulps_eq!(x, 0.447_58, epsilon = 5E-5);
         assert_ulps_eq!(y, 0.407_45, epsilon = 5E-5);
     }

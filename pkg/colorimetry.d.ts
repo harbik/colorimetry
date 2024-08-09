@@ -9,13 +9,11 @@
 export function stefanBoltzmann(temperature: number): number;
 /**
 */
-export enum Category {
-  Illuminant = 0,
-  Filter = 1,
-  Substrate = 2,
-  Colorant = 3,
-  Stimulus = 4,
-  Unknown = 5,
+export enum ObsId {
+  Std1931 = 0,
+  Std1976 = 1,
+  Std2015 = 2,
+  Std2015_10 = 3,
 }
 /**
 */
@@ -26,11 +24,27 @@ export enum RGBSpace {
 }
 /**
 */
-export enum ObsId {
-  Std1931 = 0,
-  Std1976 = 1,
-  Std2015 = 2,
-  Std2015_10 = 3,
+export enum Category {
+/**
+* The spectral distribution of onne or more sources, illuminating a color sample
+*/
+  Illuminant = 0,
+/**
+* A Filter spectrum , such as a wratten or glass filter, which changes the properties of an illuminant.
+*/
+  Filter = 1,
+/**
+* The spectrum of a color patch, typically consisting of a paint or ink on a substrate, as measured with a spectrophotomteer.
+*/
+  ColorPatch = 2,
+/**
+* A ray of light from object we are looking at, typically an illuminated by an illuminant.
+*/
+  Stimulus = 3,
+/**
+* The type of spectrum is unknown.
+*/
+  Unknown = 4,
 }
 /**
 */
@@ -65,8 +79,8 @@ export class RGB {
 *    0.0 to 1.0, and the `total` value representing the total power transmission of
 *    the filter.
 *- `Substrate`: a spectral transmission function when combined with a `Filter`
-*    and spectral reflectivity function combined with a `Colorant`.
-*- `Colorant`: a spectral reflectivity function with unitless values ranging from
+*    and spectral reflectivity function combined with a `ColorPatch`.
+*- `ColorPatch`: a spectral reflectivity function with unitless values ranging from
 *    0.0 to 1.0.
 *- `Stimulus`: a spectral radiance distribution of a beam of light entering
 *    through the pupil of our eyes, on its way to be processed and triggering a
@@ -115,19 +129,51 @@ export class Spectrum {
 export class XYZ {
   free(): void;
 /**
-* XYZ Tristimuls Values JavaScript Constructor
-* 
-* Accepts as arguments 
-* - x and y chromaticity coordinates only , using the "Cie::Std1931" observer as default
-* - x and y chromaticity coordinates, and standard observer ID as 3rd argument
-* - X, Y, and Z tristimulus values, using the "Cie::Std1931" observer as default
-* - X, Y, and Z tristimulus values, and standard Observer ID as 4th argument
-* @param {number} _x
-* @param {number} _y
-* @param {any} _z
-* @param {any} _obs
+*
+*    Create an XYZ Tristimuls Values object.
+*
+*    Accepts as arguments 
+*
+*    - x and y chromaticity coordinates only , using the "Cie::Std1931" observer as default
+*    - x and y chromaticity coordinates, and standard observer ID as 3rd argument
+*    - X, Y, and Z tristimulus values, using the "Cie::Std1931" observer as default
+*    - X, Y, and Z tristimulus values, and a standard Observer ID as 4th argument
+*
+*    When only x and y chromaticity coordinates are specified, the luminous
+*    value is set to 100.0 candela per square meter.
+*
+*    ```javascript, ignore
+*    // D65 CIE 1931 chromaticity coordinates
+*    const xyz = new cmt.XYZ(0.31272, 0.32903);
+*
+*    // Tristimulus values, with a luminous value of 100.0
+*    const [x, y, z] = xyz.values();
+*    assert.assertAlmostEquals(x, 95.047, 5E-3);
+*    assert.assertAlmostEquals(y, 100.0);
+*    assert.assertAlmostEquals(z, 108.883, 5E-3);
+*
+*    ```
+*    
+* @param {number} x
+* @param {number} y
+* @param {...Array<any>} opt
 */
-  constructor(_x: number, _y: number, _z: any, _obs: any);
+  constructor(x: number, y: number, ...opt: Array<any>);
+/**
+* Get the XYZ tristimulus value as an array.
+* @returns {Array<any>}
+*/
+  values(): Array<any>;
+/**
+* Get the chromaticity coordinates
+* @returns {Array<any>}
+*/
+  chromaticity(): Array<any>;
+/**
+* Get the luminous value
+* @returns {number}
+*/
+  luminousValue(): number;
 }
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
@@ -141,10 +187,14 @@ export interface InitOutput {
   readonly __wbg_rgb_free: (a: number) => void;
   readonly stefanBoltzmann: (a: number) => number;
   readonly __wbg_xyz_free: (a: number) => void;
-  readonly xyz_new_js: (a: number, b: number, c: number, d: number) => number;
+  readonly xyz_new_js: (a: number, b: number, c: number, d: number) => void;
+  readonly xyz_values: (a: number) => number;
+  readonly xyz_chromaticity: (a: number) => number;
+  readonly xyz_luminousValue: (a: number) => number;
   readonly __wbg_lab_free: (a: number) => void;
-  readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
   readonly __wbindgen_malloc: (a: number, b: number) => number;
+  readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
+  readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
   readonly __wbindgen_free: (a: number, b: number, c: number) => void;
 }
 
