@@ -1,4 +1,4 @@
-/// <reference types="./colorimetry.d.ts"
+/// <reference types="./colorimetry.d.ts"/>
 let wasm;
 
 const heap = new Array(128).fill(undefined);
