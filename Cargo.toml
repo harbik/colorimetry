@@ -1,6 +1,6 @@
 [package]
 name = "colorimetry"
-version = "0.0.1"
+version = "0.0.2"
 edition = "2021"
 description = "Rust library for color modeling with JavaScript/WASM interfaces"
 authors = ["Gerard Harbers", "Harbers Bik LLC"]

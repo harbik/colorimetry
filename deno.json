@@ -1,10 +1,10 @@
 {
     "name": "@harbik/colorimetry",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "exports": "./pkg/colorimetry.js",
     "types": "./pkg/colorimetry.d.ts",
     "publish": {
-        "exclude": ["!./pkg/**"] 
+        "exclude": ["!./pkg/**", "./src", "./Cargo.*"] 
     },
     "imports": {
         "@harbik/colorimetry": "jsr:@harbik/colorimetry@^0.0.1"
