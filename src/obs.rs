@@ -78,7 +78,7 @@ impl Observer {
             l += step;
         }
         let scale = self.lumconst/pow; // Scale for 1 W/m2 irradiance.
-        XYZ::new(self.id, x * scale, y * scale, z * scale)
+        XYZ::new(x * scale, y * scale, z * scale, self.id)
     }
 
     pub fn planckian_slope(&self, _cct: f64) -> f64 {

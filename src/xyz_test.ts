@@ -2,7 +2,7 @@
 import init, * as cmt from "../pkg//colorimetry.js";
 
 import  * as  assert from "https://deno.land/std@0.156.0/testing/asserts.ts";
-// import init, * as cmt from "@harbik/colorimetry"; // for using the published jsr version
+//import init, * as cmt from "jsr:@harbik/colorimetry"; // for using the published jsr version
 await init();
 
 
@@ -13,6 +13,7 @@ Deno.test("new_js", () => {
     // Get and check the corresponding tristimulus values, with a luminous value
     // of 100.0
     const [x, y, z] = xyz.values();
+    console.log(xyz.values());
     assert.assertAlmostEquals(x, 95.047, 5E-3); // D65 wikipedia
     assert.assertAlmostEquals(y, 100.0);
     assert.assertAlmostEquals(z, 108.883, 5E-3);

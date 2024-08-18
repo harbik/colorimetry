@@ -1,4 +1,6 @@
 
+use js_sys::Atomics::or;
+use nalgebra::ComplexField;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 
@@ -73,6 +75,8 @@ pub fn led_ohno(wl: f64, center: f64, width: f64) -> f64 {
 
 
 use std::f64::consts::PI;
+
+use crate::CmError;
 
 /*
 fn main() {

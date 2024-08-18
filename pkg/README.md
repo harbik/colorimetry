@@ -1,14 +1,13 @@
 
 # Overview
 The Colorimetry Library is a library for color calculations in illumination and engineering projects.
-It can be used for Rust projects and provides JavaScript/WebAssembly interfaces.
+It is written in Rust but provides WebAssembly JavaScript/WebAssembly interface as well, as published here.
 The algorithms implemented try to follow the recommendations of the International Commission on Illumination,
 the International Color Consortium, the Illumination Engineering Society, and many others.
 
 Here is a brief overview of the main objects in this library, with some introductory examples for use in Rust, Deno/TypeScript, and Web Applications.
-For detailed documentation, check either [crates.io](https://crates.io/crates/colorimetry) for Rust or [jsr.io](https://jsr.io/@harbik/colorimetry) for use in JavaScript Runtime applications.
 
-# Use in Rust applications
+# Use in Deno
 
 To use this library in Rust applications, run the command:
  ```bash

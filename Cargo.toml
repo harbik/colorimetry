@@ -19,6 +19,7 @@ url = "2.5.2"
 libm = "0.2.8"
 thiserror = "1.0.63"
 js-sys = "0.3.69"
+wasm-bindgen-futures = "0.4.42"
 
 [lib]
 crate-type = ["cdylib", "rlib"]

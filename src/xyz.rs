@@ -20,9 +20,9 @@ impl XYZ {
 
     /// Define a set of XYZ-values directly, using an identifier for its
     /// associated observer, such as `Cie::Std1931` or `Cie::Std2015`.
-    pub fn new(obs: ObsId, x: f64, y: f64, z: f64) -> Self {
+    pub fn new(x: f64, y: f64, z: f64, obs_id: ObsId) -> Self {
         let data = Vector3::new(x,y,z);
-        Self { obs_id: obs, data}
+        Self { obs_id, data}
     }
     
 
@@ -187,7 +187,7 @@ impl XYZ {
         if x<0.0 || y<0.0 || z<0.0 {
                 return Err(CmError::ErrorString("XYZ values should be all positive values".into()));
         }
-        Ok(XYZ::new(obs, x, y, z))
+        Ok(XYZ::new(x, y, z, obs))
     }
 
 

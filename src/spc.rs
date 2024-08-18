@@ -1,11 +1,11 @@
-use std::{collections::BTreeMap, error::Error, ops::{Add, Deref, Index, IndexMut, Mul, MulAssign}};
+use std::{collections::BTreeMap, error::Error, ops::{Add, Index, IndexMut, Mul, MulAssign}};
 
 use url::Url;
-use wasm_bindgen::prelude::wasm_bindgen;
+use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 
 use nalgebra::{DVector, SVector};
 
-use crate::{data::{A, D50, D65}, obs::Observer, physics::{gaussian_peak_one, led_ohno, planck, stefan_boltzmann}, CmError};
+use crate::{cri::CRI, data::{A, D50, D65}, obs::Observer, physics::{gaussian_peak_one, led_ohno, planck, stefan_boltzmann}, CmError};
 
 
 #[wasm_bindgen]
@@ -384,8 +384,17 @@ impl Spectrum {
         let _url = Url::parse(loc)?;
         todo!()
 
+
     }
 
+    /// Calculates the Color Rendering Index values for illuminant spectrum.
+    /// 
+    /// To use this function, first use `CRI::init().await`, which downloads the
+    /// Test Color Samples required for the calculation.  These are downloaded
+    /// seperately to limit the size of the main web assembly library.
+    pub fn cri(&self) -> Result<CRI, Box<dyn Error>> {
+        todo!()
+    }
 }
 
 
@@ -424,6 +433,72 @@ impl Spectrum {
     #[wasm_bindgen(js_name=Values)]
     pub fn values_js(&self) -> Box<[f64]> {
         self.values().into()
+    }
+
+    /**
+    This function maps spectral data with irregular intervals or intervals
+    different than 1 nanometer to the standard spectrum as used in this
+    library.
+
+    For domains with a regular interval, the wavelength slice should have a size
+    of two, containing the minimum and maximum wavelength values, both also in
+    units of meters or nanometers.
+
+    For irregular domains, this function requires a slice of wavelengths and
+    a slice of spectral data, both of the same size. The wavelengths can be
+    specified in units of meters or nanometers.
+
+    In case of duplicate wavelength values the last data values is used, so it
+    is impossible to define filters with vertical edges using this method.
+
+    ```ts, ignore
+    // Creates a linear gradient filter, with a zero transmission at 380
+    // nanometer, and full transmission at 780 nanometer. This is an example
+    // using a uniform wavelength domain as input.
+    use colorimetry as cmt;
+    # use approx::assert_ulps_eq;
+    let data = [0.0, 1.0];
+    let wl = [380.0, 780.0];
+    let mut spd = cmt::Spectrum::linear_interpolate(cmt::Category::Filter, &wl, &data, None).unwrap().values();
+    assert_ulps_eq!(spd[0], 0.);
+    assert_ulps_eq!(spd[100], 0.25);
+    assert_ulps_eq!(spd[200], 0.5);
+    assert_ulps_eq!(spd[300], 0.75);
+    assert_ulps_eq!(spd[400], 1.0);
+
+    // Creates a top hat filter, with slanted angles, using an irregular
+    // wavelength domain.
+    let data = vec![0.0, 1.0, 1.0, 0.0];
+    let wl = vec![480.0, 490.0, 570.0, 580.0];
+    let spd = cmt::Spectrum::linear_interpolate(cmt::Category::Filter, &wl, &data, None).unwrap().values();
+    assert_ulps_eq!(spd[0], 0.0);
+    assert_ulps_eq!(spd[100], 0.0);
+    assert_ulps_eq!(spd[110], 1.0);
+    assert_ulps_eq!(spd[190], 1.0);
+    assert_ulps_eq!(spd[200], 0.0);
+    assert_ulps_eq!(spd[300], 0.0);
+    assert_ulps_eq!(spd[400], 0.0);
+    ```
+    */
+    #[wasm_bindgen(js_name=linearInterpolate)]
+    pub fn linear_interpolate_js(cat: Category, wavelengths: &[f64], data: &[f64], total_js: &JsValue) -> Result<Spectrum, crate::CmError> {
+        let total = if let Some(t) = total_js.as_f64() {
+            Some(t)
+        } else {
+            None
+        };
+        Self::linear_interpolate(cat, wavelengths, data, total)
+
+    }
+
+    /// Calculates the Color Rendering Index values for illuminant spectrum.
+    /// 
+    /// To use this function, first use `await CRI.init()`, which downloads the
+    /// Test Color Samples required for the calculation.  These are downloaded
+    /// seperately to limit the size of the main web assembly library.
+    #[wasm_bindgen(js_name=cri)]
+    pub fn cri_js(&self) -> Result<CRI, crate::CmError> {
+        todo!()
     }
 
 }
@@ -612,7 +687,6 @@ fn index_test(){
     let mut s = Spectrum::white();
 
     // Set a spectral value
-    let v = s[500];
     s[500] = 0.5;
     assert_ulps_eq!(s[500], 0.5);
 

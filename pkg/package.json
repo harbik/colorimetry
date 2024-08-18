@@ -6,7 +6,7 @@
     "Harbers Bik LLC"
   ],
   "description": "Rust library for color modeling with JavaScript/WASM interfaces",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "license": "MIT OR Apache-2.0",
   "repository": {
     "type": "git",

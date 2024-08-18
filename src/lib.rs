@@ -16,6 +16,8 @@ pub mod lab;
 pub mod rgb;
 pub mod physics;
 pub mod data;
+pub mod cri;
+pub mod geometry;
 
 
 #[derive(thiserror::Error, Debug)]
@@ -80,6 +82,8 @@ pub enum CmError {
     DataSize401Error,
     #[error("Linear Interpolate: Incorrect wavelength data")]
     InterpolateWavelengthError,
+    #[error("This method requires distinct points")]
+    RequiresDistinctPoints 
 
 }
 
