@@ -1,4 +1,5 @@
-use std::sync::OnceLock;
+use core::f64;
+use std::{f32::NAN, sync::OnceLock};
 use wasm_bindgen::prelude::wasm_bindgen;
 use nalgebra::SMatrix;
 use crate::{lab::Lab, physics::planck, rgb::RGB, spc::{Spectrum, Category, NS}, xyz::XYZ};
@@ -6,7 +7,7 @@ use crate::{lab::Lab, physics::planck, rgb::RGB, spc::{Spectrum, Category, NS}, 
 
 
 #[wasm_bindgen]
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy, Default, PartialEq, Eq, Debug)]
 pub enum ObsId { 
     #[default] Std1931, 
     Std1976, 
@@ -14,6 +15,14 @@ pub enum ObsId {
     Std2015_10
 }
 
+impl ObsId {
+    pub fn observer(&self) -> &'static Observer {
+        match self {
+            ObsId::Std1931 =>  &crate::data::CIE1931,
+            _ => todo!()
+        }
+    }
+}
 
 
 /// A data structure to define Standard Observers, such as the CIE 1931 2º and the CIE 2015 standard observers.
@@ -81,6 +90,16 @@ impl Observer {
         XYZ::new(x * scale, y * scale, z * scale, self.id)
     }
 
+    /// The Spectral Locus, or (x,y) coordinates of the _horse shoe_, the boundary
+    /// of area of all physical colors in a chromiticity diagram, as (x,y)
+    /// chromaticity coordinates.
+    /// See Wikipedia's [CIE 1931 Color Space](https://en.wikipedia.org/wiki/CIE_1931_color_space).
+    pub fn spectral_locus(&self, i: usize) -> XYZ {
+        let i = i.clamp(380, 780);
+        let &[x, y, z] = self.data.column(i-380).as_ref();
+        XYZ::new(x, y, z, self.id)
+    }
+
     pub fn planckian_slope(&self, _cct: f64) -> f64 {
         todo!()
     }
@@ -144,4 +163,41 @@ const MIRED_MAX: usize = 1000;
 const NP:usize = 4096;
 fn im2t(im: usize) -> f64 {
     1E6/( 1.0 + ((((MIRED_MAX-1)*im)) as f64) / ((NP-1) as f64)) 
+}
+
+
+#[cfg(test)]
+mod obs_test {
+
+    use crate::{CIE1931, D65, LineAB};
+    use approx::assert_ulps_eq;
+
+    #[test]
+    fn test_spectral_locus(){
+        let [x,y] = CIE1931.spectral_locus(380).chromaticity();
+        assert_ulps_eq!(x, 0.1741122344, epsilon=1E-8);
+        assert_ulps_eq!(y, 0.004963725981, epsilon=1E-8);
+
+        let [x,y] = CIE1931.spectral_locus(780).chromaticity();
+        assert_ulps_eq!(x, 0.7346899837, epsilon=1E-8);
+        assert_ulps_eq!(y, 0.2653100163, epsilon=1E-8);
+    }
+
+    // 
+    fn test_spectral_locus_angles(){
+        let mut prev = 0.0;
+        for i in 380..=780 {
+            let xyz = CIE1931.spectral_locus(i);
+            let [x,y] = xyz.chromaticity();
+            let [xw,yw] = CIE1931.d65().chromaticity();
+            let line = LineAB::try_new([xw,yw], [x,y]).unwrap();
+            let angle = line.angle_deg();
+            let anglediff = angle - prev;
+            let l = i + 380;
+            let incremental: bool = anglediff<0.0;
+            println!("{l}, {x:.7}, {y:.7}, {anglediff:.2e} {incremental}");
+            prev = angle;
+        }
+    }
+
 }

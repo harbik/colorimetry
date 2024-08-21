@@ -1,11 +1,12 @@
 
-#![allow(dead_code)]
+#![allow(dead_code, unused_variables, unused_imports)]
 #![doc = include_str!("../README.md")]
 
 
-pub use spc::{Spectrum, Category};
-pub use obs::ObsId;
-pub use data::CIE1931;
+pub use spc::*;
+pub use obs::*;
+pub use data::*;
+pub use geometry::*;
 use wasm_bindgen::JsValue;
 
 
@@ -83,7 +84,11 @@ pub enum CmError {
     #[error("Linear Interpolate: Incorrect wavelength data")]
     InterpolateWavelengthError,
     #[error("This method requires distinct points")]
-    RequiresDistinctPoints 
+    RequiresDistinctPoints,
+    #[error("Arguments require the identical Standard Observer")]
+    RequireSameObserver,
+    #[error("Lines do not intersect")]
+    NoIntersection,
 
 }
 

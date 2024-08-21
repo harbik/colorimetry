@@ -1,10 +1,10 @@
 use nalgebra::Vector3;
-use crate::obs::ObsId;
+use crate::{geometry::{LineAB, Orientation}, obs::ObsId, CmError};
 use wasm_bindgen::prelude::wasm_bindgen; 
 
 
 #[wasm_bindgen]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 /// A set of CIE XYZ Tristimulus values, associated with a Standard Observer.
 /// They are calculated using the spectrum of a Stimulus, such as beam of light
 /// reflected from a color patch, or emitted from a pixel of a display.
@@ -26,6 +26,14 @@ impl XYZ {
     }
     
 
+    pub fn try_add(&self, other: XYZ) -> Result<XYZ, CmError> {
+        if self.obs_id == other.obs_id {
+            let data = self.data + other.data;
+            Ok(XYZ {data, obs_id: self.obs_id})
+        } else {
+            Err(CmError::RequireSameObserver)
+        }
+    }
 
     /// XYZ Tristimulus values in a [f64;3] form [X, Y, Z]
     /// ```
@@ -33,7 +41,7 @@ impl XYZ {
     /// use approx::assert_ulps_eq;
     ///
     /// let d65_xyz = CIE1931.xyz(&Spectrum::d65_illuminant()).set_illuminance(100.0);
-    /// let [x, y, z] = d65_xyz.xyz();
+    /// let [x, y, z] = d65_xyz.values();
     /// // Calculated Spreadsheet Values from CIE Datasets, over a range from 380 to 780nm
     /// assert_ulps_eq!(x, 95.042_267, epsilon = 1E-6);
     /// assert_ulps_eq!(y, 100.0);
@@ -56,7 +64,7 @@ impl XYZ {
     /// use approx::assert_ulps_eq;
     ///
     /// let d65_xyz = CIE1931.xyz(&Spectrum::d65_illuminant());
-    /// let [l,x,y] = d65_xyz.lxy();
+    /// let [x,y] = d65_xyz.chromaticity();
     /// assert_ulps_eq!(x, 0.312_738, epsilon = 1E-6);
     /// assert_ulps_eq!(y, 0.329_052, epsilon = 1E-6);
     /// ```
@@ -103,6 +111,71 @@ impl XYZ {
         let den = x + 15.0 * y + 3.0 * z;
         [4.0 * x / den, 9.0 * y / den]
     }
+
+    
+    /// The Dominant Wavelength of a color point is the wavelength of spectral
+    /// color, obtained from the intersection of a line through a white point
+    /// and itself, with the spectral locus.  Points on this line were
+    /// historically thought off as having the same hue, but that has been
+    /// proven wrong.  This value has limited practical use, but is sometimes
+    /// used for color definition of LEDs.
+    /// 
+    /// The spectral locus, being the boundary of all possible colors in the CIE
+    /// 1931 diagram, collapses to one point beyond a wavelength of 699nm. As a
+    /// result, the maxium range of dominant wavelengths which can be obtained
+    /// is from 380 to 699 nanometer;
+    /// 
+    pub fn dominant_wavelength(&self, white: XYZ) -> Result<f64, CmError>{
+        const WAVLENGTH_MAX: usize = 699; // No change in spectral locus point position above 699 nm.
+        let mut negative = false;
+        let mut low = 380usize;
+        let mut high = WAVLENGTH_MAX;
+        let mut mid = 540usize;  // 200 fails, as its tail overlaps into the blue region
+        if white.obs_id!=self.obs_id {
+            Err(CmError::RequireSameObserver)
+        } else {
+            let [mut x, mut y] = self.chromaticity();
+            let [xw, yw] = white.chromaticity();
+            // if color point is in the purple rotate it around the white point by 180º, and give wavelength a negative value
+            let blue_edge = LineAB::try_new([xw, yw], self.obs_id.observer().spectral_locus(low).chromaticity()).unwrap();
+            let red_edge = LineAB::try_new([xw, yw], self.obs_id.observer().spectral_locus(high).chromaticity()).unwrap();
+            if blue_edge.orientation(x, y) == Orientation::Left && red_edge.orientation(x, y) == Orientation::Right {
+                negative = true;
+                x = 2.0 * xw - x;
+                y = 2.0 * yw - y;
+            }
+            // start bisectional search
+            while high - low > 1 {
+                let bisect = LineAB::try_new([xw, yw], self.obs_id.observer().spectral_locus(mid).chromaticity()).unwrap();
+                let a = bisect.angle_deg();
+                match bisect.orientation(x, y) {
+                    Orientation::Left => high = mid,
+                    Orientation::Right => low = mid,
+                    Orientation::Colinear =>  {
+                        low = mid;
+                        high = mid;
+                    }
+
+                }
+                mid = (low + high)/2;
+            }
+            if low == high {
+                Ok(low as f64)
+            } else {
+                let low_ab = LineAB::try_new(white.chromaticity(), self.obs_id.observer().spectral_locus(low).chromaticity()).unwrap();
+                let dlow = low_ab.distance(x, y);
+                let high_ab = LineAB::try_new(white.chromaticity(), self.obs_id.observer().spectral_locus(high).chromaticity()).unwrap();
+                let dhigh= high_ab.distance(x, y);
+                if negative {
+                    Ok(-(dlow * high as f64 + dhigh * low as f64)/(dlow + dhigh))
+                } else {
+                    Ok((dlow * high as f64 + dhigh * low as f64)/(dlow + dhigh))
+
+                }
+            }
+        }
+    }
+
 
     pub fn cct(&self) -> [f64; 2] {
         todo!()
@@ -210,5 +283,66 @@ impl XYZ {
     #[wasm_bindgen(js_name=luminousValue)]
     pub fn luminous_value_js(&self)->f64 {
         self.luminous_value()
+    }
+}
+
+#[cfg(test)]
+mod xyz_test {
+    use approx::assert_ulps_eq;
+    use crate::{LineAB, CIE1931};
+
+    #[test]
+    fn dominant_wavelength_test(){
+        let d65 = CIE1931.d65().set_illuminance(50.0);
+        
+        // 550 nm
+        let sl = CIE1931.spectral_locus(550).set_illuminance(50.0);
+        let t = d65.try_add(sl).unwrap();
+        let dl = t.dominant_wavelength(d65).unwrap();
+        assert_ulps_eq!(dl, 550.0);
+
+        for wl in 380..=699usize {
+            let sl2 = CIE1931.spectral_locus(wl);
+            //let [slx, sly] = sl2.chromaticity();
+            //println!("sl xy: {slx} {sly}");
+            let dl = sl2.dominant_wavelength(d65).unwrap();
+            assert_ulps_eq!(dl, wl as f64, epsilon = 1E-10);
+
+        }
+
+
+    }
+
+    #[test]
+    fn dominant_wavelength_purple_test(){
+        let d65 = CIE1931.d65().set_illuminance(50.0);
+        let [xw, yw] = d65.chromaticity();
+        
+        // purple region
+        let xyzb = CIE1931.spectral_locus(380);
+        let xyzr = CIE1931.spectral_locus(699);
+        let [xb, yb] = xyzb.chromaticity();
+        let [xr, yr] = xyzr.chromaticity();
+        let line_t = LineAB::try_new([xb, yb], [xr, yr]).unwrap();
+        for wl in 380..=699usize {
+            let sl = CIE1931.spectral_locus(wl);
+            let [x, y] = sl.chromaticity();
+            let line_u = LineAB::try_new([x, y], [xw, yw]).unwrap();
+            let ([xi, yi], t, _) = line_t.intersect(line_u).unwrap();
+            if t>0.0 && t<1.0 {
+               let ratio = (yb * (yr - yi))/(yr * (yi - yb)); 
+               // see https://en.wikipedia.org/wiki/CIE_1931_color_space#Mixing_colors_specified_with_the_CIE_xy_chromaticity_diagram
+               let b = xyzb.set_illuminance(ratio*100.0);
+               let r =  xyzr.set_illuminance((1.0-ratio)*100.0);
+               let s = b.try_add(r).unwrap();
+               let dl = s.dominant_wavelength(d65).unwrap();
+                println!("{wl} {dl}");
+               // todo!()
+            }
+            //assert_ulps_eq!(dl, wl as f64, epsilon = 1E-10);
+
+        }
+
+
     }
 }

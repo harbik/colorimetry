@@ -303,7 +303,8 @@ impl Spectrum {
     /// # use approx::assert_ulps_eq;
     /// 
     /// let p3000 = Spectrum::planckian_illuminant(3000.0);
-    /// let [l, x, y] = CIE1931.xyz(&p3000).lxy();
+    /// let [x, y] = CIE1931.xyz(&p3000).chromaticity();
+    /// let l = CIE1931.xyz(&p3000).luminous_value();
     /// assert_ulps_eq!(l, 20.668_927, epsilon = 1E-6);
     /// assert_ulps_eq!(x, 0.436_935, epsilon = 1E-6);
     /// assert_ulps_eq!(y, 0.404_083, epsilon = 1E-6);
