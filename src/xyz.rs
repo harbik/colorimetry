@@ -126,10 +126,9 @@ impl XYZ {
     /// is from 380 to 699 nanometer;
     /// 
     pub fn dominant_wavelength(&self, white: XYZ) -> Result<f64, CmError>{
-        const WAVLENGTH_MAX: usize = 699; // No change in spectral locus point position above 699 nm.
         let mut sign = 1.0;
-        let mut low = 380usize;
-        let mut high = WAVLENGTH_MAX;
+        let mut low = self.obs_id.observer().locus_wavelength_min();
+        let mut high = self.obs_id.observer().locus_wavelength_max();
         let mut mid = 540usize;  // 200 fails, as its tail overlaps into the blue region
         if white.obs_id!=self.obs_id {
             Err(CmError::RequireSameObserver)
@@ -137,8 +136,8 @@ impl XYZ {
             let [mut x, mut y] = self.chromaticity();
             let [xw, yw] = white.chromaticity();
             // if color point is in the purple rotate it around the white point by 180º, and give wavelength a negative value
-            let blue_edge = LineAB::try_new([xw, yw], self.obs_id.observer().spectral_locus(low).chromaticity()).unwrap();
-            let red_edge = LineAB::try_new([xw, yw], self.obs_id.observer().spectral_locus(high).chromaticity()).unwrap();
+            let blue_edge = LineAB::try_new([xw, yw], self.obs_id.observer().spectral_locus(low).unwrap().chromaticity()).unwrap();
+            let red_edge = LineAB::try_new([xw, yw], self.obs_id.observer().spectral_locus(high).unwrap().chromaticity()).unwrap();
             match (blue_edge.orientation(x, y), red_edge.orientation(x, y)) {
                 (Orientation::Colinear, _) => return Ok(380.0),
                 (_, Orientation::Colinear) => return Ok(699.0),
@@ -151,7 +150,7 @@ impl XYZ {
             }
             // start bisectional search
             while high - low > 1 {
-                let bisect = LineAB::try_new([xw, yw], self.obs_id.observer().spectral_locus(mid).chromaticity()).unwrap();
+                let bisect = LineAB::try_new([xw, yw], self.obs_id.observer().spectral_locus(mid).unwrap().chromaticity()).unwrap();
              //   let a = bisect.angle_deg();
                 match bisect.orientation(x, y) {
                     Orientation::Left => high = mid,
@@ -167,9 +166,9 @@ impl XYZ {
             if low == high {
                 Ok(sign * low as f64)
             } else {
-                let low_ab = LineAB::try_new(white.chromaticity(), self.obs_id.observer().spectral_locus(low).chromaticity()).unwrap();
+                let low_ab = LineAB::try_new(white.chromaticity(), self.obs_id.observer().spectral_locus(low).unwrap().chromaticity()).unwrap();
                 let dlow = low_ab.distance_with_sign(x, y);
-                let high_ab = LineAB::try_new(white.chromaticity(), self.obs_id.observer().spectral_locus(high).chromaticity()).unwrap();
+                let high_ab = LineAB::try_new(white.chromaticity(), self.obs_id.observer().spectral_locus(high).unwrap().chromaticity()).unwrap();
                 let dhigh= high_ab.distance_with_sign(x, y);
                 if dlow<0.0 || dhigh>0.0 { // not ended up between two lines
                     let s = format!("bisection error in dominant wavelength search:  {dlow} {low} {dhigh} {high}");
@@ -301,13 +300,13 @@ mod xyz_test {
         let d65 = CIE1931.d65().set_illuminance(50.0);
         
         // 550 nm
-        let sl = CIE1931.spectral_locus(550).set_illuminance(50.0);
+        let sl = CIE1931.spectral_locus(550).unwrap().set_illuminance(50.0);
         let t = d65.try_add(sl).unwrap();
         let dl = t.dominant_wavelength(d65).unwrap();
         assert_ulps_eq!(dl, 550.0);
 
         for wl in 380..=699usize {
-            let sl2 = CIE1931.spectral_locus(wl);
+            let sl2 = CIE1931.spectral_locus(wl).unwrap();
             //let [slx, sly] = sl2.chromaticity();
             //println!("sl xy: {slx} {sly}");
             let dl = sl2.dominant_wavelength(d65).unwrap();
@@ -324,13 +323,13 @@ mod xyz_test {
         let [xw, yw] = d65.chromaticity();
         
         // get purple line
-        let xyzb = CIE1931.spectral_locus(380);
+        let xyzb = CIE1931.spectral_locus(380).unwrap();
         let [xb, yb] = xyzb.chromaticity();
-        let xyzr = CIE1931.spectral_locus(699);
+        let xyzr = CIE1931.spectral_locus(699).unwrap();
         let [xr, yr] = xyzr.chromaticity();
         let line_t = LineAB::try_new([xb, yb], [xr, yr]).unwrap();
         for wl in 380..=699usize {
-            let sl = CIE1931.spectral_locus(wl);
+            let sl = CIE1931.spectral_locus(wl).unwrap();
             let [x, y] = sl.chromaticity();
             let line_u = LineAB::try_new([x, y], [xw, yw]).unwrap();
             let ([xi, yi], t, _) = line_t.intersect(&line_u).unwrap();

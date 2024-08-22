@@ -2,7 +2,7 @@ use core::f64;
 use std::{f32::NAN, sync::OnceLock};
 use wasm_bindgen::prelude::wasm_bindgen;
 use nalgebra::SMatrix;
-use crate::{lab::Lab, physics::planck, rgb::RGB, spc::{Spectrum, Category, NS}, xyz::XYZ};
+use crate::{lab::Lab, physics::planck, rgb::RGB, spc::{Category, Spectrum, NS}, xyz::XYZ, CmError, LineAB};
 
 
 
@@ -90,14 +90,87 @@ impl Observer {
         XYZ::new(x * scale, y * scale, z * scale, self.id)
     }
 
-    /// The Spectral Locus, or (x,y) coordinates of the _horse shoe_, the boundary
-    /// of area of all physical colors in a chromiticity diagram, as (x,y)
-    /// chromaticity coordinates.
+    /// The Spectral Locus, or (x,y) coordinates of the _horse shoe_, the
+    /// boundary of area of all physical colors in a chromiticity diagram, as
+    /// XYZ tristimulus values.  Tristimulus values are returned here, instead
+    /// of chromaticity xy coordinates, to make use of the available XYZ
+    /// transforms.
+    /// 
     /// See Wikipedia's [CIE 1931 Color Space](https://en.wikipedia.org/wiki/CIE_1931_color_space).
-    pub fn spectral_locus(&self, i: usize) -> XYZ {
-        let i = i.clamp(380, 780);
-        let &[x, y, z] = self.data.column(i-380).as_ref();
-        XYZ::new(x, y, z, self.id)
+    pub fn spectral_locus(&self, l: usize) -> Result<XYZ, CmError> {
+        let min = self.locus_index_min();
+        let max = self.locus_index_max();
+        if l<380 || l>780 {
+            return Err(CmError::WavelengthOutOfRange);
+        };
+        let i = l-380;
+        if i<min || i>max {
+            Err(CmError::NoUniqueSpectralLocus)
+        } else {
+            let &[x, y, z] = self.data.column(i).as_ref();
+            Ok(XYZ::new(x, y, z, self.id))
+
+        }
+    }
+
+    fn locus_by_index(&self, i:usize) -> [f64;2] {
+        let &[x, y, z] = self.data.column(i).as_ref();
+        let s = x + y + z;
+        [x/s, y/s]
+    }
+
+    /// The index value of the blue spectral locus edge.
+    /// Any further spectral locus points will hover around this edge, and will not have a unique wavelength.
+    pub fn locus_index_min(&self) -> usize {
+        static MIN: OnceLock<usize> = OnceLock::new();
+        *MIN.get_or_init(||{
+            const START: usize = 100;
+            let mut lp = LineAB::try_new(self.locus_by_index(START), [0.33333, 0.33333]).unwrap();
+            let mut m = START - 1;
+            loop {
+                let l = LineAB::try_new(self.locus_by_index(m), [0.33333, 0.33333]).unwrap();
+                match (m, l.angle_diff(lp)) {
+                    (0, d) if d> -f64::EPSILON => break m + 1,
+                    (0, _)  => break 0,
+                    (1.., d) if d> -f64::EPSILON => break m,
+                    _ => {
+                        m = m - 1;
+                        lp = l;
+                    }
+                }
+            }
+        })
+    }
+
+    pub fn locus_wavelength_min(&self) -> usize {
+        self.locus_index_min()+380
+    }
+
+    /// The index value of the red spectral locus edge.
+    /// Any further spectral locus points will hover around this edge.
+    pub fn locus_index_max(&self) -> usize {
+        static MAX: OnceLock<usize> = OnceLock::new();
+        *MAX.get_or_init(||{
+            const START: usize = 300;
+            let mut lp = LineAB::try_new(self.locus_by_index(START), [0.33333, 0.33333]).unwrap();
+            let mut m = START + 1;
+            loop {
+                let l = LineAB::try_new(self.locus_by_index(m), [0.33333, 0.33333]).unwrap();
+                match (m, l.angle_diff(lp)) {
+                    (400, d) if d< f64::EPSILON => break m-1,
+                    (400, _)  => break 400,
+                    (..400, d) if d< f64::EPSILON => break m-1,
+                    _ => {
+                        m = m + 1;
+                        lp = l;
+                    }
+                }
+            }
+        })
+    }
+
+    pub fn locus_wavelength_max(&self) -> usize {
+        self.locus_index_max()+380
     }
 
     pub fn planckian_slope(&self, _cct: f64) -> f64 {
@@ -174,30 +247,21 @@ mod obs_test {
 
     #[test]
     fn test_spectral_locus(){
-        let [x,y] = CIE1931.spectral_locus(380).chromaticity();
-        assert_ulps_eq!(x, 0.1741122344, epsilon=1E-8);
-        assert_ulps_eq!(y, 0.004963725981, epsilon=1E-8);
+        let [x,y] = CIE1931.spectral_locus(CIE1931.locus_wavelength_min()).unwrap().chromaticity();
+        assert_ulps_eq!(x, 0.17411, epsilon=1E-5);
+        assert_ulps_eq!(y, 0.00496, epsilon=1E-5);
 
-        let [x,y] = CIE1931.spectral_locus(780).chromaticity();
-        assert_ulps_eq!(x, 0.7346899837, epsilon=1E-8);
-        assert_ulps_eq!(y, 0.2653100163, epsilon=1E-8);
+        let [x,y] = CIE1931.spectral_locus(CIE1931.locus_wavelength_max()).unwrap().chromaticity();
+        assert_ulps_eq!(x, 0.73469, epsilon=1E-5);
+        assert_ulps_eq!(y, 0.26531, epsilon=1E-5);
     }
 
-    // 
-    fn test_spectral_locus_angles(){
-        let mut prev = 0.0;
-        for i in 380..=780 {
-            let xyz = CIE1931.spectral_locus(i);
-            let [x,y] = xyz.chromaticity();
-            let [xw,yw] = CIE1931.d65().chromaticity();
-            let line = LineAB::try_new([xw,yw], [x,y]).unwrap();
-            let angle = line.angle_deg();
-            let anglediff = angle - prev;
-            let l = i + 380;
-            let incremental: bool = anglediff<0.0;
-            println!("{l}, {x:.7}, {y:.7}, {anglediff:.2e} {incremental}");
-            prev = angle;
-        }
+    #[test]
+    fn test_spectral_locus_min_max(){
+        let min = CIE1931.locus_index_min();
+        println!("{min}");
+        let max = CIE1931.locus_index_max();
+        println!("{max}");
     }
 
 }

@@ -89,7 +89,10 @@ pub enum CmError {
     RequireSameObserver,
     #[error("Lines do not intersect")]
     NoIntersection,
-
+    #[error("Wavelength out of range")]
+    WavelengthOutOfRange,
+    #[error("No Unique Spectral Locus for this wavelength")]
+    NoUniqueSpectralLocus
 }
 
 impl From<&str> for CmError {

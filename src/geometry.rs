@@ -50,6 +50,10 @@ impl LineAB {
         self.angle
     }
     
+    pub fn angle_diff(&self, other: LineAB) -> f64 {
+        other.angle - self.angle
+    }
+    
     pub fn angle_deg(&self) -> f64 {
         self.angle.to_degrees()
     }
