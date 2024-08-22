@@ -306,7 +306,7 @@ mod xyz_test {
         let dl = t.dominant_wavelength(d65).unwrap();
         assert_ulps_eq!(dl, 550.0);
 
-        for wl in 381..=699usize {
+        for wl in 380..=699usize {
             let sl2 = CIE1931.spectral_locus(wl);
             //let [slx, sly] = sl2.chromaticity();
             //println!("sl xy: {slx} {sly}");

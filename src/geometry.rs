@@ -1,4 +1,6 @@
 
+use core::f64;
+
 use nalgebra::ComplexField;
 use wasm_bindgen::prelude::wasm_bindgen;
 
@@ -61,8 +63,8 @@ impl LineAB {
     pub fn orientation(&self, x:f64 ,y:f64) -> Orientation {
         let n = self.nom(x,y);
         match self.nom(x, y) {
-            d if d>0.0 => Orientation::Left,
-            d if d<0.0 => Orientation::Right,
+            d if d > f64::EPSILON => Orientation::Left,
+            d if d < -f64::EPSILON => Orientation::Right,
             _ => Orientation::Colinear
         }
     }
