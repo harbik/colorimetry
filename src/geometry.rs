@@ -5,6 +5,7 @@ use wasm_bindgen::prelude::wasm_bindgen;
 use crate::CmError;
 
 
+#[derive(Clone, Copy)]
 pub struct LineAB {
     xa: f64,
     ya: f64,
@@ -37,6 +38,10 @@ impl LineAB {
         } else {
             Err(CmError::RequiresDistinctPoints)
         }
+    }
+
+    pub fn len(&self) -> f64 {
+        self.l
     }
 
     pub fn angle(&self) -> f64 {
@@ -81,7 +86,7 @@ impl LineAB {
     /// segments, and have a value between 0 and 1 if the intersection is
     /// between the two points used to define the lineAB.
     /// See [Wikipedia](https://en.wikipedia.org/wiki/Line–line_intersection#Given_two_points_on_each_line_segment) for the algorithm used.
-    pub fn intersect(&self, line: LineAB) -> Result<([f64;2], f64, f64), CmError> {
+    pub fn intersect(&self, line: &LineAB) -> Result<([f64;2], f64, f64), CmError> {
         if (self.angle()-line.angle()).abs()<2.0 * f64::EPSILON {
             Err(CmError::NoIntersection)
         } else {
@@ -89,7 +94,7 @@ impl LineAB {
             let [x3, y3, x4, y4] = [line.xa, line.ya, line.xb, line.yb];
             let den = (x1-x2)*(y3-y4)-(y1-y2)*(x3-x4);
             let t = ((x1-x3)*(y3-y4)-(y1-y3)*(x3-x4))/den;
-            let u = ((x1-x2)*(y1-y3)-(y1-y2)*(x1-x3))/den;
+            let u = -((x1-x2)*(y1-y3)-(y1-y2)*(x1-x3))/den;
             Ok(([x1 + t*(x2-x1), (y1 + t*(y2-y1))], t, u))
 
         }
@@ -102,6 +107,7 @@ fn lineab() {
     use approx::assert_ulps_eq;
     // line pointing North
     let abup = LineAB::try_new([0.0, 0.0], [0.0, 1.0]).unwrap();
+    assert_eq!(abup.len(),  1.0);
     let orientation = abup.orientation(-0.5, 10.0);
     assert_eq!(orientation, Orientation::Left);
     let orientation = abup.orientation(0.5, 0.5);
@@ -136,6 +142,7 @@ fn lineab() {
 
     //line point North West
     let abnw = LineAB::try_new([0.0, 0.0], [-1.0, 1.0]).unwrap();
+    assert_eq!(abnw.len(), 2f64.sqrt());
     let orientation = abnw.orientation(-0.5, 0.0);
     assert_eq!(orientation, Orientation::Left);
     let orientation = abnw.orientation(0.0, 1.0);
@@ -153,6 +160,27 @@ fn lineab() {
     let orientation = absw.orientation(-2.0, -2.0);
     assert_eq!(orientation, Orientation::Colinear);
     assert_ulps_eq!(absw.angle().to_degrees(), -135.0);
+}
+
+#[test]
+fn lineab_intersect_test(){
+    use approx::assert_ulps_eq;
+    // line pointing North
+    let v = LineAB::try_new([0.0, 0.0], [0.0, 1.0]).unwrap();
+    let h = LineAB::try_new([-1.0, 0.0], [1.0, 0.0]).unwrap();
+    let ([x,y], t, u) = v.intersect(&h).unwrap();
+    assert_ulps_eq!(x, 0.0);
+    assert_ulps_eq!(y, 0.0);
+    assert_ulps_eq!(t, 0.0);
+    assert_ulps_eq!(u, 0.5);
+
+    let v2 = LineAB::try_new([0.5, 0.5], [1.0, 1.0]).unwrap();
+    let ([x,y], t, u) = v2.intersect(&h).unwrap();
+    assert_ulps_eq!(x, 0.0);
+    assert_ulps_eq!(y, 0.0);
+    assert_ulps_eq!(t, -1.0);
+    assert_ulps_eq!(u, 0.5);
+
 }
 
 pub struct Triangle {

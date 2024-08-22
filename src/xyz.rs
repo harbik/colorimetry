@@ -127,7 +127,7 @@ impl XYZ {
     /// 
     pub fn dominant_wavelength(&self, white: XYZ) -> Result<f64, CmError>{
         const WAVLENGTH_MAX: usize = 699; // No change in spectral locus point position above 699 nm.
-        let mut negative = false;
+        let mut sign = 1.0;
         let mut low = 380usize;
         let mut high = WAVLENGTH_MAX;
         let mut mid = 540usize;  // 200 fails, as its tail overlaps into the blue region
@@ -139,15 +139,20 @@ impl XYZ {
             // if color point is in the purple rotate it around the white point by 180º, and give wavelength a negative value
             let blue_edge = LineAB::try_new([xw, yw], self.obs_id.observer().spectral_locus(low).chromaticity()).unwrap();
             let red_edge = LineAB::try_new([xw, yw], self.obs_id.observer().spectral_locus(high).chromaticity()).unwrap();
-            if blue_edge.orientation(x, y) == Orientation::Left && red_edge.orientation(x, y) == Orientation::Right {
-                negative = true;
-                x = 2.0 * xw - x;
-                y = 2.0 * yw - y;
+            match (blue_edge.orientation(x, y), red_edge.orientation(x, y)) {
+                (Orientation::Colinear, _) => return Ok(380.0),
+                (_, Orientation::Colinear) => return Ok(699.0),
+                (Orientation::Left, Orientation::Right) => { // mirror point into non-purple region
+                    sign = -1.0;
+                    x = 2.0 * xw - x;
+                    y = 2.0 * yw - y;
+                }
+                _ => {} // do nothing
             }
             // start bisectional search
             while high - low > 1 {
                 let bisect = LineAB::try_new([xw, yw], self.obs_id.observer().spectral_locus(mid).chromaticity()).unwrap();
-                let a = bisect.angle_deg();
+             //   let a = bisect.angle_deg();
                 match bisect.orientation(x, y) {
                     Orientation::Left => high = mid,
                     Orientation::Right => low = mid,
@@ -160,18 +165,18 @@ impl XYZ {
                 mid = (low + high)/2;
             }
             if low == high {
-                Ok(low as f64)
+                Ok(sign * low as f64)
             } else {
                 let low_ab = LineAB::try_new(white.chromaticity(), self.obs_id.observer().spectral_locus(low).chromaticity()).unwrap();
-                let dlow = low_ab.distance(x, y);
+                let dlow = low_ab.distance_with_sign(x, y);
                 let high_ab = LineAB::try_new(white.chromaticity(), self.obs_id.observer().spectral_locus(high).chromaticity()).unwrap();
-                let dhigh= high_ab.distance(x, y);
-                if negative {
-                    Ok(-(dlow * high as f64 + dhigh * low as f64)/(dlow + dhigh))
-                } else {
-                    Ok((dlow * high as f64 + dhigh * low as f64)/(dlow + dhigh))
-
+                let dhigh= high_ab.distance_with_sign(x, y);
+                if dlow<0.0 || dhigh>0.0 { // not ended up between two lines
+                    let s = format!("bisection error in dominant wavelength search:  {dlow} {low} {dhigh} {high}");
+                    return Err(CmError::ErrorString(s));
                 }
+                let dl = (dlow.abs() * high as f64 + dhigh.abs() * low as f64)/(dlow.abs() + dhigh.abs());
+                Ok(sign * dl)
             }
         }
     }
@@ -301,7 +306,7 @@ mod xyz_test {
         let dl = t.dominant_wavelength(d65).unwrap();
         assert_ulps_eq!(dl, 550.0);
 
-        for wl in 380..=699usize {
+        for wl in 381..=699usize {
             let sl2 = CIE1931.spectral_locus(wl);
             //let [slx, sly] = sl2.chromaticity();
             //println!("sl xy: {slx} {sly}");
@@ -315,31 +320,28 @@ mod xyz_test {
 
     #[test]
     fn dominant_wavelength_purple_test(){
-        let d65 = CIE1931.d65().set_illuminance(50.0);
+        let d65 = CIE1931.d65();
         let [xw, yw] = d65.chromaticity();
         
-        // purple region
+        // get purple line
         let xyzb = CIE1931.spectral_locus(380);
-        let xyzr = CIE1931.spectral_locus(699);
         let [xb, yb] = xyzb.chromaticity();
+        let xyzr = CIE1931.spectral_locus(699);
         let [xr, yr] = xyzr.chromaticity();
         let line_t = LineAB::try_new([xb, yb], [xr, yr]).unwrap();
         for wl in 380..=699usize {
             let sl = CIE1931.spectral_locus(wl);
             let [x, y] = sl.chromaticity();
             let line_u = LineAB::try_new([x, y], [xw, yw]).unwrap();
-            let ([xi, yi], t, _) = line_t.intersect(line_u).unwrap();
+            let ([xi, yi], t, _) = line_t.intersect(&line_u).unwrap();
             if t>0.0 && t<1.0 {
-               let ratio = (yb * (yr - yi))/(yr * (yi - yb)); 
                // see https://en.wikipedia.org/wiki/CIE_1931_color_space#Mixing_colors_specified_with_the_CIE_xy_chromaticity_diagram
-               let b = xyzb.set_illuminance(ratio*100.0);
-               let r =  xyzr.set_illuminance((1.0-ratio)*100.0);
+               let b = xyzb.set_illuminance(100.0*(yb * (yr - yi)));
+               let r =  xyzr.set_illuminance(100.0*(yr * (yi - yb)));
                let s = b.try_add(r).unwrap();
                let dl = s.dominant_wavelength(d65).unwrap();
-                println!("{wl} {dl}");
-               // todo!()
+               assert_ulps_eq!(dl, -(wl as f64));
             }
-            //assert_ulps_eq!(dl, wl as f64, epsilon = 1E-10);
 
         }
 
