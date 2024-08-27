@@ -1,8 +1,8 @@
 use core::f64;
 use std::{f32::NAN, sync::OnceLock};
 use wasm_bindgen::prelude::wasm_bindgen;
-use nalgebra::SMatrix;
-use crate::{lab::Lab, physics::planck, rgb::RGB, spc::{Category, Spectrum, NS}, xyz::XYZ, CmError, LineAB};
+use nalgebra::{Matrix3, SMatrix};
+use crate::{lab::Lab, physics::planck, rgb::{RgbSpaceId, RGB}, spc::{Category, Spectrum, NS}, xyz::XYZ, CmError, LineAB};
 
 
 
@@ -65,10 +65,10 @@ impl Observer {
     /// Returns f64::NAN's otherwise.
     pub fn lab_d65(&self, s: &Spectrum) -> Lab {
         if s.cat != Category::Filter && s.cat != Category::ColorPatch { // invalid
-            Lab::new(f64::NAN, f64::NAN, f64::NAN, self.d65())
+            Lab::new(f64::NAN, f64::NAN, f64::NAN, self.xyz_d65())
         } else {
             let &[x, y, z] = self.xyz2(&crate::data::D65,s).data.as_ref();
-            Lab::new(x, y, z, self.d65())
+            Lab::new(x, y, z, self.xyz_d65())
         }
     }
 
@@ -90,30 +90,38 @@ impl Observer {
         XYZ::new(x * scale, y * scale, z * scale, self.id)
     }
 
-    /// The Spectral Locus, or (x,y) coordinates of the _horse shoe_, the
-    /// boundary of area of all physical colors in a chromiticity diagram, as
-    /// XYZ tristimulus values.  Tristimulus values are returned here, instead
-    /// of chromaticity xy coordinates, to make use of the available XYZ
+    /// Calculate the Spectral Locus, or (x,y) coordinates of the _horse shoe_,
+    /// the boundary of area of all physical colors in a chromiticity diagram,
+    /// as XYZ tristimulus values.  Tristimulus values are returned here,
+    /// instead of chromaticity xy coordinates, to make use of the available XYZ
     /// transforms.
     /// 
+    /// This function limits the input values to produce unique chromaticity
+    /// values only.  Spectral locus points tend to freeze, or even fold back to
+    /// lower wavelength values at the blue and red perimeter ends.  This can be
+    /// quite anoying, for example when trying to calculate dominant wavelength,
+    /// or when creating plots.  To get the allowed range, use the
+    /// `spectral_wavelength_min` and `spectral_wavelength_max` methods.
+    /// 
     /// See Wikipedia's [CIE 1931 Color Space](https://en.wikipedia.org/wiki/CIE_1931_color_space).
-    pub fn spectral_locus(&self, l: usize) -> Result<XYZ, CmError> {
-        let min = self.locus_index_min();
-        let max = self.locus_index_max();
+    pub fn spectral_locus_by_nm(&self, l: usize) -> Result<XYZ, CmError> {
+        let min = self.spectral_locus_nm_min();
+        let max = self.spectral_locus_nm_max();
         if l<380 || l>780 {
             return Err(CmError::WavelengthOutOfRange);
         };
-        let i = l-380;
-        if i<min || i>max {
-            Err(CmError::NoUniqueSpectralLocus)
+        if l<min || l>max {
+            Err(CmError::NoUniqueSpectralLocus(min, max))
         } else {
-            let &[x, y, z] = self.data.column(i).as_ref();
+            let &[x, y, z] = self.data.column(l-380).as_ref();
             Ok(XYZ::new(x, y, z, self.id))
 
         }
     }
 
-    fn locus_by_index(&self, i:usize) -> [f64;2] {
+    /// Unrestricted, direct, access to the spectal locus data.
+    /// To get unique values only please use the `spectral_locus_by_nm` function.
+    pub fn spectral_locus_by_index(&self, i:usize) -> [f64;2] {
         let &[x, y, z] = self.data.column(i).as_ref();
         let s = x + y + z;
         [x/s, y/s]
@@ -121,14 +129,14 @@ impl Observer {
 
     /// The index value of the blue spectral locus edge.
     /// Any further spectral locus points will hover around this edge, and will not have a unique wavelength.
-    pub fn locus_index_min(&self) -> usize {
+    pub fn spectral_locus_index_min(&self) -> usize {
         static MIN: OnceLock<usize> = OnceLock::new();
         *MIN.get_or_init(||{
             const START: usize = 100;
-            let mut lp = LineAB::try_new(self.locus_by_index(START), [0.33333, 0.33333]).unwrap();
+            let mut lp = LineAB::try_new(self.spectral_locus_by_index(START), [0.33333, 0.33333]).unwrap();
             let mut m = START - 1;
             loop {
-                let l = LineAB::try_new(self.locus_by_index(m), [0.33333, 0.33333]).unwrap();
+                let l = LineAB::try_new(self.spectral_locus_by_index(m), [0.33333, 0.33333]).unwrap();
                 match (m, l.angle_diff(lp)) {
                     (0, d) if d> -f64::EPSILON => break m + 1,
                     (0, _)  => break 0,
@@ -142,20 +150,20 @@ impl Observer {
         })
     }
 
-    pub fn locus_wavelength_min(&self) -> usize {
-        self.locus_index_min()+380
+    pub fn spectral_locus_nm_min(&self) -> usize {
+        self.spectral_locus_index_min()+380
     }
 
     /// The index value of the red spectral locus edge.
     /// Any further spectral locus points will hover around this edge.
-    pub fn locus_index_max(&self) -> usize {
+    pub fn spectral_locus_index_max(&self) -> usize {
         static MAX: OnceLock<usize> = OnceLock::new();
         *MAX.get_or_init(||{
             const START: usize = 300;
-            let mut lp = LineAB::try_new(self.locus_by_index(START), [0.33333, 0.33333]).unwrap();
+            let mut lp = LineAB::try_new(self.spectral_locus_by_index(START), [0.33333, 0.33333]).unwrap();
             let mut m = START + 1;
             loop {
-                let l = LineAB::try_new(self.locus_by_index(m), [0.33333, 0.33333]).unwrap();
+                let l = LineAB::try_new(self.spectral_locus_by_index(m), [0.33333, 0.33333]).unwrap();
                 match (m, l.angle_diff(lp)) {
                     (400, d) if d< f64::EPSILON => break m-1,
                     (400, _)  => break 400,
@@ -169,33 +177,57 @@ impl Observer {
         })
     }
 
-    pub fn locus_wavelength_max(&self) -> usize {
-        self.locus_index_max()+380
+    pub fn spectral_locus_nm_max(&self) -> usize {
+        self.spectral_locus_index_max()+380
     }
 
     pub fn planckian_slope(&self, _cct: f64) -> f64 {
         todo!()
     }
 
-    pub fn d65(&self) -> XYZ {
+    /// XYZ tristimulus values for the CIE standard daylight illuminant D65.
+    /// The values are calculated on first use.
+    pub fn xyz_d65(&self) -> XYZ {
         static D65XYZ: OnceLock<XYZ> = OnceLock::new();
         D65XYZ.get_or_init(||{
             self.xyz(&crate::data::D65)
         }).clone()
     }
 
-    pub fn d50(&self) -> XYZ {
+    /// XYZ tristimulus values for the CIE standard daylight illuminant D50.
+    /// The values are calculated on first use.
+    pub fn xyz_d50(&self) -> XYZ {
         static D50XYZ: OnceLock<XYZ> = OnceLock::new();
         D50XYZ.get_or_init(||{
             self.xyz(&crate::data::D50)
         }).clone()
     }
 
-    pub fn s_rgb(&self) -> RGB {
-        todo!()
+ 
+    /// Calculates the RGB to XYZ matrix, for a particular color space.
+    /// The matrices are buffered.
+    pub fn rgb2xyz(&self, rgbspace: RgbSpaceId) -> &'static Matrix3<f64> {
+        const EMPTY:OnceLock<Matrix3<f64>> = OnceLock::new();
+        const RGB2XYZ_AR_LEN: usize = 16;
+        static RGB2XYZ_AR : OnceLock<[OnceLock<Matrix3<f64>>;RGB2XYZ_AR_LEN]> = OnceLock::new();
+        let rgb2xyz_ar =RGB2XYZ_AR.get_or_init(||[EMPTY;RGB2XYZ_AR_LEN]);
+        rgb2xyz_ar[rgbspace as usize].get_or_init(||{
+            let (space,_) = rgbspace.rgb_space();
+            let mut rgb2xyz = Matrix3::from_iterator(space.primaries.iter().flat_map(|s|self.xyz(s).set_illuminance(1.0).values()));
+            let xyzw = self.xyz(&space.white).set_illuminance(1.0);
+            let decomp = rgb2xyz.lu();
+            let rgbw = decomp.solve(&xyzw.data).unwrap();
+            for (i, mut col) in rgb2xyz.column_iter_mut().enumerate() {
+                col *= rgbw[i];
+            }
+            rgb2xyz
+
+        })
     }
 
 }
+
+
 
 impl Observer {
     /// Table row of Robertson's Iso Correlated Color Temperature lines, with 4096
@@ -247,21 +279,30 @@ mod obs_test {
 
     #[test]
     fn test_spectral_locus(){
-        let [x,y] = CIE1931.spectral_locus(CIE1931.locus_wavelength_min()).unwrap().chromaticity();
+        let [x,y] = CIE1931.spectral_locus_by_nm(CIE1931.spectral_locus_nm_min()).unwrap().chromaticity();
         assert_ulps_eq!(x, 0.17411, epsilon=1E-5);
         assert_ulps_eq!(y, 0.00496, epsilon=1E-5);
 
-        let [x,y] = CIE1931.spectral_locus(CIE1931.locus_wavelength_max()).unwrap().chromaticity();
+        let [x,y] = CIE1931.spectral_locus_by_nm(CIE1931.spectral_locus_nm_max()).unwrap().chromaticity();
         assert_ulps_eq!(x, 0.73469, epsilon=1E-5);
         assert_ulps_eq!(y, 0.26531, epsilon=1E-5);
     }
 
     #[test]
     fn test_spectral_locus_min_max(){
-        let min = CIE1931.locus_index_min();
+        let min = CIE1931.spectral_locus_index_min();
         println!("{min}");
-        let max = CIE1931.locus_index_max();
+        let max = CIE1931.spectral_locus_index_max();
         println!("{max}");
+    }
+
+    #[test]
+    fn test_rgb2xyz_cie1931(){
+        // data from http://www.brucelindbloom.com/index.html?Eqn_RGB_XYZ_Matrix.html
+        let want =  nalgebra::Matrix3::new(0.4124564,  0.3575761,  0.1804375, 0.2126729,  0.7151522,  0.0721750, 0.0193339,  0.1191920,  0.9503041);
+        let got = CIE1931.rgb2xyz(crate::RgbSpaceId::SRGB);
+        approx::assert_ulps_eq!(want, got, epsilon = 5E-4);
+        println!("{want} {got}");
     }
 
 }

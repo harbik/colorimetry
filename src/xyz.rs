@@ -1,10 +1,14 @@
-use nalgebra::Vector3;
-use crate::{geometry::{LineAB, Orientation}, obs::ObsId, CmError};
+use core::f64;
+use std::ops::{Add, Deref, Mul};
+
+use approx::{assert_ulps_ne, AbsDiffEq, Ulps, UlpsEq};
+use nalgebra::{max, Vector3};
+use crate::{geometry::{LineAB, Orientation}, obs::ObsId, CmError, CIE1931};
 use wasm_bindgen::prelude::wasm_bindgen; 
 
 
 #[wasm_bindgen]
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 /// A set of CIE XYZ Tristimulus values, associated with a Standard Observer.
 /// They are calculated using the spectrum of a Stimulus, such as beam of light
 /// reflected from a color patch, or emitted from a pixel of a display.
@@ -25,6 +29,10 @@ impl XYZ {
         Self { obs_id, data}
     }
     
+    pub fn from_chromaticity(xy: [f64;2], obs_id: ObsId) -> XYZ {
+        let [x, y] = xy;
+        Self::new(x, y, 1.0 - x -y, obs_id)
+    }
 
     pub fn try_add(&self, other: XYZ) -> Result<XYZ, CmError> {
         if self.obs_id == other.obs_id {
@@ -64,9 +72,8 @@ impl XYZ {
     /// use approx::assert_ulps_eq;
     ///
     /// let d65_xyz = CIE1931.xyz(&Spectrum::d65_illuminant());
-    /// let [x,y] = d65_xyz.chromaticity();
-    /// assert_ulps_eq!(x, 0.312_738, epsilon = 1E-6);
-    /// assert_ulps_eq!(y, 0.329_052, epsilon = 1E-6);
+    /// let xy = d65_xyz.chromaticity();
+    /// assert_ulps_eq!(xy.as_slice(), [0.312_738, 0.329_052].as_slice(), epsilon = 1E-6);
     /// ```
     pub fn chromaticity(&self) -> [f64; 2] {
         let [x,y,z] = self.values();
@@ -127,8 +134,8 @@ impl XYZ {
     /// 
     pub fn dominant_wavelength(&self, white: XYZ) -> Result<f64, CmError>{
         let mut sign = 1.0;
-        let mut low = self.obs_id.observer().locus_wavelength_min();
-        let mut high = self.obs_id.observer().locus_wavelength_max();
+        let mut low = self.obs_id.observer().spectral_locus_nm_min();
+        let mut high = self.obs_id.observer().spectral_locus_nm_max();
         let mut mid = 540usize;  // 200 fails, as its tail overlaps into the blue region
         if white.obs_id!=self.obs_id {
             Err(CmError::RequireSameObserver)
@@ -136,8 +143,8 @@ impl XYZ {
             let [mut x, mut y] = self.chromaticity();
             let [xw, yw] = white.chromaticity();
             // if color point is in the purple rotate it around the white point by 180º, and give wavelength a negative value
-            let blue_edge = LineAB::try_new([xw, yw], self.obs_id.observer().spectral_locus(low).unwrap().chromaticity()).unwrap();
-            let red_edge = LineAB::try_new([xw, yw], self.obs_id.observer().spectral_locus(high).unwrap().chromaticity()).unwrap();
+            let blue_edge = LineAB::try_new([xw, yw], self.obs_id.observer().spectral_locus_by_nm(low).unwrap().chromaticity()).unwrap();
+            let red_edge = LineAB::try_new([xw, yw], self.obs_id.observer().spectral_locus_by_nm(high).unwrap().chromaticity()).unwrap();
             match (blue_edge.orientation(x, y), red_edge.orientation(x, y)) {
                 (Orientation::Colinear, _) => return Ok(380.0),
                 (_, Orientation::Colinear) => return Ok(699.0),
@@ -150,7 +157,7 @@ impl XYZ {
             }
             // start bisectional search
             while high - low > 1 {
-                let bisect = LineAB::try_new([xw, yw], self.obs_id.observer().spectral_locus(mid).unwrap().chromaticity()).unwrap();
+                let bisect = LineAB::try_new([xw, yw], self.obs_id.observer().spectral_locus_by_nm(mid).unwrap().chromaticity()).unwrap();
              //   let a = bisect.angle_deg();
                 match bisect.orientation(x, y) {
                     Orientation::Left => high = mid,
@@ -166,9 +173,9 @@ impl XYZ {
             if low == high {
                 Ok(sign * low as f64)
             } else {
-                let low_ab = LineAB::try_new(white.chromaticity(), self.obs_id.observer().spectral_locus(low).unwrap().chromaticity()).unwrap();
+                let low_ab = LineAB::try_new(white.chromaticity(), self.obs_id.observer().spectral_locus_by_nm(low).unwrap().chromaticity()).unwrap();
                 let dlow = low_ab.distance_with_sign(x, y);
-                let high_ab = LineAB::try_new(white.chromaticity(), self.obs_id.observer().spectral_locus(high).unwrap().chromaticity()).unwrap();
+                let high_ab = LineAB::try_new(white.chromaticity(), self.obs_id.observer().spectral_locus_by_nm(high).unwrap().chromaticity()).unwrap();
                 let dhigh= high_ab.distance_with_sign(x, y);
                 if dlow<0.0 || dhigh>0.0 { // not ended up between two lines
                     let s = format!("bisection error in dominant wavelength search:  {dlow} {low} {dhigh} {high}");
@@ -188,6 +195,80 @@ impl XYZ {
 
 
 }
+
+impl AbsDiffEq for XYZ {
+    type Epsilon = f64;
+
+    fn default_epsilon() -> Self::Epsilon {
+        f64::default_epsilon()
+    }
+
+    fn abs_diff_eq(&self, other: &Self, epsilon: Self::Epsilon) -> bool {
+        self.obs_id == other.obs_id && self.data.abs_diff_eq(&other.data, epsilon)
+    }
+}
+
+impl UlpsEq for XYZ {
+    fn default_max_ulps() -> u32 {
+        f64::default_max_ulps()
+    }
+
+    fn ulps_eq(&self, other: &Self, epsilon: Self::Epsilon, max_ulps: u32) -> bool {
+        self.obs_id == other.obs_id && self.data.ulps_eq(&other.data, epsilon, max_ulps)
+    }
+}
+
+#[test]
+fn ulps_xyz_test() {
+    use approx::assert_ulps_eq;
+    let xyz0 = XYZ::new(0.0, 0.0, 0.0, ObsId::Std1931);
+
+    let xyz1 = XYZ::new(0.0, 0.0, f64::EPSILON, ObsId::Std1931);
+    assert_ulps_eq!(xyz0, xyz1);
+
+    let xyz2 = XYZ::new(0.0, 0.0, 2.0*f64::EPSILON, ObsId::Std1931);
+    assert_ulps_ne!(xyz0, xyz2);
+
+    let xyz3 = XYZ::new(0.0, 0.0, 0.0, ObsId::Std1976);
+    assert_ulps_ne!(xyz0, xyz3);
+}
+
+impl Add for XYZ {
+    type Output = XYZ;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Self {
+            data: self.data + rhs.data,
+            obs_id: self.obs_id,
+
+        }
+    }
+}
+
+impl Mul<f64> for XYZ {
+    type Output = XYZ;
+
+    fn mul(self, rhs: f64) -> Self::Output {
+        Self {
+            data: rhs * self.data,
+            obs_id: self.obs_id,
+
+        }
+    }
+}
+
+impl Mul<XYZ> for f64 {
+    type Output = XYZ;
+
+    fn mul(self, rhs: XYZ) -> Self::Output {
+        Self::Output {
+            data: self * rhs.data,
+            obs_id: rhs.obs_id,
+
+        }
+    }
+}
+
 
 impl Default for XYZ {
     fn default() -> Self {
@@ -297,16 +378,16 @@ mod xyz_test {
 
     #[test]
     fn dominant_wavelength_test(){
-        let d65 = CIE1931.d65().set_illuminance(50.0);
+        let d65 = CIE1931.xyz_d65().set_illuminance(50.0);
         
         // 550 nm
-        let sl = CIE1931.spectral_locus(550).unwrap().set_illuminance(50.0);
+        let sl = CIE1931.spectral_locus_by_nm(550).unwrap().set_illuminance(50.0);
         let t = d65.try_add(sl).unwrap();
         let dl = t.dominant_wavelength(d65).unwrap();
         assert_ulps_eq!(dl, 550.0);
 
         for wl in 380..=699usize {
-            let sl2 = CIE1931.spectral_locus(wl).unwrap();
+            let sl2 = CIE1931.spectral_locus_by_nm(wl).unwrap();
             //let [slx, sly] = sl2.chromaticity();
             //println!("sl xy: {slx} {sly}");
             let dl = sl2.dominant_wavelength(d65).unwrap();
@@ -319,17 +400,17 @@ mod xyz_test {
 
     #[test]
     fn dominant_wavelength_purple_test(){
-        let d65 = CIE1931.d65();
+        let d65 = CIE1931.xyz_d65();
         let [xw, yw] = d65.chromaticity();
         
         // get purple line
-        let xyzb = CIE1931.spectral_locus(380).unwrap();
+        let xyzb = CIE1931.spectral_locus_by_nm(380).unwrap();
         let [xb, yb] = xyzb.chromaticity();
-        let xyzr = CIE1931.spectral_locus(699).unwrap();
+        let xyzr = CIE1931.spectral_locus_by_nm(699).unwrap();
         let [xr, yr] = xyzr.chromaticity();
         let line_t = LineAB::try_new([xb, yb], [xr, yr]).unwrap();
         for wl in 380..=699usize {
-            let sl = CIE1931.spectral_locus(wl).unwrap();
+            let sl = CIE1931.spectral_locus_by_nm(wl).unwrap();
             let [x, y] = sl.chromaticity();
             let line_u = LineAB::try_new([x, y], [xw, yw]).unwrap();
             let ([xi, yi], t, _) = line_t.intersect(&line_u).unwrap();

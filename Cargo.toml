@@ -2,6 +2,7 @@
 name = "colorimetry"
 version = "0.0.2"
 edition = "2021"
+rust-version = "1.80"
 description = "Rust library for color modeling with JavaScript/WASM interfaces"
 authors = ["Gerard Harbers", "Harbers Bik LLC"]
 repository = "https://github.com/harbik/colorimetry"
@@ -20,6 +21,14 @@ libm = "0.2.8"
 thiserror = "1.0.63"
 js-sys = "0.3.69"
 wasm-bindgen-futures = "0.4.42"
+colored = "2.1.0"
+strum = "0.26.3"
+strum_macros = "0.26.4"
+
+[dev-dependencies] # for examples and tests
+argmin = "0.10.0"
+argmin-math = "0.4.0"
+getrandom = { version = "0.2", features = ["js"] }
 
 [lib]
 crate-type = ["cdylib", "rlib"]

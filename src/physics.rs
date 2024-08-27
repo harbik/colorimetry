@@ -96,8 +96,19 @@ pub fn gaussian_peak_one(x: f64, mu: f64, sigma: f64) -> f64 {
     exponent.exp()
 }
 
+#[test]
+fn gaussian_peak_one_test(){
+    use approx::assert_ulps_eq;
+    let sigma = 10E-9;
+    let mu = 500E-9;
+    let x = mu - sigma;
+    let v = gaussian_peak_one(x, mu, sigma);
+    approx::assert_ulps_eq!(v, 0.60653065971, epsilon = 1E-10);
+}
+
 #[inline]
 pub fn gaussian_normalized(x: f64, mu: f64, sigma: f64) -> f64 {
     let exponent = -((x - mu).powi(2)) / (2.0 * sigma.powi(2));
     (1.0 / (sigma * (2.0 * PI).sqrt())) * exponent.exp()
 }
+

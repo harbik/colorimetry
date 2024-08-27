@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, error::Error, ops::{Add, Index, IndexMut, Mul, MulAssign}};
+use std::{collections::BTreeMap, error::Error, ops::{Add, AddAssign, Index, IndexMut, Mul, MulAssign}};
 
 use url::Url;
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
@@ -31,7 +31,22 @@ pub enum Category {
 // with 401 values.
 pub const NS: usize = 401;
 
-//pub type SVector::<f64,NS> = SVector<f64, NS>;
+#[derive(Clone, Copy)]
+pub enum StdIlluminant {
+    D65,
+    D50,
+    A
+}
+
+impl StdIlluminant {
+    pub fn spectrum(&self) -> &Spectrum {
+        match self {
+            StdIlluminant::D65 => &D65,
+            StdIlluminant::D50 => &D50,
+            StdIlluminant::A => &A,
+        }
+    }
+}
 
 /**
 This container holds spectral values within a wavelength domain ranging from 380
@@ -90,6 +105,16 @@ impl Spectrum {
      */
     pub fn values(&self) -> [f64; NS] {
         self.data.as_slice().try_into().unwrap() // unwrap: we know that data has size NS
+    }
+
+    pub fn mul(mut self, rhs: &Self) -> Self {
+        self.data = self.data.component_mul(&rhs.data) ;
+        self
+    }
+
+    pub fn mul_f64(mut self, rhs: f64) -> Self {
+        self.data *= rhs;
+        self
     }
 
     /**
@@ -365,7 +390,7 @@ impl Spectrum {
         }
     }
 
-    pub fn set_illuminance(&mut self, obs: &Observer, illuminance: f64) -> &mut Self {
+    pub fn set_illuminance(mut self, obs: &Observer, illuminance: f64) -> Self {
         let l = illuminance / (obs.data.row(1) *  self.data * obs.lumconst).x;
         self.data.iter_mut().for_each(|v| *v = *v * l);
         self.cat = Category::Illuminant;
@@ -399,13 +424,35 @@ impl Spectrum {
 }
 
 
-
-#[test]
-fn test_led(){
+#[cfg(test)]
+mod spectrum_tests {
+    use crate::{Spectrum, D65, CIE1931};
     use approx::assert_ulps_eq;
-    let ls = Spectrum::led_illuminant(550.0, 25.0);
-    assert_ulps_eq!(ls.irradiance(), 1.0, epsilon = 1E-9);
+
+    #[test]
+    fn test_led(){
+        use approx::assert_ulps_eq;
+        let ls = Spectrum::led_illuminant(550.0, 25.0);
+        assert_ulps_eq!(ls.irradiance(), 1.0, epsilon = 1E-9);
+    }
+
+    #[test]
+    fn test_chromaticity(){
+        let xyz0 = CIE1931.xyz(&D65);
+        let [x0, y0] = xyz0.chromaticity();
+
+        let illuminance = D65.illuminance(&CIE1931);
+        let d65 = D65.set_illuminance(&CIE1931, 100.0);
+        let xyz = CIE1931.xyz(&d65);
+        let [x, y] = xyz.chromaticity();
+    
+        assert_ulps_eq!(x0, x);
+        assert_ulps_eq!(y0, y);
+    }
+
 }
+
+
 
 
 // JS-WASM Interface code
@@ -595,13 +642,30 @@ impl Mul<Spectrum> for f64 {
     }
 }
 
+#[test]
+fn mul_spectra_test(){
+    use approx::assert_ulps_eq;
+    let g = Spectrum::gray(0.5);
+
+    let w = 2.0 * g;
+    for i in 380..780 {
+        assert_ulps_eq!(w[i], 1.0);
+    }
+
+    let v = g * 2.0;
+    for i in 380..780 {
+        assert_ulps_eq!(v[i], 1.0);
+    }
+
+}
+
 
 // Addition of spectra, typically used for illuminant (multiple sources).
 // Additive mixing
 impl Add for Spectrum {
     type Output = Self;
 
-    // multiply two cie spectra
+    // add two cie spectra
     fn add(self, rhs: Self) -> Self::Output {
         let category = if self.cat == Category::Illuminant && rhs.cat == Category::Illuminant {
             Category::Illuminant
@@ -610,10 +674,40 @@ impl Add for Spectrum {
         };
         Self{
             cat: category,
-            data: self.data.component_mul(&(rhs.data)),
+            data: self.data + rhs.data,
             total: None
         }
     }
+}
+
+// Addition of spectra, typically used for illuminant (multiple sources).
+// Additive mixing
+impl AddAssign for Spectrum {
+    fn add_assign(&mut self, rhs: Self) {
+        self.data += rhs.data
+    }
+}
+
+#[test]
+fn add_spectra(){
+    use approx::assert_ulps_eq;
+    let mut g1 = Spectrum::gray(0.5);
+    let g2 = Spectrum::gray(0.5);
+    let g = g1 + g2;
+    for i in 380..780 {
+        assert_ulps_eq!(g[i], 1.0);
+    }
+
+    g1 += g2;
+    for i in 380..780 {
+        assert_ulps_eq!(g1[i], 1.0);
+    }
+
+    let v = 2.0 * Spectrum::gaussian_filter(550.0, 50.0) + -2.0 * Spectrum::gaussian_filter(550.0, 50.0);
+    for i in 380..780 {
+        assert_ulps_eq!(v[i], 0.0);
+    }
+
 }
 
 impl MulAssign for Spectrum {

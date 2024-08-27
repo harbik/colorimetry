@@ -4,8 +4,10 @@
 
 
 pub use spc::*;
+pub use xyz::*;
 pub use obs::*;
 pub use data::*;
+pub use rgb::*;
 pub use geometry::*;
 use wasm_bindgen::JsValue;
 
@@ -15,6 +17,7 @@ pub mod spc;
 pub mod xyz;
 pub mod lab;
 pub mod rgb;
+pub mod gamma;
 pub mod physics;
 pub mod data;
 pub mod cri;
@@ -91,8 +94,8 @@ pub enum CmError {
     NoIntersection,
     #[error("Wavelength out of range")]
     WavelengthOutOfRange,
-    #[error("No Unique Spectral Locus for this wavelength")]
-    NoUniqueSpectralLocus
+    #[error("Allowed wavelength range for this function is {0} to {1} nanometer")]
+    NoUniqueSpectralLocus(usize,usize)
 }
 
 impl From<&str> for CmError {
