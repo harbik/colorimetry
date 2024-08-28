@@ -46,6 +46,7 @@ impl StdIlluminant {
             StdIlluminant::A => &A,
         }
     }
+
 }
 
 /**

@@ -87,7 +87,14 @@ pub static CIE1931: Observer = Observer{id: ObsId::Std1931, lumconst: 683.0, dat
 ]))};
 
 /// D65 CIE Standard Illuminant.
-/// Data from https://cie.co.at/datatable/cie-standard-illuminant-d65, truncated to a range from 380 to 780 nanometer.
+///
+/// Data from https://cie.co.at/datatable/cie-standard-illuminant-d65, truncated
+/// to a range from 380 to 780 nanometer.  These data, using the `CIE1931` color
+/// matching functions, results in a slightly different set of chromaticity
+/// values then published historically, which are calculated with a larger domain, and
+/// using a step size of 5 nanometer.  As this library uses spectral
+/// distributions to allow the use of different observers, and follows the
+/// `CIE015:2004` Colorimetry standard, we accept this deviation.
 pub static D65: Spectrum = Spectrum {
     cat: Category::Illuminant,
     total: None,
@@ -117,8 +124,14 @@ pub static D65: Spectrum = Spectrum {
 };
 
 /// D50 CIE standard Illuminant.
-/// Data from  https://cie.co.at/datatable/cie-standard-illuminant-1-nm,
-/// truncated to a range from 380 to 780 nanometer.
+///
+/// Data from https://cie.co.at/datatable/cie-standard-illuminant-d50, truncated
+/// to a range from 380 to 780 nanometer.  These data, using the `CIE1931` color
+/// matching functions, results in a slightly different set of chromaticity
+/// values then published historically, which are calculated with a larger domain, and
+/// using a step size of 5 nanometer.  As this library uses spectral
+/// distributions to allow the use of different observers, and follows the
+/// `CIE015:2004` Colorimetry standard, we accept this deviation.
 pub static D50: Spectrum = Spectrum {
     cat: Category::Illuminant,
     total: None,

@@ -95,7 +95,9 @@ pub enum CmError {
     #[error("Wavelength out of range")]
     WavelengthOutOfRange,
     #[error("Allowed wavelength range for this function is {0} to {1} nanometer")]
-    NoUniqueSpectralLocus(usize,usize)
+    NoUniqueSpectralLocus(usize,usize),
+    #[error("Invalid Chromaticity Values")]
+    InvalidChromaticityValues,
 }
 
 impl From<&str> for CmError {

@@ -20,9 +20,9 @@ const D65Y:f64 = 0.329_052;
 /// This uses `LazyLock` to create a global static varibale, which gets intialized when first referenced.
 pub static XY_PRIMARIES: LazyLock<HashMap<&str, ([[f64;2];3], StdIlluminant)>> = LazyLock::new(|| {
         HashMap::from([
-            ("srgb", ([[0.64, 0.33], [0.3, 0.6], [0.15, 0.06]], StdIlluminant::D65)),
-            ("adobe_rgb", ([[0.64, 0.33], [0.21, 0.71], [0.15, 0.06]], StdIlluminant::D65)),
-            ("display_p3", ([[(1.0-D)*0.68+D*D65X, (1.0-D)*0.32+D*D65Y], [0.265, 0.69], [0.15, 0.06]], StdIlluminant::D65)),
+            ("sRGB", ([[0.64, 0.33], [0.3, 0.6], [0.15, 0.06]], StdIlluminant::D65)),
+            ("Adobe RGB", ([[0.64, 0.33], [0.21, 0.71], [0.15, 0.06]], StdIlluminant::D65)),
+            ("Display P3", ([[(1.0-D)*0.68+D*D65X, (1.0-D)*0.32+D*D65Y], [0.265, 0.69], [0.15, 0.06]], StdIlluminant::D65)),
         ])
     }
 );
@@ -30,6 +30,10 @@ pub static XY_PRIMARIES: LazyLock<HashMap<&str, ([[f64;2];3], StdIlluminant)>> =
 
 #[derive(Debug, Clone, Copy, Default, EnumIter)]
 #[wasm_bindgen]
+/**
+A Light Weight index tag, to represent an RGB space.
+Used for example in the RGB value set, to identify the color space being used.  
+ */
 pub enum RgbSpaceId {
     #[default]
     SRGB, // D65 filtered Gaussians
@@ -39,11 +43,18 @@ pub enum RgbSpaceId {
 
 impl RgbSpaceId {
 
+    /**
+    Obtain reference to the RgbSpace data, and a color space name string.
+
+    An `RgbSpace` contains the primary and white spectra, and the gamma
+    curve function used for encoding and decoding RGB values into a data
+    stream or image pixel.
+    */
     pub fn rgb_space(&self) -> (&RgbSpace, &str) {
         match self {
-            Self::SRGB  =>  (RgbSpace::srgb(),"srgb"),
-            Self::ADOBE => (RgbSpace::adobe_rgb(), "adobe_rgb"),
-            Self::DisplayP3 => (RgbSpace::display_p3(), "display_p3"),
+            Self::SRGB  =>  (RgbSpace::srgb(),"sRGB"),
+            Self::ADOBE => (RgbSpace::adobe_rgb(), "Adobe RGB"),
+            Self::DisplayP3 => (RgbSpace::display_p3(), "Display P3"),
         }
 
     }
@@ -78,31 +89,37 @@ pub struct RgbSpace {
 
 impl RgbSpace {
     
-    /// Creates a new `RgbSpace` using an array of three spectra as first
-    /// argument, representing the spectral distributions of the red, green, and
-    /// blue primary stimuli, the white spectrum as second argument, and a gamma
-    /// function as last arguments.  The spectral primaries or white spectrum
-    /// can have arbitrary power, as they are normalized before using in
-    /// calculation, in particular when using the RGB to XYZ transforms, and
-    /// vice versa (see the `rgb2xyz(rgbid: &RgbSpaceId)` and `xyz2rgb(rgbid: &RgbSpaceId)`
-    /// methods of `Observer`).
+    /**
+    Creates a new `RgbSpace` using an array of three spectra as first
+    argument, representing the spectral distributions of the red, green, and
+    blue primary stimuli, the white spectrum as second argument, and a gamma
+    function as last arguments.  The spectral primaries or white spectrum
+    can have arbitrary power, as they are normalized before using in
+    calculation, in particular when using the RGB to XYZ transforms, and
+    vice versa (see the `rgb2xyz(rgbid: &RgbSpaceId)` and `xyz2rgb(rgbid: &RgbSpaceId)`
+    methods of `Observer`).
+    */
     pub fn new(primaries: [Spectrum;3], white: Spectrum, gamma: GammaCurve) -> Self {
         Self { primaries, white, gamma }
     }
 
 
-    /// The sRGB color space, created by HP and Microsoft in 1996.  It is the
-    /// default color space used in an image, or a Web-page, if no color space
-    /// is specified in a tag or in a color profile.
-    /// In this instance, the primaries are composed of Daylight D65 filtered Gaussian filters.
-    /// For the green and blue these are single Gaussians.
-    /// For red primary a combination of a blue and red Gaussian is used, with
-    /// the blue being equal to the blue primary.
+    /**
+    The sRGB color space, created by HP and Microsoft in 1996.  It is the
+    default color space used in an image, or a Web-page, if no color space
+    is specified in a tag or in a color profile.
+    In this instance, the primaries are composed of Daylight D65 filtered Gaussian filters.
+    For the green and blue these are single Gaussians.
+    For red primary a combination of a blue and red Gaussian is used, with
+    the blue being equal to the blue primary.
+    */
     pub fn srgb()-> &'static RgbSpace {
     static SRGB: OnceLock<RgbSpace> = OnceLock::new();
-        // Red Gaussian center wavelength and width, and blue lumen fraction
-        // added to match the red primary sRGB color space specifiation.
-        // See the `examples/primaries/main.rs` how these were calculated.
+        /*
+        Red Gaussian center wavelength and width, and blue lumen fraction
+        added to match the red primary sRGB color space specifiation.
+        See the `examples/primaries/main.rs` how these were calculated.
+        */
         const RED: [f64;3] = [627.2101041540204, 23.38636113607498,0.006839349789397155];
 
         // Blue and Green Gaussian filters.
@@ -116,11 +133,14 @@ impl RgbSpace {
             Self { primaries, white, gamma}
         })
     }
-    /// The Adobe RGB color space.
-    /// The primaries are composed of Daylight D65 filtered Gaussian filters.
-    /// For the green and blue these are single Gaussians.
-    /// For red primary a combination of a blue and red Gaussian is used, with
-    /// the blue being equal to the blue primary.
+    /**
+    The Adobe RGB color space.
+
+    The primaries are composed of Daylight D65 filtered Gaussian filters.
+    For the green and blue these are single Gaussians.
+    For red primary a combination of a blue and red Gaussian is used, with
+    the blue being equal to the blue primary.
+    */
     pub fn adobe_rgb()-> &'static RgbSpace {
     static ADOBE_RGB: OnceLock<RgbSpace> = OnceLock::new();
         // Red Gaussian center wavelength and width, and blue lumen fraction
@@ -141,11 +161,13 @@ impl RgbSpace {
         })
     }
 
-    /// The Display P3 color space.
-    /// The primaries are composed of Daylight D65 filtered Gaussian filters.
-    /// For the green and blue these are single Gaussians.
-    /// For red primary a combination of a blue and red Gaussian is used, with
-    /// the blue being equal to the blue primary.
+    /**
+    The Display P3 color space.
+    The primaries are composed of Daylight D65 filtered Gaussian filters.
+    For the green and blue these are single Gaussians.
+    For red primary a combination of a blue and red Gaussian is used, with
+    the blue being equal to the blue primary.
+    */
     pub fn display_p3()-> &'static RgbSpace {
     static DISPLAY_P3: OnceLock<RgbSpace> = OnceLock::new();
         // Red Gaussian center wavelength and width, and blue lumen fraction
@@ -198,8 +220,8 @@ mod rgbspace_tests {
 /// As ooposed to CIE XYZ tristimulus values, which used imaginary primaries,
 /// displays use real primaries, typically defined in the CIE 1931 diagram.
 /// They cover a triangular area, referred to the _color gamut_ of a display.
-/// 
 #[wasm_bindgen]
+#[derive(Debug, Clone, Copy)]
 pub struct RGB {
     
     /// The RGB color space the color values are using. Often this is the _sRGB_
@@ -246,12 +268,14 @@ impl RGB {
 
     /// Converts the RGB value to a tri-stimulus XYZ value
     pub fn xyz(&self) -> XYZ {
-        static RGB2XYZ: OnceLock<Matrix3<f64>> = OnceLock::new();
-        let rgb2xyz = RGB2XYZ.get_or_init(||{
-            todo!()
-        });
-        let &[x, y, z] = (rgb2xyz * self.data).as_ref();
-        XYZ::new(x, y, z, self.obs_id)
+        const YW: f64 = 100.0;
+        let data = self.obs_id.observer().rgb2xyz(&self.rgb_id) * self.data;
+        let s = YW/data.y;
+        XYZ {
+            obs_id: self.obs_id,
+            data: data.map(|v|v*s),
+            yw: Some(YW)
+        }
     }
 
     /// Creates a callback of closure function, which takes a set or RGB values,

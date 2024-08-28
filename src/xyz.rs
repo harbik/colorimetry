@@ -3,7 +3,7 @@ use std::ops::{Add, Deref, Mul};
 
 use approx::{assert_ulps_ne, AbsDiffEq, Ulps, UlpsEq};
 use nalgebra::{max, Vector3};
-use crate::{geometry::{LineAB, Orientation}, obs::ObsId, CmError, CIE1931};
+use crate::{geometry::{LineAB, Orientation}, obs::ObsId, CmError, RgbSpaceId, CIE1931, RGB};
 use wasm_bindgen::prelude::wasm_bindgen; 
 
 
@@ -16,7 +16,8 @@ use wasm_bindgen::prelude::wasm_bindgen;
 /// such as CIELAB and CIECAM.
 pub struct XYZ {
      pub(crate) obs_id: ObsId,
-     pub(crate) data:  Vector3<f64>
+     pub(crate) data:  Vector3<f64>,
+     pub(crate) yw: Option<f64> // lumimous value for the reference white
 }
 
 
@@ -24,20 +25,25 @@ impl XYZ {
 
     /// Define a set of XYZ-values directly, using an identifier for its
     /// associated observer, such as `Cie::Std1931` or `Cie::Std2015`.
-    pub fn new(x: f64, y: f64, z: f64, obs_id: ObsId) -> Self {
+    pub fn new(x: f64, y: f64, z: f64, yw: Option<f64>, obs_id: ObsId) -> Self {
         let data = Vector3::new(x,y,z);
-        Self { obs_id, data}
+        Self { obs_id, data, yw}
     }
     
-    pub fn from_chromaticity(xy: [f64;2], obs_id: ObsId) -> XYZ {
+    pub fn from_chromaticity(xy: [f64;2], yw: Option<f64>, obs_id: ObsId) -> Result<XYZ, CmError> {
         let [x, y] = xy;
-        Self::new(x, y, 1.0 - x -y, obs_id)
+        if (x + y) >= 1.0  {
+            Err(CmError::InvalidChromaticityValues)
+        } else {
+            Ok(Self::new(x, y, 1.0 - x -y, yw, obs_id))
+
+        }
     }
 
     pub fn try_add(&self, other: XYZ) -> Result<XYZ, CmError> {
         if self.obs_id == other.obs_id {
             let data = self.data + other.data;
-            Ok(XYZ {data, obs_id: self.obs_id})
+            Ok(XYZ {data, obs_id: self.obs_id, yw: self.yw})
         } else {
             Err(CmError::RequireSameObserver)
         }
@@ -193,6 +199,20 @@ impl XYZ {
 
     }
 
+    /// Convert a set of XYZ tristimulus values to RGB values, using the given RGB space identifier. 
+    /// This method requires the luminous value of the reference white, which is typically set to 100.0,
+    /// or, less common, 1.0, but any other value can be used as well.
+    pub fn rgb(&self, rgb_id: RgbSpaceId) -> RGB {
+        let ywhite = self.yw.unwrap_or(100.0);
+        let d = self.data.map(|v| v/ywhite);
+        let data = self.obs_id.observer().xyz2rgb(rgb_id) * d;
+        RGB {
+            rgb_id,
+            obs_id: self.obs_id,
+            data,
+        }
+    }
+
 
 }
 
@@ -221,15 +241,15 @@ impl UlpsEq for XYZ {
 #[test]
 fn ulps_xyz_test() {
     use approx::assert_ulps_eq;
-    let xyz0 = XYZ::new(0.0, 0.0, 0.0, ObsId::Std1931);
+    let xyz0 = XYZ::new(0.0, 0.0, 0.0, None, ObsId::Std1931);
 
-    let xyz1 = XYZ::new(0.0, 0.0, f64::EPSILON, ObsId::Std1931);
+    let xyz1 = XYZ::new(0.0, 0.0, f64::EPSILON, None,  ObsId::Std1931);
     assert_ulps_eq!(xyz0, xyz1);
 
-    let xyz2 = XYZ::new(0.0, 0.0, 2.0*f64::EPSILON, ObsId::Std1931);
+    let xyz2 = XYZ::new(0.0, 0.0, 2.0*f64::EPSILON, None, ObsId::Std1931);
     assert_ulps_ne!(xyz0, xyz2);
 
-    let xyz3 = XYZ::new(0.0, 0.0, 0.0, ObsId::Std1976);
+    let xyz3 = XYZ::new(0.0, 0.0, 0.0, None, ObsId::Std1976);
     assert_ulps_ne!(xyz0, xyz3);
 }
 
@@ -240,7 +260,7 @@ impl Add for XYZ {
         Self {
             data: self.data + rhs.data,
             obs_id: self.obs_id,
-
+            yw: self.yw
         }
     }
 }
@@ -252,6 +272,7 @@ impl Mul<f64> for XYZ {
         Self {
             data: rhs * self.data,
             obs_id: self.obs_id,
+            yw: self.yw
 
         }
     }
@@ -264,6 +285,7 @@ impl Mul<XYZ> for f64 {
         Self::Output {
             data: self * rhs.data,
             obs_id: rhs.obs_id,
+            yw: rhs.yw
 
         }
     }
@@ -272,7 +294,7 @@ impl Mul<XYZ> for f64 {
 
 impl Default for XYZ {
     fn default() -> Self {
-        Self { obs_id: Default::default(), data: Default::default() }
+        Self { obs_id: Default::default(), data: Default::default(), yw: Default::default() }
     }
 }
 
@@ -323,20 +345,20 @@ impl XYZ {
     pub fn new_js(x: f64, y:f64, opt : &js_sys::Array) -> Result<XYZ, crate::CmError> {
         use wasm_bindgen::convert::TryFromJsValue;
         use crate::CmError; 
-        let (x, y, z, obs) = match opt.length() {
-            0 => (x * 100.0/y, 100.0, (1.0 - x - y) * 100.0/y, ObsId::Std1931),
+        let (x, y, z, yw, obs) = match opt.length() {
+            0 => (x * 100.0/y, 100.0, (1.0 - x - y) * 100.0/y, None, ObsId::Std1931),
             1 => {
                 if opt.get(0).as_f64().is_some() {
-                    (x, y, opt.get(0).as_f64().unwrap(), ObsId::Std1931)
+                    (x, y, opt.get(0).as_f64().unwrap(), None, ObsId::Std1931)
                 } else {
                     let obs = ObsId::try_from_js_value(opt.get(0))?;
-                    (x * 100.0/y, 100.0, (1.0 - x - y) * 100.0/y, obs)
+                    (x * 100.0/y, 100.0, (1.0 - x - y) * 100.0/y, None, obs)
                 }
             }
             2 => {
                 let z = opt.get(0).as_f64().ok_or(crate::CmError::ErrorString("please provide a z value as number".into()))?;
                 let obs = ObsId::try_from_js_value(opt.get(1))?;
-                (x, y, z, obs)
+                (x, y, z, None, obs)
             }
             _ => {
                 return Err(CmError::ErrorString("Invalid Arguments for XYZ constructor".into()));
@@ -345,7 +367,7 @@ impl XYZ {
         if x<0.0 || y<0.0 || z<0.0 {
                 return Err(CmError::ErrorString("XYZ values should be all positive values".into()));
         }
-        Ok(XYZ::new(x, y, z, obs))
+        Ok(XYZ::new(x, y, z, yw, obs))
     }
 
 
@@ -374,7 +396,9 @@ impl XYZ {
 #[cfg(test)]
 mod xyz_test {
     use approx::assert_ulps_eq;
-    use crate::{LineAB, CIE1931};
+    use crate::{LineAB, ObsId, CIE1931, RGB};
+
+    use super::XYZ;
 
     #[test]
     fn dominant_wavelength_test(){
@@ -426,5 +450,15 @@ mod xyz_test {
         }
 
 
+    }
+
+    #[test]
+    fn rgb_test() {
+        let rgb_blue = RGB::new(0.0, 0.0, 1.0, ObsId::Std1931, crate::RgbSpaceId::SRGB);
+        println!("{rgb_blue:?}");
+        let xyz_blue = rgb_blue.xyz() ;
+        println!("{xyz_blue:?} {:?}", xyz_blue.chromaticity());
+        let rgbb = xyz_blue.rgb(crate::RgbSpaceId::SRGB);
+        println!("{rgbb:?}");
     }
 }
