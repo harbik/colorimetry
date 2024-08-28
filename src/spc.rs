@@ -568,7 +568,7 @@ fn mixed_category(s1: &Spectrum, s2: &Spectrum) -> Category {
     }
 }
 
-// Multiplication of two spectra, typically for a combinations of an illuminant and a filter or ColorPatch,
+// Multiplication of two spectra using the `*`-operator, typically for a combinations of an illuminant and a filter or ColorPatch,
 // or when combining multiple ColorPatchs or filters. Subtractive Mixing.
 impl Mul for Spectrum {
     type Output = Self;
@@ -582,6 +582,7 @@ impl Mul for Spectrum {
         }
     }
 }
+
 
 impl Mul<f64> for Spectrum {
     /// Multiply a spectrum with a scalar f64 value.
@@ -713,6 +714,14 @@ fn add_spectra(){
 
 impl MulAssign for Spectrum {
     /// Element wise multiply (filter) a spectrum with another spectrum.
+    /// ```
+    /// use colorimetry::{Spectrum, CIE1931, XYZ};
+    /// let mut spc = Spectrum::d65_illuminant().set_illuminance(&CIE1931, 100.0);
+    /// spc *= Spectrum::white(); // no change in color point
+    /// let xyz = CIE1931.xyz(&spc);
+    /// approx::assert_ulps_eq!(xyz, CIE1931.xyz_d65());
+    /// 
+    /// ```
     fn mul_assign(&mut self, rhs: Self) {
         self.data.iter_mut().zip(rhs.data.iter()).for_each(|(v,w)| *v *= *w);
 

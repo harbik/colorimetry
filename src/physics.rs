@@ -74,21 +74,6 @@ pub fn led_ohno(wl: f64, center: f64, width: f64) -> f64 {
 
 use std::f64::consts::PI;
 
-use crate::CmError;
-
-/*
-fn main() {
-    // Define the mean (mu) and standard deviation (sigma)
-    let mu = 0.0;
-    let sigma = 1.0;
-
-    // Generate values from -3 to 3 with a step of 0.5 to evaluate the Gaussian function
-    for x in (-60..61).map(|i| i as f64 / 10.0) {
-        let y = gaussian(x, mu, sigma);
-        println!("f({}) = {}", x, y);
-    }
-}
- */
 
 #[inline]
 pub fn gaussian_peak_one(x: f64, mu: f64, sigma: f64) -> f64 {
@@ -103,7 +88,7 @@ fn gaussian_peak_one_test(){
     let mu = 500E-9;
     let x = mu - sigma;
     let v = gaussian_peak_one(x, mu, sigma);
-    approx::assert_ulps_eq!(v, 0.60653065971, epsilon = 1E-10);
+    assert_ulps_eq!(v, 0.60653065971, epsilon = 1E-10);
 }
 
 #[inline]

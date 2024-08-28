@@ -1,8 +1,8 @@
 use core::f64;
-use std::{f32::NAN, sync::OnceLock};
+use std::sync::OnceLock;
 use wasm_bindgen::prelude::wasm_bindgen;
 use nalgebra::{Matrix3, SMatrix};
-use crate::{lab::Lab, physics::planck, rgb::{RgbSpaceId, RGB}, spc::{Category, Spectrum, NS}, xyz::XYZ, CmError, LineAB, StdIlluminant, D65};
+use crate::{lab::Lab, physics::planck, RgbSpaceId, spc::{Category, Spectrum, NS}, xyz::XYZ, CmError, LineAB, StdIlluminant};
 
 
 
@@ -326,7 +326,7 @@ fn im2t(im: usize) -> f64 {
 #[cfg(test)]
 mod obs_test {
 
-    use crate::{CIE1931, D65, LineAB};
+    use crate::CIE1931;
     use approx::assert_ulps_eq;
 
     #[test]
@@ -377,7 +377,7 @@ mod obs_test {
     #[test]
     fn test_xyz_std_illuminants(){
         let (xyz, yabs) = CIE1931.xyz_std_illuminant(&crate::StdIlluminant::D65);
-        println!("{xyz:?}");
+        println!("{xyz:?} {yabs:.4}");
     }
     
 }

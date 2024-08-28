@@ -1,9 +1,9 @@
 use core::f64;
-use std::ops::{Add, Deref, Mul};
+use std::ops::Add;
 
-use approx::{assert_ulps_ne, AbsDiffEq, Ulps, UlpsEq};
-use nalgebra::{max, Vector3};
-use crate::{geometry::{LineAB, Orientation}, obs::ObsId, CmError, RgbSpaceId, CIE1931, RGB};
+use approx::AbsDiffEq;
+use nalgebra::Vector3;
+use crate::{geometry::{LineAB, Orientation}, obs::ObsId, CmError, RgbSpaceId, RGB};
 use wasm_bindgen::prelude::wasm_bindgen; 
 
 
@@ -228,7 +228,7 @@ impl AbsDiffEq for XYZ {
     }
 }
 
-impl UlpsEq for XYZ {
+impl approx::UlpsEq for XYZ {
     fn default_max_ulps() -> u32 {
         f64::default_max_ulps()
     }
@@ -247,10 +247,10 @@ fn ulps_xyz_test() {
     assert_ulps_eq!(xyz0, xyz1);
 
     let xyz2 = XYZ::new(0.0, 0.0, 2.0*f64::EPSILON, None, ObsId::Std1931);
-    assert_ulps_ne!(xyz0, xyz2);
+    approx::assert_ulps_ne!(xyz0, xyz2);
 
     let xyz3 = XYZ::new(0.0, 0.0, 0.0, None, ObsId::Std1976);
-    assert_ulps_ne!(xyz0, xyz3);
+    approx::assert_ulps_ne!(xyz0, xyz3);
 }
 
 impl Add for XYZ {
@@ -265,7 +265,7 @@ impl Add for XYZ {
     }
 }
 
-impl Mul<f64> for XYZ {
+impl std::ops::Mul<f64> for XYZ {
     type Output = XYZ;
 
     fn mul(self, rhs: f64) -> Self::Output {
@@ -278,7 +278,7 @@ impl Mul<f64> for XYZ {
     }
 }
 
-impl Mul<XYZ> for f64 {
+impl std::ops::Mul<XYZ> for f64 {
     type Output = XYZ;
 
     fn mul(self, rhs: XYZ) -> Self::Output {
@@ -398,7 +398,7 @@ mod xyz_test {
     use approx::assert_ulps_eq;
     use crate::{LineAB, ObsId, CIE1931, RGB};
 
-    use super::XYZ;
+    
 
     #[test]
     fn dominant_wavelength_test(){

@@ -1,5 +1,5 @@
 
-#![allow(dead_code, unused_variables, unused_imports)]
+#![allow(dead_code, unused_variables, unused_imports, )]
 #![doc = include_str!("../README.md")]
 
 
@@ -8,6 +8,7 @@ pub use xyz::*;
 pub use obs::*;
 pub use data::*;
 pub use rgb::*;
+pub use rgbspace::*;
 pub use geometry::*;
 use wasm_bindgen::JsValue;
 
@@ -17,6 +18,7 @@ pub mod spc;
 pub mod xyz;
 pub mod lab;
 pub mod rgb;
+pub mod rgbspace;
 pub mod gamma;
 pub mod physics;
 pub mod data;

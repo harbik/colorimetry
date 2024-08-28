@@ -5,6 +5,7 @@ use colorimetry::XY_PRIMARIES;
 
 
 
+#[allow(dead_code)]
 struct Gauss{
     x: f64,
     y: f64,
@@ -30,6 +31,7 @@ impl CostFunction for Gauss{
         Ok((xt-self.x).hypot(yt-self.y))
     }
 }
+#[allow(dead_code)]
 struct GaussWithAnchor{
     x: f64,
     y: f64,
