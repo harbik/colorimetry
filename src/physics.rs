@@ -39,11 +39,28 @@ pub fn planck_c2(l: f64, t: f64, c2: f64) -> f64 {
     crate::physics::C1 / l.powi(5) / ((c2 / (l * t)).exp() - 1.0)
 }
 
+/// Planck Temperature derivate: d(Planck)/dT
+pub fn planck_slope_c2(l: f64, t: f64, c2: f64) -> f64 {
+    let c3 = C1 * c2 / t.powi(2);
+    let e = (c2 / (l * t)).exp();
+    c3 / l.powi(6) * e / (e - 1.0).powi(2)
+}
+
+/// Planck Temperature second derivative: d2(Planck)/dT2
+pub fn planck_curvature_c2(l: f64, t: f64, c2: f64) -> f64 {
+    let e = (c2 / (l * t)).exp();
+    planck_slope_c2(l, t, c2) / t * (c2/(l*t) * (e+1.0)/(e-1.0) -2.0)
+}
+
 #[inline]
 pub fn planck(l: f64, t: f64) -> f64 {
     planck_c2(l, t, crate::physics::C2)
 }
 
+#[inline]
+pub fn planck_slope(l: f64, t: f64) -> f64 {
+    planck_slope_c2(l, t, crate::physics::C2)
+}
 
 
 /// Stefan-Boltzmann constant (W m<sup>-2</sup> K<sup>-4</sup>)

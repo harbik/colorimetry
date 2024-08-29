@@ -1,8 +1,8 @@
 use nalgebra::{ArrayStorage, SVector, SMatrix};
 
-use crate::{obs::{ObsId, Observer}, spc::{Spectrum, Category, NS}};
+use crate::{obs::{ObserverTag, Observer}, spc::{Spectrum, Category, NS}};
 
-pub static CIE1931: Observer = Observer{id: ObsId::Std1931, lumconst: 683.0, data: SMatrix::<f64, 3, NS>::from_array_storage( ArrayStorage([
+pub static CIE1931: Observer = Observer{id: ObserverTag::Std1931, lumconst: 683.0, data: SMatrix::<f64, 3, NS>::from_array_storage( ArrayStorage([
     [0.001368, 0.000039, 0.006450001], [0.00150205, 0.0000428264, 0.007083216], [0.001642328, 0.0000469146, 0.007745488], [0.001802382, 0.0000515896, 0.008501152], [0.001995757, 0.0000571764, 0.009414544],
     [0.002236, 0.000064, 0.01054999], [0.002535385, 0.00007234421, 0.0119658], [0.002892603, 0.00008221224, 0.01365587], [0.003300829, 0.00009350816, 0.01558805], [0.003753236, 0.0001061361, 0.01773015],
     [0.004243, 0.00012, 0.02005001], [0.004762389, 0.000134984, 0.02251136], [0.005330048, 0.000151492, 0.02520288], [0.005978712, 0.000170208, 0.02827972], [0.006741117, 0.000191816, 0.03189704],

@@ -1,6 +1,6 @@
 use argmin::{core::{CostFunction, Executor, State, TerminationReason}, solver::neldermead::NelderMead};
 use colored::Colorize;
-use colorimetry::{ObsId, Spectrum, StdIlluminant, CIE1931, D65, XYZ};
+use colorimetry::{ObserverTag, Spectrum, StdIlluminant, CIE1931, XYZ};
 use colorimetry::XY_PRIMARIES;
 
 
@@ -26,7 +26,7 @@ impl CostFunction for Gauss{
 
     fn cost(&self, param: &Self::Param) -> Result<Self::Output, argmin::core::Error> {
         let [l, w] = param.clone().try_into().unwrap();
-        let [xt, yt] = CIE1931.xyz2(&D65, &Spectrum::gaussian_filter(l, w)).chromaticity();
+        let [xt, yt] = CIE1931.xyz_with_std_illuminant(&StdIlluminant::D65, &Spectrum::gaussian_filter(l, w)).chromaticity();
       //  println!("({l},{w}) cost: {xt:.4}, {yt:.4}");
         Ok((xt-self.x).hypot(yt-self.y))
     }
@@ -54,7 +54,7 @@ impl CostFunction for GaussWithAnchor{
 
     fn cost(&self, param: &Self::Param) -> Result<Self::Output, argmin::core::Error> {
         let [l, w, c]: [f64;3] = param.clone().try_into().unwrap(); 
-        let r = CIE1931.xyz2(&D65, &Spectrum::gaussian_filter(l, w)).set_illuminance(100.0);
+        let r = CIE1931.xyz_with_std_illuminant(&StdIlluminant::D65, &Spectrum::gaussian_filter(l, w)).set_illuminance(100.0);
         let t = c * self.anchor + (1.0-c) * r;
         let [xt, yt] = t.chromaticity();
         Ok((xt-self.x).hypot(yt-self.y))
@@ -62,7 +62,7 @@ impl CostFunction for GaussWithAnchor{
 }
 
 fn gauss(s: &str, i: usize ) -> Result<Vec<f64>, String>{
-    let xyz = XYZ::from_chromaticity(XY_PRIMARIES[s].0[i], None, ObsId::Std1931).unwrap();
+    let xyz = XYZ::from_chromaticity(XY_PRIMARIES[s].0[i], None, ObserverTag::Std1931).unwrap();
     let d = XY_PRIMARIES[s].1;
     let problem = Gauss::new(xyz, d);
 
@@ -85,8 +85,8 @@ fn gauss(s: &str, i: usize ) -> Result<Vec<f64>, String>{
 }
 
 fn gauss_with_anchor(s: &str, i: usize, j: usize ) -> Result<Vec<f64>, String>{
-    let xyz = XYZ::from_chromaticity(XY_PRIMARIES[s].0[i], None, ObsId::Std1931).unwrap();
-    let xyzb = XYZ::from_chromaticity(XY_PRIMARIES[s].0[j], None,  ObsId::Std1931).unwrap();
+    let xyz = XYZ::from_chromaticity(XY_PRIMARIES[s].0[i], None, ObserverTag::Std1931).unwrap();
+    let xyzb = XYZ::from_chromaticity(XY_PRIMARIES[s].0[j], None,  ObserverTag::Std1931).unwrap();
     let d = XY_PRIMARIES[s].1;
     let problem = GaussWithAnchor::new(xyz,xyzb, d);
 
@@ -116,8 +116,6 @@ fn report(desc: &str, r: [f64;3], g: [f64;2], b: [f64;2]) {
     println!("{}", format!("{:?}", r).red());
     println!("{}", format!("{:?}", g).green());
     println!("{}", format!("{:?}", b).blue());
-
-
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>>{

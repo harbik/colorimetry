@@ -3,27 +3,29 @@
 #![doc = include_str!("../README.md")]
 
 
-pub use spc::*;
-pub use xyz::*;
-pub use obs::*;
+pub use cct::*;
 pub use data::*;
+pub use geometry::*;
+pub use obs::*;
 pub use rgb::*;
 pub use rgbspace::*;
-pub use geometry::*;
+pub use spc::*;
+pub use xyz::*;
 use wasm_bindgen::JsValue;
 
 
-pub mod obs;
-pub mod spc;
-pub mod xyz;
+pub mod cct;
+pub mod cri;
+pub mod data;
+pub mod gamma;
+pub mod geometry;
 pub mod lab;
+pub mod obs;
+pub mod physics;
 pub mod rgb;
 pub mod rgbspace;
-pub mod gamma;
-pub mod physics;
-pub mod data;
-pub mod cri;
-pub mod geometry;
+pub mod spc;
+pub mod xyz;
 
 
 #[derive(thiserror::Error, Debug)]
@@ -100,6 +102,8 @@ pub enum CmError {
     NoUniqueSpectralLocus(usize,usize),
     #[error("Invalid Chromaticity Values")]
     InvalidChromaticityValues,
+    #[error("This Method Requires CIE 1931-based XYZ values")]
+    RequiresCIE1931XYZ
 }
 
 impl From<&str> for CmError {

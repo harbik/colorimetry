@@ -717,8 +717,8 @@ impl MulAssign for Spectrum {
     /// ```
     /// use colorimetry::{Spectrum, CIE1931, XYZ};
     /// let mut spc = Spectrum::d65_illuminant().set_illuminance(&CIE1931, 100.0);
-    /// spc *= Spectrum::white(); // no change in color point
-    /// let xyz = CIE1931.xyz(&spc);
+    /// spc *= Spectrum::white(); // no change in color point, multiply with all ones
+    /// let xyz = CIE1931.xyz(&spc); // calculate tristimulus values
     /// approx::assert_ulps_eq!(xyz, CIE1931.xyz_d65());
     /// 
     /// ```

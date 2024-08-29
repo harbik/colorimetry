@@ -32,14 +32,14 @@ pub static XY_PRIMARIES: LazyLock<HashMap<&str, ([[f64;2];3], StdIlluminant)>> =
 A Light Weight index tag, to represent an RGB space.
 Used for example in the RGB value set, to identify the color space being used.  
  */
-pub enum RgbSpaceId {
+pub enum RgbSpaceTag {
     #[default]
     SRGB, // D65 filtered Gaussians
     ADOBE,
     DisplayP3,
 }
 
-impl RgbSpaceId {
+impl RgbSpaceTag {
 
     /**
     Obtain reference to the RgbSpace data, and a color space name string.
@@ -78,7 +78,6 @@ can also be optimized for special observers by considering an observer's age or
 health conditions.
 */
 pub struct RgbSpace {
-   // pub(crate) id: RgbSpaceId,
     pub(crate) primaries: [Spectrum;3],
     pub(crate) white: Spectrum,
     pub(crate) gamma: GammaCurve,
@@ -188,7 +187,7 @@ impl RgbSpace {
 
 #[cfg(test)]
 mod rgbspace_tests {
-    use crate::{RgbSpace, RgbSpaceId, CIE1931, XY_PRIMARIES, Spectrum, D65};
+    use crate::{RgbSpace, RgbSpaceTag, CIE1931, XY_PRIMARIES, Spectrum, D65};
     use approx::assert_ulps_eq;
     use strum::IntoEnumIterator;
 
@@ -196,7 +195,7 @@ mod rgbspace_tests {
     /// Check color points of the primaries, as calculated from the space's
     /// spectra, to the targets in `XY_PRIMARIES`. 
     fn srgb_test(){
-        for space in RgbSpaceId::iter() {
+        for space in RgbSpaceTag::iter() {
             let (rgbspace, rgbstr) = space.rgb_space();
             for i in 0..3 {
                 let xy = CIE1931.xyz(&rgbspace.primaries[i]).chromaticity();
