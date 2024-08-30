@@ -1,4 +1,5 @@
 
+use num_traits::ToPrimitive;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 
@@ -89,6 +90,7 @@ pub fn led_ohno(wl: f64, center: f64, width: f64) -> f64 {
 }
 
 
+use core::f64;
 use std::f64::consts::PI;
 
 
@@ -112,5 +114,29 @@ fn gaussian_peak_one_test(){
 pub fn gaussian_normalized(x: f64, mu: f64, sigma: f64) -> f64 {
     let exponent = -((x - mu).powi(2)) / (2.0 * sigma.powi(2));
     (1.0 / (sigma * (2.0 * PI).sqrt())) * exponent.exp()
+}
+
+/// Map a value x, in a domain from xmin to xmax to a wavelength in the domain
+/// from 380E-9 to 780E-9 meter. 
+/// ```
+/// // Wavelength from an index value in the domain from 0 to 400:
+/// let l = colorimetry::to_wavelength(200, 0, 400);
+/// approx::assert_ulps_eq!(l, 580E-9);
+///
+/// // Wavelength from from a function defined over a domain from 0.0 to 1.0:
+/// let l = colorimetry::to_wavelength(0.0, 0.0, 1.0);
+/// approx::assert_ulps_eq!(l, 380E-9);
+///
+/// // Wavelength defined in integer nanometer values, to floating point meters
+/// let l = colorimetry::to_wavelength(780, 380, 780);
+/// approx::assert_ulps_eq!(l, 780E-9);
+/// ```
+#[inline]
+pub fn to_wavelength<T: ToPrimitive>(x: T, xmin: T, xmax:T) -> f64 {
+    let xmin = xmin.to_f64().unwrap_or(f64::NAN);
+    let xmax = xmax.to_f64().unwrap_or(f64::NAN);
+    let x = x.to_f64().unwrap_or(f64::NAN);
+    let f = (x - xmin)/(xmax - xmin); 
+    380E-9 * (1.0 - f) + 780E-9 * f
 }
 

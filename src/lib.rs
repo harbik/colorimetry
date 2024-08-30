@@ -7,6 +7,7 @@ pub use cct::*;
 pub use data::*;
 pub use geometry::*;
 pub use obs::*;
+pub use physics::*;
 pub use rgb::*;
 pub use rgbspace::*;
 pub use spc::*;
@@ -124,4 +125,5 @@ impl From<CmError> for JsValue {
     }
 }
 
+ 
  

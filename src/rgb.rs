@@ -1,7 +1,8 @@
 use std::sync::OnceLock;
+use approx::AbsDiffEq;
 use nalgebra::{Matrix3, Vector3};
 use wasm_bindgen::prelude::wasm_bindgen;
-use crate::{spc::Spectrum, xyz::XYZ, ObserverTag, RgbSpaceTag, CIE1931};
+use crate::{spc::Spectrum, xyz::XYZ, Observer, RgbSpace, CIE1931};
 
 
 /// Representation of a color stimulus in a set of Red, Green, and Blue (RGB) values,
@@ -13,59 +14,71 @@ use crate::{spc::Spectrum, xyz::XYZ, ObserverTag, RgbSpaceTag, CIE1931};
 /// displays use real primaries, typically defined in the CIE 1931 diagram.
 /// They cover a triangular area, referred to the _color gamut_ of a display.
 #[wasm_bindgen]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct RGB {
     
     /// The RGB color space the color values are using. Often this is the _sRGB_
     /// color space, which is rather small.
-    pub(crate) space: RgbSpaceTag,
+    pub(crate) space: RgbSpace,
 
     /// Reference to the colorimetric observer being used. This is almost always
     /// the CIE 1931 standard observer, which has been known to represent the
     /// deep blue region of humen vision sensitivity incorrectly. Here we allow 
     /// other standard observers, such as the CIE 2015 cone fundamentals based
     /// observer, to improve color management quality.
-    pub(crate) obs: ObserverTag,
+    pub(crate) observer: Observer,
     pub(crate) data: Vector3<f64>,
 }
 
 
 impl RGB {
-    /// Construct a RGB instance from red, green, and blue values in the range from 0 to 1.
-    pub fn new(r: f64, g:f64, b:f64, obs: ObserverTag, space: RgbSpaceTag) -> Self {
-        RGB {data:Vector3::new(r, g, b), obs, space }
+    /// Construct a RGB instance from red, green, and blue values in the range from 0 to 1,
+    /// with an `Observer` and an optional `RgbSpace`.
+    /// When using online RGB data, when observer and color space or color profile are not explicititely specfied,
+    /// `Observer::Std1931`, and `RgbSpace::SRGB` are implied, and those are the defaults here too.
+    pub fn new(r: f64, g:f64, b:f64, observer: Option<Observer>, space: Option<RgbSpace>) -> Self {
+        let observer = observer.unwrap_or_default();
+        let space = space.unwrap_or_default();
+        RGB {data:Vector3::new(r, g, b), observer, space }
     }
 
-    /// Construct a RGB instance from red, green, and blue u8 values in the range from 0 to 1.
-    pub fn from_u8(r_u8: u8, g_u8:u8, b_u8:u8, obs: ObserverTag, space: RgbSpaceTag) -> Self {
-        let [r, g, b] = [r_u8, g_u8, b_u8].map(|v|(v as f64/255.0).clamp(0.0, 1.0));
-        RGB {data:Vector3::new(r, g, b), obs, space }
+    /// Construct a RGB instance from red, green, and blue u8 values in the range from 0 to 255.
+    ///
+    /// When using online RGB data, when observer and color space or color profile are not explicititely specfied,
+    /// `Observer::Std1931`, and `RgbSpace::SRGB` are implied, and those are the defaults here too.
+    pub fn from_u8(r_u8: u8, g_u8:u8, b_u8:u8, observer: Option<Observer>, space: Option<RgbSpace>) -> Self {
+        let space = space.unwrap_or_default();
+        let [r, g, b] = [r_u8, g_u8, b_u8].map(|v|(v as f64/255.0).clamp(0.0, 1.0)).map(|v|space.data().0.gamma.decode(v));
+        RGB::new(r, g, b, observer, Some(space))
     }
 
     /// Construct a RGB instance from red, green, and blue u16 values in the range from 0 to 1.
-    pub fn from_u16(r_u16: u16, g_u16:u16, b_u16:u16, obs: ObserverTag, space: RgbSpaceTag) -> Self {
-        let [r, g, b] = [r_u16, g_u16, b_u16].map(|v|(v as f64/65_535.0).clamp(0.0, 1.0));
-        RGB {data:Vector3::new(r, g, b), obs, space }
+    ///
+    /// When using online RGB data, when observer and color space or color profile are not explicititely specfied,
+    /// `Observer::Std1931`, and `RgbSpace::SRGB` are implied, and those are the defaults here too.
+    pub fn from_u16(r_u16: u16, g_u16:u16, b_u16:u16, observer: Option<Observer>, space: Option<RgbSpace>) -> Self {
+        let space = space.unwrap_or_default();
+        let [r, g, b] = [r_u16, g_u16, b_u16].map(|v|(v as f64/65_535.0).clamp(0.0, 1.0)).map(|v|space.data().0.gamma.decode(v));
+        RGB::new(r, g, b, observer, Some(space))
     }
 
-    pub fn from_xyz(xyz: XYZ, space: RgbSpaceTag) -> Self {
+    pub fn from_xyz(xyz: XYZ, space: RgbSpace) -> Self {
         static XYZ2RGB: OnceLock<Matrix3<f64>> = OnceLock::new();
         let xyz2rgb = XYZ2RGB.get_or_init(||{
             todo!()
         });
         let &[r, g, b] = (xyz2rgb * xyz.data).as_ref();
-        RGB::new(r, g, b, xyz.obs_id, space)
+        RGB::new(r, g, b, Some(xyz.observer), Some(space))
 
     }
 
     /// Converts the RGB value to a tri-stimulus XYZ value
     pub fn xyz(&self) -> XYZ {
         const YW: f64 = 100.0;
-        let data = self.obs.observer().rgb2xyz(&self.space) * self.data;
-        let s = YW/data.y;
+        let data = self.observer.data().rgb2xyz(&self.space) * self.data;
         XYZ {
-            obs_id: self.obs,
-            data: data.map(|v|v*s),
+            observer: self.observer,
+            data: data.map(|v|v*YW),
             yw: Some(YW)
         }
     }
@@ -77,7 +90,7 @@ impl RGB {
     /// 
     /// This conversion uses the spectral represenations of the primaries through
     /// the color space `Spectra` function, to create a  transformation matrix.
-    pub fn convert(obs_from:ObserverTag, space_from: RgbSpaceTag, obs: ObserverTag, space: RgbSpaceTag) -> Box<dyn Fn(&Vector3<f64>) -> Vector3<f64>> {
+    pub fn convert(obs_from:Observer, space_from: RgbSpace, obs: Observer, space: RgbSpace) -> Box<dyn Fn(&Vector3<f64>) -> Vector3<f64>> {
         todo!()
 
     }
@@ -87,7 +100,7 @@ impl RGB {
     /// different standard observer or special observer.  On initial use this
     /// function calculates a transformation matrix based on the colorimetric
     /// tristimulus values of the respective primaries.
-    pub fn transform(&self, obs_from: &ObserverTag) -> Self {
+    pub fn transform(&self, obs_from: &Observer) -> Self {
         todo!() 
     }
 
@@ -104,7 +117,29 @@ impl AsRef<Vector3<f64>> for RGB {
 impl From<RGB> for [u8;3] {
     fn from(rgb: RGB) -> Self {
         let data: &[f64;3] =rgb.data.as_ref();
-        data.map(|v|(rgb.space.rgb_space().0.gamma.encode(v.clamp(0.0, 1.0))*255.0).round() as u8)
+        data.map(|v|(rgb.space.data().0.gamma.encode(v.clamp(0.0, 1.0))*255.0).round() as u8)
+    }
+}
+
+impl AbsDiffEq for RGB {
+    type Epsilon = f64;
+
+    fn default_epsilon() -> Self::Epsilon {
+        f64::default_epsilon()
+    }
+
+    fn abs_diff_eq(&self, other: &Self, epsilon: Self::Epsilon) -> bool {
+        self.observer == other.observer && self.data.abs_diff_eq(&other.data, epsilon) 
+    }
+}
+
+impl approx::UlpsEq for RGB {
+    fn default_max_ulps() -> u32 {
+        f64::default_max_ulps()
+    }
+
+    fn ulps_eq(&self, other: &Self, epsilon: Self::Epsilon, max_ulps: u32) -> bool {
+        self.observer == other.observer && self.data.ulps_eq(&other.data, epsilon, max_ulps)
     }
 }
 

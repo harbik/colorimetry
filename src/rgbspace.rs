@@ -26,20 +26,20 @@ pub static XY_PRIMARIES: LazyLock<HashMap<&str, ([[f64;2];3], StdIlluminant)>> =
 );
 
 
-#[derive(Debug, Clone, Copy, Default, EnumIter)]
+#[derive(Debug, Clone, Copy, Default, EnumIter, PartialEq)]
 #[wasm_bindgen]
 /**
 A Light Weight index tag, to represent an RGB space.
 Used for example in the RGB value set, to identify the color space being used.  
  */
-pub enum RgbSpaceTag {
+pub enum RgbSpace {
     #[default]
     SRGB, // D65 filtered Gaussians
     ADOBE,
     DisplayP3,
 }
 
-impl RgbSpaceTag {
+impl RgbSpace {
 
     /**
     Obtain reference to the RgbSpace data, and a color space name string.
@@ -48,11 +48,11 @@ impl RgbSpaceTag {
     curve function used for encoding and decoding RGB values into a data
     stream or image pixel.
     */
-    pub fn rgb_space(&self) -> (&RgbSpace, &str) {
+    pub fn data(&self) -> (&RgbSpaceData, &str) {
         match self {
-            Self::SRGB  =>  (RgbSpace::srgb(),"sRGB"),
-            Self::ADOBE => (RgbSpace::adobe_rgb(), "Adobe RGB"),
-            Self::DisplayP3 => (RgbSpace::display_p3(), "Display P3"),
+            Self::SRGB  =>  (RgbSpaceData::srgb(),"sRGB"),
+            Self::ADOBE => (RgbSpaceData::adobe_rgb(), "Adobe RGB"),
+            Self::DisplayP3 => (RgbSpaceData::display_p3(), "Display P3"),
         }
 
     }
@@ -77,14 +77,14 @@ can use updated Colorimetric Observers, such as the Cone-Fundamental based CIE
 can also be optimized for special observers by considering an observer's age or
 health conditions.
 */
-pub struct RgbSpace {
+pub struct RgbSpaceData {
     pub(crate) primaries: [Spectrum;3],
     pub(crate) white: Spectrum,
     pub(crate) gamma: GammaCurve,
 }
 
 
-impl RgbSpace {
+impl RgbSpaceData {
     
     /**
     Creates a new `RgbSpace` using an array of three spectra as first
@@ -110,8 +110,8 @@ impl RgbSpace {
     For red primary a combination of a blue and red Gaussian is used, with
     the blue being equal to the blue primary.
     */
-    pub fn srgb()-> &'static RgbSpace {
-    static SRGB: OnceLock<RgbSpace> = OnceLock::new();
+    pub fn srgb()-> &'static RgbSpaceData {
+    static SRGB: OnceLock<RgbSpaceData> = OnceLock::new();
         /*
         Red Gaussian center wavelength and width, and blue lumen fraction
         added to match the red primary sRGB color space specifiation.
@@ -138,8 +138,8 @@ impl RgbSpace {
     For red primary a combination of a blue and red Gaussian is used, with
     the blue being equal to the blue primary.
     */
-    pub fn adobe_rgb()-> &'static RgbSpace {
-    static ADOBE_RGB: OnceLock<RgbSpace> = OnceLock::new();
+    pub fn adobe_rgb()-> &'static RgbSpaceData {
+    static ADOBE_RGB: OnceLock<RgbSpaceData> = OnceLock::new();
         // Red Gaussian center wavelength and width, and blue lumen fraction
         // added to match the red primary sRGB color space specifiation.
         // See the `examples/primaries/main.rs` how these were calculated.
@@ -165,8 +165,8 @@ impl RgbSpace {
     For red primary a combination of a blue and red Gaussian is used, with
     the blue being equal to the blue primary.
     */
-    pub fn display_p3()-> &'static RgbSpace {
-    static DISPLAY_P3: OnceLock<RgbSpace> = OnceLock::new();
+    pub fn display_p3()-> &'static RgbSpaceData {
+    static DISPLAY_P3: OnceLock<RgbSpaceData> = OnceLock::new();
         // Red Gaussian center wavelength and width, and blue lumen fraction
         // added to match the red primary sRGB color space specifiation.
         // See the `examples/primaries/main.rs` how these were calculated.
@@ -187,7 +187,7 @@ impl RgbSpace {
 
 #[cfg(test)]
 mod rgbspace_tests {
-    use crate::{RgbSpace, RgbSpaceTag, CIE1931, XY_PRIMARIES, Spectrum, D65};
+    use crate::{RgbSpaceData, RgbSpace, CIE1931, XY_PRIMARIES, Spectrum, D65};
     use approx::assert_ulps_eq;
     use strum::IntoEnumIterator;
 
@@ -195,8 +195,8 @@ mod rgbspace_tests {
     /// Check color points of the primaries, as calculated from the space's
     /// spectra, to the targets in `XY_PRIMARIES`. 
     fn srgb_test(){
-        for space in RgbSpaceTag::iter() {
-            let (rgbspace, rgbstr) = space.rgb_space();
+        for space in RgbSpace::iter() {
+            let (rgbspace, rgbstr) = space.data();
             for i in 0..3 {
                 let xy = CIE1931.xyz(&rgbspace.primaries[i]).chromaticity();
                 let xywant = XY_PRIMARIES[rgbstr].0[i];

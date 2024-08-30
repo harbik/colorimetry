@@ -24,6 +24,7 @@ wasm-bindgen-futures = "0.4.42"
 colored = "2.1.0"
 strum = "0.26.3"
 strum_macros = "0.26.4"
+num-traits = "0.2.19"
 
 [dev-dependencies] # for examples and tests
 argmin = "0.10.0"

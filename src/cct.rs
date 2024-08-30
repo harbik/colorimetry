@@ -46,7 +46,7 @@ The CIE standard requires CCT to be calculated using the CIE 1931 standard obser
 
 use std::sync::OnceLock;
 
-use crate::{physics::planck, CmError, Observer, ObserverTag, CIE1931, NS, XYZ};
+use crate::{physics::planck, CmError, ObserverData, Observer, CIE1931, NS, XYZ};
 
 
 
@@ -58,10 +58,31 @@ fn im2t(im: usize) -> f64 {
 
 
 pub fn cct(xyz: &XYZ) -> Result<[f64;2], CmError> {
-    if xyz.obs_id != ObserverTag::Std1931 { return Err(CmError::RequiresCIE1931XYZ); }
+    if xyz.observer != Observer::Std1931 { return Err(CmError::RequiresCIE1931XYZ); }
     todo!()
 }
+/// Calculates Robertson's Table values for a temperature value of t, in units of Kelvin.
+/// These are the coordinates of the blackbody locus at temperature T, and it's line normal,
+/// which is the slope of the curve at that point rotated by 90º.
+fn robertson(t: f64) -> [f64;3] {
+    let [u, v ]= CIE1931.xyz_planckian_locus(t).uv60();
+    /*
+    let bb_slope = blackbody::BlackbodySlope::new(t);
+    let [dx, dy, dz] = self.xyz_light(&bb_slope);
+    let sigma = x + 15.0 * y + 3.0 * z;
+    let dsigma = dx + 15.0 * dy + 3.0 * dz;
 
+    let den = 6.0 * y * dsigma - 6.0 * dy * sigma;
+    let m = if den.abs()<=f64::MIN_POSITIVE {
+        f64::MAX
+    } else {
+        (4.0 * dx * sigma - 4.0 * x * dsigma)/den
+    };
+
+    [u,v,m]
+     */
+    todo!()
+}
 
 /// Table row of Robertson's Iso Correlated Color Temperature lines, with 4096
 /// `(u,v)`` (CIE1960) chromaticity coordinates, and Plankian locus slopes `m`.
@@ -84,6 +105,7 @@ pub fn robertson_4k_table(im: usize) -> [f64;3] {
         [EMPTY_ROW; 4096]
     });
     
+    /*
     // Get table row, or calculate when not done yet.
     let _uvm = robertson_table[im].get_or_init(||{
             let cct = im2t(im);
@@ -92,5 +114,6 @@ pub fn robertson_4k_table(im: usize) -> [f64;3] {
             [u,v,m]
         }
     );
+     */
     todo!()
 }

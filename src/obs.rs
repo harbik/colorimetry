@@ -1,31 +1,36 @@
 use core::f64;
 use std::sync::OnceLock;
 use wasm_bindgen::prelude::wasm_bindgen;
-use nalgebra::{Matrix3, SMatrix};
-use crate::{lab::Lab, physics::planck, RgbSpaceTag, spc::{Category, Spectrum, NS}, xyz::XYZ, CmError, LineAB, StdIlluminant};
+use nalgebra::{Matrix3, SMatrix, Vector3};
+use crate::{lab::Lab, to_wavelength, physics::{planck, planck_slope, planck_slope_c2}, spc::{Category, Spectrum, NS}, xyz::XYZ, CmError, LineAB, RgbSpace, StdIlluminant};
 
 
 
 /**
     Light-weight identifier added to the `XYZ` and `RGB` datasets,
     representing the colorimetric standard observer used.
+
+    No data included here, which would be the Rust way, to maintain
+    compatibility with wasm-bindgen, and to allow this enum to be directly used
+    in JavaScript.
  */
 #[wasm_bindgen]
 #[derive(Clone, Copy, Default, PartialEq, Eq, Debug)]
-pub enum ObserverTag { 
-    #[default] Std1931, 
+pub enum Observer { 
+    #[default]
+    Std1931, 
     Std1976, 
     Std2015, 
     Std2015_10
 }
 
-impl ObserverTag {
+impl Observer {
     /**
-        Get the `Observer` object, associated with the tag.
+        Get a reference to the data for the specified `Observer`.
      */
-    pub fn observer(&self) -> &'static Observer {
+    pub fn data(&self) -> &'static ObserverData {
         match self {
-            ObserverTag::Std1931 =>  &crate::data::CIE1931,
+            Observer::Std1931 =>  &crate::data::CIE1931,
             _ => todo!()
         }
     }
@@ -52,13 +57,13 @@ impl ObserverTag {
     in from of a `Spectrum`.
 */
 #[wasm_bindgen]
-pub struct Observer {
+pub struct ObserverData {
     pub(crate) data: SMatrix<f64, 3, NS>,
     pub(crate) lumconst: f64,
-    pub(crate) id: ObserverTag,
+    pub(crate) tag: Observer,
 }
 
-impl Observer {
+impl ObserverData {
     /**
         Calculates Tristimulus valus of a single standard spectrum.
         For example used with illuminants, or stimuli.
@@ -68,7 +73,7 @@ impl Observer {
         let t = self.data * s.data;
         XYZ {
             data:  t * self.lumconst,
-            obs_id: self.id,
+            observer: self.tag,
             yw: None
         }
     }
@@ -90,36 +95,13 @@ impl Observer {
         let xyz_std_illuminants = XYZ_STD_ILLUMINANTS.get_or_init(||[EMPTY; XYZ_STD_ILLUMINANTS_LEN]);
         xyz_std_illuminants[*std_illuminant as usize].get_or_init(||{
             let mut xyz = self.xyz(std_illuminant.spectrum());
-            xyz.yw = Some(100.0);
+            xyz.yw = None;
             let yabs = xyz.data.y;
             xyz.data.iter_mut().for_each(|v|*v = *v * 100.0/yabs);
             (xyz , yabs)
         })
     }
 
-    /// Calculates XYZ tristimulus values for a Planckian emitter
-    /// for an observer. 
-    pub fn xyz_planckian_locus(&self, cct: f64) -> XYZ {
-        let mut l = 380.0E-9; // wavelength in unit of meter
-        let step = 1E-9; // wavelength interval
-        let [mut x, mut y, mut z]: [f64;3]  = Default::default();
-        let mut pow = 0.0;
-        for i in 0..NS {
-            let p = planck(l, cct);
-            pow += p;
-            x +=  p * self.data[(i,0)];
-            y +=  p * self.data[(i,1)];
-            z +=  p * self.data[(i,2)];
-            l += step;
-        }
-        let scale = self.lumconst/pow; // Scale for 1 W/m2 irradiance.
-        XYZ::new(x * scale, y * scale, z * scale, None, self.id)
-    }
-
-    pub fn planckian_locus_slope(&self, _cct: f64) -> f64 {
-        todo!()
-    }
-    
     /// XYZ tristimulus values for the CIE standard daylight illuminant D65.
     /// The values are calculated on first use.
     pub fn xyz_d65(&self) -> XYZ {
@@ -138,15 +120,103 @@ impl Observer {
         self.xyz_std_illuminant(&StdIlluminant::A).0
     }
 
+    /**
+        Calculates XYZ tristimulus values for an analytic representation of a spectral distribution of
+        a filter or a color patch, using a normalized wavelength domain ranging from a value of 0.0 to 1.0,
+        illuminated with a standard illuminant.
+
+        The spectral values should be defined within a range from 0.0 to 1.0, and are clamped otherwise.
+        The resulting XYZ value will have relative Y values in the range from 0 to 100.0,
+        and yw is set to a value of 100.0.
+
+        # Examples
+        Linear high pass filter, with a value of 0.0 for a wavelength of 380nm, and a value of 1.0 for 780nm,
+        and converting the resulting value to RGB values.
+        ```
+            use colorimetry::{CIE1931, StdIlluminant, RgbSpace};
+            let rgb: [u8;3] = CIE1931.xyz_from_illuminant_x_fn(&StdIlluminant::D65, |x|x).rgb(RgbSpace::SRGB).into();
+            assert_eq!(rgb, [212, 171, 109]); 
+        ```
+        Linear low pass filter, with a value of 1.0 for a wavelength of 380nm, and a value of 0.0 for 780nm,
+        and converting the resulting value to RGB values.
+        
+        ```
+            use colorimetry::{CIE1931, StdIlluminant, RgbSpace};
+            let rgb: [u8;3] = CIE1931.xyz_from_illuminant_x_fn(&StdIlluminant::D65, |x|1.0-x).rgb(RgbSpace::SRGB).into();
+            assert_eq!(rgb, [158, 202, 237]); 
+        ```
+
+    */
+    pub fn xyz_from_illuminant_x_fn(&self, illuminant: &StdIlluminant, f: impl Fn(f64) -> f64) -> XYZ {
+        let s = illuminant.spectrum();
+        let xyz = self.data.column_iter().zip(s.data.iter()).enumerate().fold(Vector3::zeros(), |acc, (i, (cmfi, sv))| {
+            acc + cmfi * f(i as f64/(NS -1) as f64).clamp(0.0, 1.0) * *sv
+        });
+        let scale = 100.0 * self.lumconst / self.xyz_std_illuminant(illuminant).1; // yabs
+        XYZ {
+            data: xyz * scale,
+            yw: Some(100.0),
+            observer: self.tag
+
+        }
+    }
+
+
+    /**
+        Calculates XYZ tristimulus values for an illuminant with its spectral distribution
+        described by a function, defined over a domain from 0.0 to 1.0, with 0.0 corresponding to
+        a wavelength of 380nm, and 1.0 to a wavelength of 780nm.
+
+        It is mainly used in this library to calculate the Planckian locus, which is described by
+        Planck's law.  The resulting XYZ value will be normalized to hava a Y value of 100.0
+        and yw is set to None.
+    */
+    pub fn xyz_from_illuminant_as_fn(&self, f: impl Fn(f64) -> f64) -> XYZ {
+        let xyz = self.data.column_iter().enumerate().fold(Vector3::zeros(), |acc, (i, cmf)| {
+            acc + cmf * f(i as f64/(NS - 1) as f64)
+        });
+
+        let scale = 100.0/xyz.y;
+        XYZ {
+            data: xyz * scale,
+            yw: None,
+            observer: self.tag
+
+        }
+    }
+
+    /// Calculates XYZ tristimulus values for a Planckian emitter for this
+    /// observer. The `to_wavelength`` function is used, as planck functions
+    /// requires the wavelength to be in units of meters, and the
+    /// `xyz_from_illuminant_as_fn` uses functions over a domain from 0.0 to
+    /// 1.0.
+    pub fn xyz_planckian_locus(&self, cct: f64) -> XYZ {
+        self.xyz_from_illuminant_as_fn(|l|planck(to_wavelength(l, 0.0, 1.0), cct))
+    }
+
+    /// The slope of the Plancking locus as a (dX/dT, dY/dT, dZ/dT) contained in
+    /// a XYZ object.
+    pub fn xyz_planckian_locus_slope(&self, cct: f64) -> XYZ {
+        self.xyz_from_illuminant_as_fn(|l|planck_slope(to_wavelength(l, 0.0, 1.0), cct))
+    }
+    
+
     /// Calulates Tristimulus values for a sample illuminated with a `StandardIlluminant`.
     /// The values are normalized for a white illuminance of 100 cd/m2.
-    pub fn xyz_with_std_illuminant(&self, illuminant: &StdIlluminant, sample: &Spectrum) -> XYZ {
-        let std_illuminant = illuminant.spectrum();
-        let t = self.data * std_illuminant.data.component_mul(&sample.data);
+    /// The sample spectrum needs to have values between 0.0 and 1.0: values outside this range
+    /// are clamped to zero wehn negative, and to 1.0 when greater than 1.0.
+    pub fn xyz_of_sample_with_std_illuminant(&self, illuminant: &StdIlluminant, sample: &Spectrum) -> XYZ {
+        let ill = illuminant.spectrum();
+        let mut xyz: Vector3<f64>  = Default::default();
+        for i in 0..NS {
+            let s = sample.data[i].clamp(0.0, 1.0);
+            let l = ill.data[i];
+            xyz +=  l * s * self.data.column(i);
+        }
         let (_, yabs) = self.xyz_std_illuminant(illuminant);
         XYZ {
-            data:  t * self.lumconst * 100.0 / *yabs,
-            obs_id: self.id,
+            data:  xyz * (self.lumconst * 100.0 / *yabs),
+            observer: self.tag,
             yw: Some(100.0),
         }
     }
@@ -159,7 +229,7 @@ impl Observer {
         if sample.cat != Category::Filter && sample.cat != Category::ColorPatch { // invalid
             Lab::new(f64::NAN, f64::NAN, f64::NAN, self.xyz_d65())
         } else {
-            let &[x, y, z] = self.xyz_with_std_illuminant(&StdIlluminant::D65, sample).data.as_ref();
+            let &[x, y, z] = self.xyz_of_sample_with_std_illuminant(&StdIlluminant::D65, sample).data.as_ref();
             Lab::new(x, y, z, self.xyz_d65())
         }
     }
@@ -188,7 +258,7 @@ impl Observer {
             Err(CmError::NoUniqueSpectralLocus(min, max))
         } else {
             let &[x, y, z] = self.data.column(l-380).as_ref();
-            Ok(XYZ::new(x, y, z, None, self.id))
+            Ok(XYZ::new(x, y, z, None, self.tag))
 
         }
     }
@@ -259,13 +329,13 @@ impl Observer {
  
     /// Calculates the RGB to XYZ matrix, for a particular color space.
     /// The matrices are buffered.
-    pub fn rgb2xyz(&self, rgbspace: &RgbSpaceTag) -> &'static Matrix3<f64> {
+    pub fn rgb2xyz(&self, rgbspace: &RgbSpace) -> &'static Matrix3<f64> {
         const EMPTY:OnceLock<Matrix3<f64>> = OnceLock::new();
         const RGB2XYZ_AR_LEN: usize = 16;
         static RGB2XYZ_AR : OnceLock<[OnceLock<Matrix3<f64>>;RGB2XYZ_AR_LEN]> = OnceLock::new();
         let rgb2xyz_ar =RGB2XYZ_AR.get_or_init(||[EMPTY;RGB2XYZ_AR_LEN]);
         rgb2xyz_ar[*rgbspace as usize].get_or_init(||{
-            let (space,_) = rgbspace.rgb_space();
+            let (space,_) = rgbspace.data();
             let mut rgb2xyz = Matrix3::from_iterator(space.primaries.iter().flat_map(|s|self.xyz(s).set_illuminance(1.0).values()));
             let xyzw = self.xyz(&space.white).set_illuminance(1.0);
             let decomp = rgb2xyz.lu();
@@ -281,7 +351,7 @@ impl Observer {
 
     /// Calculates the RGB to XYZ matrix, for a particular color space.
     /// The matrices are buffered.
-    pub fn xyz2rgb(&self, rgbspace: RgbSpaceTag) -> &'static Matrix3<f64> {
+    pub fn xyz2rgb(&self, rgbspace: RgbSpace) -> &'static Matrix3<f64> {
         const EMPTY:OnceLock<Matrix3<f64>> = OnceLock::new();
         const XYZ2RGB_AR_LEN: usize = 16;
         static XYZ2RGB_AR : OnceLock<[OnceLock<Matrix3<f64>>;XYZ2RGB_AR_LEN]> = OnceLock::new();
@@ -336,7 +406,7 @@ mod obs_test {
     // See `colorimetry::data::D65`.
     fn test_rgb2xyz_cie1931(){
         let want =  nalgebra::Matrix3::new(0.4124564,  0.3575761,  0.1804375, 0.2126729,  0.7151522,  0.0721750, 0.0193339,  0.1191920,  0.9503041);
-        let got = CIE1931.rgb2xyz(&crate::RgbSpaceTag::SRGB);
+        let got = CIE1931.rgb2xyz(&crate::RgbSpace::SRGB);
         approx::assert_ulps_eq!(want, got, epsilon = 3E-4);
     }
 
@@ -345,7 +415,7 @@ mod obs_test {
     // See comments at `test_rgb2xyz_cie1931`.
     fn test_xyz2rgb_cie1931(){
         let want =  nalgebra::Matrix3::new(3.2404542, -1.5371385, -0.4985314, -0.9692660,  1.8760108,  0.0415560, 0.0556434, -0.2040259,  1.0572252);
-        let got = CIE1931.xyz2rgb(crate::RgbSpaceTag::SRGB);
+        let got = CIE1931.xyz2rgb(crate::RgbSpace::SRGB);
         approx::assert_ulps_eq!(want, got, epsilon = 3E-4);
     }
 
@@ -353,6 +423,33 @@ mod obs_test {
     fn test_xyz_std_illuminants(){
         let (xyz, yabs) = CIE1931.xyz_std_illuminant(&crate::StdIlluminant::D65);
         println!("{xyz:?} {yabs:.4}");
+    }
+    
+    #[test]
+    fn test_planckian_locus(){
+        // see https://www.waveformlighting.com/tech/calculate-cie-1931-xy-coordinates-from-cct
+        // for test data (not clear what CMF domain they use)
+        let xy = CIE1931.xyz_planckian_locus(3000.0).chromaticity();
+        approx::assert_abs_diff_eq!(&xy.as_ref(), &[0.43693,0.40407].as_ref(), epsilon = 2E-5);
+
+        let xy = CIE1931.xyz_planckian_locus(6500.0).chromaticity();
+        approx::assert_abs_diff_eq!(&xy.as_ref(), &[0.31352,0.32363].as_ref(), epsilon = 6E-5);
+    }
+    
+    #[test]
+    fn test_xyz_from_illuminant_x_fn(){
+        let xyz = CIE1931.xyz_from_illuminant_x_fn(&crate::StdIlluminant::D65, |_v|1.0);
+        approx::assert_ulps_eq!(xyz, CIE1931.xyz_d65().set_yw(100.0));
+
+    }
+    
+    #[test]
+    fn test_xyz_of_sample_with_standard_illuminant(){
+        let xyz = CIE1931.xyz_of_sample_with_std_illuminant(&crate::StdIlluminant::D65, &crate::Spectrum::white());
+        approx::assert_ulps_eq!(xyz, CIE1931.xyz_d65().set_yw(100.0));
+
+        let xyz = CIE1931.xyz_of_sample_with_std_illuminant(&crate::StdIlluminant::D65, &crate::Spectrum::black());
+        approx::assert_ulps_eq!(xyz, crate::XYZ::default().set_yw(100.0));
     }
     
 }

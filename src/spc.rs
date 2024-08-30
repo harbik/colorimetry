@@ -5,7 +5,7 @@ use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 
 use nalgebra::{DVector, SVector};
 
-use crate::{cri::CRI, data::{A, D50, D65}, obs::Observer, physics::{gaussian_peak_one, led_ohno, planck, stefan_boltzmann}, CmError};
+use crate::{cri::CRI, data::{A, D50, D65}, obs::ObserverData, physics::{gaussian_peak_one, led_ohno, planck, stefan_boltzmann}, CmError};
 
 
 #[wasm_bindgen]
@@ -391,14 +391,14 @@ impl Spectrum {
         }
     }
 
-    pub fn set_illuminance(mut self, obs: &Observer, illuminance: f64) -> Self {
+    pub fn set_illuminance(mut self, obs: &ObserverData, illuminance: f64) -> Self {
         let l = illuminance / (obs.data.row(1) *  self.data * obs.lumconst).x;
         self.data.iter_mut().for_each(|v| *v = *v * l);
         self.cat = Category::Illuminant;
         self
     }
 
-    pub fn illuminance(&self, obs: &Observer) -> f64 {
+    pub fn illuminance(&self, obs: &ObserverData) -> f64 {
         if self.cat == Category::Illuminant {
             (obs.data.row(1) * self.data *  obs.lumconst).x
         } else {

@@ -3,7 +3,7 @@ use std::ops::Add;
 
 use approx::AbsDiffEq;
 use nalgebra::Vector3;
-use crate::{geometry::{LineAB, Orientation}, obs::ObserverTag, CmError, RgbSpaceTag, RGB};
+use crate::{geometry::{LineAB, Orientation}, obs::Observer, CmError, RgbSpace, RGB};
 use wasm_bindgen::prelude::wasm_bindgen; 
 
 
@@ -15,7 +15,7 @@ use wasm_bindgen::prelude::wasm_bindgen;
 /// XYZ values are not often used directly, but form the basis for many colorimetric models,
 /// such as CIELAB and CIECAM.
 pub struct XYZ {
-     pub(crate) obs_id: ObserverTag,
+     pub(crate) observer: Observer,
      pub(crate) data:  Vector3<f64>,
      pub(crate) yw: Option<f64> // lumimous value for the reference white
 }
@@ -25,25 +25,25 @@ impl XYZ {
 
     /// Define a set of XYZ-values directly, using an identifier for its
     /// associated observer, such as `Cie::Std1931` or `Cie::Std2015`.
-    pub fn new(x: f64, y: f64, z: f64, yw: Option<f64>, obs_id: ObserverTag) -> Self {
+    pub fn new(x: f64, y: f64, z: f64, yw: Option<f64>, observer: Observer) -> Self {
         let data = Vector3::new(x,y,z);
-        Self { obs_id, data, yw}
+        Self { observer, data, yw}
     }
     
-    pub fn from_chromaticity(xy: [f64;2], yw: Option<f64>, obs_id: ObserverTag) -> Result<XYZ, CmError> {
+    pub fn from_chromaticity(xy: [f64;2], yw: Option<f64>, observer: Observer) -> Result<XYZ, CmError> {
         let [x, y] = xy;
         if (x + y) >= 1.0  {
             Err(CmError::InvalidChromaticityValues)
         } else {
-            Ok(Self::new(x, y, 1.0 - x -y, yw, obs_id))
+            Ok(Self::new(x, y, 1.0 - x -y, yw, observer))
 
         }
     }
 
     pub fn try_add(&self, other: XYZ) -> Result<XYZ, CmError> {
-        if self.obs_id == other.obs_id {
+        if self.observer == other.observer {
             let data = self.data + other.data;
-            Ok(XYZ {data, obs_id: self.obs_id, yw: self.yw})
+            Ok(XYZ {data, observer: self.observer, yw: self.yw})
         } else {
             Err(CmError::RequireSameObserver)
         }
@@ -69,6 +69,11 @@ impl XYZ {
         let [_x, y, _z] = self.values();
         let s = illuminance/y;
         self.data.iter_mut().for_each(|v|*v = *v * s);
+        self
+    }
+    
+    pub fn set_yw(mut self, yw: f64) -> Self {
+        self.yw = Some(yw);
         self
     }
     
@@ -140,17 +145,17 @@ impl XYZ {
     /// 
     pub fn dominant_wavelength(&self, white: XYZ) -> Result<f64, CmError>{
         let mut sign = 1.0;
-        let mut low = self.obs_id.observer().spectral_locus_nm_min();
-        let mut high = self.obs_id.observer().spectral_locus_nm_max();
+        let mut low = self.observer.data().spectral_locus_nm_min();
+        let mut high = self.observer.data().spectral_locus_nm_max();
         let mut mid = 540usize;  // 200 fails, as its tail overlaps into the blue region
-        if white.obs_id!=self.obs_id {
+        if white.observer!=self.observer {
             Err(CmError::RequireSameObserver)
         } else {
             let [mut x, mut y] = self.chromaticity();
             let [xw, yw] = white.chromaticity();
             // if color point is in the purple rotate it around the white point by 180º, and give wavelength a negative value
-            let blue_edge = LineAB::try_new([xw, yw], self.obs_id.observer().spectral_locus_by_nm(low).unwrap().chromaticity()).unwrap();
-            let red_edge = LineAB::try_new([xw, yw], self.obs_id.observer().spectral_locus_by_nm(high).unwrap().chromaticity()).unwrap();
+            let blue_edge = LineAB::try_new([xw, yw], self.observer.data().spectral_locus_by_nm(low).unwrap().chromaticity()).unwrap();
+            let red_edge = LineAB::try_new([xw, yw], self.observer.data().spectral_locus_by_nm(high).unwrap().chromaticity()).unwrap();
             match (blue_edge.orientation(x, y), red_edge.orientation(x, y)) {
                 (Orientation::Colinear, _) => return Ok(380.0),
                 (_, Orientation::Colinear) => return Ok(699.0),
@@ -163,7 +168,7 @@ impl XYZ {
             }
             // start bisectional search
             while high - low > 1 {
-                let bisect = LineAB::try_new([xw, yw], self.obs_id.observer().spectral_locus_by_nm(mid).unwrap().chromaticity()).unwrap();
+                let bisect = LineAB::try_new([xw, yw], self.observer.data().spectral_locus_by_nm(mid).unwrap().chromaticity()).unwrap();
              //   let a = bisect.angle_deg();
                 match bisect.orientation(x, y) {
                     Orientation::Left => high = mid,
@@ -179,9 +184,9 @@ impl XYZ {
             if low == high {
                 Ok(sign * low as f64)
             } else {
-                let low_ab = LineAB::try_new(white.chromaticity(), self.obs_id.observer().spectral_locus_by_nm(low).unwrap().chromaticity()).unwrap();
+                let low_ab = LineAB::try_new(white.chromaticity(), self.observer.data().spectral_locus_by_nm(low).unwrap().chromaticity()).unwrap();
                 let dlow = low_ab.distance_with_sign(x, y);
-                let high_ab = LineAB::try_new(white.chromaticity(), self.obs_id.observer().spectral_locus_by_nm(high).unwrap().chromaticity()).unwrap();
+                let high_ab = LineAB::try_new(white.chromaticity(), self.observer.data().spectral_locus_by_nm(high).unwrap().chromaticity()).unwrap();
                 let dhigh= high_ab.distance_with_sign(x, y);
                 if dlow<0.0 || dhigh>0.0 { // not ended up between two lines
                     let s = format!("bisection error in dominant wavelength search:  {dlow} {low} {dhigh} {high}");
@@ -201,13 +206,14 @@ impl XYZ {
     /// Convert a set of XYZ tristimulus values to RGB values, using the given RGB space identifier. 
     /// This method requires the luminous value of the reference white, which is typically set to 100.0,
     /// or, less common, 1.0, but any other value can be used as well.
-    pub fn rgb(&self, rgb_id: RgbSpaceTag) -> RGB {
+    pub fn rgb(&self, space: Option<RgbSpace>) -> RGB {
+        let space = space.unwrap_or_default();
         let ywhite = self.yw.unwrap_or(100.0);
         let d = self.data.map(|v| v/ywhite);
-        let data = self.obs_id.observer().xyz2rgb(rgb_id) * d;
+        let data = self.observer.data().xyz2rgb(space) * d;
         RGB {
-            space: rgb_id,
-            obs: self.obs_id,
+            space,
+            observer: self.observer,
             data,
         }
     }
@@ -223,7 +229,12 @@ impl AbsDiffEq for XYZ {
     }
 
     fn abs_diff_eq(&self, other: &Self, epsilon: Self::Epsilon) -> bool {
-        self.obs_id == other.obs_id && self.data.abs_diff_eq(&other.data, epsilon)
+        let yw_equal = match [self.yw, other.yw] {
+            [Some(yw0), Some(yw1)] => yw0.abs_diff_eq(&yw1, epsilon),
+            [None, None] => true,
+            _ => false
+        };
+        self.observer == other.observer && self.data.abs_diff_eq(&other.data, epsilon) && yw_equal 
     }
 }
 
@@ -233,22 +244,32 @@ impl approx::UlpsEq for XYZ {
     }
 
     fn ulps_eq(&self, other: &Self, epsilon: Self::Epsilon, max_ulps: u32) -> bool {
-        self.obs_id == other.obs_id && self.data.ulps_eq(&other.data, epsilon, max_ulps)
+        let yw_equal = match [self.yw, other.yw] {
+            [Some(yw0), Some(yw1)] => yw0.ulps_eq(&yw1, epsilon, max_ulps),
+            [None, None] => true,
+            _ => false
+        };
+        self.observer == other.observer && self.data.ulps_eq(&other.data, epsilon, max_ulps) && yw_equal
     }
 }
 
 #[test]
 fn ulps_xyz_test() {
     use approx::assert_ulps_eq;
-    let xyz0 = XYZ::new(0.0, 0.0, 0.0, None, ObserverTag::Std1931);
+    let xyz0 = XYZ::new(0.0, 0.0, 0.0, None, Observer::Std1931);
 
-    let xyz1 = XYZ::new(0.0, 0.0, f64::EPSILON, None,  ObserverTag::Std1931);
+    let xyz1 = XYZ::new(0.0, 0.0, f64::EPSILON, None,  Observer::Std1931);
     assert_ulps_eq!(xyz0, xyz1);
 
-    let xyz2 = XYZ::new(0.0, 0.0, 2.0*f64::EPSILON, None, ObserverTag::Std1931);
+    let xyz2 = XYZ::new(0.0, 0.0, 2.0*f64::EPSILON, None, Observer::Std1931);
     approx::assert_ulps_ne!(xyz0, xyz2);
 
-    let xyz3 = XYZ::new(0.0, 0.0, 0.0, None, ObserverTag::Std1976);
+    // different observer
+    let xyz3 = XYZ::new(0.0, 0.0, 0.0, None, Observer::Std1976);
+    approx::assert_ulps_ne!(xyz0, xyz3);
+
+    // different yw
+    let xyz4 = XYZ::new(0.0, 0.0, 0.0, Some(100.0), Observer::Std1931);
     approx::assert_ulps_ne!(xyz0, xyz3);
 }
 
@@ -258,7 +279,7 @@ impl Add for XYZ {
     fn add(self, rhs: Self) -> Self::Output {
         Self {
             data: self.data + rhs.data,
-            obs_id: self.obs_id,
+            observer: self.observer,
             yw: self.yw
         }
     }
@@ -270,7 +291,7 @@ impl std::ops::Mul<f64> for XYZ {
     fn mul(self, rhs: f64) -> Self::Output {
         Self {
             data: rhs * self.data,
-            obs_id: self.obs_id,
+            observer: self.observer,
             yw: self.yw
 
         }
@@ -283,17 +304,16 @@ impl std::ops::Mul<XYZ> for f64 {
     fn mul(self, rhs: XYZ) -> Self::Output {
         Self::Output {
             data: self * rhs.data,
-            obs_id: rhs.obs_id,
+            observer: rhs.observer,
             yw: rhs.yw
 
         }
     }
 }
 
-
 impl Default for XYZ {
     fn default() -> Self {
-        Self { obs_id: Default::default(), data: Default::default(), yw: Default::default() }
+        Self { observer: Default::default(), data: Default::default(), yw: Default::default() }
     }
 }
 
@@ -345,18 +365,18 @@ impl XYZ {
         use wasm_bindgen::convert::TryFromJsValue;
         use crate::CmError; 
         let (x, y, z, yw, obs) = match opt.length() {
-            0 => (x * 100.0/y, 100.0, (1.0 - x - y) * 100.0/y, None, ObserverTag::Std1931),
+            0 => (x * 100.0/y, 100.0, (1.0 - x - y) * 100.0/y, None, Observer::Std1931),
             1 => {
                 if opt.get(0).as_f64().is_some() {
-                    (x, y, opt.get(0).as_f64().unwrap(), None, ObserverTag::Std1931)
+                    (x, y, opt.get(0).as_f64().unwrap(), None, Observer::Std1931)
                 } else {
-                    let obs = ObserverTag::try_from_js_value(opt.get(0))?;
+                    let obs = Observer::try_from_js_value(opt.get(0))?;
                     (x * 100.0/y, 100.0, (1.0 - x - y) * 100.0/y, None, obs)
                 }
             }
             2 => {
                 let z = opt.get(0).as_f64().ok_or(crate::CmError::ErrorString("please provide a z value as number".into()))?;
-                let obs = ObserverTag::try_from_js_value(opt.get(1))?;
+                let obs = Observer::try_from_js_value(opt.get(1))?;
                 (x, y, z, None, obs)
             }
             _ => {
@@ -395,7 +415,7 @@ impl XYZ {
 #[cfg(test)]
 mod xyz_test {
     use approx::assert_ulps_eq;
-    use crate::{LineAB, ObserverTag, CIE1931, RGB};
+    use crate::{LineAB, Observer, CIE1931, RGB, RgbSpace};
 
     
 
@@ -452,12 +472,12 @@ mod xyz_test {
     }
 
     #[test]
-    fn rgb_test() {
-        let rgb_blue = RGB::new(0.0, 0.0, 1.0, ObserverTag::Std1931, crate::RgbSpaceTag::SRGB);
-        println!("{rgb_blue:?}");
-        let xyz_blue = rgb_blue.xyz() ;
-        println!("{xyz_blue:?} {:?}", xyz_blue.chromaticity());
-        let rgbb = xyz_blue.rgb(crate::RgbSpaceTag::SRGB);
-        println!("{rgbb:?}");
+    fn test_rgb_roundtrip() {
+        let rgb_blue = RGB::new(0.0, 0.0, 1.0, Some(Observer::Std1931), Some(RgbSpace::SRGB));
+        let xyz_blue = rgb_blue.xyz();
+        let xy_blue = xyz_blue.chromaticity();
+        assert_ulps_eq!(xy_blue.as_ref(), [0.15, 0.06].as_ref(), epsilon = 1E-5);
+        let rgbb = xyz_blue.rgb(None);
+        assert_ulps_eq!(rgbb, rgb_blue);
     }
 }
