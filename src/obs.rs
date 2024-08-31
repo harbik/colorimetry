@@ -114,12 +114,6 @@ impl ObserverData {
         self.xyz_std_illuminant(&StdIlluminant::D50).0
     }
 
-    /// XYZ tristimulus values for the CIE standard A, or incandescent lamp.
-    /// The values are calculated on first use.
-    pub fn xyz_a(&self) -> XYZ {
-        self.xyz_std_illuminant(&StdIlluminant::A).0
-    }
-
     /**
         Calculates XYZ tristimulus values for an analytic representation of a spectral distribution of
         a filter or a color patch, using a normalized wavelength domain ranging from a value of 0.0 to 1.0,
@@ -134,15 +128,14 @@ impl ObserverData {
         and converting the resulting value to RGB values.
         ```
             use colorimetry::{CIE1931, StdIlluminant, RgbSpace};
-            let rgb: [u8;3] = CIE1931.xyz_from_illuminant_x_fn(&StdIlluminant::D65, |x|x).rgb(RgbSpace::SRGB).into();
+            let rgb: [u8;3] = CIE1931.xyz_from_illuminant_x_fn(&StdIlluminant::D65, |x|x).rgb(None).into();
             assert_eq!(rgb, [212, 171, 109]); 
         ```
         Linear low pass filter, with a value of 1.0 for a wavelength of 380nm, and a value of 0.0 for 780nm,
         and converting the resulting value to RGB values.
-        
         ```
             use colorimetry::{CIE1931, StdIlluminant, RgbSpace};
-            let rgb: [u8;3] = CIE1931.xyz_from_illuminant_x_fn(&StdIlluminant::D65, |x|1.0-x).rgb(RgbSpace::SRGB).into();
+            let rgb: [u8;3] = CIE1931.xyz_from_illuminant_x_fn(&StdIlluminant::D65, |x|1.0-x).rgb(None).into();
             assert_eq!(rgb, [158, 202, 237]); 
         ```
 

@@ -102,6 +102,7 @@ dependencies = [
  "nalgebra",
  "num-traits",
  "once_cell",
+ "paste",
  "strum",
  "strum_macros",
  "thiserror",

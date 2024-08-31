@@ -5,7 +5,7 @@ use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 
 use nalgebra::{DVector, SVector};
 
-use crate::{cri::CRI, data::{A, D50, D65}, obs::ObserverData, physics::{gaussian_peak_one, led_ohno, planck, stefan_boltzmann}, CmError};
+use crate::{cri::CRI, data::{D50, D65}, obs::ObserverData, physics::{gaussian_peak_one, led_ohno, planck, stefan_boltzmann}, CmError};
 
 
 #[wasm_bindgen]
@@ -31,11 +31,13 @@ pub enum Category {
 // with 401 values.
 pub const NS: usize = 401;
 
+
+/*
 #[derive(Clone, Copy)]
 pub enum StdIlluminant {
     D65,
     D50,
-    A
+    A,
 }
 
 impl StdIlluminant {
@@ -44,10 +46,11 @@ impl StdIlluminant {
             StdIlluminant::D65 => &D65,
             StdIlluminant::D50 => &D50,
             StdIlluminant::A => &A,
+            _ => todo!()
         }
     }
-
 }
+*/
 
 /**
 This container holds spectral values within a wavelength domain ranging from 380
@@ -210,19 +213,6 @@ impl Spectrum {
         D50.clone()
     }
 
-    /// CIE A Illuminant Standard Spectrum with 401 values over a range from 380 to 780
-    /// nanometers, with an interval size of 1 nanometer. This illuminant 
-    /// This illuminant is intended to represent typical, domestic,
-    /// tungsten-filament lighting. Its relative spectral power distribution is
-    /// that of a Planckian radiator at a temperature of approximately 2856 K.
-    /// CIE standard illuminant A should be used in all applications of
-    /// colorimetry involving the use of incandescent lighting, unless there are
-    /// specific reasons for using a different illuminant.
-    /// See _— ISO 10526:1999/CIE S005/E-1998, CIE Standard Illuminants for Colorimetry_
-    pub fn a_illuminant() -> Self {
-        A.clone()
-    }
-
     /// A Rectangular Band Filter, specified by a central wavelength, and a
     /// width, both in units of meter, or nanometer.
     ///
@@ -369,7 +359,7 @@ impl Spectrum {
 
     // Sets irradiance, tyically expressed in units of Watt per square meter.
     // Also overwrite spectrum type to irradiance.
-    pub fn set_irradiance(&mut self, irradiance: f64) -> &mut Self {
+    pub fn set_irradiance(mut self, irradiance: f64) -> Self {
         let s = if let Some(t) = self.total {
             irradiance/t
         } else {
@@ -835,6 +825,7 @@ mod tests {
     use crate::spc::Spectrum;
 
     use crate::data::CIE1931;
+    use crate::StdIlluminant;
     use approx::assert_ulps_eq;
 
     #[test]
@@ -860,9 +851,9 @@ mod tests {
         assert_ulps_eq!(y, 0.358_51, epsilon = 5E-5);
     }
 
-    #[test]
+    #[cfg_attr(test, cfg(feature="cie-illuminants"))]
     fn a() {
-        let [x, y ] = CIE1931.xyz(&Spectrum::a_illuminant().set_illuminance(&CIE1931, 100.0)).chromaticity();
+        let [x, y ] = CIE1931.xyz(&StdIlluminant::A.spectrum().set_illuminance(&CIE1931, 100.0)).chromaticity();
         // See table T3 CIE15:2004 (calculated with 5nm intervals, instead of 1nm, as used here)
         assert_ulps_eq!(x, 0.447_58, epsilon = 5E-5);
         assert_ulps_eq!(y, 0.407_45, epsilon = 5E-5);

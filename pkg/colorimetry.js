@@ -1,4 +1,3 @@
-/// <reference types="./colorimetry.d.ts"/>
 let wasm;
 
 const heap = new Array(128).fill(undefined);
@@ -126,6 +125,40 @@ function getStringFromWasm0(ptr, len) {
     return cachedTextDecoder.decode(getUint8Memory0().subarray(ptr, ptr + len));
 }
 
+const CLOSURE_DTORS = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(state => {
+    wasm.__wbindgen_export_2.get(state.dtor)(state.a, state.b)
+});
+
+function makeMutClosure(arg0, arg1, dtor, f) {
+    const state = { a: arg0, b: arg1, cnt: 1, dtor };
+    const real = (...args) => {
+        // First up with a closure we increment the internal reference
+        // count. This ensures that the Rust closure environment won't
+        // be deallocated while we're invoking it.
+        state.cnt++;
+        const a = state.a;
+        state.a = 0;
+        try {
+            return f(a, state.b, ...args);
+        } finally {
+            if (--state.cnt === 0) {
+                wasm.__wbindgen_export_2.get(state.dtor)(a, state.b);
+                CLOSURE_DTORS.unregister(state);
+            } else {
+                state.a = a;
+            }
+        }
+    };
+    real.original = state;
+    CLOSURE_DTORS.register(real, state, state);
+    return real;
+}
+function __wbg_adapter_26(arg0, arg1, arg2) {
+    wasm._dyn_core__ops__function__FnMut__A____Output___R_as_wasm_bindgen__closure__WasmClosure___describe__invoke__hbab24f6002b31ec0(arg0, arg1, addHeapObject(arg2));
+}
+
 function passArrayF64ToWasm0(arg, malloc) {
     const ptr = malloc(arg.length * 8, 8) >>> 0;
     getFloat64Memory0().set(arg, ptr / 8);
@@ -136,6 +169,14 @@ function passArrayF64ToWasm0(arg, malloc) {
 function getArrayF64FromWasm0(ptr, len) {
     ptr = ptr >>> 0;
     return getFloat64Memory0().subarray(ptr / 8, ptr / 8 + len);
+}
+
+let stack_pointer = 128;
+
+function addBorrowedObject(obj) {
+    if (stack_pointer == 1) throw new Error('out of js stack');
+    heap[--stack_pointer] = obj;
+    return stack_pointer;
 }
 /**
 * Stefan Boltzmann law: Blackbody's radiant emittance (W m<sup>-2</sup>), as function of its absolute
@@ -148,13 +189,35 @@ export function stefanBoltzmann(temperature) {
     return ret;
 }
 
-let stack_pointer = 128;
-
-function addBorrowedObject(obj) {
-    if (stack_pointer == 1) throw new Error('out of js stack');
-    heap[--stack_pointer] = obj;
-    return stack_pointer;
+function handleError(f, args) {
+    try {
+        return f.apply(this, args);
+    } catch (e) {
+        wasm.__wbindgen_exn_store(addHeapObject(e));
+    }
 }
+function __wbg_adapter_55(arg0, arg1, arg2, arg3) {
+    wasm.wasm_bindgen__convert__closures__invoke2_mut__ha4bb2b91b15b46a5(arg0, arg1, addHeapObject(arg2), addHeapObject(arg3));
+}
+
+/**
+*
+*    Light-weight identifier added to the `XYZ` and `RGB` datasets,
+*    representing the colorimetric standard observer used.
+*
+*    No data included here, which would be the Rust way, to maintain
+*    compatibility with wasm-bindgen, and to allow this enum to be directly used
+*    in JavaScript.
+*
+*/
+export const Observer = Object.freeze({ Std1931:0,"0":"Std1931",Std1976:1,"1":"Std1976",Std2015:2,"2":"Std2015",Std2015_10:3,"3":"Std2015_10", });
+/**
+*
+*A Light Weight index tag, to represent an RGB space.
+*Used for example in the RGB value set, to identify the color space being used.
+*
+*/
+export const RgbSpace = Object.freeze({ SRGB:0,"0":"SRGB",ADOBE:1,"1":"ADOBE",DisplayP3:2,"2":"DisplayP3", });
 /**
 */
 export const Category = Object.freeze({
@@ -178,12 +241,41 @@ Stimulus:3,"3":"Stimulus",
 * The type of spectrum is unknown.
 */
 Unknown:4,"4":"Unknown", });
+
+const CRIFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_cri_free(ptr >>> 0));
 /**
 */
-export const RGBSpace = Object.freeze({ SRGB:0,"0":"SRGB",SRGBFloat:1,"1":"SRGBFloat",SRGB16:2,"2":"SRGB16", });
-/**
-*/
-export const ObsId = Object.freeze({ Std1931:0,"0":"Std1931",Std1976:1,"1":"Std1976",Std2015:2,"2":"Std2015",Std2015_10:3,"3":"Std2015_10", });
+export class CRI {
+
+    static __wrap(ptr) {
+        ptr = ptr >>> 0;
+        const obj = Object.create(CRI.prototype);
+        obj.__wbg_ptr = ptr;
+        CRIFinalization.register(obj, obj.__wbg_ptr, obj);
+        return obj;
+    }
+
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        CRIFinalization.unregister(this);
+        return ptr;
+    }
+
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_cri_free(ptr);
+    }
+    /**
+    * @returns {Promise<void>}
+    */
+    static init_js() {
+        const ret = wasm.cri_init_js();
+        return takeObject(ret);
+    }
+}
 
 const LabFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
@@ -205,25 +297,41 @@ export class Lab {
     }
 }
 
-const ObserverFinalization = (typeof FinalizationRegistry === 'undefined')
+const ObserverDataFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
-    : new FinalizationRegistry(ptr => wasm.__wbg_observer_free(ptr >>> 0));
+    : new FinalizationRegistry(ptr => wasm.__wbg_observerdata_free(ptr >>> 0));
 /**
-* A data structure to define Standard Observers, such as the CIE 1931 2º and the CIE 2015 standard observers.
-* These are defined in the form of three discrete representations of color matching functions.
+*
+*    A data structure to define Standard Observers, such as the CIE 1931 2º and
+*    the CIE 2015 standard observers.
+*
+*    These are defined in the form of the three color matching functions,
+*    typically denoted by $\hat{x}(\lamda)$,$\hat{y}{\lambda}$, and $\hat{z}(\lambda)$.
+*    Traditionally, the CIE1931 Colorimetric Standard Observer is used almost exclusively,
+*    but is known to be not a good representation of human vision in the blue region of the
+*    spectrum. We also know now that the way you see color varies with age, and your healty,
+*    and that not everyone sees to same color.
+*
+*    In this library colors are represented by spectral distributions, to allow color modelling
+*    with newer, and better standard observers, such as the CIE2015 Observer, derived from
+*    the sensitivities of the cones in the retina of your eye, the biological color receptors
+*    of light.
+*
+*    It's main purpose is to calculate `XYZ` tristimulus values for a general stimulus,
+*    in from of a `Spectrum`.
 */
-export class Observer {
+export class ObserverData {
 
     __destroy_into_raw() {
         const ptr = this.__wbg_ptr;
         this.__wbg_ptr = 0;
-        ObserverFinalization.unregister(this);
+        ObserverDataFinalization.unregister(this);
         return ptr;
     }
 
     free() {
         const ptr = this.__destroy_into_raw();
-        wasm.__wbg_observer_free(ptr);
+        wasm.__wbg_observerdata_free(ptr);
     }
 }
 
@@ -231,6 +339,14 @@ const RGBFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_rgb_free(ptr >>> 0));
 /**
+* Representation of a color stimulus in a set of Red, Green, and Blue (RGB) values,
+* representing its relative composition using standard primaries.
+*
+* RGB values are commonly used in digital images, with the relative intensity
+* of the primaries defined as three 8-bit values, with range from 0 to 255.
+* As ooposed to CIE XYZ tristimulus values, which used imaginary primaries,
+* displays use real primaries, typically defined in the CIE 1931 diagram.
+* They cover a triangular area, referred to the _color gamut_ of a display.
 */
 export class RGB {
 
@@ -281,6 +397,14 @@ const SpectrumFinalization = (typeof FinalizationRegistry === 'undefined')
 *
 */
 export class Spectrum {
+
+    static __wrap(ptr) {
+        ptr = ptr >>> 0;
+        const obj = Object.create(Spectrum.prototype);
+        obj.__wbg_ptr = ptr;
+        SpectrumFinalization.register(obj, obj.__wbg_ptr, obj);
+        return obj;
+    }
 
     __destroy_into_raw() {
         const ptr = this.__wbg_ptr;
@@ -341,6 +465,101 @@ export class Spectrum {
             var v1 = getArrayF64FromWasm0(r0, r1).slice();
             wasm.__wbindgen_free(r0, r1 * 8, 8);
             return v1;
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+        }
+    }
+    /**
+    *
+    *    This function maps spectral data with irregular intervals or intervals
+    *    different than 1 nanometer to the standard spectrum as used in this
+    *    library.
+    *
+    *    For domains with a regular interval, the wavelength slice should have a size
+    *    of two, containing the minimum and maximum wavelength values, both also in
+    *    units of meters or nanometers.
+    *
+    *    For irregular domains, this function requires a slice of wavelengths and
+    *    a slice of spectral data, both of the same size. The wavelengths can be
+    *    specified in units of meters or nanometers.
+    *
+    *    In case of duplicate wavelength values the last data values is used, so it
+    *    is impossible to define filters with vertical edges using this method.
+    *
+    *    ```ts, ignore
+    *    // Creates a linear gradient filter, with a zero transmission at 380
+    *    // nanometer, and full transmission at 780 nanometer. This is an example
+    *    // using a uniform wavelength domain as input.
+    *    use colorimetry as cmt;
+    *    # use approx::assert_ulps_eq;
+    *    let data = [0.0, 1.0];
+    *    let wl = [380.0, 780.0];
+    *    let mut spd = cmt::Spectrum::linear_interpolate(cmt::Category::Filter, &wl, &data, None).unwrap().values();
+    *    assert_ulps_eq!(spd[0], 0.);
+    *    assert_ulps_eq!(spd[100], 0.25);
+    *    assert_ulps_eq!(spd[200], 0.5);
+    *    assert_ulps_eq!(spd[300], 0.75);
+    *    assert_ulps_eq!(spd[400], 1.0);
+    *
+    *    // Creates a top hat filter, with slanted angles, using an irregular
+    *    // wavelength domain.
+    *    let data = vec![0.0, 1.0, 1.0, 0.0];
+    *    let wl = vec![480.0, 490.0, 570.0, 580.0];
+    *    let spd = cmt::Spectrum::linear_interpolate(cmt::Category::Filter, &wl, &data, None).unwrap().values();
+    *    assert_ulps_eq!(spd[0], 0.0);
+    *    assert_ulps_eq!(spd[100], 0.0);
+    *    assert_ulps_eq!(spd[110], 1.0);
+    *    assert_ulps_eq!(spd[190], 1.0);
+    *    assert_ulps_eq!(spd[200], 0.0);
+    *    assert_ulps_eq!(spd[300], 0.0);
+    *    assert_ulps_eq!(spd[400], 0.0);
+    *    ```
+    *
+    * @param {Category} cat
+    * @param {Float64Array} wavelengths
+    * @param {Float64Array} data
+    * @param {any} total_js
+    * @returns {Spectrum}
+    */
+    static linearInterpolate(cat, wavelengths, data, total_js) {
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+            const ptr0 = passArrayF64ToWasm0(wavelengths, wasm.__wbindgen_malloc);
+            const len0 = WASM_VECTOR_LEN;
+            const ptr1 = passArrayF64ToWasm0(data, wasm.__wbindgen_malloc);
+            const len1 = WASM_VECTOR_LEN;
+            wasm.spectrum_linearInterpolate(retptr, cat, ptr0, len0, ptr1, len1, addBorrowedObject(total_js));
+            var r0 = getInt32Memory0()[retptr / 4 + 0];
+            var r1 = getInt32Memory0()[retptr / 4 + 1];
+            var r2 = getInt32Memory0()[retptr / 4 + 2];
+            if (r2) {
+                throw takeObject(r1);
+            }
+            return Spectrum.__wrap(r0);
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+            heap[stack_pointer++] = undefined;
+        }
+    }
+    /**
+    * Calculates the Color Rendering Index values for illuminant spectrum.
+    *
+    * To use this function, first use `await CRI.init()`, which downloads the
+    * Test Color Samples required for the calculation.  These are downloaded
+    * seperately to limit the size of the main web assembly library.
+    * @returns {CRI}
+    */
+    cri() {
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+            wasm.spectrum_cri(retptr, this.__wbg_ptr);
+            var r0 = getInt32Memory0()[retptr / 4 + 0];
+            var r1 = getInt32Memory0()[retptr / 4 + 1];
+            var r2 = getInt32Memory0()[retptr / 4 + 2];
+            if (r2) {
+                throw takeObject(r1);
+            }
+            return CRI.__wrap(r0);
         } finally {
             wasm.__wbindgen_add_to_stack_pointer(16);
         }
@@ -504,10 +723,6 @@ imports.wbg.__wbindgen_number_get = function(arg0, arg1) {
 imports.wbg.__wbindgen_object_drop_ref = function(arg0) {
     takeObject(arg0);
 };
-imports.wbg.__wbindgen_number_new = function(arg0) {
-    const ret = arg0;
-    return addHeapObject(ret);
-};
 imports.wbg.__wbindgen_string_get = function(arg0, arg1) {
     const obj = getObject(arg1);
     const ret = typeof(obj) === 'string' ? obj : undefined;
@@ -515,6 +730,10 @@ imports.wbg.__wbindgen_string_get = function(arg0, arg1) {
     var len1 = WASM_VECTOR_LEN;
     getInt32Memory0()[arg0 / 4 + 1] = len1;
     getInt32Memory0()[arg0 / 4 + 0] = ptr1;
+};
+imports.wbg.__wbindgen_number_new = function(arg0) {
+    const ret = arg0;
+    return addHeapObject(ret);
 };
 imports.wbg.__wbindgen_error_new = function(arg0, arg1) {
     const ret = new Error(getStringFromWasm0(arg0, arg1));
@@ -524,12 +743,64 @@ imports.wbg.__wbindgen_string_new = function(arg0, arg1) {
     const ret = getStringFromWasm0(arg0, arg1);
     return addHeapObject(ret);
 };
+imports.wbg.__wbg_queueMicrotask_3cbae2ec6b6cd3d6 = function(arg0) {
+    const ret = getObject(arg0).queueMicrotask;
+    return addHeapObject(ret);
+};
+imports.wbg.__wbindgen_is_function = function(arg0) {
+    const ret = typeof(getObject(arg0)) === 'function';
+    return ret;
+};
+imports.wbg.__wbindgen_cb_drop = function(arg0) {
+    const obj = takeObject(arg0).original;
+    if (obj.cnt-- == 1) {
+        obj.a = 0;
+        return true;
+    }
+    const ret = false;
+    return ret;
+};
+imports.wbg.__wbg_queueMicrotask_481971b0d87f3dd4 = function(arg0) {
+    queueMicrotask(getObject(arg0));
+};
 imports.wbg.__wbg_get_bd8e338fbd5f5cc8 = function(arg0, arg1) {
     const ret = getObject(arg0)[arg1 >>> 0];
     return addHeapObject(ret);
 };
 imports.wbg.__wbg_length_cd7af8117672b8b8 = function(arg0) {
     const ret = getObject(arg0).length;
+    return ret;
+};
+imports.wbg.__wbg_newnoargs_e258087cd0daa0ea = function(arg0, arg1) {
+    const ret = new Function(getStringFromWasm0(arg0, arg1));
+    return addHeapObject(ret);
+};
+imports.wbg.__wbg_call_27c0f87801dedf93 = function() { return handleError(function (arg0, arg1) {
+    const ret = getObject(arg0).call(getObject(arg1));
+    return addHeapObject(ret);
+}, arguments) };
+imports.wbg.__wbindgen_object_clone_ref = function(arg0) {
+    const ret = getObject(arg0);
+    return addHeapObject(ret);
+};
+imports.wbg.__wbg_self_ce0dbfc45cf2f5be = function() { return handleError(function () {
+    const ret = self.self;
+    return addHeapObject(ret);
+}, arguments) };
+imports.wbg.__wbg_window_c6fb939a7f436783 = function() { return handleError(function () {
+    const ret = window.window;
+    return addHeapObject(ret);
+}, arguments) };
+imports.wbg.__wbg_globalThis_d1e6af4856ba331b = function() { return handleError(function () {
+    const ret = globalThis.globalThis;
+    return addHeapObject(ret);
+}, arguments) };
+imports.wbg.__wbg_global_207b558942527489 = function() { return handleError(function () {
+    const ret = global.global;
+    return addHeapObject(ret);
+}, arguments) };
+imports.wbg.__wbindgen_is_undefined = function(arg0) {
+    const ret = getObject(arg0) === undefined;
     return ret;
 };
 imports.wbg.__wbg_of_647f9238b4d5407a = function(arg0, arg1) {
@@ -540,8 +811,42 @@ imports.wbg.__wbg_of_6a70eed8d41f469c = function(arg0, arg1, arg2) {
     const ret = Array.of(getObject(arg0), getObject(arg1), getObject(arg2));
     return addHeapObject(ret);
 };
+imports.wbg.__wbg_call_b3ca7c6051f9bec1 = function() { return handleError(function (arg0, arg1, arg2) {
+    const ret = getObject(arg0).call(getObject(arg1), getObject(arg2));
+    return addHeapObject(ret);
+}, arguments) };
+imports.wbg.__wbg_new_81740750da40724f = function(arg0, arg1) {
+    try {
+        var state0 = {a: arg0, b: arg1};
+        var cb0 = (arg0, arg1) => {
+            const a = state0.a;
+            state0.a = 0;
+            try {
+                return __wbg_adapter_55(a, state0.b, arg0, arg1);
+            } finally {
+                state0.a = a;
+            }
+        };
+        const ret = new Promise(cb0);
+        return addHeapObject(ret);
+    } finally {
+        state0.a = state0.b = 0;
+    }
+};
+imports.wbg.__wbg_resolve_b0083a7967828ec8 = function(arg0) {
+    const ret = Promise.resolve(getObject(arg0));
+    return addHeapObject(ret);
+};
+imports.wbg.__wbg_then_0c86a60e8fcfe9f6 = function(arg0, arg1) {
+    const ret = getObject(arg0).then(getObject(arg1));
+    return addHeapObject(ret);
+};
 imports.wbg.__wbindgen_throw = function(arg0, arg1) {
     throw new Error(getStringFromWasm0(arg0, arg1));
+};
+imports.wbg.__wbindgen_closure_wrapper98 = function(arg0, arg1, arg2) {
+    const ret = makeMutClosure(arg0, arg1, 19, __wbg_adapter_26);
+    return addHeapObject(ret);
 };
 
 return imports;

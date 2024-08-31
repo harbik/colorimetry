@@ -8,6 +8,33 @@
 */
 export function stefanBoltzmann(temperature: number): number;
 /**
+*
+*    Light-weight identifier added to the `XYZ` and `RGB` datasets,
+*    representing the colorimetric standard observer used.
+*
+*    No data included here, which would be the Rust way, to maintain
+*    compatibility with wasm-bindgen, and to allow this enum to be directly used
+*    in JavaScript.
+* 
+*/
+export enum Observer {
+  Std1931 = 0,
+  Std1976 = 1,
+  Std2015 = 2,
+  Std2015_10 = 3,
+}
+/**
+*
+*A Light Weight index tag, to represent an RGB space.
+*Used for example in the RGB value set, to identify the color space being used.  
+* 
+*/
+export enum RgbSpace {
+  SRGB = 0,
+  ADOBE = 1,
+  DisplayP3 = 2,
+}
+/**
 */
 export enum Category {
 /**
@@ -33,18 +60,12 @@ export enum Category {
 }
 /**
 */
-export enum RGBSpace {
-  SRGB = 0,
-  SRGBFloat = 1,
-  SRGB16 = 2,
-}
+export class CRI {
+  free(): void;
 /**
+* @returns {Promise<void>}
 */
-export enum ObsId {
-  Std1931 = 0,
-  Std1976 = 1,
-  Std2015 = 2,
-  Std2015_10 = 3,
+  static init_js(): Promise<void>;
 }
 /**
 */
@@ -52,13 +73,37 @@ export class Lab {
   free(): void;
 }
 /**
-* A data structure to define Standard Observers, such as the CIE 1931 2º and the CIE 2015 standard observers.
-* These are defined in the form of three discrete representations of color matching functions.
+*
+*    A data structure to define Standard Observers, such as the CIE 1931 2º and
+*    the CIE 2015 standard observers.
+*    
+*    These are defined in the form of the three color matching functions,
+*    typically denoted by $\hat{x}(\lamda)$,$\hat{y}{\lambda}$, and $\hat{z}(\lambda)$.
+*    Traditionally, the CIE1931 Colorimetric Standard Observer is used almost exclusively,
+*    but is known to be not a good representation of human vision in the blue region of the
+*    spectrum. We also know now that the way you see color varies with age, and your healty,
+*    and that not everyone sees to same color.
+*
+*    In this library colors are represented by spectral distributions, to allow color modelling
+*    with newer, and better standard observers, such as the CIE2015 Observer, derived from
+*    the sensitivities of the cones in the retina of your eye, the biological color receptors
+*    of light.
+*
+*    It's main purpose is to calculate `XYZ` tristimulus values for a general stimulus,
+*    in from of a `Spectrum`.
 */
-export class Observer {
+export class ObserverData {
   free(): void;
 }
 /**
+* Representation of a color stimulus in a set of Red, Green, and Blue (RGB) values,
+* representing its relative composition using standard primaries.
+* 
+* RGB values are commonly used in digital images, with the relative intensity
+* of the primaries defined as three 8-bit values, with range from 0 to 255.
+* As ooposed to CIE XYZ tristimulus values, which used imaginary primaries,
+* displays use real primaries, typically defined in the CIE 1931 diagram.
+* They cover a triangular area, referred to the _color gamut_ of a display.
 */
 export class RGB {
   free(): void;
@@ -118,6 +163,68 @@ export class Spectrum {
 * @returns {Float64Array}
 */
   Values(): Float64Array;
+/**
+*
+*    This function maps spectral data with irregular intervals or intervals
+*    different than 1 nanometer to the standard spectrum as used in this
+*    library.
+*
+*    For domains with a regular interval, the wavelength slice should have a size
+*    of two, containing the minimum and maximum wavelength values, both also in
+*    units of meters or nanometers.
+*
+*    For irregular domains, this function requires a slice of wavelengths and
+*    a slice of spectral data, both of the same size. The wavelengths can be
+*    specified in units of meters or nanometers.
+*
+*    In case of duplicate wavelength values the last data values is used, so it
+*    is impossible to define filters with vertical edges using this method.
+*
+*    ```ts, ignore
+*    // Creates a linear gradient filter, with a zero transmission at 380
+*    // nanometer, and full transmission at 780 nanometer. This is an example
+*    // using a uniform wavelength domain as input.
+*    use colorimetry as cmt;
+*    # use approx::assert_ulps_eq;
+*    let data = [0.0, 1.0];
+*    let wl = [380.0, 780.0];
+*    let mut spd = cmt::Spectrum::linear_interpolate(cmt::Category::Filter, &wl, &data, None).unwrap().values();
+*    assert_ulps_eq!(spd[0], 0.);
+*    assert_ulps_eq!(spd[100], 0.25);
+*    assert_ulps_eq!(spd[200], 0.5);
+*    assert_ulps_eq!(spd[300], 0.75);
+*    assert_ulps_eq!(spd[400], 1.0);
+*
+*    // Creates a top hat filter, with slanted angles, using an irregular
+*    // wavelength domain.
+*    let data = vec![0.0, 1.0, 1.0, 0.0];
+*    let wl = vec![480.0, 490.0, 570.0, 580.0];
+*    let spd = cmt::Spectrum::linear_interpolate(cmt::Category::Filter, &wl, &data, None).unwrap().values();
+*    assert_ulps_eq!(spd[0], 0.0);
+*    assert_ulps_eq!(spd[100], 0.0);
+*    assert_ulps_eq!(spd[110], 1.0);
+*    assert_ulps_eq!(spd[190], 1.0);
+*    assert_ulps_eq!(spd[200], 0.0);
+*    assert_ulps_eq!(spd[300], 0.0);
+*    assert_ulps_eq!(spd[400], 0.0);
+*    ```
+*    
+* @param {Category} cat
+* @param {Float64Array} wavelengths
+* @param {Float64Array} data
+* @param {any} total_js
+* @returns {Spectrum}
+*/
+  static linearInterpolate(cat: Category, wavelengths: Float64Array, data: Float64Array, total_js: any): Spectrum;
+/**
+* Calculates the Color Rendering Index values for illuminant spectrum.
+* 
+* To use this function, first use `await CRI.init()`, which downloads the
+* Test Color Samples required for the calculation.  These are downloaded
+* seperately to limit the size of the main web assembly library.
+* @returns {CRI}
+*/
+  cri(): CRI;
 }
 /**
 * A set of CIE XYZ Tristimulus values, associated with a Standard Observer.
@@ -195,19 +302,27 @@ export interface InitOutput {
   readonly __wbg_spectrum_free: (a: number) => void;
   readonly spectrum_new_js: (a: number, b: number, c: number, d: number, e: number, f: number) => void;
   readonly spectrum_Values: (a: number, b: number) => void;
-  readonly __wbg_observer_free: (a: number) => void;
-  readonly __wbg_rgb_free: (a: number) => void;
-  readonly stefanBoltzmann: (a: number) => number;
+  readonly spectrum_linearInterpolate: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => void;
+  readonly spectrum_cri: (a: number, b: number) => void;
   readonly __wbg_xyz_free: (a: number) => void;
   readonly xyz_new_js: (a: number, b: number, c: number, d: number) => void;
   readonly xyz_values: (a: number) => number;
   readonly xyz_chromaticity: (a: number) => number;
   readonly xyz_luminousValue: (a: number) => number;
+  readonly __wbg_observerdata_free: (a: number) => void;
   readonly __wbg_lab_free: (a: number) => void;
+  readonly stefanBoltzmann: (a: number) => number;
+  readonly __wbg_cri_free: (a: number) => void;
+  readonly cri_init_js: () => number;
+  readonly __wbg_rgb_free: (a: number) => void;
   readonly __wbindgen_malloc: (a: number, b: number) => number;
   readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
+  readonly __wbindgen_export_2: WebAssembly.Table;
+  readonly _dyn_core__ops__function__FnMut__A____Output___R_as_wasm_bindgen__closure__WasmClosure___describe__invoke__hbab24f6002b31ec0: (a: number, b: number, c: number) => void;
   readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
   readonly __wbindgen_free: (a: number, b: number, c: number) => void;
+  readonly __wbindgen_exn_store: (a: number) => void;
+  readonly wasm_bindgen__convert__closures__invoke2_mut__ha4bb2b91b15b46a5: (a: number, b: number, c: number, d: number) => void;
 }
 
 export type SyncInitInput = BufferSource | WebAssembly.Module;

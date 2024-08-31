@@ -1,13 +1,14 @@
 
 # Overview
 The Colorimetry Library is a library for color calculations in illumination and engineering projects.
-It is written in Rust but provides WebAssembly JavaScript/WebAssembly interface as well, as published here.
+It can be used for Rust projects and provides JavaScript/WebAssembly interfaces.
 The algorithms implemented try to follow the recommendations of the International Commission on Illumination,
 the International Color Consortium, the Illumination Engineering Society, and many others.
 
 Here is a brief overview of the main objects in this library, with some introductory examples for use in Rust, Deno/TypeScript, and Web Applications.
+For detailed documentation, check either [crates.io](https://crates.io/crates/colorimetry) for Rust or [jsr.io](https://jsr.io/@harbik/colorimetry) for use in JavaScript Runtime applications.
 
-# Use in Deno
+# Use in Rust applications
 
 To use this library in Rust applications, run the command:
  ```bash
@@ -33,7 +34,8 @@ use crate::colorimetry::{Spectrum, CIE1931};
 use approx::assert_ulps_eq;
 
 let p3000 = Spectrum::planckian_illuminant(3000.0);
-let [l, x, y] = CIE1931.xyz(&p3000).lxy();
+let [x, y] = CIE1931.xyz(&p3000).chromaticity();
+let l = CIE1931.xyz(&p3000).luminous_value();
 
 assert_ulps_eq!(l, 20.668_927, epsilon = 1E-6);
 assert_ulps_eq!(x, 0.436_935, epsilon = 1E-6);

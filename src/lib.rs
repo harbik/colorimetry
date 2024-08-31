@@ -11,6 +11,7 @@ pub use physics::*;
 pub use rgb::*;
 pub use rgbspace::*;
 pub use spc::*;
+pub use stdill::*;
 pub use xyz::*;
 use wasm_bindgen::JsValue;
 
@@ -26,6 +27,7 @@ pub mod physics;
 pub mod rgb;
 pub mod rgbspace;
 pub mod spc;
+pub mod stdill;
 pub mod xyz;
 
 
