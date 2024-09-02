@@ -5,7 +5,7 @@ use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 
 use nalgebra::{DVector, SVector};
 
-use crate::{cri::CRI, data::{D50, D65}, obs::ObserverData, physics::{gaussian_peak_one, led_ohno, planck, stefan_boltzmann}, CmError};
+use crate::{cri::CRI, data::{D50, D65}, obs::ObserverData, physics::{gaussian_peak_one, led_ohno, planck, stefan_boltzmann}, CmError, StdIlluminant};
 
 
 #[wasm_bindgen]
@@ -540,6 +540,14 @@ impl Spectrum {
         todo!()
     }
 
+    /// Get the StdIlluminant spectrum. Typically you don't need to use the Spectrum itself, as many
+    /// methods just accept the StdIlluminant directly.
+    #[wasm_bindgen(js_name=illuminant)]
+    pub fn llluminant_js(stdill: StdIlluminant) -> Self {
+        // need this as wasm_bindgen does not support `impl` on Enum types (yet?).
+        // in Rust use StdIlluminant.spectrum() directly, which also gives a reference instead of a copy.
+        *stdill.spectrum()
+    }
 }
 
 fn mixed_category(s1: &Spectrum, s2: &Spectrum) -> Category {

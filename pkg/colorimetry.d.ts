@@ -8,6 +8,49 @@
 */
 export function stefanBoltzmann(temperature: number): number;
 /**
+*/
+export enum StdIlluminant {
+  D65 = 0,
+  D50 = 1,
+  A = 2,
+  F1 = 3,
+  F2 = 4,
+  F3 = 5,
+  F4 = 6,
+  F5 = 7,
+  F6 = 8,
+  F7 = 9,
+  F8 = 10,
+  F9 = 11,
+  F10 = 12,
+  F11 = 13,
+  F12 = 14,
+  F3_1 = 15,
+  F3_2 = 16,
+  F3_3 = 17,
+  F3_4 = 18,
+  F3_5 = 19,
+  F3_6 = 20,
+  F3_7 = 21,
+  F3_8 = 22,
+  F3_9 = 23,
+  F3_10 = 24,
+  F3_11 = 25,
+  F3_12 = 26,
+  F3_13 = 27,
+  F3_14 = 28,
+  F3_15 = 29,
+  LED_B1 = 30,
+  LED_B2 = 31,
+  LED_B3 = 32,
+  LED_B4 = 33,
+  LED_B5 = 34,
+  LED_BH1 = 35,
+  LED_RGB1 = 36,
+  LED_V1 = 37,
+  LED_V2 = 38,
+}
+/**
 *
 *    Light-weight identifier added to the `XYZ` and `RGB` datasets,
 *    representing the colorimetric standard observer used.
@@ -22,17 +65,6 @@ export enum Observer {
   Std1976 = 1,
   Std2015 = 2,
   Std2015_10 = 3,
-}
-/**
-*
-*A Light Weight index tag, to represent an RGB space.
-*Used for example in the RGB value set, to identify the color space being used.  
-* 
-*/
-export enum RgbSpace {
-  SRGB = 0,
-  ADOBE = 1,
-  DisplayP3 = 2,
 }
 /**
 */
@@ -57,6 +89,17 @@ export enum Category {
 * The type of spectrum is unknown.
 */
   Unknown = 4,
+}
+/**
+*
+*A Light Weight index tag, to represent an RGB space.
+*Used for example in the RGB value set, to identify the color space being used.  
+* 
+*/
+export enum RgbSpace {
+  SRGB = 0,
+  ADOBE = 1,
+  DisplayP3 = 2,
 }
 /**
 */
@@ -225,6 +268,13 @@ export class Spectrum {
 * @returns {CRI}
 */
   cri(): CRI;
+/**
+* Get the StdIlluminant spectrum. Typically you don't need to use the Spectrum itself, as many
+* methods just accept the StdIlluminant directly.
+* @param {StdIlluminant} stdill
+* @returns {Spectrum}
+*/
+  static illuminant(stdill: StdIlluminant): Spectrum;
 }
 /**
 * A set of CIE XYZ Tristimulus values, associated with a Standard Observer.
@@ -299,30 +349,31 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 
 export interface InitOutput {
   readonly memory: WebAssembly.Memory;
-  readonly __wbg_spectrum_free: (a: number) => void;
+  readonly __wbg_spectrum_free: (a: number, b: number) => void;
   readonly spectrum_new_js: (a: number, b: number, c: number, d: number, e: number, f: number) => void;
   readonly spectrum_Values: (a: number, b: number) => void;
   readonly spectrum_linearInterpolate: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => void;
   readonly spectrum_cri: (a: number, b: number) => void;
-  readonly __wbg_xyz_free: (a: number) => void;
+  readonly spectrum_illuminant: (a: number) => number;
+  readonly __wbg_xyz_free: (a: number, b: number) => void;
   readonly xyz_new_js: (a: number, b: number, c: number, d: number) => void;
   readonly xyz_values: (a: number) => number;
   readonly xyz_chromaticity: (a: number) => number;
   readonly xyz_luminousValue: (a: number) => number;
-  readonly __wbg_observerdata_free: (a: number) => void;
-  readonly __wbg_lab_free: (a: number) => void;
-  readonly stefanBoltzmann: (a: number) => number;
-  readonly __wbg_cri_free: (a: number) => void;
+  readonly __wbg_observerdata_free: (a: number, b: number) => void;
+  readonly __wbg_cri_free: (a: number, b: number) => void;
   readonly cri_init_js: () => number;
-  readonly __wbg_rgb_free: (a: number) => void;
+  readonly __wbg_lab_free: (a: number, b: number) => void;
+  readonly __wbg_rgb_free: (a: number, b: number) => void;
+  readonly stefanBoltzmann: (a: number) => number;
   readonly __wbindgen_malloc: (a: number, b: number) => number;
   readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
   readonly __wbindgen_export_2: WebAssembly.Table;
-  readonly _dyn_core__ops__function__FnMut__A____Output___R_as_wasm_bindgen__closure__WasmClosure___describe__invoke__hbab24f6002b31ec0: (a: number, b: number, c: number) => void;
+  readonly _dyn_core__ops__function__FnMut__A____Output___R_as_wasm_bindgen__closure__WasmClosure___describe__invoke__h140c3a2591fa4c62: (a: number, b: number, c: number) => void;
   readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
   readonly __wbindgen_free: (a: number, b: number, c: number) => void;
   readonly __wbindgen_exn_store: (a: number) => void;
-  readonly wasm_bindgen__convert__closures__invoke2_mut__ha4bb2b91b15b46a5: (a: number, b: number, c: number, d: number) => void;
+  readonly wasm_bindgen__convert__closures__invoke2_mut__hb0f981c89d586855: (a: number, b: number, c: number, d: number) => void;
 }
 
 export type SyncInitInput = BufferSource | WebAssembly.Module;
@@ -330,18 +381,18 @@ export type SyncInitInput = BufferSource | WebAssembly.Module;
 * Instantiates the given `module`, which can either be bytes or
 * a precompiled `WebAssembly.Module`.
 *
-* @param {SyncInitInput} module
+* @param {{ module: SyncInitInput }} module - Passing `SyncInitInput` directly is deprecated.
 *
 * @returns {InitOutput}
 */
-export function initSync(module: SyncInitInput): InitOutput;
+export function initSync(module: { module: SyncInitInput } | SyncInitInput): InitOutput;
 
 /**
 * If `module_or_path` is {RequestInfo} or {URL}, makes a request and
 * for everything else, calls `WebAssembly.instantiate` directly.
 *
-* @param {InitInput | Promise<InitInput>} module_or_path
+* @param {{ module_or_path: InitInput | Promise<InitInput> }} module_or_path - Passing `InitInput` directly is deprecated.
 *
 * @returns {Promise<InitOutput>}
 */
-export default function __wbg_init (module_or_path?: InitInput | Promise<InitInput>): Promise<InitOutput>;
+export default function __wbg_init (module_or_path?: { module_or_path: InitInput | Promise<InitInput> } | InitInput | Promise<InitInput>): Promise<InitOutput>;

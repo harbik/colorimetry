@@ -21,22 +21,13 @@ function isLikeNone(x) {
     return x === undefined || x === null;
 }
 
-let cachedFloat64Memory0 = null;
+let cachedDataViewMemory0 = null;
 
-function getFloat64Memory0() {
-    if (cachedFloat64Memory0 === null || cachedFloat64Memory0.byteLength === 0) {
-        cachedFloat64Memory0 = new Float64Array(wasm.memory.buffer);
+function getDataViewMemory0() {
+    if (cachedDataViewMemory0 === null || cachedDataViewMemory0.buffer.detached === true || (cachedDataViewMemory0.buffer.detached === undefined && cachedDataViewMemory0.buffer !== wasm.memory.buffer)) {
+        cachedDataViewMemory0 = new DataView(wasm.memory.buffer);
     }
-    return cachedFloat64Memory0;
-}
-
-let cachedInt32Memory0 = null;
-
-function getInt32Memory0() {
-    if (cachedInt32Memory0 === null || cachedInt32Memory0.byteLength === 0) {
-        cachedInt32Memory0 = new Int32Array(wasm.memory.buffer);
-    }
-    return cachedInt32Memory0;
+    return cachedDataViewMemory0;
 }
 
 function dropObject(idx) {
@@ -53,13 +44,13 @@ function takeObject(idx) {
 
 let WASM_VECTOR_LEN = 0;
 
-let cachedUint8Memory0 = null;
+let cachedUint8ArrayMemory0 = null;
 
-function getUint8Memory0() {
-    if (cachedUint8Memory0 === null || cachedUint8Memory0.byteLength === 0) {
-        cachedUint8Memory0 = new Uint8Array(wasm.memory.buffer);
+function getUint8ArrayMemory0() {
+    if (cachedUint8ArrayMemory0 === null || cachedUint8ArrayMemory0.byteLength === 0) {
+        cachedUint8ArrayMemory0 = new Uint8Array(wasm.memory.buffer);
     }
-    return cachedUint8Memory0;
+    return cachedUint8ArrayMemory0;
 }
 
 const cachedTextEncoder = (typeof TextEncoder !== 'undefined' ? new TextEncoder('utf-8') : { encode: () => { throw Error('TextEncoder not available') } } );
@@ -82,7 +73,7 @@ function passStringToWasm0(arg, malloc, realloc) {
     if (realloc === undefined) {
         const buf = cachedTextEncoder.encode(arg);
         const ptr = malloc(buf.length, 1) >>> 0;
-        getUint8Memory0().subarray(ptr, ptr + buf.length).set(buf);
+        getUint8ArrayMemory0().subarray(ptr, ptr + buf.length).set(buf);
         WASM_VECTOR_LEN = buf.length;
         return ptr;
     }
@@ -90,7 +81,7 @@ function passStringToWasm0(arg, malloc, realloc) {
     let len = arg.length;
     let ptr = malloc(len, 1) >>> 0;
 
-    const mem = getUint8Memory0();
+    const mem = getUint8ArrayMemory0();
 
     let offset = 0;
 
@@ -105,7 +96,7 @@ function passStringToWasm0(arg, malloc, realloc) {
             arg = arg.slice(offset);
         }
         ptr = realloc(ptr, len, len = offset + arg.length * 3, 1) >>> 0;
-        const view = getUint8Memory0().subarray(ptr + offset, ptr + len);
+        const view = getUint8ArrayMemory0().subarray(ptr + offset, ptr + len);
         const ret = encodeString(arg, view);
 
         offset += ret.written;
@@ -122,7 +113,7 @@ if (typeof TextDecoder !== 'undefined') { cachedTextDecoder.decode(); };
 
 function getStringFromWasm0(ptr, len) {
     ptr = ptr >>> 0;
-    return cachedTextDecoder.decode(getUint8Memory0().subarray(ptr, ptr + len));
+    return cachedTextDecoder.decode(getUint8ArrayMemory0().subarray(ptr, ptr + len));
 }
 
 const CLOSURE_DTORS = (typeof FinalizationRegistry === 'undefined')
@@ -156,19 +147,28 @@ function makeMutClosure(arg0, arg1, dtor, f) {
     return real;
 }
 function __wbg_adapter_26(arg0, arg1, arg2) {
-    wasm._dyn_core__ops__function__FnMut__A____Output___R_as_wasm_bindgen__closure__WasmClosure___describe__invoke__hbab24f6002b31ec0(arg0, arg1, addHeapObject(arg2));
+    wasm._dyn_core__ops__function__FnMut__A____Output___R_as_wasm_bindgen__closure__WasmClosure___describe__invoke__h140c3a2591fa4c62(arg0, arg1, addHeapObject(arg2));
+}
+
+let cachedFloat64ArrayMemory0 = null;
+
+function getFloat64ArrayMemory0() {
+    if (cachedFloat64ArrayMemory0 === null || cachedFloat64ArrayMemory0.byteLength === 0) {
+        cachedFloat64ArrayMemory0 = new Float64Array(wasm.memory.buffer);
+    }
+    return cachedFloat64ArrayMemory0;
 }
 
 function passArrayF64ToWasm0(arg, malloc) {
     const ptr = malloc(arg.length * 8, 8) >>> 0;
-    getFloat64Memory0().set(arg, ptr / 8);
+    getFloat64ArrayMemory0().set(arg, ptr / 8);
     WASM_VECTOR_LEN = arg.length;
     return ptr;
 }
 
 function getArrayF64FromWasm0(ptr, len) {
     ptr = ptr >>> 0;
-    return getFloat64Memory0().subarray(ptr / 8, ptr / 8 + len);
+    return getFloat64ArrayMemory0().subarray(ptr / 8, ptr / 8 + len);
 }
 
 let stack_pointer = 128;
@@ -196,10 +196,13 @@ function handleError(f, args) {
         wasm.__wbindgen_exn_store(addHeapObject(e));
     }
 }
-function __wbg_adapter_55(arg0, arg1, arg2, arg3) {
-    wasm.wasm_bindgen__convert__closures__invoke2_mut__ha4bb2b91b15b46a5(arg0, arg1, addHeapObject(arg2), addHeapObject(arg3));
+function __wbg_adapter_56(arg0, arg1, arg2, arg3) {
+    wasm.wasm_bindgen__convert__closures__invoke2_mut__hb0f981c89d586855(arg0, arg1, addHeapObject(arg2), addHeapObject(arg3));
 }
 
+/**
+*/
+export const StdIlluminant = Object.freeze({ D65:0,"0":"D65",D50:1,"1":"D50",A:2,"2":"A",F1:3,"3":"F1",F2:4,"4":"F2",F3:5,"5":"F3",F4:6,"6":"F4",F5:7,"7":"F5",F6:8,"8":"F6",F7:9,"9":"F7",F8:10,"10":"F8",F9:11,"11":"F9",F10:12,"12":"F10",F11:13,"13":"F11",F12:14,"14":"F12",F3_1:15,"15":"F3_1",F3_2:16,"16":"F3_2",F3_3:17,"17":"F3_3",F3_4:18,"18":"F3_4",F3_5:19,"19":"F3_5",F3_6:20,"20":"F3_6",F3_7:21,"21":"F3_7",F3_8:22,"22":"F3_8",F3_9:23,"23":"F3_9",F3_10:24,"24":"F3_10",F3_11:25,"25":"F3_11",F3_12:26,"26":"F3_12",F3_13:27,"27":"F3_13",F3_14:28,"28":"F3_14",F3_15:29,"29":"F3_15",LED_B1:30,"30":"LED_B1",LED_B2:31,"31":"LED_B2",LED_B3:32,"32":"LED_B3",LED_B4:33,"33":"LED_B4",LED_B5:34,"34":"LED_B5",LED_BH1:35,"35":"LED_BH1",LED_RGB1:36,"36":"LED_RGB1",LED_V1:37,"37":"LED_V1",LED_V2:38,"38":"LED_V2", });
 /**
 *
 *    Light-weight identifier added to the `XYZ` and `RGB` datasets,
@@ -211,13 +214,6 @@ function __wbg_adapter_55(arg0, arg1, arg2, arg3) {
 *
 */
 export const Observer = Object.freeze({ Std1931:0,"0":"Std1931",Std1976:1,"1":"Std1976",Std2015:2,"2":"Std2015",Std2015_10:3,"3":"Std2015_10", });
-/**
-*
-*A Light Weight index tag, to represent an RGB space.
-*Used for example in the RGB value set, to identify the color space being used.
-*
-*/
-export const RgbSpace = Object.freeze({ SRGB:0,"0":"SRGB",ADOBE:1,"1":"ADOBE",DisplayP3:2,"2":"DisplayP3", });
 /**
 */
 export const Category = Object.freeze({
@@ -241,10 +237,17 @@ Stimulus:3,"3":"Stimulus",
 * The type of spectrum is unknown.
 */
 Unknown:4,"4":"Unknown", });
+/**
+*
+*A Light Weight index tag, to represent an RGB space.
+*Used for example in the RGB value set, to identify the color space being used.
+*
+*/
+export const RgbSpace = Object.freeze({ SRGB:0,"0":"SRGB",ADOBE:1,"1":"ADOBE",DisplayP3:2,"2":"DisplayP3", });
 
 const CRIFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
-    : new FinalizationRegistry(ptr => wasm.__wbg_cri_free(ptr >>> 0));
+    : new FinalizationRegistry(ptr => wasm.__wbg_cri_free(ptr >>> 0, 1));
 /**
 */
 export class CRI {
@@ -266,7 +269,7 @@ export class CRI {
 
     free() {
         const ptr = this.__destroy_into_raw();
-        wasm.__wbg_cri_free(ptr);
+        wasm.__wbg_cri_free(ptr, 0);
     }
     /**
     * @returns {Promise<void>}
@@ -279,7 +282,7 @@ export class CRI {
 
 const LabFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
-    : new FinalizationRegistry(ptr => wasm.__wbg_lab_free(ptr >>> 0));
+    : new FinalizationRegistry(ptr => wasm.__wbg_lab_free(ptr >>> 0, 1));
 /**
 */
 export class Lab {
@@ -293,13 +296,13 @@ export class Lab {
 
     free() {
         const ptr = this.__destroy_into_raw();
-        wasm.__wbg_lab_free(ptr);
+        wasm.__wbg_lab_free(ptr, 0);
     }
 }
 
 const ObserverDataFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
-    : new FinalizationRegistry(ptr => wasm.__wbg_observerdata_free(ptr >>> 0));
+    : new FinalizationRegistry(ptr => wasm.__wbg_observerdata_free(ptr >>> 0, 1));
 /**
 *
 *    A data structure to define Standard Observers, such as the CIE 1931 2º and
@@ -331,13 +334,13 @@ export class ObserverData {
 
     free() {
         const ptr = this.__destroy_into_raw();
-        wasm.__wbg_observerdata_free(ptr);
+        wasm.__wbg_observerdata_free(ptr, 0);
     }
 }
 
 const RGBFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
-    : new FinalizationRegistry(ptr => wasm.__wbg_rgb_free(ptr >>> 0));
+    : new FinalizationRegistry(ptr => wasm.__wbg_rgb_free(ptr >>> 0, 1));
 /**
 * Representation of a color stimulus in a set of Red, Green, and Blue (RGB) values,
 * representing its relative composition using standard primaries.
@@ -359,13 +362,13 @@ export class RGB {
 
     free() {
         const ptr = this.__destroy_into_raw();
-        wasm.__wbg_rgb_free(ptr);
+        wasm.__wbg_rgb_free(ptr, 0);
     }
 }
 
 const SpectrumFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
-    : new FinalizationRegistry(ptr => wasm.__wbg_spectrum_free(ptr >>> 0));
+    : new FinalizationRegistry(ptr => wasm.__wbg_spectrum_free(ptr >>> 0, 1));
 /**
 *
 *This container holds spectral values within a wavelength domain ranging from 380
@@ -415,7 +418,7 @@ export class Spectrum {
 
     free() {
         const ptr = this.__destroy_into_raw();
-        wasm.__wbg_spectrum_free(ptr);
+        wasm.__wbg_spectrum_free(ptr, 0);
     }
     /**
     * Creates a new Spectrum object, using as input a `Category`, a
@@ -438,13 +441,14 @@ export class Spectrum {
             const ptr0 = passArrayF64ToWasm0(data, wasm.__wbindgen_malloc);
             const len0 = WASM_VECTOR_LEN;
             wasm.spectrum_new_js(retptr, cat, ptr0, len0, !isLikeNone(total), isLikeNone(total) ? 0 : total);
-            var r0 = getInt32Memory0()[retptr / 4 + 0];
-            var r1 = getInt32Memory0()[retptr / 4 + 1];
-            var r2 = getInt32Memory0()[retptr / 4 + 2];
+            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
             if (r2) {
                 throw takeObject(r1);
             }
             this.__wbg_ptr = r0 >>> 0;
+            SpectrumFinalization.register(this, this.__wbg_ptr, this);
             return this;
         } finally {
             wasm.__wbindgen_add_to_stack_pointer(16);
@@ -460,8 +464,8 @@ export class Spectrum {
         try {
             const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
             wasm.spectrum_Values(retptr, this.__wbg_ptr);
-            var r0 = getInt32Memory0()[retptr / 4 + 0];
-            var r1 = getInt32Memory0()[retptr / 4 + 1];
+            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
             var v1 = getArrayF64FromWasm0(r0, r1).slice();
             wasm.__wbindgen_free(r0, r1 * 8, 8);
             return v1;
@@ -529,9 +533,9 @@ export class Spectrum {
             const ptr1 = passArrayF64ToWasm0(data, wasm.__wbindgen_malloc);
             const len1 = WASM_VECTOR_LEN;
             wasm.spectrum_linearInterpolate(retptr, cat, ptr0, len0, ptr1, len1, addBorrowedObject(total_js));
-            var r0 = getInt32Memory0()[retptr / 4 + 0];
-            var r1 = getInt32Memory0()[retptr / 4 + 1];
-            var r2 = getInt32Memory0()[retptr / 4 + 2];
+            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
             if (r2) {
                 throw takeObject(r1);
             }
@@ -553,9 +557,9 @@ export class Spectrum {
         try {
             const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
             wasm.spectrum_cri(retptr, this.__wbg_ptr);
-            var r0 = getInt32Memory0()[retptr / 4 + 0];
-            var r1 = getInt32Memory0()[retptr / 4 + 1];
-            var r2 = getInt32Memory0()[retptr / 4 + 2];
+            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
             if (r2) {
                 throw takeObject(r1);
             }
@@ -564,11 +568,21 @@ export class Spectrum {
             wasm.__wbindgen_add_to_stack_pointer(16);
         }
     }
+    /**
+    * Get the StdIlluminant spectrum. Typically you don't need to use the Spectrum itself, as many
+    * methods just accept the StdIlluminant directly.
+    * @param {StdIlluminant} stdill
+    * @returns {Spectrum}
+    */
+    static illuminant(stdill) {
+        const ret = wasm.spectrum_illuminant(stdill);
+        return Spectrum.__wrap(ret);
+    }
 }
 
 const XYZFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
-    : new FinalizationRegistry(ptr => wasm.__wbg_xyz_free(ptr >>> 0));
+    : new FinalizationRegistry(ptr => wasm.__wbg_xyz_free(ptr >>> 0, 1));
 /**
 * A set of CIE XYZ Tristimulus values, associated with a Standard Observer.
 * They are calculated using the spectrum of a Stimulus, such as beam of light
@@ -587,7 +601,7 @@ export class XYZ {
 
     free() {
         const ptr = this.__destroy_into_raw();
-        wasm.__wbg_xyz_free(ptr);
+        wasm.__wbg_xyz_free(ptr, 0);
     }
     /**
     *
@@ -635,13 +649,14 @@ export class XYZ {
         try {
             const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
             wasm.xyz_new_js(retptr, x, y, addBorrowedObject(opt));
-            var r0 = getInt32Memory0()[retptr / 4 + 0];
-            var r1 = getInt32Memory0()[retptr / 4 + 1];
-            var r2 = getInt32Memory0()[retptr / 4 + 2];
+            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
             if (r2) {
                 throw takeObject(r1);
             }
             this.__wbg_ptr = r0 >>> 0;
+            XYZFinalization.register(this, this.__wbg_ptr, this);
             return this;
         } finally {
             wasm.__wbindgen_add_to_stack_pointer(16);
@@ -717,23 +732,23 @@ function __wbg_get_imports() {
 imports.wbg.__wbindgen_number_get = function(arg0, arg1) {
     const obj = getObject(arg1);
     const ret = typeof(obj) === 'number' ? obj : undefined;
-    getFloat64Memory0()[arg0 / 8 + 1] = isLikeNone(ret) ? 0 : ret;
-    getInt32Memory0()[arg0 / 4 + 0] = !isLikeNone(ret);
+    getDataViewMemory0().setFloat64(arg0 + 8 * 1, isLikeNone(ret) ? 0 : ret, true);
+    getDataViewMemory0().setInt32(arg0 + 4 * 0, !isLikeNone(ret), true);
 };
 imports.wbg.__wbindgen_object_drop_ref = function(arg0) {
     takeObject(arg0);
+};
+imports.wbg.__wbindgen_number_new = function(arg0) {
+    const ret = arg0;
+    return addHeapObject(ret);
 };
 imports.wbg.__wbindgen_string_get = function(arg0, arg1) {
     const obj = getObject(arg1);
     const ret = typeof(obj) === 'string' ? obj : undefined;
     var ptr1 = isLikeNone(ret) ? 0 : passStringToWasm0(ret, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
     var len1 = WASM_VECTOR_LEN;
-    getInt32Memory0()[arg0 / 4 + 1] = len1;
-    getInt32Memory0()[arg0 / 4 + 0] = ptr1;
-};
-imports.wbg.__wbindgen_number_new = function(arg0) {
-    const ret = arg0;
-    return addHeapObject(ret);
+    getDataViewMemory0().setInt32(arg0 + 4 * 1, len1, true);
+    getDataViewMemory0().setInt32(arg0 + 4 * 0, ptr1, true);
 };
 imports.wbg.__wbindgen_error_new = function(arg0, arg1) {
     const ret = new Error(getStringFromWasm0(arg0, arg1));
@@ -822,7 +837,7 @@ imports.wbg.__wbg_new_81740750da40724f = function(arg0, arg1) {
             const a = state0.a;
             state0.a = 0;
             try {
-                return __wbg_adapter_55(a, state0.b, arg0, arg1);
+                return __wbg_adapter_56(a, state0.b, arg0, arg1);
             } finally {
                 state0.a = a;
             }
@@ -844,7 +859,7 @@ imports.wbg.__wbg_then_0c86a60e8fcfe9f6 = function(arg0, arg1) {
 imports.wbg.__wbindgen_throw = function(arg0, arg1) {
     throw new Error(getStringFromWasm0(arg0, arg1));
 };
-imports.wbg.__wbindgen_closure_wrapper98 = function(arg0, arg1, arg2) {
+imports.wbg.__wbindgen_closure_wrapper101 = function(arg0, arg1, arg2) {
     const ret = makeMutClosure(arg0, arg1, 19, __wbg_adapter_26);
     return addHeapObject(ret);
 };
@@ -852,16 +867,17 @@ imports.wbg.__wbindgen_closure_wrapper98 = function(arg0, arg1, arg2) {
 return imports;
 }
 
-function __wbg_init_memory(imports, maybe_memory) {
+function __wbg_init_memory(imports, memory) {
 
 }
 
 function __wbg_finalize_init(instance, module) {
     wasm = instance.exports;
     __wbg_init.__wbindgen_wasm_module = module;
-    cachedFloat64Memory0 = null;
-    cachedInt32Memory0 = null;
-    cachedUint8Memory0 = null;
+    cachedDataViewMemory0 = null;
+    cachedFloat64ArrayMemory0 = null;
+    cachedUint8ArrayMemory0 = null;
+
 
 
     return wasm;
@@ -869,6 +885,12 @@ function __wbg_finalize_init(instance, module) {
 
 function initSync(module) {
     if (wasm !== undefined) return wasm;
+
+
+    if (typeof module !== 'undefined' && Object.getPrototypeOf(module) === Object.prototype)
+    ({module} = module)
+    else
+    console.warn('using deprecated parameters for `initSync()`; pass a single object instead')
 
     const imports = __wbg_get_imports();
 
@@ -883,24 +905,30 @@ function initSync(module) {
     return __wbg_finalize_init(instance, module);
 }
 
-async function __wbg_init(input) {
+async function __wbg_init(module_or_path) {
     if (wasm !== undefined) return wasm;
 
-    if (typeof input === 'undefined') {
-        input = new URL('colorimetry_bg.wasm', import.meta.url);
+
+    if (typeof module_or_path !== 'undefined' && Object.getPrototypeOf(module_or_path) === Object.prototype)
+    ({module_or_path} = module_or_path)
+    else
+    console.warn('using deprecated parameters for the initialization function; pass a single object instead')
+
+    if (typeof module_or_path === 'undefined') {
+        module_or_path = new URL('colorimetry_bg.wasm', import.meta.url);
     }
     const imports = __wbg_get_imports();
 
-    if (typeof input === 'string' || (typeof Request === 'function' && input instanceof Request) || (typeof URL === 'function' && input instanceof URL)) {
-        input = fetch(input);
+    if (typeof module_or_path === 'string' || (typeof Request === 'function' && module_or_path instanceof Request) || (typeof URL === 'function' && module_or_path instanceof URL)) {
+        module_or_path = fetch(module_or_path);
     }
 
     __wbg_init_memory(imports);
 
-    const { instance, module } = await __wbg_load(await input, imports);
+    const { instance, module } = await __wbg_load(await module_or_path, imports);
 
     return __wbg_finalize_init(instance, module);
 }
 
-export { initSync }
+export { initSync };
 export default __wbg_init;
