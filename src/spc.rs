@@ -876,10 +876,11 @@ fn linterp(mut wl: [f64;2], data: &[f64]) -> Result<[f64;NS], CmError> {
     
     let mut spd = [0f64; NS];
     spd.iter_mut().enumerate().for_each(|(i,v)|{
-        let l = (i + 380) as f64 * 1E-9;
-        let t = ((l-wl)/(wh - wl)).clamp(0.0, 1.0);
-        let j = (t * dlm1 as f64).trunc() as usize;
-        let f = t.fract();
+        let l = (i + 380) as f64 * 1E-9; // wavelength in meters
+        let t = ((l-wl)/(wh - wl)).clamp(0.0, 1.0); // length parameter
+        let tf = (t * dlm1 as f64) as f64;
+        let j = tf.trunc() as usize;
+        let f = tf.fract();
         if j >= dlm1 {
             *v = data[dlm1];
         } else {
@@ -892,6 +893,15 @@ fn linterp(mut wl: [f64;2], data: &[f64]) -> Result<[f64;NS], CmError> {
 #[test]
 fn test_linterp(){
     use approx::assert_ulps_eq;
+
+    let data = [0.0, 1.0,  0.0];
+    let wl = [380.0, 780.0];
+    let spd = linterp(wl, &data).unwrap();
+    assert_ulps_eq!(spd[0], 0.);
+    assert_ulps_eq!(spd[100], 0.5);
+    assert_ulps_eq!(spd[200], 1.0);
+    assert_ulps_eq!(spd[300], 0.5);
+    assert_ulps_eq!(spd[400], 0.0);
 
     let data = [0.0, 1.0];
     let wl = [380.0, 780.0];

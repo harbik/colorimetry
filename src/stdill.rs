@@ -71,7 +71,7 @@ std_illuminants!(D65 D50 [A F1 F2 F3 F4 F5 F6 F7 F8 F9 F10 F11 F12
 
 
 impl Spectrum {
-    pub fn cie_d_illuminant(cct: f64) -> Result<Spectrum, CmError> {
+    pub fn d_illuminant(cct: f64) -> Result<Spectrum, CmError> {
         if cct<4000.0 || cct>25000.0 {
             Err(CmError::OutOfRange{name:"CIE D Illuminant Temperature".to_string(), low: 4000.0, high: 25000.0})
         } else { 
@@ -95,20 +95,9 @@ impl Spectrum {
 #[test]
 fn test_d_illuminant(){
 
-    let s = Spectrum::cie_d_illuminant(6504.0).unwrap();
+    let s = Spectrum::d_illuminant(6504.0).unwrap();
     let xyz = crate::CIE1931.xyz(&s).set_illuminance(100.0);
-   // approx::assert_abs_diff_eq!(xyz, crate::CIE1931.xyz_d65());
-    let d65 = crate::CIE1931.xyz_d65();
-    println!("{xyz:?} {d65:?}");
-    let mut ws = 6500.0;
-    let step = 0.1;
-    for i in 0..50 {
-        let s = Spectrum::cie_d_illuminant(ws).unwrap();
-        let xyz = crate::CIE1931.xyz(&s).set_illuminance(100.0);
-        println!("{xyz:?}");
-        ws += step;
-
-    }
+    approx::assert_ulps_eq!(xyz, crate::CIE1931.xyz_d65(), epsilon = 2E-2);
 }
 
 const CIE_D_S_LEN: usize = 81;
