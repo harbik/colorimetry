@@ -6,12 +6,12 @@
 pub use cct::*;
 pub use data::*;
 pub use geometry::*;
-pub use obs::*;
+pub use observer::*;
 pub use physics::*;
 pub use rgb::*;
 pub use rgbspace::*;
-pub use spc::*;
-pub use stdill::*;
+pub use spectrum::*;
+pub use illuminants::*;
 pub use xyz::*;
 use wasm_bindgen::JsValue;
 
@@ -22,12 +22,12 @@ pub mod data;
 pub mod gamma;
 pub mod geometry;
 pub mod lab;
-pub mod obs;
+pub mod observer;
 pub mod physics;
 pub mod rgb;
 pub mod rgbspace;
-pub mod spc;
-pub mod stdill;
+pub mod spectrum;
+pub mod illuminants;
 pub mod xyz;
 
 

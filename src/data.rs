@@ -1,6 +1,6 @@
 use nalgebra::{ArrayStorage, SVector, SMatrix};
 
-use crate::{obs::{Observer, ObserverData}, spc::{Spectrum, Category, NS}};
+use crate::{observer::{Observer, ObserverData}, spectrum::{Spectrum, Category, NS}};
 
 pub static CIE1931: ObserverData = ObserverData{tag: Observer::Std1931, lumconst: 683.0, data: SMatrix::<f64, 3, NS>::from_array_storage( ArrayStorage([
     [0.001368, 0.000039, 0.006450001], [0.00150205, 0.0000428264, 0.007083216], [0.001642328, 0.0000469146, 0.007745488], [0.001802382, 0.0000515896, 0.008501152], [0.001995757, 0.0000571764, 0.009414544],
@@ -88,7 +88,7 @@ pub static CIE1931: ObserverData = ObserverData{tag: Observer::Std1931, lumconst
 
 /// D65 CIE Standard Illuminant.
 ///
-/// Data from https://cie.co.at/datatable/cie-standard-illuminant-d65, truncated
+/// Data from <https://cie.co.at/datatable/cie-standard-illuminant-d65>, truncated
 /// to a range from 380 to 780 nanometer.  These data, using the `CIE1931` color
 /// matching functions, results in a slightly different set of chromaticity
 /// values then published historically, which are calculated with a larger domain, and
@@ -125,7 +125,7 @@ pub static D65: Spectrum = Spectrum {
 
 /// D50 CIE standard Illuminant.
 ///
-/// Data from https://cie.co.at/datatable/cie-standard-illuminant-d50, truncated
+/// Data from <https://cie.co.at/datatable/cie-standard-illuminant-d50>, truncated
 /// to a range from 380 to 780 nanometer.  These data, using the `CIE1931` color
 /// matching functions, results in a slightly different set of chromaticity
 /// values then published historically, which are calculated with a larger domain, and

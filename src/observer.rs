@@ -2,7 +2,7 @@ use core::f64;
 use std::sync::OnceLock;
 use wasm_bindgen::prelude::wasm_bindgen;
 use nalgebra::{Matrix3, SMatrix, Vector3};
-use crate::{lab::Lab, to_wavelength, physics::{planck, planck_slope, planck_slope_c2}, spc::{Category, Spectrum, NS}, xyz::XYZ, CmError, LineAB, RgbSpace, StdIlluminant};
+use crate::{lab::Lab, to_wavelength, physics::{planck, planck_slope, planck_slope_c2}, spectrum::{Category, Spectrum, NS}, xyz::XYZ, CmError, LineAB, RgbSpace, StdIlluminant};
 
 
 
@@ -219,7 +219,7 @@ impl ObserverData {
     /// Accepts a Filter or ColorPatch Spectrum only.
     /// Returns f64::NAN's otherwise.
     pub fn lab_d65(&self, sample: &Spectrum) -> Lab {
-        if sample.cat != Category::Filter && sample.cat != Category::ColorPatch { // invalid
+        if sample.cat != Category::Filter && sample.cat != Category::Patch { // invalid
             Lab::new(f64::NAN, f64::NAN, f64::NAN, self.xyz_d65())
         } else {
             let &[x, y, z] = self.xyz_of_sample_with_std_illuminant(&StdIlluminant::D65, sample).data.as_ref();

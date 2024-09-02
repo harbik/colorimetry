@@ -3,7 +3,7 @@ use std::ops::Add;
 
 use approx::AbsDiffEq;
 use nalgebra::Vector3;
-use crate::{geometry::{LineAB, Orientation}, obs::Observer, CmError, RgbSpace, RGB};
+use crate::{geometry::{LineAB, Orientation}, observer::Observer, CmError, RgbSpace, RGB};
 use wasm_bindgen::prelude::wasm_bindgen; 
 
 
@@ -49,7 +49,7 @@ impl XYZ {
         }
     }
 
-    /// XYZ Tristimulus values in a [f64;3] form [X, Y, Z]
+    /// XYZ Tristimulus values in an an array: [X, Y, Z]
     /// ```
     /// use crate::colorimetry::{Spectrum, CIE1931};
     /// use approx::assert_ulps_eq;
@@ -77,7 +77,7 @@ impl XYZ {
         self
     }
     
-    /// The chromaticity coordinates as an array [x,y].
+    /// The chromaticity coordinates as an array with an  x and y coordinate
     /// ```
     /// use crate::colorimetry::{Spectrum, CIE1931};
     /// use approx::assert_ulps_eq;

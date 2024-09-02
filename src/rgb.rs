@@ -2,7 +2,7 @@ use std::sync::OnceLock;
 use approx::AbsDiffEq;
 use nalgebra::{Matrix3, Vector3};
 use wasm_bindgen::prelude::wasm_bindgen;
-use crate::{spc::Spectrum, xyz::XYZ, Observer, RgbSpace, CIE1931};
+use crate::{spectrum::Spectrum, xyz::XYZ, Category, Observer, RgbSpace, CIE1931};
 
 
 /// Representation of a color stimulus in a set of Red, Green, and Blue (RGB) values,
@@ -83,28 +83,46 @@ impl RGB {
         }
     }
 
-    /// Creates a callback of closure function, which takes a set or RGB values,
-    /// within a color space and viewed as one observer, and returns a new set
-    /// of RGB values, represeting the stimulus in another color space, and
-    /// using another observer.
+    /// Creates a callback of closure function, which takes a set or RGB values, within a color
+    /// space and viewed as one observer, and returns a new set of RGB values, represeting the
+    /// stimulus in another color space, and using another observer.
     /// 
-    /// This conversion uses the spectral represenations of the primaries through
-    /// the color space `Spectra` function, to create a  transformation matrix.
+    /// This conversion uses the spectral represenations of the primaries through the color space
+    /// `Spectra` function, to create a  transformation matrix.
     pub fn convert(obs_from:Observer, space_from: RgbSpace, obs: Observer, space: RgbSpace) -> Box<dyn Fn(&Vector3<f64>) -> Vector3<f64>> {
         todo!()
 
     }
 
-    /// Transform a set of RGB values, defining a stimulus for one standard
-    /// observer, into a set of RGB values representing the same stimulus for
-    /// different standard observer or special observer.  On initial use this
-    /// function calculates a transformation matrix based on the colorimetric
-    /// tristimulus values of the respective primaries.
+    /// Transform a set of RGB values, defining a stimulus for one standard observer, into a set of
+    /// RGB values representing the same stimulus for different standard observer or special
+    /// observer.  On initial use this function calculates a transformation matrix based on the
+    /// colorimetric tristimulus values of the respective primaries.
     pub fn transform(&self, obs_from: &Observer) -> Self {
         todo!() 
     }
 
+    /// Creates a [Spectrum] from an [RGB] value, using the spectral primaries of its color space.
+    /// See also [Spectrum::rgb] and [Spectrum::srgb].
+    pub fn spectrum(&self) -> Spectrum {
+        let p = &self.space.data().0.primaries;
+        let yrgb = CIE1931.rgb2xyz(&RgbSpace::SRGB).row(1);
+        self.data.iter().zip(yrgb.iter()).zip(p.iter()).map(|((v,w),s)|*v * *w * *s).sum::<Spectrum>().set_category(Category::Stimulus)
+    }
 
+}
+
+#[cfg(test)]
+mod rgb_tests {
+    use crate::{Spectrum, CIE1931, RGB};
+
+    #[test]
+    fn test_spectrum(){
+        let white = RGB::new(1.0, 1.0, 1.0, None, None).spectrum();
+        approx::assert_ulps_eq!(CIE1931.xyz(&white), CIE1931.xyz_d65(), epsilon = 1E-6);
+        let red = Spectrum::srgb(255, 0, 0);
+        approx::assert_ulps_eq!(CIE1931.xyz(&red).chromaticity().as_ref(), &[0.64, 0.33].as_ref(), epsilon = 1E-5);
+    }
 }
 
 impl AsRef<Vector3<f64>> for RGB {
@@ -154,3 +172,4 @@ pub fn gaussian_filtered_primaries(white: &Spectrum, red: [f64;3], green: [f64;2
         Spectrum::gaussian_filter(bc, bw).mul(white).set_illuminance(&CIE1931, 100.0),
     ]
 }
+

@@ -1,10 +1,35 @@
-#![doc = include_str!("stdill.md")]
+/*!
+# Standard Illuminants
+
+Many of the CIE Standard Illuminants are made available in this module through
+`StdIlluminant` for data-defined illuminants and the
+`Spectrum::cie_d_illuminant(cct: f64)` function for generic D-illuminant.
+
+The `StdIlluminant` object gives access to all the CIE illuminants defined in this library, obtained from the datasets published in the
+CIE15::2018 standard, downloaded from the [CIE Website](https://web.archive.org/web/20240314231650/https://cie.co.at/data-tables) August 2024.
+
+As the data is compiled into the library, you can choose only to include the two basic illuminants `D65` and `D50` to limit the size of your
+recent `F3_X` series included here,
+executable by using the `--no-default-features` in the compiler, or the `default-features = false` in its dependence declaration of this crate in
+the `cargo.toml` file of your application. The library uses the "cie-illuminants" feature flag to select the inclusion of these illuminants.
+
+If you use this library in a JavaScript application, the default `colorimetry` package excludes all the features that allow fast load times for
+lightweight applications.  Use the `colorimetry-all` package to use the library with all its features enabled.
+
+For more detailed information on the CIE Standard Illuminant Datasets, see
+[Standard illuminant](https://en.wikipedia.org/wiki/Standard_illuminant#White_points_of_standard_illuminants)
+on Wikipedia.  Instead of a dash, use the `_` character to access these
+illuminants by their name here, so use `StdIlluminant::LED_BH1` to use the
+phosphor-converted Blue LED and Red LED standard illuminant.
+The Fluorescent `F3_X` series is included here, with X ranging from 1 to 15.
+*/
+
 
 use std::vec;
 use nalgebra::{ArrayStorage, SMatrix};
 use wasm_bindgen::prelude::*;
 
-/**!
+/**
 The CIE Standard Illuminants, available in the library, defined as enums.
 
 The illuminants D65 and D50 are always included in this library, all the others will be only
@@ -26,25 +51,27 @@ A static reference to the spectra can be obtained using the "spectrum" method.
 
 use crate::{Category::Illuminant, CmError, Spectrum, NS};
 
-// This macro generates the `StdIlluminant` enumerator, representing the standard illuminants available in the library.
-// This is somewhat contrived, as it is a work around for a wasm-bindgen bug, which does not obey the feature-cfg on a enum item.
-// see [issue](https://github.com/rustwasm/wasm-bindgen/issues/3297).
+// This macro generates the `StdIlluminant` enumerator, representing the standard illuminants
+// available in the library.  It adds the illuminants defined as static data by their name as an
+// identifier to an `enum`, and add a `spectrum` method to access its data.  This is somewhat
+// contrived, as it is a work around for a wasm-bindgen bug, which does not obey the feature-cfg on
+// a enum item.  see [issue](https://github.com/rustwasm/wasm-bindgen/issues/3297).
 macro_rules! std_illuminants {
     ($($val:ident)* [$($cieval:ident)* ]) => {
         // only basic selection
+        #[cfg(not(feature="cie-illuminants"))]
         #[allow(non_camel_case_types)]
         #[wasm_bindgen]
         #[derive(Clone, Copy, strum_macros::Display, strum_macros::EnumIter)]
-        #[cfg(not(feature="cie-illuminants"))]
         pub enum StdIlluminant  {
                 $($val,)*
         }
 
         // extended selection
+        #[cfg(feature="cie-illuminants")]
         #[allow(non_camel_case_types)]
         #[wasm_bindgen]
         #[derive(Clone, Copy, strum_macros::Display, strum_macros::EnumIter)]
-        #[cfg(feature="cie-illuminants")]
         pub enum StdIlluminant  {
                 $($val,)*
                 $($cieval,)*

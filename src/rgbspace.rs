@@ -3,7 +3,7 @@ use std::{collections::HashMap, sync::{LazyLock, OnceLock}};
 
 use strum_macros::EnumIter;
 use wasm_bindgen::prelude::wasm_bindgen;
-use crate::{gamma::GammaCurve, gaussian_filtered_primaries, spc::Spectrum, StdIlluminant, D65};
+use crate::{gamma::GammaCurve, gaussian_filtered_primaries, spectrum::Spectrum, StdIlluminant, D65};
 
 
 // The display P3 red coordinate is outside the CIE 1931 gamut using the CIE

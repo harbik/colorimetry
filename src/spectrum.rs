@@ -1,64 +1,27 @@
-use std::{collections::BTreeMap, error::Error, ops::{Add, AddAssign, Index, IndexMut, Mul, MulAssign}};
+/*!
+# Spectral Composition
+
+The field of Colorimetry uses mathematical models to describe the sensations in our mind which we
+call color.  These models are based the spectral composition of stimuli, essentially rays of light
+hitting the photosensitive cells in the back of our eyes, and the spectral sensitiviy of these 
+cells. The spectral composition of light, and the objects involved in its processing such as filters
+and painted patches, is represented by the [Spectrum]-object in this library.
+The spectral sensitivity of human vision is described by an [Observer](crate::Observer).
+*/
+use std::{collections::BTreeMap, default, error::Error, iter::Sum, ops::{Add, AddAssign, Index, IndexMut, Mul, MulAssign}};
 
 use url::Url;
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 
 use nalgebra::{DVector, SVector};
 
-use crate::{cri::CRI, data::{D50, D65}, obs::ObserverData, physics::{gaussian_peak_one, led_ohno, planck, stefan_boltzmann}, CmError, StdIlluminant};
+use crate::{cri::CRI, data::{D50, D65}, observer::ObserverData, physics::{gaussian_peak_one, led_ohno, planck, stefan_boltzmann}, CmError, StdIlluminant, RGB};
 
 
-#[wasm_bindgen]
-#[derive(PartialEq, Eq, Clone, Copy)]
-pub enum Category { 
-    /// The spectral distribution of onne or more sources, illuminating a color sample
-    Illuminant, 
-
-    /// A Filter spectrum , such as a wratten or glass filter, which changes the properties of an illuminant.
-    Filter,     
-
-    /// The spectrum of a color patch, typically consisting of a paint or ink on a substrate, as measured with a spectrophotomteer.
-    ColorPatch,
-
-    /// A ray of light from object we are looking at, typically an illuminated by an illuminant.
-    Stimulus,   
-    
-    /// The type of spectrum is unknown.
-    Unknown,   
-}
-
-// Standard Spectrum domain ranging from 380 to 780 nanometer,
-// with 401 values.
-pub const NS: usize = 401;
-
-
-/*
-#[derive(Clone, Copy)]
-pub enum StdIlluminant {
-    D65,
-    D50,
-    A,
-}
-
-impl StdIlluminant {
-    pub fn spectrum(&self) -> &Spectrum {
-        match self {
-            StdIlluminant::D65 => &D65,
-            StdIlluminant::D50 => &D50,
-            StdIlluminant::A => &A,
-            _ => todo!()
-        }
-    }
-}
-*/
 
 /**
-This container holds spectral values within a wavelength domain ranging from 380
-to 780 nanometers, with an interval size of 1 nanometer and a total of 401
-values. It also includes a category tag and an optional 'total' value for the
-aggregate value associated with the spectrum.
-
-The categories are:
+A `Category` is used as a tag in a `Spectrum`, for use for operations specific for a particular
+spectrum type, and to avoid incorrect colorimetric calculations.
 
 - `Illuminant`: a spectral irradiance distribution with values given in watts
     per square meter per nanometer, and a `total` value given in watts per square
@@ -68,12 +31,45 @@ The categories are:
     the filter.
 - `Substrate`: a spectral transmission function when combined with a `Filter`
     and spectral reflectivity function combined with a `ColorPatch`.
-- `ColorPatch`: a spectral reflectivity function with unitless values ranging from
+- `Patch`: a spectral reflectivity function with unitless values ranging from
     0.0 to 1.0.
 - `Stimulus`: a spectral radiance distribution of a beam of light entering
     through the pupil of our eyes, on its way to be processed and triggering a
     sensation of color in our mind. Spectral data of a stimulus have a unit of watt
     per square meter per nanometer per steradian, and a total.
+
+ */
+#[wasm_bindgen]
+#[derive(PartialEq, Eq, Clone, Copy, Default)]
+pub enum Category { 
+    /// The spectral distribution of onne or more sources, illuminating a color sample
+    Illuminant, 
+
+    /// A Filter spectrum , such as a wratten or glass filter, which changes the properties of an illuminant.
+    Filter,     
+
+    /// The spectrum of a color patch, typically consisting of a paint or ink on a substrate, as measured with a spectrophotomteer.
+    Patch,
+
+    /// A ray of light from object we are looking at, typically an illuminated by an illuminant.
+    Stimulus,   
+    
+    /// The type of spectrum is unknown.
+    #[default]
+    Unknown,   
+}
+
+// Standard Spectrum domain ranging from 380 to 780 nanometer,
+// with 401 values.
+pub const NS: usize = 401;
+
+
+
+/**
+This container holds spectral values within a wavelength domain ranging from 380
+to 780 nanometers, with an interval size of 1 nanometer and a total of 401
+values. It also includes a category tag and an optional 'total' value for the
+aggregate value associated with the spectrum.
 
 A `Spectrum` can be constructed from data, but many other construction methods
 are available in this library, such as standard illuminants A and D65, Planckian
@@ -104,6 +100,12 @@ impl Spectrum {
         }
     }
     
+    pub fn set_category(mut self, cat: Category) -> Self {
+        self.cat = cat;
+        self
+    }
+
+    
     /**
     Get the spectral distribution values as an array.
      */
@@ -122,25 +124,21 @@ impl Spectrum {
     }
 
     /**
-    This function maps spectral data with irregular intervals or intervals
-    different than 1 nanometer to the standard spectrum as used in this
-    library.
+    This function maps spectral data with irregular intervals or intervals different than 1
+    nanometer to the standard spectrum as used in this library.
 
-    For domains with a regular interval, the wavelength slice should have a size
-    of two, containing the minimum and maximum wavelength values, both also in
-    units of meters or nanometers.
+    For domains with a regular interval, the wavelength slice should have a size of two, containing
+    the minimum and maximum wavelength values, both also in units of meters or nanometers.
 
-    For irregular domains, this function requires a slice of wavelengths and
-    a slice of spectral data, both of the same size. The wavelengths can be
-    specified in units of meters or nanometers.
+    For irregular domains, this function requires a slice of wavelengths and a slice of spectral
+    data, both of the same size. The wavelengths can be specified in units of meters or nanometers.
 
-    In case of duplicate wavelength values the last data values is used, so it
-    is impossible to define filters with vertical edges using this method.
+    In case of duplicate wavelength values the last data values is used, so it is impossible to
+    define filters with vertical edges using this method.
 
     ```rust
-    // Creates a linear gradient filter, with a zero transmission at 380
-    // nanometer, and full transmission at 780 nanometer. This is an example
-    // using a uniform wavelength domain as input.
+    // Creates a linear gradient filter, with a zero transmission at 380 nanometer, and full
+    // transmission at 780 nanometer. This is an example using a uniform wavelength domain as input.
     use colorimetry as cmt;
     # use approx::assert_ulps_eq;
     let data = [0.0, 1.0];
@@ -278,7 +276,7 @@ impl Spectrum {
     pub fn gray(gval: f64) -> Self {
         Self{ 
             data: SVector::<f64,NS>::repeat(gval.clamp(0.0, 1.0)),
-            cat: Category::ColorPatch,
+            cat: Category::Patch,
             total: None,
         }
     }
@@ -295,6 +293,28 @@ impl Spectrum {
     /// color mixing calculations.
     pub fn black() -> Self {
         Self::gray(0.0)
+    }
+
+    /// Spectral representation the color of a display pixel, described by a [RGB](crate::RGB)
+    /// instance.
+    ///
+    /// It uses a linear combination of the spectral primaries as defined for a particular
+    /// [RgbSpace](crate::RgbSpace).
+    /// Most of the color spaces in this library use Daylight filtered Gaussian for primaries,
+    /// but you can also use a color spaces based on primaries measured by a spectrometer.
+    /// Spectral representations of pixels allows color matching for arbitrary observers,
+    /// not only the CIE 1931 standard observer.
+    pub fn rgb(rgb: &RGB) -> Self {
+        rgb.spectrum()
+
+    }
+
+    /// A spectral composition of a display pixel, set to three sRGB color values.  The spectrum is
+    /// a linear combination of the spectral primaries, which are Gaudssian filtered components in
+    /// this library.
+    pub fn srgb(r_u8: u8, g_u8: u8, b_u8: u8) -> Self {
+        let rgb = RGB::from_u8(r_u8, g_u8, b_u8, Some(crate::Observer::Std1931), Some(crate::RgbSpace::SRGB));
+        Self::rgb(&rgb)
     }
 
     /// E, or Equal Energy Illuminant with an irradiance of 1 Watt per square
@@ -412,8 +432,26 @@ impl Spectrum {
     pub fn cri(&self) -> Result<CRI, Box<dyn Error>> {
         todo!()
     }
+
 }
 
+impl Default for Spectrum {
+    fn default() -> Self {
+        Self { 
+            data: SVector::<f64, NS>::zeros(),
+            cat: Default::default(), 
+            total: Default::default()
+         }
+    }
+}
+
+impl Sum for Spectrum {
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+        let mut s = Self::default() ;
+        iter.for_each(|si|s += si);
+        s
+    }
+}
 
 #[cfg(test)]
 mod spectrum_tests {
@@ -552,15 +590,15 @@ impl Spectrum {
 
 fn mixed_category(s1: &Spectrum, s2: &Spectrum) -> Category {
     if 
-        (s1.cat == Category::Illuminant && s2.cat == Category::ColorPatch) ||
-        (s1.cat == Category::ColorPatch && s2.cat == Category::Illuminant) ||
+        (s1.cat == Category::Illuminant && s2.cat == Category::Patch) ||
+        (s1.cat == Category::Patch && s2.cat == Category::Illuminant) ||
         (s1.cat == Category::Illuminant && s2.cat == Category::Filter) ||
         (s1.cat == Category::Filter && s2.cat == Category::Illuminant) {
         return Category::Stimulus
     } else if s1.cat == Category::Filter && s2.cat == Category::Filter {
             Category::Filter
-    } else if s1.cat == Category::ColorPatch && s2.cat == Category::ColorPatch {
-            Category::ColorPatch
+    } else if s1.cat == Category::Patch && s2.cat == Category::Patch {
+            Category::Patch
     } else {
             Category::Unknown
     }
@@ -830,7 +868,7 @@ fn test_to_meter() {
 #[cfg(test)]
 mod tests {
 
-    use crate::spc::Spectrum;
+    use crate::spectrum::Spectrum;
 
     use crate::data::CIE1931;
     use crate::StdIlluminant;
