@@ -4,8 +4,16 @@ use core::f64;
 use nalgebra::ComplexField;
 use wasm_bindgen::prelude::wasm_bindgen;
 
-use crate::CmError;
+use crate::CmtError;
 
+/// Distance of point (x,y) to line going through points (x0,y0) having slope m
+/// 
+/// See Robertson68 formula (4), but included the multiplication with the sign of m to extend the Robertson method to
+/// lower color temperatures to deal with the change of the sign value of the Blackbody locus normal: it
+/// is negative for temperatures higher than 1667K, and positive otherwise.
+pub fn distance_to_line(x: f64, y: f64, x0: f64, y0: f64, m: f64) -> f64 {
+      m.signum() *((y-y0) - m * (x-x0))/m.hypot(1.0)
+}
 
 #[derive(Clone, Copy)]
 pub struct LineAB {
@@ -30,7 +38,7 @@ pub enum Orientation {
 
 impl LineAB {
 
-    pub fn try_new(a: [f64;2], b: [f64;2]) -> Result<Self, CmError> {
+    pub fn try_new(a: [f64;2], b: [f64;2]) -> Result<Self, CmtError> {
         let [[xa, ya], [xb, yb]] = [a, b];
         let l = (xb-xa).hypot(yb-ya);
         let angle = (yb - ya).atan2(xb-xa);
@@ -38,7 +46,7 @@ impl LineAB {
         //if l>f64::EPSILON {
             Ok( Self { xa, ya, xb, yb, l, angle} )
         } else {
-            Err(CmError::RequiresDistinctPoints)
+            Err(CmtError::RequiresDistinctPoints)
         }
     }
 
@@ -92,9 +100,9 @@ impl LineAB {
     /// segments, and have a value between 0 and 1 if the intersection is
     /// between the two points used to define the lineAB.
     /// See [Wikipedia](https://en.wikipedia.org/wiki/Line–line_intersection#Given_two_points_on_each_line_segment) for the algorithm used.
-    pub fn intersect(&self, line: &LineAB) -> Result<([f64;2], f64, f64), CmError> {
+    pub fn intersect(&self, line: &LineAB) -> Result<([f64;2], f64, f64), CmtError> {
         if (self.angle()-line.angle()).abs()<2.0 * f64::EPSILON {
-            Err(CmError::NoIntersection)
+            Err(CmtError::NoIntersection)
         } else {
             let [x1, y1, x2, y2] = [self.xa, self.ya, self.xb, self.yb];
             let [x3, y3, x4, y4] = [line.xa, line.ya, line.xb, line.yb];
@@ -198,7 +206,7 @@ pub struct Triangle {
 }
 impl Triangle {
 
-    pub fn try_new(a: [f64;2], b: [f64;2], c: [f64;2]) -> Result<Self, CmError> {
+    pub fn try_new(a: [f64;2], b: [f64;2], c: [f64;2]) -> Result<Self, CmtError> {
         let [[xa, ya], [xb, yb], [xc, yc]] = [a, b, c];
         let la = (xc-xb).hypot(yc-yb);
         let lb = (xc-xa).hypot(yc-ya);
@@ -209,7 +217,7 @@ impl Triangle {
         if s>f64::EPSILON  {
             Ok( Self { xa, ya, xb, yb, xc, yc, area: area2.sqrt(), nom} )
         } else {
-            Err(CmError::RequiresDistinctPoints)
+            Err(CmtError::RequiresDistinctPoints)
         }
     }
 

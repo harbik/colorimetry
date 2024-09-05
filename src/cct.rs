@@ -40,48 +40,171 @@ mathematical definition.
 
 The CIE standard requires CCT to be calculated using the CIE 1931 standard observer.
 
+# References
+
 */
-
-
 
 use std::sync::OnceLock;
 
-use crate::{physics::planck, CmError, ObserverData, Observer, CIE1931, NS, XYZ};
+use approx::{assert_ulps_eq, ulps_eq, AbsDiffEq, UlpsEq};
+
+use crate::{distance_to_line, physics::planck, CmtError, Observer, ObserverData, CIE1931, NS, XYZ};
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct CCT(f64, f64);
+
+impl AbsDiffEq for CCT {
+    type Epsilon = f64;
+
+    fn default_epsilon() -> Self::Epsilon {
+        f64::default_epsilon()
+    }
+
+    fn abs_diff_eq(&self, other: &Self, epsilon: Self::Epsilon) -> bool {
+        self.0.abs_diff_eq(&other.0, epsilon) &&
+        self.1.abs_diff_eq(&other.1, epsilon)
+    }
+}
+
+impl UlpsEq for CCT {
+    fn default_max_ulps() -> u32 {
+        f64::default_max_ulps()
+    }
+
+    fn ulps_eq(&self, other: &Self, epsilon: Self::Epsilon, max_ulps: u32) -> bool {
+        self.0.ulps_eq(&other.0, epsilon, max_ulps ) &&
+        self.1.ulps_eq(&other.1, epsilon, max_ulps )
+    }
+}
 
 
+impl CCT {
+    pub fn try_new(t: f64, d: f64) -> Result<Self, CmtError> {
+        // check horseshoe!!!
+        match (t,d) {
+            (_, d) if d>0.05 => Err(CmtError::CCTDuvHighError),
+            (_, d) if d< -0.05 => Err(CmtError::CCTDuvLowError),
+            (t, _) if t>im2t(1) => Err(CmtError::CCTTemperatureTooHigh),
+            (t, _) if t<im2t(N_STEPS) => Err(CmtError::CCTTemperatureTooLow),
+            (t, d) if t>3775.0 => Ok(Self(t,d)),
+        }
+    }
 
+    pub fn cct(&self) -> f64 {
+        self.0
+    }
+    pub fn duv(&self) -> f64 {
+        self.1
+    }
+
+    pub fn tint(&self) -> f64 {
+        1000.0 * self.1
+    }
+
+}
+
+impl From<CCT> for [f64;2] {
+    fn from(cct: CCT) -> Self {
+        [cct.0, cct.1]
+    }
+}
+
+/// Number of iterations in binary search.
+pub const N_DEPTH: usize = 12; // 2^12 iso temperature line
+
+ 
+/// Number of iso-temperature lines used, over a range from 1 to N_MIRED_MAX, in this case library
+/// corresponding to a temperature range from 1000 to 1_000_000 Kelvin.
+/// 
+/// An iso-temperature line is here defined by a point on the Planckian locus in the CIE 1960 UCS (u,v) space,
+/// and a slope.
+pub const N_STEPS:usize = 2 << (N_DEPTH -1);
+
+/// Mired is a unit to express color temperature: M = 1_000_000K / T, with T an absolute correlated
+/// color temperature in units of Kelvin.
+/// A maximum mired temperature value of 1000 corresponds to a minimum temperature of 1000K.
+/// Its minimum value here is 1, corresponding to a maximum correlated color temperature of 1_000_000K.
 const MIRED_MAX: usize = 1000;
-const NP:usize = 4096;
-fn im2t(im: usize) -> f64 {
-    1E6/( 1.0 + ((((MIRED_MAX-1)*im)) as f64) / ((NP-1) as f64)) 
+
+/// Calculate Correlated Color temperature and Planckian Deviation distance, using the CIE1960 color
+/// space, using Robertson and Binary Search algorithms.
+impl TryFrom<XYZ> for CCT {
+    type Error = CmtError;
+
+    fn try_from(xyz: XYZ) -> Result<Self, Self::Error> {
+        if xyz.observer != Observer::Std1931 { return Err(CmtError::RequiresCIE1931XYZ); }
+        let [u, v] = xyz.uv60();
+        let [mut imlow, mut imhigh]  = [0usize, N_STEPS-1];
+        let [mut dlow, mut dhigh] = [0.0, 0.0];
+       
+        for _ in 0..N_DEPTH {
+            let im = (imhigh+imlow)/2;
+            let &[ub, vb, m] = robertson_table(im);
+            let d = distance_to_line(u, v, ub, vb, m);
+            if d<0.0 { // line is located left of (xyz)
+                imlow = im;
+                dlow = d;
+            } else { // line is located right of (xyz)
+                imhigh = im;
+                dhigh = d;
+            }
+        }  
+        if imlow == 0 { // xyz is in the first interval, or above high temperature limit
+            let &[ub, vb, m] = robertson_table(imlow);
+            let d = distance_to_line(u, v, ub, vb, m);
+            if d >0.0 + f64::EPSILON { // iso temperature line is on the right, so out of range
+                return Err(CmtError::CCTTemperatureTooHigh)
+            } else { // within the first interval
+                dlow = d;
+            }
+        };
+        if imhigh == N_STEPS - 1 { // xyz is in the last interval, or below low temperature limit
+            let &[ub, vb, m] = robertson_table(imhigh);
+            let d = distance_to_line(u, v, ub, vb, m);
+            if  d<0.0-f64::EPSILON { // iso temperature line is left of point
+                return Err(CmtError::CCTTemperatureTooLow)
+            } else {
+                dhigh = d;
+            }
+        };
+
+        let t = robertson_interpolate(im2t(imlow), dlow, im2t(imhigh), dhigh);
+        let d = duv_interpolate(u, v, imlow, imhigh, dlow, dhigh);
+        CCT::try_new(t, d)
+    }
+
+}
+    
+/// Calculate tristimulus values 
+impl TryFrom<CCT> for XYZ {
+    type Error = CmtError;
+    fn try_from(cct: CCT) -> Result<Self, Self::Error> {
+        let CCT(t, d) = cct;
+        let [u0,v0,m] = iso_temp_line(t);
+        let du = m.signum() * d/(m*m+1.0).sqrt();
+        let dv = m * du;
+        XYZ::try_from_luv60(u0+du, v0+dv, None, None, None)
+    }
+    
 }
 
-
-pub fn cct(xyz: &XYZ) -> Result<[f64;2], CmError> {
-    if xyz.observer != Observer::Std1931 { return Err(CmError::RequiresCIE1931XYZ); }
-    todo!()
-}
 /// Calculates Robertson's Table values for a temperature value of t, in units of Kelvin.
 /// These are the coordinates of the blackbody locus at temperature T, and it's line normal,
 /// which is the slope of the curve at that point rotated by 90º.
-fn robertson(t: f64) -> [f64;3] {
-    let [u, v ]= CIE1931.xyz_planckian_locus(t).uv60();
-    /*
-    let bb_slope = blackbody::BlackbodySlope::new(t);
-    let [dx, dy, dz] = self.xyz_light(&bb_slope);
+fn iso_temp_line(t: f64) -> [f64;3] {
+    let xyz = CIE1931.xyz_planckian_locus(t);
+    let [x, y, z] = xyz.values();
+    let [u, v ]= xyz.uv60();
+    let [dx, dy, dz] = CIE1931.xyz_planckian_locus_slope(t).values();
     let sigma = x + 15.0 * y + 3.0 * z;
     let dsigma = dx + 15.0 * dy + 3.0 * dz;
-
     let den = 6.0 * y * dsigma - 6.0 * dy * sigma;
-    let m = if den.abs()<=f64::MIN_POSITIVE {
+    let m = if ulps_eq!(den, 0.0) {
         f64::MAX
     } else {
         (4.0 * dx * sigma - 4.0 * x * dsigma)/den
     };
-
     [u,v,m]
-     */
-    todo!()
 }
 
 /// Table row of Robertson's Iso Correlated Color Temperature lines, with 4096
@@ -89,31 +212,103 @@ fn robertson(t: f64) -> [f64;3] {
 ///
 /// These are used for calculating correlated color temperatures from
 /// chromaticity coordinates, as implemente in `XYZ`'s cct method.
-/// Index 0 corresponds to a color temperature of 1000K, and index 4096 to a
+/// Index 0 corresponds to a color temperature of 1000K, and index N_ROBERTSON-1 (4095 in this case) to a
 /// temperature of 1_000_00K (see function `im2t``).
 /// This table is empty on start-up, and rows get filled each time a table
 /// entry is requested.
 ///
 /// For more information, see `The Improved Robertson Method for Calculating
 /// Correlated Color Temperature` by Gerard Harbers.
-pub fn robertson_4k_table(im: usize) -> [f64;3] {
-    static ROBERTSON_TABLE: OnceLock<[OnceLock<[f64;3]>;4096]> = OnceLock::new();
+pub fn robertson_table(im: usize) -> &'static [f64;3] {
+    static ROBERTSON_TABLE: OnceLock<[OnceLock<[f64;3]>;N_STEPS]> = OnceLock::new();
 
     // Get reference to table, or initialize it when not done yet.
-    const EMPTY_ROW: OnceLock<[f64;3]> = OnceLock::new();
+    const UVM_EMPTY: OnceLock<[f64;3]> = OnceLock::new();
     let robertson_table = ROBERTSON_TABLE.get_or_init(|| {
-        [EMPTY_ROW; 4096]
+        [UVM_EMPTY; N_STEPS]
     });
     
-    /*
     // Get table row, or calculate when not done yet.
-    let _uvm = robertson_table[im].get_or_init(||{
+    robertson_table[im].get_or_init(||{
             let cct = im2t(im);
-            let [u,v] = CIE1931.xyz_planckian_locus(cct).uv60();
-            let m = CIE1931.planckian_locus_slope(cct);
-            [u,v,m]
-        }
-    );
-     */
-    todo!()
+            iso_temp_line(cct)
+    })
 }
+
+fn im2t(im: usize) -> f64 {
+    1E6/( 1.0 + ((((MIRED_MAX-1)*im)) as f64) / ((N_STEPS-1) as f64)) 
+}  
+
+
+fn robertson_interpolate(tp: f64, dp: f64, tn: f64, dn: f64) -> f64 {
+    (tp.recip() + dp/(dp-dn) * (tn.recip() - tp.recip())).recip()
+}
+
+/// Calculate distance to the Blackbody locus
+/// 
+/// Finds intersection between iso-temperature lines at (ux,vx), and calculates the distance to this point for the
+/// table points. Linear interpolates the value between thse two, and substracts this value of the distance from 
+/// the test point to the intersection.
+fn duv_interpolate(u: f64, v: f64, imp: usize, imn: usize, dp: f64, dh: f64) -> f64 {
+    let [ul, vl, ml] = robertson_table(imp);
+    let [uh, vh, mh] = robertson_table(imn);
+
+    // (ux, vx) intersection point of the two iso temperature lines
+    let ux =(ml * ul - vl - mh * uh + vh)/(ml - mh);
+    let vx = ml * (ux - ul) + vl;
+
+    // distances blackbody points to intersection
+    let ddl = (ul - ux).hypot(vl - vx);
+    let ddh = (uh - ux).hypot(vh - vx);
+    let dd = (u - ux).hypot(v - vx);
+
+    // interpolated distance at blackbody locus
+    let d = ddl + dp/(dp-dh) * (ddh - ddl);
+    dd - d
+}
+
+#[test]
+fn test_cct(){
+    let xyz: XYZ = CCT(999.0, 0.0).into();
+    let cct: Result<CCT,_> = xyz.try_into();
+    assert_eq!(cct, Err(CmtError::CCTTemperatureTooLow));
+
+    let xyz: XYZ = CCT(6000.0, 0.051).into();
+    let cct: Result<CCT,_> = xyz.try_into();
+    assert_eq!(cct, Err(CmtError::CCTDuvHighError));
+
+    let xyz: XYZ = CCT(1E6 + 1.0, 0.0).into();
+    let cct: Result<CCT,_> = xyz.try_into();
+    assert_eq!(cct, Err(CmtError::CCTTemperatureTooHigh));
+
+    let xyz: XYZ = CCT(1000.0, 0.0).into();
+    let cct: Result<CCT,_> = xyz.try_into();
+    assert_ulps_eq!(cct.unwrap(), CCT::try_new(1000.0, 0.0).unwrap());
+
+
+    for i in 0..100 {
+        let mut rng = rand::thread_rng();
+        let mired = rand::Rng::gen_range(&mut rng, 1.0..1000.0); // mired temp
+        let t = 1E6/mired;
+        let d = rand::Rng::gen_range(&mut rng, -0.05..0.005);
+        println!("{i} {t} {d}");
+        let xyz: XYZ = CCT::try_new(t,d).unwrap().into();
+        let cct: CCT = xyz.try_into().unwrap();
+        let [cct, duv]: [f64;2] = cct.into();
+        println!("{i} {t} {d} {cct} {duv}")
+
+
+    }
+
+}
+
+#[test]
+fn test_duv5_temp_limit(){
+    for im in 1000..4096 {
+        let t = im2t(im);
+        println!("{t}");
+        let xyz: XYZ = CCT::try_new(t,0.05).unwrap().into();
+
+    }
+}
+

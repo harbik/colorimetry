@@ -3,7 +3,7 @@ use std::ops::Add;
 
 use approx::AbsDiffEq;
 use nalgebra::Vector3;
-use crate::{geometry::{LineAB, Orientation}, observer::Observer, CmError, RgbSpace, RGB};
+use crate::{geometry::{LineAB, Orientation}, observer::{self, Observer}, CmtError, RgbSpace, RGB};
 use wasm_bindgen::prelude::wasm_bindgen; 
 
 
@@ -30,22 +30,39 @@ impl XYZ {
         Self { observer, data, yw}
     }
     
-    pub fn from_chromaticity(xy: [f64;2], yw: Option<f64>, observer: Observer) -> Result<XYZ, CmError> {
-        let [x, y] = xy;
+    /// Create tristimulus values from a chromaticity value, with optional Luminous Value l, and
+    /// optional white reference value yw.
+    /// 
+    /// For illuminants yw = None, and l is its absolute illuminance value.
+    /// If no absolute illuminance value is given, it is set to 100.0.
+    /// 
+    /// For color patches yw is typically set to 100, which is the default here.
+    /// 
+    pub fn try_from_chromaticity(x: f64, y:f64, l: Option<f64>, yw: Option<f64>, observer: Option<Observer>) -> Result<XYZ, CmtError> {
+        let l = l.unwrap_or(100.0);
+        let observer = observer.unwrap_or_default();
         if (x + y) >= 1.0  {
-            Err(CmError::InvalidChromaticityValues)
+            Err(CmtError::InvalidChromaticityValues)
         } else {
-            Ok(Self::new(x, y, 1.0 - x -y, yw, observer))
+            let s = l/y;
+            Ok(Self::new(x * s , l,  (1.0 - x -y) * s, yw, observer))
 
         }
     }
 
-    pub fn try_add(&self, other: XYZ) -> Result<XYZ, CmError> {
+    pub fn try_from_luv60(u: f64, v: f64, l: Option<f64>, yw: Option<f64>, observer: Option<Observer>) ->Result<XYZ, CmtError> {
+        let den = 2.0 * u - 8.0 * v + 4.0;
+        let x =(3.0 * u)/den;
+        let y = (2.0 * v)/den;
+        XYZ::try_from_chromaticity(x, y, l, yw, observer)
+    }
+
+    pub fn try_add(&self, other: XYZ) -> Result<XYZ, CmtError> {
         if self.observer == other.observer {
             let data = self.data + other.data;
             Ok(XYZ {data, observer: self.observer, yw: self.yw})
         } else {
-            Err(CmError::RequireSameObserver)
+            Err(CmtError::RequireSameObserver)
         }
     }
 
@@ -62,7 +79,7 @@ impl XYZ {
     /// assert_ulps_eq!(z, 108.861_036, epsilon = 1E-6);
     /// ```
     pub fn values(&self) -> [f64; 3] {
-        self.data.as_ref().clone()
+        (*self).into()
     }
 
     pub fn set_illuminance(mut self, illuminance: f64) -> Self {
@@ -143,13 +160,13 @@ impl XYZ {
     /// result, the maxium range of dominant wavelengths which can be obtained
     /// is from 380 to 699 nanometer;
     /// 
-    pub fn dominant_wavelength(&self, white: XYZ) -> Result<f64, CmError>{
+    pub fn dominant_wavelength(&self, white: XYZ) -> Result<f64, CmtError>{
         let mut sign = 1.0;
         let mut low = self.observer.data().spectral_locus_nm_min();
         let mut high = self.observer.data().spectral_locus_nm_max();
         let mut mid = 540usize;  // 200 fails, as its tail overlaps into the blue region
         if white.observer!=self.observer {
-            Err(CmError::RequireSameObserver)
+            Err(CmtError::RequireSameObserver)
         } else {
             let [mut x, mut y] = self.chromaticity();
             let [xw, yw] = white.chromaticity();
@@ -190,7 +207,7 @@ impl XYZ {
                 let dhigh= high_ab.distance_with_sign(x, y);
                 if dlow<0.0 || dhigh>0.0 { // not ended up between two lines
                     let s = format!("bisection error in dominant wavelength search:  {dlow} {low} {dhigh} {high}");
-                    return Err(CmError::ErrorString(s));
+                    return Err(CmtError::ErrorString(s));
                 }
                 let dl = (dlow.abs() * high as f64 + dhigh.abs() * low as f64)/(dlow.abs() + dhigh.abs());
                 Ok(sign * dl)
@@ -199,8 +216,9 @@ impl XYZ {
     }
 
 
-    pub fn cct(&self) -> Result<[f64; 2], CmError> {
-        crate::cct(self)
+    #[cfg(feature="cct")]
+    pub fn cct(self) -> Result<crate::cct::CCT, CmtError> {
+        self.try_into()
     }
 
     /// Convert a set of XYZ tristimulus values to RGB values, using the given RGB space identifier. 
@@ -219,6 +237,13 @@ impl XYZ {
     }
 
 
+}
+
+impl From<XYZ> for [f64;3] {
+    fn from(value: XYZ) -> Self {
+        value.data.as_ref().clone()
+
+    }
 }
 
 impl AbsDiffEq for XYZ {
@@ -361,9 +386,9 @@ impl XYZ {
     */
 
     #[wasm_bindgen(constructor, variadic)]
-    pub fn new_js(x: f64, y:f64, opt : &js_sys::Array) -> Result<XYZ, crate::CmError> {
+    pub fn new_js(x: f64, y:f64, opt : &js_sys::Array) -> Result<XYZ, crate::CmtError> {
         use wasm_bindgen::convert::TryFromJsValue;
-        use crate::CmError; 
+        use crate::CmtError; 
         let (x, y, z, yw, obs) = match opt.length() {
             0 => (x * 100.0/y, 100.0, (1.0 - x - y) * 100.0/y, None, Observer::Std1931),
             1 => {
@@ -375,16 +400,16 @@ impl XYZ {
                 }
             }
             2 => {
-                let z = opt.get(0).as_f64().ok_or(crate::CmError::ErrorString("please provide a z value as number".into()))?;
+                let z = opt.get(0).as_f64().ok_or(crate::CmtError::ErrorString("please provide a z value as number".into()))?;
                 let obs = Observer::try_from_js_value(opt.get(1))?;
                 (x, y, z, None, obs)
             }
             _ => {
-                return Err(CmError::ErrorString("Invalid Arguments for XYZ constructor".into()));
+                return Err(CmtError::ErrorString("Invalid Arguments for XYZ constructor".into()));
             }
         };
         if x<0.0 || y<0.0 || z<0.0 {
-                return Err(CmError::ErrorString("XYZ values should be all positive values".into()));
+                return Err(CmtError::ErrorString("XYZ values should be all positive values".into()));
         }
         Ok(XYZ::new(x, y, z, yw, obs))
     }

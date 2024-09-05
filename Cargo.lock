@@ -103,6 +103,7 @@ dependencies = [
  "num-traits",
  "once_cell",
  "paste",
+ "rand",
  "strum",
  "strum_macros",
  "thiserror",

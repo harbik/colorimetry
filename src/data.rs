@@ -97,7 +97,6 @@ pub static CIE1931: ObserverData = ObserverData{tag: Observer::Std1931, lumconst
 /// `CIE015:2004` Colorimetry standard, we accept this deviation.
 pub static D65: Spectrum = Spectrum {
     cat: Category::Illuminant,
-    total: None,
     data: SVector::<f64, NS>::from_array_storage(ArrayStorage([[
         49.9755, 50.4428, 50.91, 51.3773, 51.8446, 52.3118, 52.7791, 53.2464, 53.7137, 54.1809, 54.6482, 57.4589, 60.2695, 63.0802, 65.8909, 68.7015, 71.5122, 74.3229, 77.1336, 79.9442, 
         82.7549, 83.628, 84.5011, 85.3742, 86.2473, 87.1204, 87.9936, 88.8667, 89.7398, 90.6129, 91.486, 91.6806, 91.8752, 92.0697, 92.2643, 92.4589, 92.6535, 92.8481, 93.0426, 93.2372, 
@@ -134,7 +133,6 @@ pub static D65: Spectrum = Spectrum {
 /// `CIE015:2004` Colorimetry standard, we accept this deviation.
 pub static D50: Spectrum = Spectrum {
     cat: Category::Illuminant,
-    total: None,
     data: SVector::<f64, NS>::from_array_storage(ArrayStorage([[
         24.4875, 25.0258, 25.5641, 26.1024, 26.6407, 27.179, 27.7174, 28.2557, 28.794, 29.3323, 29.8706, 31.8144, 33.7581, 35.7018, 37.6456, 39.5894, 41.5331, 43.4768,
         45.4206, 47.3644, 49.3081, 50.0286, 50.749, 51.4695, 52.19, 52.9104, 53.6309, 54.3514, 55.0719, 55.7923, 56.5128, 56.8649, 57.217, 57.5691, 57.9212, 58.2733,
@@ -168,7 +166,6 @@ macro_rules! cie_illuminant {
         #[cfg(feature="cie-illuminants")]
         pub static $name: Spectrum = Spectrum {
             cat: Category::Illuminant,
-            total: None,
             data: SVector::<f64, NS>::from_array_storage(ArrayStorage([[
                 $($val,)*
             ]]))
@@ -1468,3 +1465,5 @@ cie_illuminant!(LED_V2 [0.0130887918150576, 0.0175834176220408, 0.02362147550665
 1.39970991833073, 1.36028092448643, 1.32284300335964, 1.29550773747079, 1.2628136030965, 1.2229160871038, 1.18521462226854, 1.14850364253762, 1.10175911458564,
 1.06005185858818, 1.03587318746756, 1.01851275811805, 0.990485104341776, 0.964594131181941, 0.942168757788518, 0.916503773358699, 0.888727950237188,
 0.862004691404681, 0.838215406113328]);
+
+

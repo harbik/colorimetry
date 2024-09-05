@@ -4,15 +4,15 @@ use wasm_bindgen::prelude::wasm_bindgen;
 use crate::xyz::XYZ;
 
 #[wasm_bindgen]
-pub struct Lab {
+pub struct CieLab {
     pub(crate) data: RowVector3<f64>,
     pub(crate) xyz_white: XYZ, // contains obs
 }
 
 
-impl Lab {
-    pub fn new(x: f64, y:f64, z:f64, xyz_white: XYZ) -> Lab {
-        Lab {data: lab(x, y, z, xyz_white), xyz_white }
+impl CieLab {
+    pub fn new(x: f64, y:f64, z:f64, xyz_white: XYZ) -> CieLab {
+        CieLab {data: lab(x, y, z, xyz_white), xyz_white }
     }
 }
 

@@ -1,6 +1,6 @@
 use argmin::{core::{CostFunction, Executor, State, TerminationReason}, solver::neldermead::NelderMead};
 use colored::Colorize;
-use colorimetry::{Observer, Spectrum, StdIlluminant, CIE1931, XYZ};
+use colorimetry::{Spectrum, StdIlluminant, CIE1931, XYZ};
 use colorimetry::XY_PRIMARIES;
 
 
@@ -62,7 +62,8 @@ impl CostFunction for GaussWithAnchor{
 }
 
 fn gauss(s: &str, i: usize ) -> Result<Vec<f64>, String>{
-    let xyz = XYZ::from_chromaticity(XY_PRIMARIES[s].0[i], None, Observer::Std1931).unwrap();
+    let [x, y] = XY_PRIMARIES[s].0[i];
+    let xyz = XYZ::try_from_chromaticity(x, y, None, None, None).unwrap();
     let d = XY_PRIMARIES[s].1;
     let problem = Gauss::new(xyz, d);
 
@@ -85,8 +86,10 @@ fn gauss(s: &str, i: usize ) -> Result<Vec<f64>, String>{
 }
 
 fn gauss_with_anchor(s: &str, i: usize, j: usize ) -> Result<Vec<f64>, String>{
-    let xyz = XYZ::from_chromaticity(XY_PRIMARIES[s].0[i], None, Observer::Std1931).unwrap();
-    let xyzb = XYZ::from_chromaticity(XY_PRIMARIES[s].0[j], None,  Observer::Std1931).unwrap();
+    let [x,y] = XY_PRIMARIES[s].0[i];
+    let xyz = XYZ::try_from_chromaticity(x, y, None, None, None).unwrap();
+    let [xb, yb] = XY_PRIMARIES[s].0[j];
+    let xyzb = XYZ::try_from_chromaticity(xb, yb, None, None, None).unwrap();
     let d = XY_PRIMARIES[s].1;
     let problem = GaussWithAnchor::new(xyz,xyzb, d);
 

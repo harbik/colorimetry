@@ -6,10 +6,9 @@ use wasm_bindgen::prelude::wasm_bindgen;
 use crate::{gamma::GammaCurve, gaussian_filtered_primaries, spectrum::Spectrum, StdIlluminant, D65};
 
 
-// The display P3 red coordinate is outside the CIE 1931 gamut using the CIE
-// 1931 1 nanometer dataset as provided by the CIE.  To still match it, I need
-// to desature it by mixing in a bit of white. It mxes in a bit of blue (1.4E-6)
-// to get to the deaturated target.
+// The display P3 red coordinate is outside the CIE 1931 gamut using the CIE 1931 1 nanometer
+// dataset as provided by the CIE.  To still match it, it's desatured it adding white. It also mixes
+// in a bit of blue (1.4E-6) to get to to the target.
 const D:f64 = 0.0005620; // Desaturation ratio
 const D65X:f64 = 0.312_738;
 const D65Y:f64 = 0.329_052;
@@ -29,7 +28,7 @@ pub static XY_PRIMARIES: LazyLock<HashMap<&str, ([[f64;2];3], StdIlluminant)>> =
 #[derive(Debug, Clone, Copy, Default, EnumIter, PartialEq)]
 #[wasm_bindgen]
 /**
-A Light Weight index tag, to represent an RGB space.
+A Light Weight tag, to represent an RGB color space.
 Used for example in the RGB value set, to identify the color space being used.  
  */
 pub enum RgbSpace {

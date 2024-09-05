@@ -10,12 +10,13 @@ The spectral sensitivity of human vision is described by an [Observer](crate::Ob
 */
 use std::{collections::BTreeMap, default, error::Error, iter::Sum, ops::{Add, AddAssign, Index, IndexMut, Mul, MulAssign}};
 
+use num_traits::ToPrimitive;
 use url::Url;
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 
 use nalgebra::{DVector, SVector};
 
-use crate::{cri::CRI, data::{D50, D65}, observer::ObserverData, physics::{gaussian_peak_one, led_ohno, planck, stefan_boltzmann}, CmError, StdIlluminant, RGB};
+use crate::{data::{D50, D65}, observer::ObserverData, physics::{gaussian_peak_one, led_ohno, planck, stefan_boltzmann}, wavelength, CmtError, StdIlluminant, C, CIE1931, RGB};
 
 
 
@@ -63,7 +64,51 @@ pub enum Category {
 // with 401 values.
 pub const NS: usize = 401;
 
+/// Multipilication definition as used in the Spectum multiplication operator.
+///
+/// Multiplication of same categories results in same.
+/// Illuminants with filters or patches result in stimuli.
+impl Mul for Category {
+    type Output = Self;
 
+    fn mul(self, rhs: Self) -> Self::Output {
+        if self == rhs {
+            return self
+        } else {
+            match (self, rhs) {
+                (Category::Illuminant, Category::Filter) => Category::Stimulus,
+                (Category::Filter, Category::Illuminant) => Category::Stimulus,
+                (Category::Illuminant, Category::Patch) => Category::Stimulus,
+                (Category::Patch, Category::Illuminant) => Category::Stimulus,
+                (Category::Filter, Category::Patch) => Category::Patch,
+                (Category::Patch, Category::Filter) => Category::Patch,
+                (Category::Stimulus, _ ) => Category::Stimulus,
+                (_, Category::Stimulus) => Category::Stimulus,
+                _ => Category::Unknown,
+            }
+        }
+    }
+}
+
+/// Addition definition as used in the Spectum multiplication operator.
+///
+/// Addition of same categories stay the same.  A combination of a filter and a patch results in a
+/// "filtered patch', so a patch... If you add filters and/or patches, Anything else is undefined.
+impl Add for Category {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        if self == rhs {
+            return self
+        } else { 
+            match (self, rhs){
+                (Category::Filter, Category::Patch) => Category::Patch,
+                (Category::Patch, Category::Filter) => Category::Patch,
+                _ => Category::Unknown,
+            }
+        }
+    }
+}
 
 /**
 This container holds spectral values within a wavelength domain ranging from 380
@@ -81,20 +126,18 @@ display.
 pub struct Spectrum {
     pub(crate) data: SVector<f64, NS>,
     pub(crate) cat: Category,
-    pub(crate) total: Option<f64>, // total irradiance/reflectivity/transimissivity (power based)
 
 }
 
 impl Spectrum {
-    pub fn try_new(cat: Category, data: &[f64], total: Option<f64>) -> Result<Self, crate::CmError> {
+    pub fn try_new(cat: Category, data: &[f64]) -> Result<Self, crate::CmtError> {
         if data.len()!=NS {
-            Err(crate::CmError::DataSize401Error)
+            Err(crate::CmtError::DataSize401Error)
         } else {
             Ok(
                 Self {
                     cat,
                     data: SVector::<f64, NS>::from_iterator(data.into_iter().copied()),
-                    total
                 }
             )
         }
@@ -143,7 +186,7 @@ impl Spectrum {
     # use approx::assert_ulps_eq;
     let data = [0.0, 1.0];
     let wl = [380.0, 780.0];
-    let mut spd = cmt::Spectrum::linear_interpolate(cmt::Category::Filter, &wl, &data, None).unwrap().values();
+    let mut spd = cmt::Spectrum::linear_interpolate(cmt::Category::Filter, &wl, &data).unwrap().values();
     assert_ulps_eq!(spd[0], 0.);
     assert_ulps_eq!(spd[100], 0.25);
     assert_ulps_eq!(spd[200], 0.5);
@@ -154,7 +197,7 @@ impl Spectrum {
     // wavelength domain.
     let data = vec![0.0, 1.0, 1.0, 0.0];
     let wl = vec![480.0, 490.0, 570.0, 580.0];
-    let spd = cmt::Spectrum::linear_interpolate(cmt::Category::Filter, &wl, &data, None).unwrap().values();
+    let spd = cmt::Spectrum::linear_interpolate(cmt::Category::Filter, &wl, &data).unwrap().values();
     assert_ulps_eq!(spd[0], 0.0);
     assert_ulps_eq!(spd[100], 0.0);
     assert_ulps_eq!(spd[110], 1.0);
@@ -164,13 +207,13 @@ impl Spectrum {
     assert_ulps_eq!(spd[400], 0.0);
     ```
     */
-    pub fn linear_interpolate(cat: Category, wavelengths: &[f64], data: &[f64], total: Option<f64>) ->Result<Self, crate::CmError> {
+    pub fn linear_interpolate(cat: Category, wavelengths: &[f64], data: &[f64]) ->Result<Self, crate::CmtError> {
         let spdata = match wavelengths.len() {
            2 =>  linterp(wavelengths.try_into().unwrap(), data)?,
            3.. => linterp_irr(wavelengths, data)?,
-           _ => return Err(crate::CmError::InterpolateWavelengthError)
+           _ => return Err(crate::CmtError::InterpolateWavelengthError)
         };
-        Ok(Self::try_new(cat, &spdata, total)?)
+        Ok(Self::try_new(cat, &spdata)?)
     }
 
     /**
@@ -232,7 +275,7 @@ impl Spectrum {
     /// 
     /// ```
     pub fn band_filter(center: f64, width: f64) -> Self {
-        let [center_m, width_m] = to_meter([center, width]);
+        let [center_m, width_m] = wavelengths([center, width]);
         let data = SVector::<f64,NS>::from_fn(|i,_j|
             {
                 let w = (i+380) as f64 * 1E-9;
@@ -242,7 +285,7 @@ impl Spectrum {
                 else {1.0}
             }
         );
-        Self { data, cat: Category::Filter, total: None }
+        Self { data, cat: Category::Filter}
     }
 
     /// A Gaussian Filter, specified by a central wavelength, and a
@@ -250,11 +293,11 @@ impl Spectrum {
     ///
     /// The filter has a peak value of 1.0
     pub fn gaussian_filter(center: f64, width: f64) -> Self {
-        let [center_m, width_m] = to_meter([center, width]);
+        let [center_m, width_m] = wavelengths([center, width]);
         let data = SVector::<f64,NS>::from_fn(|i,_j|
             gaussian_peak_one((i+380) as f64 * 1E-9, center_m, width_m)
         );
-        Self { data, cat: Category::Filter, total: None }
+        Self { data, cat: Category::Filter }
     }
 
     /// Spectral transmission of a theoretical grey filter, with a constant
@@ -266,7 +309,6 @@ impl Spectrum {
         Self{ 
             data: SVector::<f64,NS>::repeat(gval.clamp(0.0, 1.0)),
             cat: Category::Filter,
-            total: None,
         }
     }
 
@@ -277,7 +319,6 @@ impl Spectrum {
         Self{ 
             data: SVector::<f64,NS>::repeat(gval.clamp(0.0, 1.0)),
             cat: Category::Patch,
-            total: None,
         }
     }
 
@@ -295,26 +336,20 @@ impl Spectrum {
         Self::gray(0.0)
     }
 
-    /// Spectral representation the color of a display pixel, described by a [RGB](crate::RGB)
-    /// instance.
-    ///
-    /// It uses a linear combination of the spectral primaries as defined for a particular
-    /// [RgbSpace](crate::RgbSpace).
-    /// Most of the color spaces in this library use Daylight filtered Gaussian for primaries,
-    /// but you can also use a color spaces based on primaries measured by a spectrometer.
-    /// Spectral representations of pixels allows color matching for arbitrary observers,
-    /// not only the CIE 1931 standard observer.
-    pub fn rgb(rgb: &RGB) -> Self {
-        rgb.spectrum()
-
-    }
 
     /// A spectral composition of a display pixel, set to three sRGB color values.  The spectrum is
     /// a linear combination of the spectral primaries, which are Gaudssian filtered components in
     /// this library.
     pub fn srgb(r_u8: u8, g_u8: u8, b_u8: u8) -> Self {
         let rgb = RGB::from_u8(r_u8, g_u8, b_u8, Some(crate::Observer::Std1931), Some(crate::RgbSpace::SRGB));
-        Self::rgb(&rgb)
+        rgb.into()
+    }
+
+    /// A spectral composition of a display pixel, set to three sRGB color values.  The spectrum is
+    /// a linear combination of the spectral primaries, which are Gaudssian filtered components in
+    /// this library.
+    pub fn rgb(rgb: RGB) -> Self {
+        rgb.into()
     }
 
     /// E, or Equal Energy Illuminant with an irradiance of 1 Watt per square
@@ -324,7 +359,6 @@ impl Spectrum {
         Self{ 
             data: SVector::<f64,NS>::repeat(s),
             cat: Category::Illuminant,
-            total: Some(1.0)
         }
 
 
@@ -356,7 +390,6 @@ impl Spectrum {
         Self {
             data,
             cat: Category::Illuminant,
-            total: Some(1.0),
         }
     }
 
@@ -370,32 +403,28 @@ impl Spectrum {
     /// considerations for white LED Color Rendering_, **Optical Engineering 44(11)**, 
     /// November 2005.
     pub fn led_illuminant(center: f64, width: f64) -> Self {
-        let [center_m, width_m] = to_meter([center, width]);
-        let data = SVector::<f64,NS>::from_fn(|_i,j|
-            led_ohno((j+380) as f64 * 1E-9, center_m, width_m) * 1E-9
+        let [center_m, width_m] = wavelengths([center, width]);
+        let data = SVector::<f64,NS>::from_fn(|i,_j|
+            // j = 0, first column
+            led_ohno(wavelength(i+380), center_m, width_m) * 1E-9
         );
-        Self { data, cat: Category::Illuminant, total: Some(1.0) }
+        Self { data, cat: Category::Illuminant }
     }
 
     // Sets irradiance, tyically expressed in units of Watt per square meter.
-    // Also overwrite spectrum type to irradiance.
+    // Also overwrite spectrum type to Illuminant
     pub fn set_irradiance(mut self, irradiance: f64) -> Self {
-        let s = if let Some(t) = self.total {
-            irradiance/t
-        } else {
-            irradiance/self.data.sum()
-        };
+        let s = irradiance/self.data.sum();
         self.data.iter_mut().for_each(|v|*v = *v *s);
         self.cat = Category::Illuminant;
-        self.total = Some(irradiance);
         self
     }
 
     // Calculate a spectrum's irradiance if it is an illuminant.
     // Produces a "Not A Number" value, if not an illuminant.
     pub fn irradiance(&self) -> f64 {
-        if self.cat == Category::Illuminant && self.total.is_some() {
-            self.total.unwrap()
+        if self.cat == Category::Illuminant {
+            self.data.sum()
         } else {
             f64::NAN
         }
@@ -429,8 +458,9 @@ impl Spectrum {
     /// To use this function, first use `CRI::init().await`, which downloads the
     /// Test Color Samples required for the calculation.  These are downloaded
     /// seperately to limit the size of the main web assembly library.
-    pub fn cri(&self) -> Result<CRI, Box<dyn Error>> {
-        todo!()
+    #[cfg(feature="cri")]
+    pub fn cri(&self) -> Result<crate::CRI, CmtError> {
+        self.try_into()
     }
 
 }
@@ -440,7 +470,6 @@ impl Default for Spectrum {
         Self { 
             data: SVector::<f64, NS>::zeros(),
             cat: Default::default(), 
-            total: Default::default()
          }
     }
 }
@@ -453,10 +482,35 @@ impl Sum for Spectrum {
     }
 }
 
+/// Spectral representation the color of a display pixel, described by a [RGB]
+/// instance.
+///
+/// It uses a linear combination of the spectral primaries as defined for a particular
+/// [RgbSpace](crate::RgbSpace).
+/// Most of the color spaces in this library use Daylight filtered Gaussian primaries,
+/// but you can also use your own color space based on primaries measured by a spectrometer.
+/// Spectral representations of pixels allow color matching for arbitrary observers,
+/// not only the CIE 1931 standard observer.
+impl From<RGB> for Spectrum {
+    fn from(rgb: RGB) -> Self {
+        let p = &rgb.space.data().0.primaries;
+        let yrgb = rgb.observer.data().rgb2xyz(&rgb.space).row(1);
+        rgb.data.iter().zip(yrgb.iter()).zip(p.iter()).map(|((v,w),s)|*v * *w * *s).sum::<Spectrum>().set_category(Category::Stimulus)
+    }
+}
+
 #[cfg(test)]
 mod spectrum_tests {
-    use crate::{Spectrum, D65, CIE1931};
+    use crate::{Spectrum, D65, CIE1931, RGB};
     use approx::assert_ulps_eq;
+
+    #[test]
+    fn test_spectrum_from_rgb(){
+        let white = RGB::new(1.0, 1.0, 1.0, None, None).into();
+        approx::assert_ulps_eq!(CIE1931.xyz(&white), CIE1931.xyz_d65(), epsilon = 1E-6);
+        let red = Spectrum::srgb(255, 0, 0);
+        assert_ulps_eq!(CIE1931.xyz(&red).chromaticity().as_ref(), &[0.64, 0.33].as_ref(), epsilon = 1E-5);
+    }
 
     #[test]
     fn test_led(){
@@ -500,8 +554,8 @@ impl Spectrum {
     /// wavelength interval, use the linear or sprague interpolate constructors,
     /// which takes a wavelength domain and spectral data as arguments.
     #[wasm_bindgen(constructor)]
-    pub fn new_js(cat: Category, data: &[f64], total: Option<f64>) -> Result<Spectrum, wasm_bindgen::JsError> {
-        Ok(Spectrum::try_new(cat, data, total)?)
+    pub fn new_js(cat: Category, data: &[f64]) -> Result<Spectrum, wasm_bindgen::JsError> {
+        Ok(Spectrum::try_new(cat, data)?)
     }
 
     /// Returns the spectral data values, as a Float64Array containing 401 data
@@ -558,13 +612,8 @@ impl Spectrum {
     ```
     */
     #[wasm_bindgen(js_name=linearInterpolate)]
-    pub fn linear_interpolate_js(cat: Category, wavelengths: &[f64], data: &[f64], total_js: &JsValue) -> Result<Spectrum, crate::CmError> {
-        let total = if let Some(t) = total_js.as_f64() {
-            Some(t)
-        } else {
-            None
-        };
-        Self::linear_interpolate(cat, wavelengths, data, total)
+    pub fn linear_interpolate_js(cat: Category, wavelengths: &[f64], data: &[f64], total_js: &JsValue) -> Result<Spectrum, crate::CmtError> {
+        Self::linear_interpolate(cat, wavelengths, data)
 
     }
 
@@ -573,8 +622,9 @@ impl Spectrum {
     /// To use this function, first use `await CRI.init()`, which downloads the
     /// Test Color Samples required for the calculation.  These are downloaded
     /// seperately to limit the size of the main web assembly library.
+    #[cfg(feature="cri")]
     #[wasm_bindgen(js_name=cri)]
-    pub fn cri_js(&self) -> Result<CRI, crate::CmError> {
+    pub fn cri_js(&self) -> Result<crate::cri::CRI, crate::CmtError> {
         todo!()
     }
 
@@ -588,21 +638,6 @@ impl Spectrum {
     }
 }
 
-fn mixed_category(s1: &Spectrum, s2: &Spectrum) -> Category {
-    if 
-        (s1.cat == Category::Illuminant && s2.cat == Category::Patch) ||
-        (s1.cat == Category::Patch && s2.cat == Category::Illuminant) ||
-        (s1.cat == Category::Illuminant && s2.cat == Category::Filter) ||
-        (s1.cat == Category::Filter && s2.cat == Category::Illuminant) {
-        return Category::Stimulus
-    } else if s1.cat == Category::Filter && s2.cat == Category::Filter {
-            Category::Filter
-    } else if s1.cat == Category::Patch && s2.cat == Category::Patch {
-            Category::Patch
-    } else {
-            Category::Unknown
-    }
-}
 
 // Multiplication of two spectra using the `*`-operator, typically for a combinations of an illuminant and a filter or ColorPatch,
 // or when combining multiple ColorPatchs or filters. Subtractive Mixing.
@@ -612,9 +647,9 @@ impl Mul for Spectrum {
     // multiply two cie spectra
     fn mul(self, rhs: Self) -> Self::Output {
         Self{
-            cat: mixed_category(&self, &rhs), 
+          //  cat: mixed_category(&self, &rhs), 
+            cat: self.cat * rhs.cat,
             data: self.data.component_mul(&(rhs.data)),
-            total: None,
         }
     }
 }
@@ -637,15 +672,9 @@ impl Mul<f64> for Spectrum {
 
     // spectrum * scalar
     fn mul(self, rhs: f64) -> Self::Output {
-        let total = if let Some(t) = self.total {
-            Some(t * rhs)
-        } else {
-            None
-        };
         Self{
             cat: self.cat,
             data: self.data * rhs,
-            total
         }
     }
 }
@@ -667,15 +696,9 @@ impl Mul<Spectrum> for f64 {
 
     // scalar * spectrum
     fn mul(self, rhs: Spectrum) -> Self::Output {
-        let total = if let Some(t) = rhs.total {
-            Some(t * self)
-        } else {
-            None
-        };
         Self::Output {
             cat: rhs.cat,
             data: self * rhs.data,
-            total
         }
     }
 }
@@ -705,15 +728,9 @@ impl Add for Spectrum {
 
     // add two cie spectra
     fn add(self, rhs: Self) -> Self::Output {
-        let category = if self.cat == Category::Illuminant && rhs.cat == Category::Illuminant {
-            Category::Illuminant
-        } else {
-            Category::Unknown
-        };
         Self{
-            cat: category,
+            cat: self.cat + rhs.cat,
             data: self.data + rhs.data,
-            total: None
         }
     }
 }
@@ -781,11 +798,6 @@ impl MulAssign<f64> for Spectrum {
     ///     assert_ulps_eq!(led.irradiance(), 10.0, epsilon = 1E-10);
     /// ```
     fn mul_assign(&mut self, rhs: f64) {
-        self.total = if let Some(t) = self.total {
-            Some(t * rhs)
-        } else {
-            None
-        };
         self.data.iter_mut().for_each(|v| *v *= rhs);
 
     }
@@ -837,27 +849,23 @@ fn index_test(){
 }
 
 /// Convenience function for specifying wavelengths in nanometers or meters.
-/// Wavelength values larger than !E-3 are assumed to have the unit nanometer
+/// Can use integer and float values.
+/// Wavelength values larger than 1E-3 are assumed to have the unit nanometer
 /// and are converted to a unit of meters.
-fn to_meter<const N: usize>(mut v:[f64; N]) -> [f64;N] {
-    if v.iter().any(|v|v>&1E-3) {
-        v.iter_mut().for_each(|v| *v *= 1E-9)
-    };
-    v
+fn wavelengths<T: ToPrimitive, const N: usize>(v:[T; N]) -> [f64;N] {
+    v.map(|x|wavelength(x))
 }
 
-
-
 #[test]
-fn test_to_meter() {
+fn test_wavelengths() {
     use approx::assert_ulps_eq;
 
     let mut v1 = [380.0];
-    v1 = to_meter(v1);
+    v1 = wavelengths(v1);
     assert_ulps_eq!(v1[0], 380E-9);
 
     let mut v2 = [380E-9, 780E-9];
-    v2 = to_meter(v2);
+    v2 = wavelengths(v2);
     assert_ulps_eq!(v2[0], 380E-9);
     assert_ulps_eq!(v2[1], 780E-9);
 
@@ -907,9 +915,9 @@ mod tests {
 }
 
 /// Linear interpolatino over a dataset over an equidistant wavelength domain
-fn linterp(mut wl: [f64;2], data: &[f64]) -> Result<[f64;NS], CmError> {
+fn linterp(mut wl: [f64;2], data: &[f64]) -> Result<[f64;NS], CmtError> {
     wl.sort_by(|a, b| a.partial_cmp(b).unwrap()); 
-    let [wl, wh] = to_meter(wl);
+    let [wl, wh] = wavelengths(wl);
     let dlm1 = data.len()-1; // data length min one
     
     let mut spd = [0f64; NS];
@@ -979,9 +987,9 @@ wavelength domain.
 This algorithm uses a BTreeMap coolection, with wavelengths in picometers as key,
 to find a data interval containing the target wavelengths.
  */
-fn linterp_irr(wl: &[f64], data: &[f64]) -> Result<[f64;NS], CmError> {
+fn linterp_irr(wl: &[f64], data: &[f64]) -> Result<[f64;NS], CmtError> {
     if wl.len()!=data.len() {
-        Err(CmError::InterpolateWavelengthError)
+        Err(CmtError::InterpolateWavelengthError)
     } else {
         // BTreeMap can not work with floats as keys, using picometer unit
         // (E-12) here as key, so the precision is here three decimals in units

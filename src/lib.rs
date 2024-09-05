@@ -3,7 +3,10 @@
 #![doc = include_str!("../README.md")]
 
 
+#[cfg(feature="cct")]
 pub use cct::*;
+#[cfg(feature="cri")]
+pub use cri::*;
 pub use data::*;
 pub use geometry::*;
 pub use observer::*;
@@ -12,11 +15,14 @@ pub use rgb::*;
 pub use rgbspace::*;
 pub use spectrum::*;
 pub use illuminants::*;
+pub use lab::*;
 pub use xyz::*;
 use wasm_bindgen::JsValue;
 
 
+#[cfg(feature="cct")]
 pub mod cct;
+#[cfg(feature="cri")]
 pub mod cri;
 pub mod data;
 pub mod gamma;
@@ -31,8 +37,8 @@ pub mod illuminants;
 pub mod xyz;
 
 
-#[derive(thiserror::Error, Debug)]
-pub enum CmError {
+#[derive(thiserror::Error, Debug, PartialEq)]
+pub enum CmtError {
     #[error("please provide {0} arguments only")]
     ProvideOnlyArguments(String),
     #[error("please provide a single {0} argument only")]
@@ -109,20 +115,20 @@ pub enum CmError {
     RequiresCIE1931XYZ
 }
 
-impl From<&str> for CmError {
+impl From<&str> for CmtError {
     fn from(s: &str) -> Self {
-        CmError::ErrorString(s.to_string())
+        CmtError::ErrorString(s.to_string())
     }
 }
 
-impl From<JsValue> for CmError {
+impl From<JsValue> for CmtError {
     fn from(s: JsValue) -> Self {
-        CmError::ErrorString(s.as_string().expect("Sorry, Unknown Error Encountered"))
+        CmtError::ErrorString(s.as_string().expect("Sorry, Unknown Error Encountered"))
     }
 }
 
-impl From<CmError> for JsValue {
-    fn from(value: CmError) -> Self {
+impl From<CmtError> for JsValue {
+    fn from(value: CmtError) -> Self {
         value.to_string().into()
     }
 }

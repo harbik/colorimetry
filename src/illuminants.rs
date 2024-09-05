@@ -49,7 +49,7 @@ A static reference to the spectra can be obtained using the "spectrum" method.
  */
 
 
-use crate::{Category::Illuminant, CmError, Spectrum, NS};
+use crate::{Category::Illuminant, CmtError, Spectrum, NS};
 
 // This macro generates the `StdIlluminant` enumerator, representing the standard illuminants
 // available in the library.  It adds the illuminants defined as static data by their name as an
@@ -98,9 +98,9 @@ std_illuminants!(D65 D50 [A F1 F2 F3 F4 F5 F6 F7 F8 F9 F10 F11 F12
 
 
 impl Spectrum {
-    pub fn d_illuminant(cct: f64) -> Result<Spectrum, CmError> {
+    pub fn d_illuminant(cct: f64) -> Result<Spectrum, CmtError> {
         if cct<4000.0 || cct>25000.0 {
-            Err(CmError::OutOfRange{name:"CIE D Illuminant Temperature".to_string(), low: 4000.0, high: 25000.0})
+            Err(CmtError::OutOfRange{name:"CIE D Illuminant Temperature".to_string(), low: 4000.0, high: 25000.0})
         } else { 
             let xd = match cct {
                 t if t < 7000.0 => {
@@ -114,10 +114,11 @@ impl Spectrum {
             let m2 = (0.03 - 31.4424 * xd + 30.0717 * yd) / m;
             let mut v = [0.0; CIE_D_S_LEN];
             v.iter_mut().enumerate().for_each(|(i,x)|*x = CIE_D_S[(i,0)] + m1 * CIE_D_S[(i,1)] + m2 * CIE_D_S[(i,2)]);
-            Spectrum::linear_interpolate(Illuminant, &[380.0, 780.0], &v, None)
+            Spectrum::linear_interpolate(Illuminant, &[380.0, 780.0], &v)
         }
     }
 }
+
 
 #[test]
 fn test_d_illuminant(){

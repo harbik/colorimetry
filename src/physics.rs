@@ -116,6 +116,16 @@ pub fn gaussian_normalized(x: f64, mu: f64, sigma: f64) -> f64 {
     (1.0 / (sigma * (2.0 * PI).sqrt())) * exponent.exp()
 }
 
+#[inline(always)]
+pub fn wavelength<T: ToPrimitive>(i: T) -> f64 {
+    let f = i.to_f64().unwrap_or(f64::NAN);
+    if f > 1E-3 {
+        f * 1E-9
+    } else {
+        f
+    }
+}
+
 /// Map a value x, in a domain from xmin to xmax to a wavelength in the domain
 /// from 380E-9 to 780E-9 meter. 
 /// ```

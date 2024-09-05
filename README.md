@@ -16,12 +16,33 @@ To use this library in Rust applications, run the command:
 ```
 or add this line to the dependencies in your Cargo.toml file:
 ```toml
-    colorimetry = "0.0.1"
+    colorimetry = "0.0.2"
 ```
 
-## Use `Spectrum` for spectral data
+## Features 
+
+- **cie-illuminants**  _(default)_
+    Include a large collection of standard illuminants such as the Fluorescent and LED series.
+    Included by default. 
+- **supplemental-observers** _(default)_
+    The CIE 1931 Standard Observer is always included, but with feature several other standard and experimental
+    colorimetric observers are included as well.
+    Included by default.
+- **cri** 
+    Include the color rendering index module, which calculates the Ra and R1 to R14 values for illuminants.
+    This loads an additional 14 test color sample spectra.
+- **cct**
+    Calculate correlated color temperature for illuminants.
+    Builds a 4096 length lookup table, with each row consisting of 3*f64 values.
+    The table rows are only calculated when required, but table space is reserved in the exectable.
+- **color-fidelity**
+    Calculates CIE 224:2017 Color Fidelity Index, and associated values.
+    Contains 99 test color samples.
+
+
+## Use [Spectrum] for spectral data
 All spectral calculations in this library use the `Spectrum` class, which contains the spectral data and spectrum type.
-For practical considerations, it uses a wavelength domain from 380 to 780 nanometers, with 1 nanometer intervals, as recommended in [CIE15:2004](https://archive.org/details/gov.law.cie.15.2004).
+For practical considerations, it uses a wavelength domain from 380 to 780 nanometers, with 1 nanometer intervals, as recommended in the [CIE15:2004](https://archive.org/details/gov.law.cie.15.2004) standard.
 This results in some inconsistencies with older data, as in the past, other wavelength domains were often being used for integration.
 In particular, chromaticity coordinates for the standard illuminants D65, D50, and A differ slightly from published values.
 
@@ -30,35 +51,70 @@ coordinates for a Planckian (thermal emission-based) illuminator with a
 Correlated Color Temperature of 3000 Kelvin using the CIE 1931 standard observer.
 
 ```rust
-use crate::colorimetry::{Spectrum, CIE1931};
-use approx::assert_ulps_eq;
+    use crate::colorimetry::{Spectrum, CIE1931};
+    use approx::assert_ulps_eq;
 
-let p3000 = Spectrum::planckian_illuminant(3000.0);
-let [x, y] = CIE1931.xyz(&p3000).chromaticity();
-let l = CIE1931.xyz(&p3000).luminous_value();
+    let p3000 = Spectrum::planckian_illuminant(3000.0);
+    let xy = CIE1931.xyz(&p3000).chromaticity();
+    let l = CIE1931.xyz(&p3000).luminous_value();
 
-assert_ulps_eq!(l, 20.668_927, epsilon = 1E-6);
-assert_ulps_eq!(x, 0.436_935, epsilon = 1E-6);
-assert_ulps_eq!(y, 0.404_083, epsilon = 1E-6);
+    assert_ulps_eq!(l, 20.668_927, epsilon = 1E-6);
+    assert_ulps_eq!(xy.as_ref(), [0.436_935,0.404_083].as_ref(), epsilon = 1E-6);
 ```
 
-Besides the `Spectrum::planck` constructor, `Spectrum` has many other constructors.
-For example, `Spectrum::d65`, `Spectrum::d50`, and `Spectrm::a` provide spectral distributions of the CIE D65, D50, and A standard illuminants.
+Besides the [Spectrum::planckian_illuminant] constructor, [Spectrum] has many other constructors.
+For example, [Spectrum::d65_illuminant] and [Spectrum::d50_illuminant] provide spectral distributions of the CIE D65, and D50 standard illuminants, defined by the CIE in tabular form.
+Many other Standard Illuminants can be used, such as the A, Fluorescent, and LED Illuminants defined by the CIE, when the library is compiled with the "cie-illuminants" feature.
+This feature is a default feature, but can be disabled when not used and compact binaries are required.
+The available standard illuminants are accessible through [StdIlluminant], which is an enum, and implements a `spectrum` method for its variants, producing a reference to a `Spectrum`.
+For example, to get the A illuminant spectrum:
+```rust
+    use colorimetry::{StdIlluminant, CIE1931};
 
-## The CIE Standard Colorimetric `Observer`
-`CIE1931` is an instance of the `Observer` class representing colorimetric standard observers and also includes the CIE 1976 10º standard observers and the CIE 2015 2º and 10º cone fundamental derived observers.
-Other instances are `CIE1976`, for the CIE 10º standard observer and `CIE2015``, and `CIE2015_10` for the 2º and 10º observers derived from the Cone Fundamentals.
+    let a_illuminant = StdIlluminant::A.spectrum();
+    let xy_a = CIE1931.xyz(a_illuminant).chromaticity();
+    // see <https://en.wikipedia.org/wiki/Standard_illuminant#Illuminant_A>
+    approx::assert_ulps_eq!(xy_a.as_ref(), [0.44758, 0.40745].as_ref(), epsilon=1E-5)
+```
 
-Its primary function `CIE1931.xyz` takes a spectral distribution as a single argument with an instance of the `XYZ` class, encapsulating the X, Y, and Z tristimulus values.
-Likewise, the `CIE1931.lab_d65` and `CIE1931.lab_d50` methods can be used to get CIELAB coordinates for a spectrum measured from a color sample.
-These result in an instance of the `Lab` class.
+Other interesting constructors are [Spectrum::srgb], and [Spectrum::rgb], which create a spectrum of a set of [RGB] pixel values.
+The first takes three `u8` arguments, while the second uses an [RGB] object as argument.
+
+```rust
+    use colorimetry::{CIE1931, Spectrum, RGB};
+    let red = Spectrum::srgb(255, 0, 0);
+    approx::assert_ulps_eq!(
+            CIE1931.xyz(&red).chromaticity().as_ref(),
+                &[0.64, 0.33].as_ref(), epsilon = 1E-5);
+
+    let white = Spectrum::rgb(RGB::new(1.0, 1.0, 1.0, None, None));
+    approx::assert_ulps_eq!(CIE1931.xyz(&white), CIE1931.xyz_d65(), epsilon = 1E-6);
+```
+
+When dealing with spectral data defined over a domain not matching with the one used in this library you can use [Spectrum::linear_interpolate].
+This function can also be used to define arbitrary spectral shapes by providing a set of wavelength and spectral value points.
+
+## The CIE Standard Colorimetric [Observer]
+[CIE1931] is a static instance of the [Observer] class representing colorimetric standard observers, and is always included.
+With the default **supplemental-observers** feature also other observers are included,  such as the CIE 1976 10º,  s, the CIE 2015 2º and CIE 2015 10º observers.
+An observer is represented by three functions, called color matching functions, which are supposed to be an indirect representation of the spectral sensitivities of the _L_, _M_, and _S_ cones in the back of eyes.
+
+The primary function of an [Observer], such as the [CIE1931] colorimetric standard observer, is the [CIE1931.xyz] method, which takes a spectral distribution as a single argument, and produces an [XYZ] object, encapsulating the CIE 1931 X, Y, and Z tristimulus values.
+
+## [XYZ] Tristimulus Values
+These tristimulus values are an representation of the response of each of the three cones, and an inproduct of the spectrum and the color matching functions.
+All color models are using the tristimulus values of a stimulus, essentially a light ray being detected by a set of cones, as a basis.
+
+## [CieLab] Color Model
+Likewise, the [CIE1931.lab_d65] and [CIE1931.lab_d50] methods can be used to get CIELAB coordinates for a spectrum measured from a color sample, as an instance of the [CieLab](crate::lab::CieLab) class.
+
+## [RGB] Color Values, and [RgbSpace] Color Spaces.
 
 
-## `XYZ` Tristimulus Values
+## Correlated Color Temperature
 
-## `Lab` Color Model
+## Color Rendering Metrics
 
-## `RGB` Color Spaces
 
 
 # Use with Deno/TypeScript
@@ -73,7 +129,7 @@ All content &copy;2024 Harbers Bik LLC, and licensed under either of
  * Apache License, Version 2.0
    ([LICENSE-APACHE](LICENSE-APACHE) or <http://www.apache.org/licenses/LICENSE-2.0>)
  * MIT license
-   ([LICENSE-MIT](LICENSE-MIT) or <http://opensource.org/licenses/MIT>?)
+   [LICENSE-MIT](LICENSE-MIT) or <http://opensource.org/licenses/MIT>
 
 at your option.
 

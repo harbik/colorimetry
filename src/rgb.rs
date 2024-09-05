@@ -102,6 +102,7 @@ impl RGB {
         todo!() 
     }
 
+    /*
     /// Creates a [Spectrum] from an [RGB] value, using the spectral primaries of its color space.
     /// See also [Spectrum::rgb] and [Spectrum::srgb].
     pub fn spectrum(&self) -> Spectrum {
@@ -109,6 +110,7 @@ impl RGB {
         let yrgb = CIE1931.rgb2xyz(&RgbSpace::SRGB).row(1);
         self.data.iter().zip(yrgb.iter()).zip(p.iter()).map(|((v,w),s)|*v * *w * *s).sum::<Spectrum>().set_category(Category::Stimulus)
     }
+     */
 
 }
 
@@ -116,13 +118,6 @@ impl RGB {
 mod rgb_tests {
     use crate::{Spectrum, CIE1931, RGB};
 
-    #[test]
-    fn test_spectrum(){
-        let white = RGB::new(1.0, 1.0, 1.0, None, None).spectrum();
-        approx::assert_ulps_eq!(CIE1931.xyz(&white), CIE1931.xyz_d65(), epsilon = 1E-6);
-        let red = Spectrum::srgb(255, 0, 0);
-        approx::assert_ulps_eq!(CIE1931.xyz(&red).chromaticity().as_ref(), &[0.64, 0.33].as_ref(), epsilon = 1E-5);
-    }
 }
 
 impl AsRef<Vector3<f64>> for RGB {

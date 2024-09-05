@@ -2,7 +2,7 @@ use core::f64;
 use std::sync::OnceLock;
 use wasm_bindgen::prelude::wasm_bindgen;
 use nalgebra::{Matrix3, SMatrix, Vector3};
-use crate::{lab::Lab, to_wavelength, physics::{planck, planck_slope, planck_slope_c2}, spectrum::{Category, Spectrum, NS}, xyz::XYZ, CmError, LineAB, RgbSpace, StdIlluminant};
+use crate::{lab::CieLab, to_wavelength, physics::{planck, planck_slope, planck_slope_c2}, spectrum::{Category, Spectrum, NS}, xyz::XYZ, CmtError, LineAB, RgbSpace, StdIlluminant};
 
 
 
@@ -218,12 +218,12 @@ impl ObserverData {
     /// Calculates the L*a*b* CIELAB D65 values of a ColorPatch or Filter, using D65 as an illuminant.
     /// Accepts a Filter or ColorPatch Spectrum only.
     /// Returns f64::NAN's otherwise.
-    pub fn lab_d65(&self, sample: &Spectrum) -> Lab {
+    pub fn lab_d65(&self, sample: &Spectrum) -> CieLab {
         if sample.cat != Category::Filter && sample.cat != Category::Patch { // invalid
-            Lab::new(f64::NAN, f64::NAN, f64::NAN, self.xyz_d65())
+            CieLab::new(f64::NAN, f64::NAN, f64::NAN, self.xyz_d65())
         } else {
             let &[x, y, z] = self.xyz_of_sample_with_std_illuminant(&StdIlluminant::D65, sample).data.as_ref();
-            Lab::new(x, y, z, self.xyz_d65())
+            CieLab::new(x, y, z, self.xyz_d65())
         }
     }
 
@@ -241,14 +241,14 @@ impl ObserverData {
     /// `spectral_wavelength_min` and `spectral_wavelength_max` methods.
     /// 
     /// See Wikipedia's [CIE 1931 Color Space](https://en.wikipedia.org/wiki/CIE_1931_color_space).
-    pub fn spectral_locus_by_nm(&self, l: usize) -> Result<XYZ, CmError> {
+    pub fn spectral_locus_by_nm(&self, l: usize) -> Result<XYZ, CmtError> {
         let min = self.spectral_locus_nm_min();
         let max = self.spectral_locus_nm_max();
         if l<380 || l>780 {
-            return Err(CmError::WavelengthOutOfRange);
+            return Err(CmtError::WavelengthOutOfRange);
         };
         if l<min || l>max {
-            Err(CmError::NoUniqueSpectralLocus(min, max))
+            Err(CmtError::NoUniqueSpectralLocus(min, max))
         } else {
             let &[x, y, z] = self.data.column(l-380).as_ref();
             Ok(XYZ::new(x, y, z, None, self.tag))

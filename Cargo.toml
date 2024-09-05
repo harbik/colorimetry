@@ -28,13 +28,17 @@ num-traits = "0.2.19"
 paste = "1.0.15"
 
 [features]
-defaults = ["cie-illuminants"]
+defaults = ["cie-illuminants", "supplemental-observers"]
 cie-illuminants = []
+cct = []
+supplemental-observers = []
+cri = ["cct"]
 
 [dev-dependencies] # for examples and tests
 argmin = "0.10.0"
 argmin-math = "0.4.0"
 getrandom = { version = "0.2", features = ["js"] }
+rand = "0.8.5"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
