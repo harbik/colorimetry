@@ -85,7 +85,7 @@ impl CCT {
         match (cct,duv) {
             (_, d) if d>0.05 => Err(CmtError::CCTDuvHighError),
             (_, d) if d< -0.05 => Err(CmtError::CCTDuvLowError),
-            (t, d) if ulps_eq!(t,im2t(0), epsilon=10.0) || ulps_eq!(t, im2t(N_STEPS-1)) => Ok(Self(t,d)),
+            (t, d) if ulps_eq!(t,im2t(0)) || ulps_eq!(t, im2t(N_STEPS-1)) => Ok(Self(t,d)),
             (t, _) if t>im2t(0) => Err(CmtError::CCTTemperatureTooHigh),
             (t, _) if t<im2t(N_STEPS-1) => Err(CmtError::CCTTemperatureTooLow),
             (t, d) => Ok(Self(t,d)),
@@ -295,13 +295,13 @@ fn test_ends(){
     let cct0 = CCT::try_new(1000.0, 0.0).unwrap();
     let xyz: XYZ = cct0.try_into().unwrap();
     let cct: CCT = xyz.try_into().unwrap();
-    assert_ulps_eq!(cct, cct0, epsilon = 1E-4);
+    assert_ulps_eq!(cct, cct0);
 
     // Temperature  at the low end, should pass...
     let cct0 = CCT::try_new(1E6, 0.0).unwrap();
     let xyz: XYZ = cct0.try_into().unwrap();
     let cct: CCT = xyz.try_into().unwrap();
-    assert_ulps_eq!(cct, cct0, epsilon = 1E-4);
+    assert_ulps_eq!(cct, cct0);
 
 }
 
