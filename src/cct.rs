@@ -44,9 +44,10 @@ The CIE standard requires CCT to be calculated using the CIE 1931 standard obser
 
 */
 
+use core::f64;
 use std::sync::OnceLock;
 
-use approx::{assert_ulps_eq, ulps_eq, AbsDiffEq, UlpsEq};
+use approx::{assert_ulps_eq, relative_eq, ulps_eq, AbsDiffEq, UlpsEq};
 
 use crate::{distance_to_line, physics::planck, CmtError, Observer, ObserverData, CIE1931, NS, XYZ};
 
@@ -77,7 +78,6 @@ impl UlpsEq for CCT {
     }
 }
 
-
 impl CCT {
     /// Create from a Correlated Color Temperature and a Planckian Locus Distance.
     /// Both parameters are range restricted: 1000<cct<1_000_000, -0.05<duv<0.05
@@ -85,8 +85,9 @@ impl CCT {
         match (cct,duv) {
             (_, d) if d>0.05 => Err(CmtError::CCTDuvHighError),
             (_, d) if d< -0.05 => Err(CmtError::CCTDuvLowError),
-            (t, _) if t>im2t(1) => Err(CmtError::CCTTemperatureTooHigh),
-            (t, _) if t<im2t(N_STEPS) => Err(CmtError::CCTTemperatureTooLow),
+            (t, d) if ulps_eq!(t,im2t(0), epsilon=10.0) || ulps_eq!(t, im2t(N_STEPS-1)) => Ok(Self(t,d)),
+            (t, _) if t>im2t(0) => Err(CmtError::CCTTemperatureTooHigh),
+            (t, _) if t<im2t(N_STEPS-1) => Err(CmtError::CCTTemperatureTooLow),
             (t, d) => Ok(Self(t,d)),
         }
     }
@@ -141,6 +142,7 @@ impl TryFrom<XYZ> for CCT {
     fn try_from(xyz: XYZ) -> Result<Self, Self::Error> {
         if xyz.observer != Observer::Std1931 { return Err(CmtError::RequiresCIE1931XYZ); }
         let [u, v] = xyz.uv60();
+        // index bounderies N_STEPS-1 length lookup table e.g. 0-4095
         let [mut imlow, mut imhigh]  = [0usize, N_STEPS-1];
         let [mut dlow, mut dhigh] = [0.0, 0.0];
        
@@ -158,21 +160,25 @@ impl TryFrom<XYZ> for CCT {
         }  
         if imlow == 0 { // xyz is in the first interval, or above high temperature limit
             let &[ub, vb, m] = robertson_table(imlow);
-            let d = distance_to_line(u, v, ub, vb, m);
-            if d >0.0 + f64::EPSILON { // iso temperature line is on the right, so out of range
-                return Err(CmtError::CCTTemperatureTooHigh)
-            } else { // within the first interval
-                dlow = d;
-            }
+            match distance_to_line(u, v, ub, vb, m){
+                d if ulps_eq!(d,0.0,epsilon=1E-10) => { // at low temp limit
+                    dlow = -0.0;
+                    imhigh = 1;
+                }
+                d if d>0.0 => return Err(CmtError::CCTTemperatureTooHigh),
+                d => dlow = d 
+            };
         };
         if imhigh == N_STEPS - 1 { // xyz is in the last interval, or below low temperature limit
             let &[ub, vb, m] = robertson_table(imhigh);
-            let d = distance_to_line(u, v, ub, vb, m);
-            if  d<0.0-f64::EPSILON { // iso temperature line is left of point
-                return Err(CmtError::CCTTemperatureTooLow)
-            } else {
-                dhigh = d;
-            }
+            match distance_to_line(u, v, ub, vb, m){
+                d if ulps_eq!(d,0.0,epsilon=1E-10) => { // at high temp limit
+                    dhigh = -0.0;
+                    imlow = N_STEPS - 2;
+                }
+                d if d<0.0 => return Err(CmtError::CCTTemperatureTooLow),
+                d => dlow = d 
+            };
         };
 
         let t = robertson_interpolate(im2t(imlow), dlow, im2t(imhigh), dhigh);
@@ -247,6 +253,14 @@ fn im2t(im: usize) -> f64 {
     1E6/( 1.0 + ((((MIRED_MAX-1)*im)) as f64) / ((N_STEPS-1) as f64)) 
 }  
 
+#[test]
+fn im2t_test(){
+    let i0 = im2t(0);
+    assert_ulps_eq!(i0, 1E6);
+    let ins = im2t(N_STEPS-1);
+    assert_ulps_eq!(ins, 1000.0);
+}
+
 
 fn robertson_interpolate(tp: f64, dp: f64, tn: f64, dn: f64) -> f64 {
     (tp.recip() + dp/(dp-dn) * (tn.recip() - tp.recip())).recip()
@@ -274,31 +288,57 @@ fn duv_interpolate(u: f64, v: f64, imp: usize, imn: usize, dp: f64, dh: f64) -> 
     let d = ddl + dp/(dp-dh) * (ddh - ddl);
     dd - d
 }
+    
+#[test]
+fn test_ends(){
+    // Temperature  at the low end, should pass...
+    let cct0 = CCT::try_new(1000.0, 0.0).unwrap();
+    let xyz: XYZ = cct0.try_into().unwrap();
+    let cct: CCT = xyz.try_into().unwrap();
+    assert_ulps_eq!(cct, cct0, epsilon = 1E-4);
+
+    // Temperature  at the low end, should pass...
+    let cct0 = CCT::try_new(1E6, 0.0).unwrap();
+    let xyz: XYZ = cct0.try_into().unwrap();
+    let cct: CCT = xyz.try_into().unwrap();
+    assert_ulps_eq!(cct, cct0, epsilon = 1E-4);
+
+}
 
 #[test]
 fn test_cct(){
+    // Temperature too low here...
     let xyz: XYZ = CCT(999.0, 0.0).try_into().unwrap();
     let cct: Result<CCT,_> = xyz.try_into();
     assert_eq!(cct, Err(CmtError::CCTTemperatureTooLow));
 
+    // ... and too high here.
+    let xyz: XYZ = CCT(1E6+1.0, 0.0).try_into().unwrap();
+    let cct: Result<CCT,_> = xyz.try_into();
+    assert_eq!(cct, Err(CmtError::CCTTemperatureTooHigh));
+
+    // DUV too high...
     let xyz: XYZ = CCT(6000.0, 0.051).try_into().unwrap();
     let cct: Result<CCT,_> = xyz.try_into();
     assert_eq!(cct, Err(CmtError::CCTDuvHighError));
 
-    let xyz: XYZ = CCT(1E6 + 1.0, 0.0).try_into().unwrap();
+    // and too low here.
+    let xyz: XYZ = CCT(6000.0, -0.051).try_into().unwrap();
     let cct: Result<CCT,_> = xyz.try_into();
-    assert_eq!(cct, Err(CmtError::CCTTemperatureTooHigh));
-
-    let xyz: XYZ = CCT(1000.0, 0.0).try_into().unwrap();
-    let cct: Result<CCT,_> = xyz.try_into();
-    assert_ulps_eq!(cct.unwrap(), CCT::try_new(1000.0, 0.0).unwrap());
+    assert_eq!(cct, Err(CmtError::CCTDuvLowError));
 
 
+    // Test round trip random values, and check the difference by distance in uv-prime space.  For a
+    // 4096 size table, distances are found to be less than 5E-8 over the full range of temperatures
+    // (1000K, 1_000_000K) and duv values (-0.05, 0.05). This is a relatively slow test, as it tends
+    // to fill the Robertson lookup table fully, with each entry requiring to calculate tristimulus
+    // values from a Planckian spectrum. It will speed up when more than ~ 5_000 values are tested, 
+    // as the table will be completely calculated.
     for i in 0..100 {
         let mut rng = rand::thread_rng();
         let mired = rand::Rng::gen_range(&mut rng, 1.0..1000.0); // mired temp
         let t = 1E6/mired;
-        let d = rand::Rng::gen_range(&mut rng, -0.05..0.005);
+        let d = rand::Rng::gen_range(&mut rng, -0.05..0.05);
 
         // Get a CCT to test. Unwrap OK as range restricted above.
         let cct0  = CCT::try_new(t,d).unwrap();
