@@ -140,13 +140,19 @@ impl XYZ {
         [uu, vv, ww]
     }
 
-    // CIE 1976 CIELUV space, with (u',v') coordinates
-    pub fn uvp(&self) -> [f64;2] {
+    /// CIE 1976 CIELUV space, with (u',v') coordinates
+    pub fn uvprime(&self) -> [f64;2] {
         let &[x, y, z] = self.data.as_ref();
         let den = x + 15.0 * y + 3.0 * z;
         [4.0 * x / den, 9.0 * y / den]
     }
 
+    //
+    pub fn uv_prime_distance(&self, other: &Self) -> f64 {
+        let [u1, v1] = self.uvprime();
+        let [u2, v2]= other.uvprime();
+        (v2-v1).hypot(u2-u1)
+    }
     
     /// The Dominant Wavelength of a color point is the wavelength of spectral
     /// color, obtained from the intersection of a line through a white point

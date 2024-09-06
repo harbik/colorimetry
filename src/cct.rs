@@ -79,15 +79,21 @@ impl UlpsEq for CCT {
 
 
 impl CCT {
-    pub fn try_new(t: f64, d: f64) -> Result<Self, CmtError> {
-        // check horseshoe!!!
-        match (t,d) {
+    /// Create from a Correlated Color Temperature and a Planckian Locus Distance.
+    /// Both parameters are range restricted: 1000<cct<1_000_000, -0.05<duv<0.05
+    pub fn try_new(cct: f64, duv: f64) -> Result<Self, CmtError> {
+        match (cct,duv) {
             (_, d) if d>0.05 => Err(CmtError::CCTDuvHighError),
             (_, d) if d< -0.05 => Err(CmtError::CCTDuvLowError),
             (t, _) if t>im2t(1) => Err(CmtError::CCTTemperatureTooHigh),
             (t, _) if t<im2t(N_STEPS) => Err(CmtError::CCTTemperatureTooLow),
-            (t, d) if t>3775.0 => Ok(Self(t,d)),
+            (t, d) => Ok(Self(t,d)),
         }
+    }
+
+    /// Create from a Correlated Color Temperature and a Tint value.
+    pub fn try_new_with_tint(cct: f64, tint: f64) -> Result<Self, CmtError> {
+        Self::try_new(cct, tint/1000.0)
     }
 
     pub fn cct(&self) -> f64 {
@@ -103,6 +109,7 @@ impl CCT {
 
 }
 
+/// Get cct and duv values as an array.
 impl From<CCT> for [f64;2] {
     fn from(cct: CCT) -> Self {
         [cct.0, cct.1]
@@ -175,7 +182,8 @@ impl TryFrom<XYZ> for CCT {
 
 }
     
-/// Calculate tristimulus values 
+/// Calculate tristimulus values from a Correlated Color Temperature and a Planckian Locus Distance.
+/// This can fail for lower temperatures, and positive distances, with a chromaticity outsiode the CIE 1931 gamut.
 impl TryFrom<CCT> for XYZ {
     type Error = CmtError;
     fn try_from(cct: CCT) -> Result<Self, Self::Error> {
@@ -269,19 +277,19 @@ fn duv_interpolate(u: f64, v: f64, imp: usize, imn: usize, dp: f64, dh: f64) -> 
 
 #[test]
 fn test_cct(){
-    let xyz: XYZ = CCT(999.0, 0.0).into();
+    let xyz: XYZ = CCT(999.0, 0.0).try_into().unwrap();
     let cct: Result<CCT,_> = xyz.try_into();
     assert_eq!(cct, Err(CmtError::CCTTemperatureTooLow));
 
-    let xyz: XYZ = CCT(6000.0, 0.051).into();
+    let xyz: XYZ = CCT(6000.0, 0.051).try_into().unwrap();
     let cct: Result<CCT,_> = xyz.try_into();
     assert_eq!(cct, Err(CmtError::CCTDuvHighError));
 
-    let xyz: XYZ = CCT(1E6 + 1.0, 0.0).into();
+    let xyz: XYZ = CCT(1E6 + 1.0, 0.0).try_into().unwrap();
     let cct: Result<CCT,_> = xyz.try_into();
     assert_eq!(cct, Err(CmtError::CCTTemperatureTooHigh));
 
-    let xyz: XYZ = CCT(1000.0, 0.0).into();
+    let xyz: XYZ = CCT(1000.0, 0.0).try_into().unwrap();
     let cct: Result<CCT,_> = xyz.try_into();
     assert_ulps_eq!(cct.unwrap(), CCT::try_new(1000.0, 0.0).unwrap());
 
@@ -291,24 +299,25 @@ fn test_cct(){
         let mired = rand::Rng::gen_range(&mut rng, 1.0..1000.0); // mired temp
         let t = 1E6/mired;
         let d = rand::Rng::gen_range(&mut rng, -0.05..0.005);
-        println!("{i} {t} {d}");
-        let xyz: XYZ = CCT::try_new(t,d).unwrap().into();
-        let cct: CCT = xyz.try_into().unwrap();
-        let [cct, duv]: [f64;2] = cct.into();
-        println!("{i} {t} {d} {cct} {duv}")
+
+        // Get a CCT to test. Unwrap OK as range restricted above.
+        let cct0  = CCT::try_new(t,d).unwrap();
+
+        // calculate XYZ0, skip value if not a valid point
+        let Ok(xyz0):Result<XYZ,_> = CCT::try_new(t,d).unwrap().try_into() else { continue;};
+        
+        // calculate the cct to test.
+        let cct: CCT = xyz0.try_into().unwrap();
+
+        // calculate XYZ, should not fail, a CCT and Duv very close to already fetted values.
+        let xyz: XYZ = cct.try_into().unwrap();
+        let d = xyz.uv_prime_distance(&xyz0);
+        assert_ulps_eq!(d, 0.0, epsilon=5E-8);
+       // println!("{i} {t:.0} {d:.0e}")
 
 
     }
 
 }
 
-#[test]
-fn test_duv5_temp_limit(){
-    for im in 1000..4096 {
-        let t = im2t(im);
-        println!("{t}");
-        let xyz: XYZ = CCT::try_new(t,0.05).unwrap().into();
-
-    }
-}
 
