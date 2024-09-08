@@ -63,7 +63,7 @@ impl CostFunction for GaussWithAnchor{
 
 fn gauss(s: &str, i: usize ) -> Result<Vec<f64>, String>{
     let [x, y] = XY_PRIMARIES[s].0[i];
-    let xyz = XYZ::try_from_chromaticity(x, y, None, None, None).unwrap();
+    let xyz = XYZ::try_from_chromaticity(x, y, None, None).unwrap();
     let d = XY_PRIMARIES[s].1;
     let problem = Gauss::new(xyz, d);
 
@@ -87,9 +87,9 @@ fn gauss(s: &str, i: usize ) -> Result<Vec<f64>, String>{
 
 fn gauss_with_anchor(s: &str, i: usize, j: usize ) -> Result<Vec<f64>, String>{
     let [x,y] = XY_PRIMARIES[s].0[i];
-    let xyz = XYZ::try_from_chromaticity(x, y, None, None, None).unwrap();
+    let xyz = XYZ::try_from_chromaticity(x, y, None, None).unwrap();
     let [xb, yb] = XY_PRIMARIES[s].0[j];
-    let xyzb = XYZ::try_from_chromaticity(xb, yb, None, None, None).unwrap();
+    let xyzb = XYZ::try_from_chromaticity(xb, yb, None, None).unwrap();
     let d = XY_PRIMARIES[s].1;
     let problem = GaussWithAnchor::new(xyz,xyzb, d);
 

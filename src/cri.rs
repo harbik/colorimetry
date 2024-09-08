@@ -11,7 +11,7 @@ use nalgebra::{ArrayStorage, SMatrix};
 use wasm_bindgen::prelude::*;
 
 
-use crate::{CmtError, Spectrum};
+use crate::{CmtError, RgbSpace, Spectrum, CIE1931, XYZ};
 
 /// Nummer of Test Color Sample Spectra
 const N_TCS: usize = 14;
@@ -23,13 +23,30 @@ const N_TCS: usize = 14;
 /// Here the dataset is converted to an array of 14 Spectra, using linear interpolation.
 pub static TCS: LazyLock<[Spectrum;N_TCS]> = LazyLock::new(|| {
         let s_vec: Vec<Spectrum> = TCS5.column_iter().map(|s|
-            Spectrum::linear_interpolate(crate::Category::Patch, &[380.0, 780.0],s.as_slice()).unwrap()).collect();
+            Spectrum::linear_interpolate(crate::Category::Colorant, &[380.0, 780.0],s.as_slice()).unwrap()).collect();
         s_vec[0..14].try_into().unwrap()
     }
 );
 
+#[test]
+fn tcs_test(){
+    for (i,s) in TCS.iter().enumerate() {
+        let xyz = CIE1931.xyz_of_sample_with_std_illuminant(&crate::StdIlluminant::D65, s);
+        let [r,g,b] = xyz.srgb();
+        println!("{:2} ({r:3},{g:3},{b:3})", i+1);
+    }
+    
+    let labs = [
+        [50.1,38.3,14.1], [51.6,-21.6,24.7], [51.2,-20.7,16.1], [52.4,-7.9,21.4],
+        [51.5,-27.8,-8.2], [51.0,-18.7,-24.4], [51.2,7.4,-30.7], [51.5,28.1,-8.4],
+        [40.2,53.3,25.5], [56.5,-10.5,58.1], [40.9,-46.6,17.6], [25.3,9.2,-43.5],
+        [60.0,14.3,12.3], [49.8,-18.6,28.8], [66.9,18.8,14.5]
+    ];
+
+}
 
 #[wasm_bindgen]
+#[derive(Debug, Clone, Copy)]
 /// Encapcsulated Array of calculated Ri values, from a test light source.
 pub struct CRI([f64;N_TCS]);
 
@@ -40,8 +57,52 @@ pub struct CRI([f64;N_TCS]);
 impl TryFrom<&Spectrum> for CRI {
     type Error = CmtError;
 
-    fn try_from(value: &Spectrum) -> Result<Self, Self::Error> {
-        todo!()
+    fn try_from(illuminant: &Spectrum) -> Result<Self, Self::Error> {
+        // dut
+        let xyz_dut = CIE1931.xyz(illuminant, None).set_illuminance(100.0);
+        let xyz_dut_samples: [XYZ; N_TCS] = 
+            TCS
+                .iter()
+                .map(|sample|CIE1931.xyz_of_sample_with_illuminant(illuminant, sample))
+                .collect::<Vec<XYZ>>()
+                .try_into().unwrap();
+        let cct_dut = xyz_dut.cct()?.t();
+        let illuminant_ref = if cct_dut <= 5000.0 {
+            Spectrum::planckian_illuminant(cct_dut)
+        } else {
+            Spectrum::d_illuminant(cct_dut)?
+        };
+        // ref
+        let xyz_ref = CIE1931.xyz(&illuminant_ref, None).set_illuminance(100.0);
+        let xyz_ref_samples: [XYZ; N_TCS] = 
+            TCS
+                .iter()
+                .map(|sample|CIE1931.xyz_of_sample_with_illuminant(&illuminant_ref, sample))
+                .collect::<Vec<XYZ>>()
+                .try_into().unwrap();
+        let cdt = cd(xyz_dut.uv60());
+        let cdr = cd(xyz_ref.uv60());
+        
+        let ri : [f64; N_TCS] =
+            xyz_ref_samples
+                .iter()
+                .zip(xyz_dut_samples.iter())
+                .map(|(xyzr,xyz)|{
+                    let cdti = cd(xyz.uv60());
+                    let uv_vk = uv_kries(cdt, cdr, cdti);
+                    let xyz_vk = XYZ::try_from_luv60( uv_vk[0], uv_vk[1], Some(xyz.xyz.y), None).unwrap();
+                    let uvw = xyz_ref.uvw64(xyz_vk);
+                    let uvwr = xyz_ref.uvw64(*xyzr);
+                    100.0 - 4.6 * ((uvw[0] - uvwr[0]).powi(2) + (uvw[1] - uvwr[1]).powi(2) + (uvw[2] - uvwr[2]).powi(2)).sqrt()
+                }).collect::<Vec<f64>>().try_into().unwrap();
+
+        Ok(CRI(ri))
+    }
+}
+
+impl AsRef<[f64]> for CRI {
+    fn as_ref(&self) -> &[f64] {
+       &self.0
     }
 }
 
@@ -60,6 +121,55 @@ impl CRI {
 
 }
 
+#[cfg(test)]
+mod cri_test {
+    use crate::{StdIlluminant, CRI, D50};
+
+    #[test]
+    fn cri_d50(){
+        // should be all 100.0
+        let cri0: CRI = (&D50).try_into().unwrap();
+         println!("{cri0:?}");
+        approx::assert_ulps_eq!(
+            cri0.as_ref(), 
+            [
+
+            ].as_ref(), epsilon = 0.05);
+    }
+
+    #[test]
+    fn cri_f1(){
+        // should be all 100.0
+        let cri0: CRI = StdIlluminant::F1.spectrum().try_into().unwrap();
+        // println!("{cri0:?}");
+        approx::assert_ulps_eq!(cri0.as_ref(), [100.0;crate::cri::N_TCS].as_ref(), epsilon = 0.05);
+    }
+
+    #[test]
+    fn cri_f3_1(){
+        // should be all 100.0
+        let cri0: CRI = StdIlluminant::F3_1.spectrum().try_into().unwrap();
+        println!("{cri0:?}");
+        approx::assert_ulps_eq!(
+            cri0.as_ref(), 
+            [42.2, 69.1, 89.1, 38.4, 40.5, 51.9, 65.5, 12.5, -110.0, 28.4, 18.4, 20.8, 46.8, 93.6].as_ref(), 
+            epsilon = 0.05
+        );
+    }
+}
+
+fn cd(uv: [f64;2]) -> [f64;2] {
+    let [u,v] = uv;
+    [(4.0 - u - 10.0 * v) / v, (1.708 * v - 1.481 * u + 0.404) / v]
+}
+
+fn uv_kries(cdt: [f64;2], cdr: [f64;2], cdti: [f64;2] ) -> [f64;2] {
+    let [ct, dt] = cdt;
+    let [cr, dr] = cdr;
+    let [cti, dti] = cdti;
+    let den = 16.518 + 1.481 * (cr / ct) * cti - (dr / dt) * dti;
+    [ (10.872 + 0.404 * (cr / ct) * cti - 4.0 * (dr / dt) * dti) / den, 5.520 / den]    
+}
 
 /// Spectral radiance factors of 14 test samples for the CIE colour rendering index calculation.
 /// 

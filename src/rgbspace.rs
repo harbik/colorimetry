@@ -197,7 +197,7 @@ mod rgbspace_tests {
         for space in RgbSpace::iter() {
             let (rgbspace, rgbstr) = space.data();
             for i in 0..3 {
-                let xy = CIE1931.xyz(&rgbspace.primaries[i]).chromaticity();
+                let xy = CIE1931.xyz(&rgbspace.primaries[i], None).chromaticity();
                 let xywant = XY_PRIMARIES[rgbstr].0[i];
                 assert_ulps_eq!(xy.as_ref(), xywant.as_ref(), epsilon = 1E-5);
 

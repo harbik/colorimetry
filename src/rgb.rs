@@ -67,7 +67,7 @@ impl RGB {
         let xyz2rgb = XYZ2RGB.get_or_init(||{
             todo!()
         });
-        let &[r, g, b] = (xyz2rgb * xyz.data).as_ref();
+        let &[r, g, b] = (xyz2rgb * xyz.xyz).as_ref();
         RGB::new(r, g, b, Some(xyz.observer), Some(space))
 
     }
@@ -78,8 +78,8 @@ impl RGB {
         let data = self.observer.data().rgb2xyz(&self.space) * self.data;
         XYZ {
             observer: self.observer,
-            data: data.map(|v|v*YW),
-            yw: Some(YW)
+            xyz: data.map(|v|v*YW),
+            xyzn: None
         }
     }
 

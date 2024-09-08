@@ -27,13 +27,10 @@ spectrum type, and to avoid incorrect colorimetric calculations.
 - `Illuminant`: a spectral irradiance distribution with values given in watts
     per square meter per nanometer, and a `total` value given in watts per square
     meter.
-- `Filter`: a spectral transmission function with unitless values ranging from
-    0.0 to 1.0, and the `total` value representing the total power transmission of
-    the filter.
-- `Substrate`: a spectral transmission function when combined with a `Filter`
-    and spectral reflectivity function combined with a `ColorPatch`.
-- `Patch`: a spectral reflectivity function with unitless values ranging from
-    0.0 to 1.0.
+
+- `Colorant`: a spectral reflectivity (color patch) or transmissivity with unitless values ranging from
+    0.0 to 1.0, which changes an illuminant's spectral composition to produce a stimulus.
+
 - `Stimulus`: a spectral radiance distribution of a beam of light entering
     through the pupil of our eyes, on its way to be processed and triggering a
     sensation of color in our mind. Spectral data of a stimulus have a unit of watt
@@ -41,16 +38,13 @@ spectrum type, and to avoid incorrect colorimetric calculations.
 
  */
 #[wasm_bindgen]
-#[derive(PartialEq, Eq, Clone, Copy, Default)]
+#[derive(PartialEq, Eq, Clone, Copy, Default, Debug)]
 pub enum Category { 
     /// The spectral distribution of onne or more sources, illuminating a color sample
     Illuminant, 
 
-    /// A Filter spectrum , such as a wratten or glass filter, which changes the properties of an illuminant.
-    Filter,     
-
     /// The spectrum of a color patch, typically consisting of a paint or ink on a substrate, as measured with a spectrophotomteer.
-    Patch,
+    Colorant,
 
     /// A ray of light from object we are looking at, typically an illuminated by an illuminant.
     Stimulus,   
@@ -76,12 +70,8 @@ impl Mul for Category {
             return self
         } else {
             match (self, rhs) {
-                (Category::Illuminant, Category::Filter) => Category::Stimulus,
-                (Category::Filter, Category::Illuminant) => Category::Stimulus,
-                (Category::Illuminant, Category::Patch) => Category::Stimulus,
-                (Category::Patch, Category::Illuminant) => Category::Stimulus,
-                (Category::Filter, Category::Patch) => Category::Patch,
-                (Category::Patch, Category::Filter) => Category::Patch,
+                (Category::Illuminant, Category::Colorant) => Category::Stimulus,
+                (Category::Colorant, Category::Illuminant) => Category::Stimulus,
                 (Category::Stimulus, _ ) => Category::Stimulus,
                 (_, Category::Stimulus) => Category::Stimulus,
                 _ => Category::Unknown,
@@ -99,13 +89,10 @@ impl Add for Category {
 
     fn add(self, rhs: Self) -> Self::Output {
         if self == rhs {
-            return self
+            self
         } else { 
-            match (self, rhs){
-                (Category::Filter, Category::Patch) => Category::Patch,
-                (Category::Patch, Category::Filter) => Category::Patch,
-                _ => Category::Unknown,
-            }
+            // can not add different categories
+            Category::Unknown
         }
     }
 }
@@ -122,7 +109,7 @@ are available in this library, such as standard illuminants A and D65, Planckian
 display.
  */
 #[wasm_bindgen]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Spectrum {
     pub(crate) data: SVector<f64, NS>,
     pub(crate) cat: Category,
@@ -186,7 +173,7 @@ impl Spectrum {
     # use approx::assert_ulps_eq;
     let data = [0.0, 1.0];
     let wl = [380.0, 780.0];
-    let mut spd = cmt::Spectrum::linear_interpolate(cmt::Category::Filter, &wl, &data).unwrap().values();
+    let mut spd = cmt::Spectrum::linear_interpolate(cmt::Category::Colorant, &wl, &data).unwrap().values();
     assert_ulps_eq!(spd[0], 0.);
     assert_ulps_eq!(spd[100], 0.25);
     assert_ulps_eq!(spd[200], 0.5);
@@ -197,7 +184,7 @@ impl Spectrum {
     // wavelength domain.
     let data = vec![0.0, 1.0, 1.0, 0.0];
     let wl = vec![480.0, 490.0, 570.0, 580.0];
-    let spd = cmt::Spectrum::linear_interpolate(cmt::Category::Filter, &wl, &data).unwrap().values();
+    let spd = cmt::Spectrum::linear_interpolate(cmt::Category::Colorant, &wl, &data).unwrap().values();
     assert_ulps_eq!(spd[0], 0.0);
     assert_ulps_eq!(spd[100], 0.0);
     assert_ulps_eq!(spd[110], 1.0);
@@ -285,7 +272,7 @@ impl Spectrum {
                 else {1.0}
             }
         );
-        Self { data, cat: Category::Filter}
+        Self { data, cat: Category::Colorant}
     }
 
     /// A Gaussian Filter, specified by a central wavelength, and a
@@ -297,32 +284,20 @@ impl Spectrum {
         let data = SVector::<f64,NS>::from_fn(|i,_j|
             gaussian_peak_one((i+380) as f64 * 1E-9, center_m, width_m)
         );
-        Self { data, cat: Category::Filter }
+        Self { data, cat: Category::Colorant }
     }
 
-    /// Spectral transmission of a theoretical grey filter, with a constant
-    /// transmission over a range from 380 to 780 nanometer, with 1 nanometer
-    /// intervals. The transmission value is given as its argument, and should
-    /// be in the range from 0.0 to 1.0.  Values outside this range are clamped
-    /// to 0.0 for negative values, and 1.0 for values greater than 1.0.
-    pub fn gray_filter(gval: f64) -> Self {
-        Self{ 
-            data: SVector::<f64,NS>::repeat(gval.clamp(0.0, 1.0)),
-            cat: Category::Filter,
-        }
-    }
-
-    /// Theoretical spectrum of a perfect grey color patch, consisting of 401
+    /// Theoretical spectrum of a perfect grey colorant, consisting of 401
     /// values equal to the value given in the argument, over a range from 380
     /// to 780 nanometer. Mainly used for color mixing calculations.
     pub fn gray(gval: f64) -> Self {
         Self{ 
             data: SVector::<f64,NS>::repeat(gval.clamp(0.0, 1.0)),
-            cat: Category::Patch,
+            cat: Category::Colorant,
         }
     }
 
-    /// Theoretical spectrum of a perfect white color patch, consisting of 401
+    /// Theoretical spectrum of a perfect white colorant, consisting of 401
     /// 1.0 values over a range from 380 to 780 nanometer. Mainly used for
     /// color mixing calculations.
     pub fn white() -> Self {
@@ -507,9 +482,9 @@ mod spectrum_tests {
     #[test]
     fn test_spectrum_from_rgb(){
         let white = RGB::new(1.0, 1.0, 1.0, None, None).into();
-        approx::assert_ulps_eq!(CIE1931.xyz(&white), CIE1931.xyz_d65(), epsilon = 1E-6);
+        approx::assert_ulps_eq!(CIE1931.xyz(&white, None), CIE1931.xyz_d65(), epsilon = 1E-6);
         let red = Spectrum::srgb(255, 0, 0);
-        assert_ulps_eq!(CIE1931.xyz(&red).chromaticity().as_ref(), &[0.64, 0.33].as_ref(), epsilon = 1E-5);
+        assert_ulps_eq!(CIE1931.xyz(&red, None).chromaticity().as_ref(), &[0.64, 0.33].as_ref(), epsilon = 1E-5);
     }
 
     #[test]
@@ -521,12 +496,12 @@ mod spectrum_tests {
 
     #[test]
     fn test_chromaticity(){
-        let xyz0 = CIE1931.xyz(&D65);
+        let xyz0 = CIE1931.xyz(&D65, None);
         let [x0, y0] = xyz0.chromaticity();
 
         let illuminance = D65.illuminance(&CIE1931);
         let d65 = D65.set_illuminance(&CIE1931, 100.0);
-        let xyz = CIE1931.xyz(&d65);
+        let xyz = CIE1931.xyz(&d65, None);
         let [x, y] = xyz.chromaticity();
     
         assert_ulps_eq!(x0, x);
@@ -590,7 +565,7 @@ impl Spectrum {
     # use approx::assert_ulps_eq;
     let data = [0.0, 1.0];
     let wl = [380.0, 780.0];
-    let mut spd = cmt::Spectrum::linear_interpolate(cmt::Category::Filter, &wl, &data, None).unwrap().values();
+    let mut spd = cmt::Spectrum::linear_interpolate(cmt::Category::Colorant, &wl, &data, None).unwrap().values();
     assert_ulps_eq!(spd[0], 0.);
     assert_ulps_eq!(spd[100], 0.25);
     assert_ulps_eq!(spd[200], 0.5);
@@ -601,7 +576,7 @@ impl Spectrum {
     // wavelength domain.
     let data = vec![0.0, 1.0, 1.0, 0.0];
     let wl = vec![480.0, 490.0, 570.0, 580.0];
-    let spd = cmt::Spectrum::linear_interpolate(cmt::Category::Filter, &wl, &data, None).unwrap().values();
+    let spd = cmt::Spectrum::linear_interpolate(cmt::Category::Colorant, &wl, &data, None).unwrap().values();
     assert_ulps_eq!(spd[0], 0.0);
     assert_ulps_eq!(spd[100], 0.0);
     assert_ulps_eq!(spd[110], 1.0);
@@ -884,14 +859,16 @@ mod tests {
 
     #[test]
     fn ee() {
-        let [x, y ] = CIE1931.xyz(&&Spectrum::equal_energy_illuminant().set_illuminance(&CIE1931, 100.0)).chromaticity();
+        let [x, y ] = CIE1931.xyz(
+            &Spectrum::equal_energy_illuminant().set_illuminance(&CIE1931, 100.0), None).chromaticity();
         assert_ulps_eq!(x, 0.333_3, epsilon = 5E-5);
         assert_ulps_eq!(y, 0.333_3, epsilon = 5E-5);
     }
 
     #[test]
     fn d65() {
-        let [x, y ] = CIE1931.xyz(&Spectrum::d65_illuminant().set_illuminance(&CIE1931, 100.0)).chromaticity();
+        let [x, y ] = CIE1931.xyz(
+            &Spectrum::d65_illuminant().set_illuminance(&CIE1931, 100.0), None).chromaticity();
         // See table T3 CIE15:2004 (calculated with 5nm intervals, instead of 1nm, as used here)
         assert_ulps_eq!(x, 0.312_72, epsilon = 5E-5);
         assert_ulps_eq!(y, 0.329_03, epsilon = 5E-5);
@@ -899,7 +876,7 @@ mod tests {
 
     #[test]
     fn d50() {
-        let [x, y ] = CIE1931.xyz(&Spectrum::d50_illuminant().set_illuminance(&CIE1931, 100.0)).chromaticity();
+        let [x, y ] = CIE1931.xyz(&Spectrum::d50_illuminant().set_illuminance(&CIE1931, 100.0), None).chromaticity();
         // See table T3 CIE15:2004 (calculated with 5nm intervals, instead of 1nm, as used here)
         assert_ulps_eq!(x, 0.345_67, epsilon = 5E-5);
         assert_ulps_eq!(y, 0.358_51, epsilon = 5E-5);
@@ -907,7 +884,7 @@ mod tests {
 
     #[cfg_attr(test, cfg(feature="cie-illuminants"))]
     fn a() {
-        let [x, y ] = CIE1931.xyz(&StdIlluminant::A.spectrum().set_illuminance(&CIE1931, 100.0)).chromaticity();
+        let [x, y ] = CIE1931.xyz(&StdIlluminant::A.spectrum().set_illuminance(&CIE1931, 100.0), None).chromaticity();
         // See table T3 CIE15:2004 (calculated with 5nm intervals, instead of 1nm, as used here)
         assert_ulps_eq!(x, 0.447_58, epsilon = 5E-5);
         assert_ulps_eq!(y, 0.407_45, epsilon = 5E-5);

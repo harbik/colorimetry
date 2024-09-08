@@ -73,8 +73,8 @@ pub enum CmtError {
     RgbDisplayOutOfGamutError,
     #[error("CRI: No illuminant, use 'illuminant(light)' first")]
     CriNoSourceError,
-    #[error("Filter: No match found")]
-    FilterNoMatch,
+    #[error("Colorant: No match found")]
+    ColorantNoMatch,
     #[error("Primaries: Same White Point needed for RGB-transform between Observers")]
     PrimariesRgbTransformWhiteMismatch,
     #[error("Color Matching Function {0} not found")]
@@ -91,8 +91,6 @@ pub enum CmtError {
     ProvideObserverNamesOnly,
     #[error("RgbDisplay: Provide Observer Names only")]
     ProvideOnlyTwoObservers,
-    #[error("Filter: Please provide a valid Json Filter file")]
-    ProvideValidJsonFilter,
     #[error("BoxcarIntegrator: please decrease domain resolution")]
     DomainStepError,
     #[error("Data size Error: need exactly 401 data values")]
@@ -103,6 +101,8 @@ pub enum CmtError {
     RequiresDistinctPoints,
     #[error("Arguments require the identical Standard Observer")]
     RequireSameObserver,
+    #[error("No Reference White values allowed")]
+    NoReferenceWhiteAllowed,
     #[error("Lines do not intersect")]
     NoIntersection,
     #[error("Wavelength out of range")]

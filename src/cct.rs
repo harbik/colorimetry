@@ -97,10 +97,10 @@ impl CCT {
         Self::try_new(cct, tint/1000.0)
     }
 
-    pub fn cct(&self) -> f64 {
+    pub fn t(&self) -> f64 {
         self.0
     }
-    pub fn duv(&self) -> f64 {
+    pub fn d(&self) -> f64 {
         self.1
     }
 
@@ -197,7 +197,7 @@ impl TryFrom<CCT> for XYZ {
         let [u0,v0,m] = iso_temp_line(t);
         let du = m.signum() * d/(m*m+1.0).sqrt();
         let dv = m * du;
-        XYZ::try_from_luv60(u0+du, v0+dv, None, None, None)
+        XYZ::try_from_luv60(u0+du, v0+dv, None, None)
     }
     
 }
@@ -360,4 +360,17 @@ fn test_cct(){
 
 }
 
+#[test]
+fn f1_test(){
+    let xyz_f1 = CIE1931.xyz_std_illuminant(&crate::StdIlluminant::F1);
+    // value from CIE Standard CIE15:2004 Table T8.1
+    approx::assert_ulps_eq!(xyz_f1.cct().unwrap().t(), 6430.0, epsilon = 0.5);
+}
+
+#[test]
+fn f3_1_test(){
+    let xyz_f3_1 = CIE1931.xyz_std_illuminant(&crate::StdIlluminant::F3_1);
+    // value from CIE Standard CIE15:2004 Table T8.1
+    approx::assert_ulps_eq!(xyz_f3_1.cct().unwrap().t(), 2932.0, epsilon = 0.5);
+}
 
