@@ -101,7 +101,7 @@ impl ObserverData {
         static XYZ_STD_ILLUMINANTS : OnceLock<[OnceLock<XYZ>;XYZ_STD_ILLUMINANTS_LEN]> = OnceLock::new();
         let xyz_std_illuminants = XYZ_STD_ILLUMINANTS.get_or_init(||[EMPTY; XYZ_STD_ILLUMINANTS_LEN]);
         *xyz_std_illuminants[*std_illuminant as usize].get_or_init(||{
-            self.xyz(std_illuminant.spectrum(), None)
+            self.xyz(std_illuminant.spectrum(), None).set_illuminance(100.0)
         })
     }
 
@@ -476,13 +476,14 @@ mod obs_test {
     #[test]
     fn test_xyz_from_illuminant_x_fn(){
         let xyz = CIE1931.xyz_from_illuminant_x_fn(&crate::StdIlluminant::D65, |_v|1.0);
-        approx::assert_ulps_eq!(xyz, CIE1931.xyz_d65());
+        approx::assert_ulps_eq!(xyz.set_illuminance(100.0), CIE1931.xyz_d65());
 
     }
     
     #[test]
     fn test_xyz_of_sample_with_standard_illuminant(){
-        let xyz = CIE1931.xyz_of_sample_with_std_illuminant(&crate::StdIlluminant::D65, &crate::Spectrum::white());
+        let xyz = CIE1931.xyz_of_sample_with_std_illuminant(&crate::StdIlluminant::D65, &crate::Spectrum::white())
+        .set_illuminance(100.0);
         approx::assert_ulps_eq!(xyz, CIE1931.xyz_d65());
 
         let xyz = CIE1931.xyz_of_sample_with_std_illuminant(&crate::StdIlluminant::D65, &crate::Spectrum::black());

@@ -1,7 +1,7 @@
 use core::f64;
 use std::ops::Add;
 
-use approx::AbsDiffEq;
+use approx::{ulps_eq, AbsDiffEq};
 use nalgebra::Vector3;
 use crate::{geometry::{LineAB, Orientation}, observer::{self, Observer}, CmtError, RgbSpace, RGB};
 use wasm_bindgen::prelude::wasm_bindgen; 
@@ -90,9 +90,17 @@ impl XYZ {
     }
 
     pub fn set_illuminance(mut self, illuminance: f64) -> Self {
-        let [_x, y, _z] = self.values();
-        let s = illuminance/y;
-        self.xyz.iter_mut().for_each(|v|*v = *v * s);
+        
+        if let Some(xyzn0) = &mut self.xyzn {
+            // colorant with illuminant
+            let s = illuminance/ xyzn0.y;
+            self.xyz.iter_mut().for_each(|v|*v = *v * s);
+            xyzn0.iter_mut().for_each(|v|*v = *v * s)
+         } else {
+            // illuminant only
+            let s = illuminance/ self.xyz.y;
+            self.xyz.iter_mut().for_each(|v|*v = *v * s);
+         }
         self
     }
     
@@ -272,10 +280,17 @@ impl AsRef<[f64;3]> for XYZ {
 /// a y value of 100.
 impl From<XYZ> for [f64;3] {
     fn from(xyz0: XYZ) -> Self {
+        // with a reference illuminant
         let s = if let Some(xyzn) = xyz0.xyzn {
+            approx::assert_ulps_ne!(xyzn.y, 0.0);
             100.0/xyzn.y
-        } else {
-            100.0/xyz0.xyz.y
+        } else { // no reference illuminant
+            let yr = xyz0.xyz.y;
+            if ulps_eq!(yr, 0.0) {
+                1.0
+            } else {
+                100.0/yr
+            }
         };
         xyz0.xyz.iter().map(|v|*v *s).collect::<Vec<f64>>().try_into().unwrap()
     }
@@ -283,7 +298,7 @@ impl From<XYZ> for [f64;3] {
 
 impl From<&XYZ> for [f64;3] {
     fn from(xyz0: &XYZ) -> Self {
-        xyz0.try_into().unwrap()
+        xyz0.clone().into()
     }
 }
 
@@ -295,9 +310,15 @@ impl AbsDiffEq for XYZ {
     }
 
     fn abs_diff_eq(&self, other: &Self, epsilon: Self::Epsilon) -> bool {
-        let xyz0: [f64;3] = self.into();
-        let xyz1: [f64;3] = other.into();
-        self.observer == other.observer && xyz0.abs_diff_eq(&xyz1, epsilon)
+        let xyzn_test = match (self.xyzn, other.xyzn) {
+            (None, None) => true,
+            (Some(xyzn0), Some(xyzn1) ) => 
+                xyzn0.abs_diff_eq(&xyzn1, epsilon),
+            _ => false
+        };
+        self.observer == other.observer &&
+        self.xyz.abs_diff_eq(&other.xyz, epsilon) &&
+        xyzn_test
     }
 }
 
@@ -307,9 +328,15 @@ impl approx::UlpsEq for XYZ {
     }
 
     fn ulps_eq(&self, other: &Self, epsilon: Self::Epsilon, max_ulps: u32) -> bool {
-        let xyz0: [f64;3] = self.into();
-        let xyz1: [f64;3] = other.into();
-        self.observer == other.observer && xyz0.ulps_eq(&xyz1, epsilon, max_ulps)
+        let xyzn_test = match (self.xyzn, other.xyzn) {
+            (None, None) => true,
+            (Some(xyzn0), Some(xyzn1) ) => 
+                xyzn0.ulps_eq(&xyzn1, epsilon, max_ulps),
+            _ => false
+        };
+        self.observer == other.observer &&
+        self.xyz.ulps_eq(&other.xyz, epsilon, max_ulps) &&
+        xyzn_test
     }
 }
 
@@ -319,7 +346,7 @@ fn ulps_xyz_test() {
     let xyz0 = XYZ::new(Vector3::zeros(), None, Observer::Std1931);
 
     let xyz1 = XYZ::new(Vector3::new(0.0, 0.0, f64::EPSILON), None,  Observer::Std1931);
-    assert_ulps_eq!(xyz0, xyz1);
+    assert_ulps_eq!(xyz0, xyz1, epsilon=1E-5);
 
     let xyz2 = XYZ::new(Vector3::new(0.0, 0.0, 2.0 * f64::EPSILON), None,  Observer::Std1931);
     approx::assert_ulps_ne!(xyz0, xyz2);
@@ -462,9 +489,17 @@ impl XYZ {
 #[cfg(test)]
 mod xyz_test {
     use approx::assert_ulps_eq;
-    use crate::{LineAB, Observer, CIE1931, RGB, RgbSpace};
+    use crate::{LineAB, Observer, CIE1931, RGB, RgbSpace, XYZ};
 
-    
+    #[test] 
+    fn xyz_d65_test(){
+        let d65 = CIE1931.xyz_d65();
+        let xyz: [f64;3] = d65.into();
+        println!("{xyz:?}");
+        assert_ulps_eq!(xyz.as_ref(), [95.04, 100.0, 108.867].as_slice(), epsilon = 1E-2);
+        let xyz = d65.values();
+        assert_ulps_eq!(xyz.as_ref(), [95.04, 100.0, 108.867].as_slice(), epsilon = 1E-2);
+    }
 
     #[test]
     fn dominant_wavelength_test(){

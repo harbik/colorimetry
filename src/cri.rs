@@ -58,6 +58,7 @@ impl TryFrom<&Spectrum> for CRI {
     type Error = CmtError;
 
     fn try_from(illuminant: &Spectrum) -> Result<Self, Self::Error> {
+        let illuminant = &illuminant.set_illuminance(&CIE1931, 100.0);
         // dut
         let xyz_dut = CIE1931.xyz(illuminant, None).set_illuminance(100.0);
         let xyz_dut_samples: [XYZ; N_TCS] = 
@@ -68,9 +69,9 @@ impl TryFrom<&Spectrum> for CRI {
                 .try_into().unwrap();
         let cct_dut = xyz_dut.cct()?.t();
         let illuminant_ref = if cct_dut <= 5000.0 {
-            Spectrum::planckian_illuminant(cct_dut)
+            Spectrum::planckian_illuminant(cct_dut).set_illuminance(&CIE1931, 100.0)
         } else {
-            Spectrum::d_illuminant(cct_dut)?
+            Spectrum::d_illuminant(cct_dut)?.set_illuminance(&CIE1931, 100.0)
         };
         // ref
         let xyz_ref = CIE1931.xyz(&illuminant_ref, None).set_illuminance(100.0);
@@ -123,7 +124,7 @@ impl CRI {
 
 #[cfg(test)]
 mod cri_test {
-    use crate::{StdIlluminant, CRI, D50};
+    use crate::{cri::N_TCS, StdIlluminant, CRI, D50};
 
     #[test]
     fn cri_d50(){
@@ -132,9 +133,7 @@ mod cri_test {
          println!("{cri0:?}");
         approx::assert_ulps_eq!(
             cri0.as_ref(), 
-            [
-
-            ].as_ref(), epsilon = 0.05);
+            [100.0;N_TCS].as_ref(), epsilon = 0.05);
     }
 
     #[test]

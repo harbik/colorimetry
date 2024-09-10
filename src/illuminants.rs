@@ -114,7 +114,8 @@ impl Spectrum {
             let m2 = (0.03 - 31.4424 * xd + 30.0717 * yd) / m;
             let mut v = [0.0; CIE_D_S_LEN];
             v.iter_mut().enumerate().for_each(|(i,x)|*x = CIE_D_S[(i,0)] + m1 * CIE_D_S[(i,1)] + m2 * CIE_D_S[(i,2)]);
-            Spectrum::linear_interpolate(Illuminant, &[380.0, 780.0], &v)
+            let s = Spectrum::linear_interpolate(Illuminant, &[380.0, 780.0], &v).unwrap();
+            Ok(s.set_irradiance(1.0))
         }
     }
 }
@@ -124,7 +125,7 @@ impl Spectrum {
 fn test_d_illuminant(){
 
     let s = Spectrum::d_illuminant(6504.0).unwrap();
-    let xyz = crate::CIE1931.xyz(&s, None);
+    let xyz = crate::CIE1931.xyz(&s, None).set_illuminance(100.0);
     approx::assert_ulps_eq!(xyz, crate::CIE1931.xyz_d65(), epsilon = 2E-2);
 }
 
