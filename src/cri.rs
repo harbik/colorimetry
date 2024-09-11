@@ -140,7 +140,7 @@ mod cri_test {
     fn cri_f1(){
         // should be all 100.0
         let cri0: CRI = StdIlluminant::F1.spectrum().try_into().unwrap();
-        // println!("{cri0:?}");
+        println!("{cri0:?}");
         approx::assert_ulps_eq!(cri0.as_ref(), [100.0;crate::cri::N_TCS].as_ref(), epsilon = 0.05);
     }
 

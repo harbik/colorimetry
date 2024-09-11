@@ -24,8 +24,7 @@ phosphor-converted Blue LED and Red LED standard illuminant.
 The Fluorescent `F3_X` series is included here, with X ranging from 1 to 15.
 */
 
-
-use std::vec;
+use std::{ops::Deref, vec};
 use nalgebra::{ArrayStorage, SMatrix};
 use wasm_bindgen::prelude::*;
 

@@ -121,20 +121,49 @@ impl Spectrum {
         if data.len()!=NS {
             Err(crate::CmtError::DataSize401Error)
         } else {
-            Ok(
-                Self {
-                    cat,
-                    data: SVector::<f64, NS>::from_iterator(data.into_iter().copied()),
-                }
-            )
+            if cat == Category::Colorant {
+                Self::try_new_colorant(data)
+            } else {
+                Ok(
+                    Self {
+                        cat,
+                        data: SVector::<f64, NS>::from_iterator(data.into_iter().copied()),
+                    }
+                )
+            }
+        }
+    }
+
+    /// Create a Colorant Spectrum, with data check.
+    /// 
+    /// In this library, the Colorant category represents color filters and color patches, with have spectral values between 0.0 and 1.0.
+    /// This is the preferred way to crete a colorant, as it does a range check.
+    pub fn try_new_colorant(data: &[f64]) -> Result<Self, crate::CmtError> {
+        if data.iter().any(|&v|v<0.0 || v>1.0){
+            Err(CmtError::OutOfRange { name: "Colorant Spectral Value".into(), low: 0.0, high: 1.0 })
+        } else {
+                Ok(
+                    Self {
+                        cat: Category::Colorant,
+                        data: SVector::<f64, NS>::from_iterator(data.into_iter().copied()),
+                    }
+                )
         }
     }
     
-    pub fn set_category(mut self, cat: Category) -> Self {
+    pub fn try_set_category(mut self, cat: Category) -> Result<Self, CmtError> {
+        if self.data.iter().any(|&v|v<0.0 || v>1.0){
+            Err(CmtError::OutOfRange { name: "Colorant Spectral Value".into(), low: 0.0, high: 1.0 })
+        } else {
+            self.cat = cat;
+            Ok(self)
+        }
+    }
+
+    pub fn set_category_unchecked(mut self, cat: Category) -> Self {
         self.cat = cat;
         self
     }
-
     
     /**
     Get the spectral distribution values as an array.
@@ -468,9 +497,11 @@ impl Sum for Spectrum {
 /// not only the CIE 1931 standard observer.
 impl From<RGB> for Spectrum {
     fn from(rgb: RGB) -> Self {
-        let p = &rgb.space.data().0.primaries;
+        let prim = &rgb.space.data().0.primaries;
         let yrgb = rgb.observer.data().rgb2xyz(&rgb.space).row(1);
-        rgb.data.iter().zip(yrgb.iter()).zip(p.iter()).map(|((v,w),s)|*v * *w * *s).sum::<Spectrum>().set_category(Category::Stimulus)
+        let mut s: Spectrum = rgb.data.iter().zip(yrgb.iter()).zip(prim.iter()).map(|((v,w),s)|*v * *w * *s).sum();
+        s.cat = Category::Stimulus;
+        s
     }
 }
 
@@ -482,7 +513,7 @@ mod spectrum_tests {
     #[test]
     fn test_spectrum_from_rgb(){
         let white = RGB::new(1.0, 1.0, 1.0, None, None).into();
-        approx::assert_ulps_eq!(CIE1931.xyz(&white, None), CIE1931.xyz_d65(), epsilon = 1E-6);
+        approx::assert_ulps_eq!(CIE1931.xyz(&white, None), CIE1931.xyz_d65().set_illuminance(100.0), epsilon = 1E-6);
         let red = Spectrum::srgb(255, 0, 0);
         assert_ulps_eq!(CIE1931.xyz(&red, None).chromaticity().as_ref(), &[0.64, 0.33].as_ref(), epsilon = 1E-5);
     }
@@ -614,7 +645,7 @@ impl Spectrum {
 }
 
 
-// Multiplication of two spectra using the `*`-operator, typically for a combinations of an illuminant and a filter or ColorPatch,
+// Multiplication of two spectra using the `*`-operator, typically for a combinations of an illuminant and a colorant
 // or when combining multiple ColorPatchs or filters. Subtractive Mixing.
 impl Mul for Spectrum {
     type Output = Self;
@@ -629,6 +660,20 @@ impl Mul for Spectrum {
     }
 }
 
+// Multiplication of two references to spectra using the `*`-operator, typically for a combinations of an illuminant and a colorant,
+// or when combining multiple colorants, and producing a new spectrum. Subtractive Mixing.
+impl Mul<&Spectrum> for &Spectrum {
+    type Output = Spectrum;
+
+    // multiply two cie spectra
+    fn mul(self, rhs: &Spectrum) -> Self::Output {
+        Self::Output{
+          //  cat: mixed_category(&self, &rhs), 
+            cat: self.cat * rhs.cat,
+            data: self.data.component_mul(&(rhs.data)),
+        }
+    }
+}
 
 impl Mul<f64> for Spectrum {
     /// Multiply a spectrum with a scalar f64 value.

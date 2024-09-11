@@ -22,6 +22,7 @@ use wasm_bindgen::JsValue;
 
 #[cfg(feature="cct")]
 pub mod cct;
+pub mod colorant;
 #[cfg(feature="cri")]
 pub mod cri;
 pub mod data;
@@ -112,7 +113,11 @@ pub enum CmtError {
     #[error("Invalid Chromaticity Values")]
     InvalidChromaticityValues,
     #[error("This Method Requires CIE 1931-based XYZ values")]
-    RequiresCIE1931XYZ
+    RequiresCIE1931XYZ,
+    #[error("Please provide a Reference Illuminant")]
+    NoReferenceIlluminantProvided,
+    #[error("RequiresSameIlluminant")]
+    RequiresSameIlluminant,
 }
 
 impl From<&str> for CmtError {

@@ -45,9 +45,9 @@ The CIE standard requires CCT to be calculated using the CIE 1931 standard obser
 */
 
 use core::f64;
-use std::sync::OnceLock;
+use std::{cmp::max, sync::OnceLock};
 
-use approx::{assert_ulps_eq, relative_eq, ulps_eq, AbsDiffEq, UlpsEq};
+use approx::{assert_ulps_eq, relative_eq, ulps_eq, AbsDiffEq, RelativeEq, UlpsEq};
 
 use crate::{distance_to_line, physics::planck, CmtError, Observer, ObserverData, CIE1931, NS, XYZ};
 
@@ -62,8 +62,21 @@ impl AbsDiffEq for CCT {
     }
 
     fn abs_diff_eq(&self, other: &Self, epsilon: Self::Epsilon) -> bool {
+        // Mired temperature?
         self.0.abs_diff_eq(&other.0, epsilon) &&
         self.1.abs_diff_eq(&other.1, epsilon)
+    }
+}
+
+impl RelativeEq for CCT {
+    fn default_max_relative() -> Self::Epsilon {
+        f64::default_max_relative()
+    }
+
+    fn relative_eq(&self, other: &Self, epsilon: Self::Epsilon, max_relative: Self::Epsilon)
+        -> bool {
+        self.0.relative_eq(&other.0, epsilon, max_relative) &&
+        self.1.relative_eq(&other.1, epsilon, max_relative)
     }
 }
 
@@ -160,9 +173,11 @@ impl TryFrom<XYZ> for CCT {
         }  
         if imlow == 0 { // xyz is in the first interval, or above high temperature limit
             let &[ub, vb, m] = robertson_table(imlow);
+            let d = distance_to_line(u, v, ub, vb, m);
             match distance_to_line(u, v, ub, vb, m){
                 d if ulps_eq!(d,0.0,epsilon=1E-10) => { // at low temp limit
-                    dlow = -0.0;
+                    dlow = 0.0;
+                    dhigh = 1.0;
                     imhigh = 1;
                 }
                 d if d>0.0 => return Err(CmtError::CCTTemperatureTooHigh),
@@ -303,6 +318,17 @@ fn test_ends(){
     let cct: CCT = xyz.try_into().unwrap();
     assert_ulps_eq!(cct, cct0);
 
+    // Temperature  at the low end, should pass...
+    let cct0 = CCT::try_new(1005.0, 0.0).unwrap();
+    let xyz: XYZ = cct0.try_into().unwrap();
+    let cct: CCT = xyz.try_into().unwrap();
+    assert_ulps_eq!(cct, cct0, epsilon = 1E-5);
+
+    // Temperature  at the low end, should pass...
+    let cct0 = CCT::try_new(1E6 - 100.0, 0.0).unwrap();
+    let xyz: XYZ = cct0.try_into().unwrap();
+    let cct: CCT = xyz.try_into().unwrap();
+    approx::assert_abs_diff_eq!(cct, cct0, epsilon=0.2);
 }
 
 #[test]
@@ -353,23 +379,20 @@ fn test_cct(){
         let xyz: XYZ = cct.try_into().unwrap();
         let d = xyz.uv_prime_distance(&xyz0);
         assert_ulps_eq!(d, 0.0, epsilon=5E-8);
-       // println!("{i} {t:.0} {d:.0e}")
-
-
     }
 
 }
 
 #[test]
 fn f1_test(){
-    let xyz_f1 = CIE1931.xyz_std_illuminant(&crate::StdIlluminant::F1);
+    let xyz_f1 = CIE1931.xyz_std_illuminant(&crate::StdIlluminant::F1, None);
     // value from CIE Standard CIE15:2004 Table T8.1
     approx::assert_ulps_eq!(xyz_f1.cct().unwrap().t(), 6430.0, epsilon = 0.5);
 }
 
 #[test]
 fn f3_1_test(){
-    let xyz_f3_1 = CIE1931.xyz_std_illuminant(&crate::StdIlluminant::F3_1);
+    let xyz_f3_1 = CIE1931.xyz_std_illuminant(&crate::StdIlluminant::F3_1, None);
     // value from CIE Standard CIE15:2004 Table T8.1
     approx::assert_ulps_eq!(xyz_f3_1.cct().unwrap().t(), 2932.0, epsilon = 0.5);
 }

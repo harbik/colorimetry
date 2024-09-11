@@ -89,6 +89,19 @@ impl XYZ {
         (*self).into()
     }
 
+    /// Set the illuminance of an illuminant, either for an illuminant directly,
+    /// or for the reference illuminant, in case a color sample XYZ.
+    /// ```
+    /// use crate::colorimetry::{Spectrum, CIE1931, StdIlluminant};
+    /// use approx::assert_ulps_eq;
+    ///
+    /// let d65_xyz = CIE1931.xyz(&Spectrum::d65_illuminant(), None).set_illuminance(100.0);
+    /// assert_ulps_eq!(d65_xyz, CIE1931.xyz_d65());
+    /// 
+    /// let d65_xyz_sample = CIE1931.xyz_of_sample_with_std_illuminant(&StdIlluminant::D65, &Spectrum::white());
+    /// 
+    /// assert_ulps_eq!(d65_xyz_sample, CIE1931.xyz_d65());
+    /// ```
     pub fn set_illuminance(mut self, illuminance: f64) -> Self {
         
         if let Some(xyzn0) = &mut self.xyzn {

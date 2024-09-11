@@ -85,6 +85,7 @@ impl ObserverData {
         XYZ::new(xyz, xyzn, self.tag)
     }
 
+
     /**
         Tristimulus Values for the Standard Illuminants in this library,
         normalized to a luminous value of y = yw = 100.0.
@@ -95,26 +96,31 @@ impl ObserverData {
 
         Values are calculated on first use.
     */
-    pub fn xyz_std_illuminant(&self, std_illuminant: &StdIlluminant) -> XYZ {
+    pub fn xyz_std_illuminant(&self, std_illuminant: &StdIlluminant, illuminance: Option<f64>) -> XYZ {
         const EMPTY:OnceLock<XYZ> = OnceLock::new();
         const XYZ_STD_ILLUMINANTS_LEN: usize = 32;
         static XYZ_STD_ILLUMINANTS : OnceLock<[OnceLock<XYZ>;XYZ_STD_ILLUMINANTS_LEN]> = OnceLock::new();
         let xyz_std_illuminants = XYZ_STD_ILLUMINANTS.get_or_init(||[EMPTY; XYZ_STD_ILLUMINANTS_LEN]);
-        *xyz_std_illuminants[*std_illuminant as usize].get_or_init(||{
-            self.xyz(std_illuminant.spectrum(), None).set_illuminance(100.0)
-        })
+        let xyz = *xyz_std_illuminants[*std_illuminant as usize].get_or_init(||{
+            self.xyz(std_illuminant.spectrum(), None)
+        });
+        if let Some(l) = illuminance {
+            xyz.set_illuminance(l)
+        } else {
+            xyz
+        }
     }
 
     /// XYZ tristimulus values for the CIE standard daylight illuminant D65.
     /// The values are calculated on first use.
     pub fn xyz_d65(&self) -> XYZ {
-        self.xyz_std_illuminant(&StdIlluminant::D65)
+        self.xyz_std_illuminant(&StdIlluminant::D65, Some(100.0))
     }
 
     /// XYZ tristimulus values for the CIE standard daylight illuminant D50.
     /// The values are calculated on first use.
     pub fn xyz_d50(&self) -> XYZ {
-        self.xyz_std_illuminant(&StdIlluminant::D50)
+        self.xyz_std_illuminant(&StdIlluminant::D50, Some(100.0))
     }
 
     /**
@@ -143,23 +149,26 @@ impl ObserverData {
         ```
 
     */
-    pub fn xyz_from_illuminant_x_fn(&self, illuminant: &StdIlluminant, f: impl Fn(f64) -> f64) -> XYZ {
+    pub fn xyz_from_std_illuminant_x_fn(&self, illuminant: &StdIlluminant, f: impl Fn(f64) -> f64) -> XYZ {
         let s = illuminant.spectrum();
-        let xyzn = self.xyz_std_illuminant(illuminant).xyzn;
+        let xyzn = Some(self.xyz_std_illuminant(illuminant, None).xyz);
         let xyz = 
             self.data
                 .column_iter()
                 .zip(s.data.iter())
                 .enumerate()
-                .fold(Vector3::zeros(), |acc, (i, (cmfi, sv))| {
-            acc + cmfi * f(i as f64/(NS -1) as f64).clamp(0.0, 1.0) * *sv
-        });
+                .fold(
+                    Vector3::zeros(),
+                    |acc, (i, (cmfi, sv))| {
+                        acc + cmfi * f(i as f64/(NS -1) as f64).clamp(0.0, 1.0) * *sv
+                    }
+                );
         XYZ {
             xyz: xyz * self.lumconst,
             xyzn,
             observer: self.tag
 
-        }
+        }.set_illuminance(100.0)
     }
 
 
@@ -172,7 +181,7 @@ impl ObserverData {
         Planck's law.  The resulting XYZ value will be normalized to hava a Y value of 100.0
         and yw is set to None.
     */
-    pub fn xyz_from_illuminant_as_fn(&self, f: impl Fn(f64) -> f64) -> XYZ {
+    pub fn xyz_fn_illuminant(&self, f: impl Fn(f64) -> f64) -> XYZ {
         let xyz = self.data.column_iter().enumerate().fold(Vector3::zeros(), |acc, (i, cmf)| {
             acc + cmf * f(i as f64/(NS - 1) as f64)
         });
@@ -190,81 +199,52 @@ impl ObserverData {
     /// `xyz_from_illuminant_as_fn` uses functions over a domain from 0.0 to
     /// 1.0.
     pub fn xyz_planckian_locus(&self, cct: f64) -> XYZ {
-        self.xyz_from_illuminant_as_fn(|l|planck(to_wavelength(l, 0.0, 1.0), cct))
+        self.xyz_fn_illuminant(|l|planck(to_wavelength(l, 0.0, 1.0), cct))
     }
 
     /// The slope of the Plancking locus as a (dX/dT, dY/dT, dZ/dT) contained in
     /// a XYZ object.
     pub fn xyz_planckian_locus_slope(&self, cct: f64) -> XYZ {
-        self.xyz_from_illuminant_as_fn(|l|planck_slope(to_wavelength(l, 0.0, 1.0), cct))
+        self.xyz_fn_illuminant(|l|planck_slope(to_wavelength(l, 0.0, 1.0), cct))
     }
     
 
     /// Calulates Tristimulus values for a sample illuminated with a `StandardIlluminant`.
     /// The values are normalized for a white illuminance of 100 cd/m2.
-    /// The sample spectrum needs to have values between 0.0 and 1.0: values outside this range
-    /// are clamped to zero wehn negative, and to 1.0 when greater than 1.0.
+    /// The sample spectrum needs to have values between 0.0 and 1.0.
     pub fn xyz_of_sample_with_std_illuminant(&self, illuminant: &StdIlluminant, sample: &Spectrum) -> XYZ {
-      //  let ill = illuminant.spectrum();
-        self.xyz_of_sample_with_illuminant(illuminant.spectrum(), sample)
-        /*
-        let mut xyz: Vector3<f64>  = Default::default();
-        for i in 0..NS {
-            let s = sample.data[i].clamp(0.0, 1.0);
-            let l = ill.data[i];
-            xyz +=  l * s * self.data.column(i);
-        }
-        let (_, yabs) = self.xyz_std_illuminant(illuminant);
-        XYZ {
-            data:  xyz * (self.lumconst * 100.0 / *yabs),
-            observer: self.tag,
-            yw: Some(100.0),
-        }
-         */
+        let s = illuminant.spectrum() * sample;
+        let xyzn = self.xyz_std_illuminant(illuminant, None);
+        let xyz = self.xyz(&s, Some(xyzn));
+        xyz.set_illuminance(100.0)
     }
+
 
     /// Calulates Tristimulus values for a sample illuminated with a general illuminant.
     /// The values are normalized for a white illuminance of 100 cd/m2.
     /// The sample spectrum needs to have values between 0.0 and 1.0: values outside this range
     /// are clamped to zero wehn negative, and to 1.0 when greater than 1.0.
-    pub fn xyz_of_sample_with_illuminant(&self, illuminant: &Spectrum, sample: &Spectrum) -> XYZ {
-        let xyzn = self.xyz(illuminant, None).xyz;
-        let mut xyz: Vector3<f64>  = Default::default();
-        for i in 0..NS {
-            let s = sample.data[i].clamp(0.0, 1.0);
-            let l = illuminant.data[i];
-            xyz +=  l * s * self.data.column(i);
-        }
-        XYZ {
-            xyz,
-            xyzn: Some(xyzn),
-            observer: self.tag,
-        }
+    pub fn xyz_of_sample_with_illuminant(&self, illuminant: &Spectrum, colorant: &Spectrum) -> XYZ {
+        let s = illuminant * colorant;
+        let xyzn = self.xyz(illuminant, None);
+        let xyz = self.xyz(&s, Some(xyzn));
+        xyz.set_illuminance(100.0)
     }
-
 
     /// Calculates the L*a*b* CIELAB D65 values of a Colorant, using D65 as an illuminant.
     /// Accepts a Colorant Spectrum only.
     /// Returns f64::NAN's otherwise.
-    pub fn lab_d65(&self, sample: &Spectrum) -> CieLab {
-        if sample.cat != Category::Colorant { // invalid
-            CieLab::new(f64::NAN, f64::NAN, f64::NAN, self.xyz_d65())
-        } else {
-            let &[x, y, z] = self.xyz_of_sample_with_std_illuminant(&StdIlluminant::D65, sample).xyz.as_ref();
-            CieLab::new(x, y, z, self.xyz_d65())
-        }
+    pub fn lab_d65(&self, colorant: &Spectrum) -> CieLab {
+        let xyz0 = self.xyz_of_sample_with_std_illuminant(&StdIlluminant::D65, colorant);
+        CieLab::new(xyz0.xyz, xyz0.xyzn.unwrap())
     }
 
     /// Calculates the L*a*b* CIELAB D50 values of a Colorant, using D65 as an illuminant.
     /// Accepts a Colorant Spectrum only.
     /// Returns f64::NAN's otherwise.
-    pub fn lab_d50(&self, sample: &Spectrum) -> CieLab {
-        if sample.cat != Category::Colorant { // invalid
-            CieLab::new(f64::NAN, f64::NAN, f64::NAN, self.xyz_d65())
-        } else {
-            let &[x, y, z] = self.xyz_of_sample_with_std_illuminant(&StdIlluminant::D50, sample).xyz.as_ref();
-            CieLab::new(x, y, z, self.xyz_d50())
-        }
+    pub fn lab_d50(&self, colorant: &Spectrum) -> CieLab {
+        let xyz0 = self.xyz_of_sample_with_std_illuminant(&StdIlluminant::D50, colorant);
+        CieLab::new(xyz0.xyz, xyz0.xyzn.unwrap())
     }
 
     /// Calculate the Spectral Locus, or (x,y) coordinates of the _horse shoe_,
@@ -407,7 +387,7 @@ impl ObserverData {
 #[cfg(test)]
 mod obs_test {
 
-    use crate::CIE1931;
+    use crate::{StdIlluminant, CIE1931};
     use approx::assert_ulps_eq;
 
     #[test]
@@ -458,8 +438,14 @@ mod obs_test {
     #[test]
     fn test_xyz_std_illuminants(){
         use crate::xyz::XYZ;
-        let XYZ{xyz, xyzn, observer} = CIE1931.xyz_std_illuminant(&crate::StdIlluminant::D65);
-        println!("{xyz:?} {xyzn:?}");
+        use nalgebra as na;
+        let XYZ{
+            xyz, 
+            xyzn, 
+            observer
+        } = CIE1931.xyz_std_illuminant(&StdIlluminant::D65, Some(100.0));
+        approx::assert_ulps_eq!(xyz, na::Vector3::new(95.04, 100.0, 108.86), epsilon=1E-2);
+        assert!(xyzn == None);
     }
     
     #[test]
@@ -475,19 +461,24 @@ mod obs_test {
     
     #[test]
     fn test_xyz_from_illuminant_x_fn(){
-        let xyz = CIE1931.xyz_from_illuminant_x_fn(&crate::StdIlluminant::D65, |_v|1.0);
-        approx::assert_ulps_eq!(xyz.set_illuminance(100.0), CIE1931.xyz_d65());
+        let xyz = CIE1931.xyz_from_std_illuminant_x_fn(&StdIlluminant::D65, |_v|1.0);
+        let d65xyz =  CIE1931.xyz_d65().xyz;
+        approx::assert_ulps_eq!(xyz, crate::XYZ::new(d65xyz, Some(d65xyz), crate::Observer::Std1931));
 
     }
     
     #[test]
     fn test_xyz_of_sample_with_standard_illuminant(){
-        let xyz = CIE1931.xyz_of_sample_with_std_illuminant(&crate::StdIlluminant::D65, &crate::Spectrum::white())
-        .set_illuminance(100.0);
-        approx::assert_ulps_eq!(xyz, CIE1931.xyz_d65());
+        use crate::{XYZ, StdIlluminant::D65 as d65};
+        let xyz = 
+            CIE1931
+                .xyz_of_sample_with_std_illuminant(&d65, &crate::Spectrum::white());
+        approx::assert_ulps_eq!(xyz, CIE1931.xyz_from_std_illuminant_x_fn(&d65, |_|1.0));
 
-        let xyz = CIE1931.xyz_of_sample_with_std_illuminant(&crate::StdIlluminant::D65, &crate::Spectrum::black());
-        approx::assert_ulps_eq!(xyz, crate::XYZ::default());
+        let xyz = 
+            CIE1931
+                .xyz_of_sample_with_std_illuminant(&d65, &crate::Spectrum::black());
+        approx::assert_ulps_eq!(xyz, CIE1931.xyz_from_std_illuminant_x_fn(&d65, |_|0.0));
     }
     
 }
