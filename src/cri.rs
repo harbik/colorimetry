@@ -11,7 +11,7 @@ use nalgebra::{ArrayStorage, SMatrix};
 use wasm_bindgen::prelude::*;
 
 
-use crate::{CmtError, RgbSpace, Spectrum, CIE1931, XYZ};
+use crate::{CmtError, Colorant, Illuminant, RgbSpace, Spectrum, CIE1931, XYZ};
 
 /// Nummer of Test Color Sample Spectra
 const N_TCS: usize = 14;
@@ -21,10 +21,10 @@ const N_TCS: usize = 14;
 /// The data for these is obtained from the <https:://cie.co.at> site's dataset library, on Sep 4, 2024.
 /// The dataset uses a 360-830-5nm domain, included below in the 'TCS5' static matrix truncated to a domain from 380-780-5nm.
 /// Here the dataset is converted to an array of 14 Spectra, using linear interpolation.
-pub static TCS: LazyLock<[Spectrum;N_TCS]> = LazyLock::new(|| {
-        let s_vec: Vec<Spectrum> = TCS5.column_iter().map(|s|
-            Spectrum::linear_interpolate(crate::Category::Colorant, &[380.0, 780.0],s.as_slice()).unwrap()).collect();
-        s_vec[0..14].try_into().unwrap()
+pub static TCS: LazyLock<[Colorant;N_TCS]> = LazyLock::new(|| {
+        let s_vec: Vec<Colorant> = TCS5.column_iter().map(|s|
+            Colorant(Spectrum::linear_interpolate(&[380.0, 780.0],s.as_slice()).unwrap())).collect();
+        s_vec.try_into().unwrap()
     }
 );
 
@@ -54,11 +54,11 @@ pub struct CRI([f64;N_TCS]);
 /// 
 /// Can fail, for example if the Spectrum's correlated color temperature is out of range.
 /// Uses CIE1931, and requires "cct"-feature.
-impl TryFrom<&Spectrum> for CRI {
+impl TryFrom<&Illuminant> for CRI {
     type Error = CmtError;
 
-    fn try_from(illuminant: &Spectrum) -> Result<Self, Self::Error> {
-        let illuminant = &illuminant.set_illuminance(&CIE1931, 100.0);
+    fn try_from(illuminant: &Illuminant) -> Result<Self, Self::Error> {
+        let illuminant = &illuminant.clone().set_illuminance(&CIE1931, 100.0);
         // dut
         let xyz_dut = CIE1931.xyz(illuminant, None).set_illuminance(100.0);
         let xyz_dut_samples: [XYZ; N_TCS] = 
@@ -69,9 +69,9 @@ impl TryFrom<&Spectrum> for CRI {
                 .try_into().unwrap();
         let cct_dut = xyz_dut.cct()?.t();
         let illuminant_ref = if cct_dut <= 5000.0 {
-            Spectrum::planckian_illuminant(cct_dut).set_illuminance(&CIE1931, 100.0)
+            Illuminant::planckian(cct_dut).set_illuminance(&CIE1931, 100.0)
         } else {
-            Spectrum::d_illuminant(cct_dut)?.set_illuminance(&CIE1931, 100.0)
+            Illuminant::d_illuminant(cct_dut)?.set_illuminance(&CIE1931, 100.0)
         };
         // ref
         let xyz_ref = CIE1931.xyz(&illuminant_ref, None).set_illuminance(100.0);
@@ -108,7 +108,7 @@ impl AsRef<[f64]> for CRI {
 }
 
 impl CRI {
-    pub fn try_new(s: &Spectrum) -> Result<Self, CmtError> {
+    pub fn try_new(s: &Illuminant) -> Result<Self, CmtError> {
         s.try_into()
     }
 }
@@ -139,7 +139,7 @@ mod cri_test {
     #[test]
     fn cri_f1(){
         // should be all 100.0
-        let cri0: CRI = StdIlluminant::F1.spectrum().try_into().unwrap();
+        let cri0: CRI = StdIlluminant::F1.illuminant().try_into().unwrap();
         println!("{cri0:?}");
         approx::assert_ulps_eq!(cri0.as_ref(), [100.0;crate::cri::N_TCS].as_ref(), epsilon = 0.05);
     }
@@ -147,7 +147,7 @@ mod cri_test {
     #[test]
     fn cri_f3_1(){
         // should be all 100.0
-        let cri0: CRI = StdIlluminant::F3_1.spectrum().try_into().unwrap();
+        let cri0: CRI = StdIlluminant::F3_1.illuminant().try_into().unwrap();
         println!("{cri0:?}");
         approx::assert_ulps_eq!(
             cri0.as_ref(), 

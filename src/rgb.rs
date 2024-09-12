@@ -1,8 +1,9 @@
 use std::sync::OnceLock;
 use approx::AbsDiffEq;
+use colored::Color;
 use nalgebra::{Matrix3, Vector3};
 use wasm_bindgen::prelude::wasm_bindgen;
-use crate::{spectrum::Spectrum, xyz::XYZ, Category, Observer, RgbSpace, CIE1931};
+use crate::{spectrum::Spectrum, xyz::XYZ, Colorant, Illuminant, Observer, RgbSpace, Stimulus, CIE1931};
 
 
 /// Representation of a color stimulus in a set of Red, Green, and Blue (RGB) values,
@@ -156,16 +157,15 @@ impl approx::UlpsEq for RGB {
     }
 }
 
-pub fn gaussian_filtered_primaries(white: &Spectrum, red: [f64;3], green: [f64;2], blue: [f64;2]) -> [Spectrum; 3] {
+pub fn gaussian_filtered_primaries(white: &Spectrum, red: [f64;3], green: [f64;2], blue: [f64;2]) -> [Stimulus; 3] {
     let [rc, rw, f] = red;
     let [gc, gw]=  green;
     let [bc, bw]=  blue;
-    let cat = Category::Stimulus;
     [
-        Spectrum::gaussian_filter(bc, bw).mul(white).set_illuminance(&CIE1931, 100.0).mul_f64(f) +
-        Spectrum::gaussian_filter(rc, rw).mul(white).set_illuminance(&CIE1931, 100.0).mul_f64(1.0-f).set_category_unchecked(cat),
-        Spectrum::gaussian_filter(gc, gw).mul(white).set_illuminance(&CIE1931, 100.0).set_category_unchecked(cat),
-        Spectrum::gaussian_filter(bc, bw).mul(white).set_illuminance(&CIE1931, 100.0).set_category_unchecked(cat),
+        Stimulus(Stimulus(Colorant::gaussian(bc, bw).mul(white)).set_luminance(&CIE1931, 100.0).0.mul_f64(f) +
+        Stimulus(Colorant::gaussian(rc, rw).mul(white)).set_luminance(&CIE1931, 100.0).0.mul_f64(1.0-f)),
+        Stimulus(Colorant::gaussian(gc, gw).mul(white)).set_luminance(&CIE1931, 100.0),
+        Stimulus(Colorant::gaussian(bc, bw).mul(white)).set_luminance(&CIE1931, 100.0),
     ]
 }
 

@@ -5,16 +5,19 @@
 
 #[cfg(feature="cct")]
 pub use cct::*;
+pub use colorant::*;
 #[cfg(feature="cri")]
 pub use cri::*;
 pub use data::*;
 pub use geometry::*;
+pub use illuminant::*;
 pub use observer::*;
 pub use physics::*;
 pub use rgb::*;
 pub use rgbspace::*;
 pub use spectrum::*;
-pub use illuminants::*;
+pub use std_illuminants::*;
+pub use stimulus::*;
 pub use lab::*;
 pub use xyz::*;
 use wasm_bindgen::JsValue;
@@ -28,13 +31,15 @@ pub mod cri;
 pub mod data;
 pub mod gamma;
 pub mod geometry;
+pub mod illuminant;
 pub mod lab;
 pub mod observer;
 pub mod physics;
 pub mod rgb;
 pub mod rgbspace;
 pub mod spectrum;
-pub mod illuminants;
+pub mod std_illuminants;
+pub mod stimulus;
 pub mod xyz;
 
 

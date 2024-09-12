@@ -3,7 +3,7 @@ use std::{collections::HashMap, sync::{LazyLock, OnceLock}};
 
 use strum_macros::EnumIter;
 use wasm_bindgen::prelude::wasm_bindgen;
-use crate::{gamma::GammaCurve, gaussian_filtered_primaries, spectrum::Spectrum, StdIlluminant, D65};
+use crate::{gamma::GammaCurve, gaussian_filtered_primaries, spectrum::Spectrum, Illuminant, StdIlluminant, Stimulus, D65};
 
 
 // The display P3 red coordinate is outside the CIE 1931 gamut using the CIE 1931 1 nanometer
@@ -77,8 +77,8 @@ can also be optimized for special observers by considering an observer's age or
 health conditions.
 */
 pub struct RgbSpaceData {
-    pub(crate) primaries: [Spectrum;3],
-    pub(crate) white: Spectrum,
+    pub(crate) primaries: [Stimulus;3],
+    pub(crate) white: Illuminant,
     pub(crate) gamma: GammaCurve,
 }
 
@@ -95,7 +95,7 @@ impl RgbSpaceData {
     vice versa (see the `rgb2xyz(rgbid: &RgbSpaceId)` and `xyz2rgb(rgbid: &RgbSpaceId)`
     methods of `Observer`).
     */
-    pub fn new(primaries: [Spectrum;3], white: Spectrum, gamma: GammaCurve) -> Self {
+    pub fn new(primaries: [Stimulus;3], white: Illuminant, gamma: GammaCurve) -> Self {
         Self { primaries, white, gamma }
     }
 
@@ -124,7 +124,7 @@ impl RgbSpaceData {
 
         SRGB.get_or_init(||{
             let primaries = gaussian_filtered_primaries(&D65, RED, GREEN, BLUE);
-            let white = Spectrum::d65_illuminant();
+            let white = Illuminant::d65();
             let gamma = GammaCurve::new(vec![2.4, 1.0/1.055, 0.055/1.055, 1.0/12.92, 0.04045]);
             Self { primaries, white, gamma}
         })
@@ -150,7 +150,7 @@ impl RgbSpaceData {
 
         ADOBE_RGB.get_or_init(||{
             let primaries = gaussian_filtered_primaries(&D65, RED, GREEN, BLUE);
-            let white = Spectrum::d65_illuminant();
+            let white = Illuminant::d65();
             let gamma = GammaCurve::new(vec![563.0/256.0]);
                 // See https://en.wikipedia.org/wiki/Adobe_RGB_color_space#ICC_PCS_color_image_encoding
             Self { primaries, white, gamma}
@@ -177,7 +177,7 @@ impl RgbSpaceData {
 
         DISPLAY_P3.get_or_init(||{
             let primaries = gaussian_filtered_primaries(&D65, RED, GREEN, BLUE);
-            let white = Spectrum::d65_illuminant();
+            let white = Illuminant::d65();
             let gamma = GammaCurve::new(vec![2.4, 1.0/1.055, 0.055/1.055, 1.0/12.92, 0.04045]);
             Self { primaries, white, gamma}
         })

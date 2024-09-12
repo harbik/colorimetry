@@ -2,7 +2,7 @@ use core::f64;
 use std::sync::OnceLock;
 use wasm_bindgen::prelude::wasm_bindgen;
 use nalgebra::{Matrix3, SMatrix, Vector3};
-use crate::{lab::CieLab, to_wavelength, physics::{planck, planck_slope, planck_slope_c2}, spectrum::{Category, Spectrum, NS}, xyz::XYZ, CmtError, LineAB, RgbSpace, StdIlluminant};
+use crate::{lab::CieLab, physics::{planck, planck_slope, planck_slope_c2}, spectrum::{Spectrum, NS}, to_wavelength, xyz::XYZ, CmtError, Colorant, Illuminant, LineAB, RgbSpace, StdIlluminant};
 
 
 
@@ -72,7 +72,7 @@ impl ObserverData {
 
     */
     pub fn xyz(&self, s: &Spectrum, ref_white: Option<XYZ>) -> XYZ {
-        let xyz = self.data * s.data * self.lumconst;
+        let xyz = self.data * s.0 * self.lumconst;
         let xyzn = if let Some (rhs)= ref_white {
             if let Some(rhs_xyzn) = rhs.xyzn {
                 Some(rhs_xyzn)
@@ -102,7 +102,7 @@ impl ObserverData {
         static XYZ_STD_ILLUMINANTS : OnceLock<[OnceLock<XYZ>;XYZ_STD_ILLUMINANTS_LEN]> = OnceLock::new();
         let xyz_std_illuminants = XYZ_STD_ILLUMINANTS.get_or_init(||[EMPTY; XYZ_STD_ILLUMINANTS_LEN]);
         let xyz = *xyz_std_illuminants[*std_illuminant as usize].get_or_init(||{
-            self.xyz(std_illuminant.spectrum(), None)
+            self.xyz(std_illuminant.illuminant(), None)
         });
         if let Some(l) = illuminance {
             xyz.set_illuminance(l)
@@ -150,12 +150,12 @@ impl ObserverData {
 
     */
     pub fn xyz_from_std_illuminant_x_fn(&self, illuminant: &StdIlluminant, f: impl Fn(f64) -> f64) -> XYZ {
-        let s = illuminant.spectrum();
+        let s = illuminant.illuminant();
         let xyzn = Some(self.xyz_std_illuminant(illuminant, None).xyz);
         let xyz = 
             self.data
                 .column_iter()
-                .zip(s.data.iter())
+                .zip(s.0.0.iter())
                 .enumerate()
                 .fold(
                     Vector3::zeros(),
@@ -212,8 +212,8 @@ impl ObserverData {
     /// Calulates Tristimulus values for a sample illuminated with a `StandardIlluminant`.
     /// The values are normalized for a white illuminance of 100 cd/m2.
     /// The sample spectrum needs to have values between 0.0 and 1.0.
-    pub fn xyz_of_sample_with_std_illuminant(&self, illuminant: &StdIlluminant, sample: &Spectrum) -> XYZ {
-        let s = illuminant.spectrum() * sample;
+    pub fn xyz_of_sample_with_std_illuminant(&self, illuminant: &StdIlluminant, sample: &Colorant) -> XYZ {
+        let s = illuminant.illuminant().0 * sample.0;
         let xyzn = self.xyz_std_illuminant(illuminant, None);
         let xyz = self.xyz(&s, Some(xyzn));
         xyz.set_illuminance(100.0)
@@ -224,8 +224,8 @@ impl ObserverData {
     /// The values are normalized for a white illuminance of 100 cd/m2.
     /// The sample spectrum needs to have values between 0.0 and 1.0: values outside this range
     /// are clamped to zero wehn negative, and to 1.0 when greater than 1.0.
-    pub fn xyz_of_sample_with_illuminant(&self, illuminant: &Spectrum, colorant: &Spectrum) -> XYZ {
-        let s = illuminant * colorant;
+    pub fn xyz_of_sample_with_illuminant(&self, illuminant: &Illuminant, colorant: &Colorant) -> XYZ {
+        let s = illuminant.0 * colorant.0;
         let xyzn = self.xyz(illuminant, None);
         let xyz = self.xyz(&s, Some(xyzn));
         xyz.set_illuminance(100.0)
@@ -234,7 +234,7 @@ impl ObserverData {
     /// Calculates the L*a*b* CIELAB D65 values of a Colorant, using D65 as an illuminant.
     /// Accepts a Colorant Spectrum only.
     /// Returns f64::NAN's otherwise.
-    pub fn lab_d65(&self, colorant: &Spectrum) -> CieLab {
+    pub fn lab_d65(&self, colorant: &Colorant) -> CieLab {
         let xyz0 = self.xyz_of_sample_with_std_illuminant(&StdIlluminant::D65, colorant);
         CieLab::new(xyz0.xyz, xyz0.xyzn.unwrap())
     }
@@ -242,7 +242,7 @@ impl ObserverData {
     /// Calculates the L*a*b* CIELAB D50 values of a Colorant, using D65 as an illuminant.
     /// Accepts a Colorant Spectrum only.
     /// Returns f64::NAN's otherwise.
-    pub fn lab_d50(&self, colorant: &Spectrum) -> CieLab {
+    pub fn lab_d50(&self, colorant: &Colorant) -> CieLab {
         let xyz0 = self.xyz_of_sample_with_std_illuminant(&StdIlluminant::D50, colorant);
         CieLab::new(xyz0.xyz, xyz0.xyzn.unwrap())
     }
@@ -472,12 +472,12 @@ mod obs_test {
         use crate::{XYZ, StdIlluminant::D65 as d65};
         let xyz = 
             CIE1931
-                .xyz_of_sample_with_std_illuminant(&d65, &crate::Spectrum::white());
+                .xyz_of_sample_with_std_illuminant(&d65, &crate::Colorant::white());
         approx::assert_ulps_eq!(xyz, CIE1931.xyz_from_std_illuminant_x_fn(&d65, |_|1.0));
 
         let xyz = 
             CIE1931
-                .xyz_of_sample_with_std_illuminant(&d65, &crate::Spectrum::black());
+                .xyz_of_sample_with_std_illuminant(&d65, &crate::Colorant::black());
         approx::assert_ulps_eq!(xyz, CIE1931.xyz_from_std_illuminant_x_fn(&d65, |_|0.0));
     }
     

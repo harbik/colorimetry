@@ -1,6 +1,6 @@
 use argmin::{core::{CostFunction, Executor, State, TerminationReason}, solver::neldermead::NelderMead};
 use colored::Colorize;
-use colorimetry::{Spectrum, StdIlluminant, CIE1931, XYZ};
+use colorimetry::{Colorant, StdIlluminant, CIE1931, XYZ};
 use colorimetry::XY_PRIMARIES;
 
 
@@ -26,7 +26,7 @@ impl CostFunction for Gauss{
 
     fn cost(&self, param: &Self::Param) -> Result<Self::Output, argmin::core::Error> {
         let [l, w] = param.clone().try_into().unwrap();
-        let [xt, yt] = CIE1931.xyz_of_sample_with_std_illuminant(&StdIlluminant::D65, &Spectrum::gaussian_filter(l, w)).chromaticity();
+        let [xt, yt] = CIE1931.xyz_of_sample_with_std_illuminant(&StdIlluminant::D65, &Colorant::gaussian(l, w)).chromaticity();
       //  println!("({l},{w}) cost: {xt:.4}, {yt:.4}");
         Ok((xt-self.x).hypot(yt-self.y))
     }
@@ -54,7 +54,7 @@ impl CostFunction for GaussWithAnchor{
 
     fn cost(&self, param: &Self::Param) -> Result<Self::Output, argmin::core::Error> {
         let [l, w, c]: [f64;3] = param.clone().try_into().unwrap(); 
-        let r = CIE1931.xyz_of_sample_with_std_illuminant(&StdIlluminant::D65, &Spectrum::gaussian_filter(l, w)).set_illuminance(100.0);
+        let r = CIE1931.xyz_of_sample_with_std_illuminant(&StdIlluminant::D65, &Colorant::gaussian(l, w)).set_illuminance(100.0);
         let t = c * self.anchor + (1.0-c) * r;
         let [xt, yt] = t.chromaticity();
         Ok((xt-self.x).hypot(yt-self.y))
