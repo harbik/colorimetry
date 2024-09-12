@@ -78,7 +78,7 @@ health conditions.
 */
 pub struct RgbSpaceData {
     pub(crate) primaries: [Stimulus;3],
-    pub(crate) white: Illuminant,
+    pub(crate) white: StdIlluminant,
     pub(crate) gamma: GammaCurve,
 }
 
@@ -95,7 +95,7 @@ impl RgbSpaceData {
     vice versa (see the `rgb2xyz(rgbid: &RgbSpaceId)` and `xyz2rgb(rgbid: &RgbSpaceId)`
     methods of `Observer`).
     */
-    pub fn new(primaries: [Stimulus;3], white: Illuminant, gamma: GammaCurve) -> Self {
+    pub fn new(primaries: [Stimulus;3], white: StdIlluminant, gamma: GammaCurve) -> Self {
         Self { primaries, white, gamma }
     }
 
@@ -124,7 +124,7 @@ impl RgbSpaceData {
 
         SRGB.get_or_init(||{
             let primaries = gaussian_filtered_primaries(&D65, RED, GREEN, BLUE);
-            let white = Illuminant::d65();
+            let white = StdIlluminant::D65;
             let gamma = GammaCurve::new(vec![2.4, 1.0/1.055, 0.055/1.055, 1.0/12.92, 0.04045]);
             Self { primaries, white, gamma}
         })
@@ -150,7 +150,7 @@ impl RgbSpaceData {
 
         ADOBE_RGB.get_or_init(||{
             let primaries = gaussian_filtered_primaries(&D65, RED, GREEN, BLUE);
-            let white = Illuminant::d65();
+            let white = StdIlluminant::D65;
             let gamma = GammaCurve::new(vec![563.0/256.0]);
                 // See https://en.wikipedia.org/wiki/Adobe_RGB_color_space#ICC_PCS_color_image_encoding
             Self { primaries, white, gamma}
@@ -177,7 +177,7 @@ impl RgbSpaceData {
 
         DISPLAY_P3.get_or_init(||{
             let primaries = gaussian_filtered_primaries(&D65, RED, GREEN, BLUE);
-            let white = Illuminant::d65();
+            let white = StdIlluminant::D65;
             let gamma = GammaCurve::new(vec![2.4, 1.0/1.055, 0.055/1.055, 1.0/12.92, 0.04045]);
             Self { primaries, white, gamma}
         })
@@ -197,7 +197,7 @@ mod rgbspace_tests {
         for space in RgbSpace::iter() {
             let (rgbspace, rgbstr) = space.data();
             for i in 0..3 {
-                let xy = CIE1931.xyz(&rgbspace.primaries[i], None).chromaticity();
+                let xy = CIE1931.xyz_raw(&rgbspace.primaries[i], None).chromaticity();
                 let xywant = XY_PRIMARIES[rgbstr].0[i];
                 assert_ulps_eq!(xy.as_ref(), xywant.as_ref(), epsilon = 1E-5);
 

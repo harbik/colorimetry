@@ -217,7 +217,7 @@ impl Illuminant {
 fn test_d_illuminant(){
 
     let s = Illuminant::d_illuminant(6504.0).unwrap();
-    let xyz = crate::CIE1931.xyz(&s, None).set_illuminance(100.0);
+    let xyz = crate::CIE1931.xyz_raw(&s, None).set_illuminance(100.0);
     approx::assert_ulps_eq!(xyz, crate::CIE1931.xyz_d65(), epsilon = 2E-2);
 }
 

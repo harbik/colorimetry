@@ -28,7 +28,7 @@ pub struct RGB {
     /// other standard observers, such as the CIE 2015 cone fundamentals based
     /// observer, to improve color management quality.
     pub(crate) observer: Observer,
-    pub(crate) data: Vector3<f64>,
+    pub(crate) rgb: Vector3<f64>,
 }
 
 
@@ -40,7 +40,7 @@ impl RGB {
     pub fn new(r: f64, g:f64, b:f64, observer: Option<Observer>, space: Option<RgbSpace>) -> Self {
         let observer = observer.unwrap_or_default();
         let space = space.unwrap_or_default();
-        RGB {data:Vector3::new(r, g, b), observer, space }
+        RGB {rgb:Vector3::new(r, g, b), observer, space }
     }
 
     /// Construct a RGB instance from red, green, and blue u8 values in the range from 0 to 255.
@@ -64,11 +64,9 @@ impl RGB {
     }
 
     pub fn from_xyz(xyz: XYZ, space: RgbSpace) -> Self {
-        static XYZ2RGB: OnceLock<Matrix3<f64>> = OnceLock::new();
-        let xyz2rgb = XYZ2RGB.get_or_init(||{
-            todo!()
-        });
-        let &[r, g, b] = (xyz2rgb * xyz.xyz).as_ref();
+        let xyz2rgb = xyz.observer.data().xyz2rgb(space);
+        let xyz0 = xyz.xyz.unwrap_or(xyz.xyzn);
+        let &[r, g, b] = (xyz2rgb * xyz0).as_ref();
         RGB::new(r, g, b, Some(xyz.observer), Some(space))
 
     }
@@ -76,11 +74,12 @@ impl RGB {
     /// Converts the RGB value to a tri-stimulus XYZ value
     pub fn xyz(&self) -> XYZ {
         const YW: f64 = 100.0;
-        let data = self.observer.data().rgb2xyz(&self.space) * self.data;
+        let xyzn = self.observer.data().xyz(&self.space.data().0.white, None).set_illuminance(100.0).xyzn;
+        let xyz = self.observer.data().rgb2xyz(&self.space) * self.rgb;
         XYZ {
             observer: self.observer,
-            xyz: data.map(|v|v*YW),
-            xyzn: None
+            xyz: Some(xyz.map(|v|v*YW)),
+            xyzn
         }
     }
 
@@ -123,14 +122,14 @@ mod rgb_tests {
 
 impl AsRef<Vector3<f64>> for RGB {
     fn as_ref(&self) -> &Vector3<f64> {
-        &self.data
+        &self.rgb
     }
 }
 
 /// Clamped RGB values as a u8 array. Uses gamma function.
 impl From<RGB> for [u8;3] {
     fn from(rgb: RGB) -> Self {
-        let data: &[f64;3] =rgb.data.as_ref();
+        let data: &[f64;3] =rgb.rgb.as_ref();
         data.map(|v|(rgb.space.data().0.gamma.encode(v.clamp(0.0, 1.0))*255.0).round() as u8)
     }
 }
@@ -143,7 +142,7 @@ impl AbsDiffEq for RGB {
     }
 
     fn abs_diff_eq(&self, other: &Self, epsilon: Self::Epsilon) -> bool {
-        self.observer == other.observer && self.data.abs_diff_eq(&other.data, epsilon) 
+        self.observer == other.observer && self.rgb.abs_diff_eq(&other.rgb, epsilon) 
     }
 }
 
@@ -153,7 +152,7 @@ impl approx::UlpsEq for RGB {
     }
 
     fn ulps_eq(&self, other: &Self, epsilon: Self::Epsilon, max_ulps: u32) -> bool {
-        self.observer == other.observer && self.data.ulps_eq(&other.data, epsilon, max_ulps)
+        self.observer == other.observer && self.rgb.ulps_eq(&other.rgb, epsilon, max_ulps)
     }
 }
 

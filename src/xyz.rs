@@ -9,15 +9,16 @@ use wasm_bindgen::prelude::wasm_bindgen;
 
 #[wasm_bindgen]
 #[derive(Clone, Copy, Debug, PartialEq)]
-/// A set of CIE XYZ Tristimulus values, associated with a Standard Observer.
-/// They are calculated using the spectrum of a Stimulus, such as beam of light
-/// reflected from a color patch, or emitted from a pixel of a display.
-/// XYZ values are not often used directly, but form the basis for many colorimetric models,
-/// such as CIELAB and CIECAM.
+/// A set of two CIE XYZ Tristimulus values, associated with a Standard Observer.
+/// 
+/// One is associated with an illuminant or a reference white, denoted by the fieldname `xyzn`, and
+/// a second, optional value, a set of tristimulus values for a stimulus, or in colloqial language,
+/// a color sensation, when looking at an object.  XYZ values are not often used directly, but form
+/// the basis for many colorimetric models, such as CIELAB and CIECAM.
 pub struct XYZ {
      pub(crate) observer: Observer,
-     pub(crate) xyz:  Vector3<f64>,
-     pub(crate) xyzn:  Option<Vector3<f64>>, // xyz values of an optional white reference 
+     pub(crate) xyzn:  Vector3<f64>, // illuminant values
+     pub(crate) xyz:  Option<Vector3<f64>>, // stimulus values
 }
 
 
@@ -25,18 +26,14 @@ impl XYZ {
 
     /// Define a set of XYZ-values directly, using an identifier for its
     /// associated observer, such as `Cie::Std1931` or `Cie::Std2015`.
-    pub fn new(xyz: Vector3<f64>, xyzn: Option<Vector3<f64>>, observer: Observer) -> Self {
+    pub fn new(xyzn: Vector3<f64>, xyz: Option<Vector3<f64>>, observer: Observer) -> Self {
         Self { observer, xyz, xyzn} 
     }
     
     /// Create tristimulus values from a chromaticity value, with optional Luminous Value l, and
     /// optional white reference value yw.
     /// 
-    /// For illuminants yw = None, and l is its absolute illuminance value.
-    /// If no absolute illuminance value is given, it is set to 100.0.
-    /// 
-    /// For color patches yw is typically set to 100, which is the default here.
-    /// 
+    /// This produces a illuminant XYZ value, with xyz value set as xyzn.
     pub fn try_from_chromaticity(x: f64, y:f64, l: Option<f64>, observer: Option<Observer>) -> Result<XYZ, CmtError> {
         let l = l.unwrap_or(100.0);
         let observer = observer.unwrap_or_default();
@@ -62,8 +59,8 @@ impl XYZ {
     /// Used for adding illuminants.
     pub fn try_add(&self, other: XYZ) -> Result<XYZ, CmtError> {
         if self.observer == other.observer {
-            let data = self.xyz + other.xyz;
-            match (self.xyzn, other.xyzn) {
+            let data = self.xyzn + other.xyzn;
+            match (self.xyz, other.xyz) {
                (None, None) => Ok(XYZ::new(data, None, self.observer)),
                 _ => Err(CmtError::NoReferenceWhiteAllowed)
             }
@@ -103,31 +100,28 @@ impl XYZ {
     /// assert_ulps_eq!(d65_xyz_sample, CIE1931.xyz_d65());
     /// ```
     pub fn set_illuminance(mut self, illuminance: f64) -> Self {
-        
-        if let Some(xyzn0) = &mut self.xyzn {
+        let s = illuminance/self.xyzn.y;
+        self.xyzn.iter_mut().for_each(|v|*v = *v * s);
+        if let Some(xyz0) = &mut self.xyz {
             // colorant with illuminant
-            let s = illuminance/ xyzn0.y;
-            self.xyz.iter_mut().for_each(|v|*v = *v * s);
-            xyzn0.iter_mut().for_each(|v|*v = *v * s)
-         } else {
-            // illuminant only
-            let s = illuminance/ self.xyz.y;
-            self.xyz.iter_mut().for_each(|v|*v = *v * s);
-         }
+            xyz0.iter_mut().for_each(|v|*v = *v * s)
+         };
         self
     }
     
+    /*
     pub fn set_xyzn(mut self, xyzn: Vector3<f64>) -> Self {
         self.xyzn = Some(xyzn);
         self
     }
+     */
     
     /// The chromaticity coordinates as an array with an  x and y coordinate
     /// ```
-    /// use crate::colorimetry::{Spectrum, CIE1931};
+    /// use crate::colorimetry::{Illuminant, CIE1931};
     /// use approx::assert_ulps_eq;
     ///
-    /// let d65_xyz = CIE1931.xyz(&Spectrum::d65_illuminant());
+    /// let d65_xyz = CIE1931.xyz(&Illuminant::d65(), None);
     /// let xy = d65_xyz.chromaticity();
     /// assert_ulps_eq!(xy.as_slice(), [0.312_738, 0.329_052].as_slice(), epsilon = 1E-6);
     /// ```
@@ -144,22 +138,24 @@ impl XYZ {
     /// As a stimuilus, this value has a unit of candela per square meters,
     /// as an illuminant lux, or lumen per square meter.
     pub fn luminous_value(&self) -> f64 {
-        self.xyz.y
+        let &[_, y, _] = self.xyz.unwrap_or(self.xyzn).as_ref();
+        y
     }
 
     /// CIE 1960 UCS Color Space uv coordinates *Deprecated* by the CIE, but
-    /// still used for CCT calculation
+    /// still used for CCT calculation. Applied to illuminant xyzn values only.
     pub fn uv60(&self) -> [f64; 2] {
-        let &[x, y, z] = self.xyz.as_ref();
+        let &[x, y, z] = self.xyz.unwrap_or(self.xyzn).as_ref();
         let den = x + 15.0 * y + 3.0 * z;
         [4.0 * x / den, 6.0 * y / den]
     }
     
     /// The CIE 1964 (U*, V*, W*) color space, also known as CIEUVW, based on
     /// the CIE 1960 UCS.
-    /// Still used in Color Rendering Index Calculation
+    /// Still used in Color Rendering Index Calculation.
+    /// Uses xyz tristimulus values if present, else uses illuminant's values.
     pub fn uvw64(&self, xyz_ref: XYZ) -> [f64; 3] {
-        let yy = self.xyz.y;
+        let yy = self.luminous_value();
         let [ur, vr] = xyz_ref.uv60();
         let [u, v] = self.uv60();
         let ww = 25.0 * yy.powf(1.0 / 3.0) - 17.0;
@@ -168,9 +164,9 @@ impl XYZ {
         [uu, vv, ww]
     }
 
-    /// CIE 1976 CIELUV space, with (u',v') coordinates
+    /// CIE 1976 CIELUV space, with (u',v') coordinates, calculated for stimulus xyz if present, or else for illuminant.
     pub fn uvprime(&self) -> [f64;2] {
-        let &[x, y, z] = self.xyz.as_ref();
+        let &[x, y, z] = self.xyz.unwrap_or(self.xyzn).as_ref();
         let den = x + 15.0 * y + 3.0 * z;
         [4.0 * x / den, 9.0 * y / den]
     }
@@ -260,17 +256,14 @@ impl XYZ {
     /// or, less common, 1.0, but any other value can be used as well.
     pub fn rgb(&self, space: Option<RgbSpace>) -> RGB {
         let space = space.unwrap_or_default();
-        let ywhite = if let Some(xyzn) = self.xyzn {
-                xyzn.y
-        } else {
-            100.0
-        };
-        let d = self.xyz.map(|v| v/ywhite);
+        let xyz = self.xyz.unwrap_or(self.xyzn);
+        let ywhite = self.xyzn.y;
+        let d = xyz.map(|v| v/ywhite); // normalize to 1.0
         let data = self.observer.data().xyz2rgb(space) * d;
         RGB {
             space,
             observer: self.observer,
-            data,
+            rgb: data,
         }
     }
 
@@ -288,24 +281,14 @@ impl AsRef<[f64;3]> for XYZ {
 }
  */
 
-/// Get yn = 100 normalized tristimulus values as an array. Normalized to the reference white luminance value yn
-/// if present, in case of illuminated colorants.  Else, in case of illuminants only, normalized to
+/// Get normalized tristimulus values as an array. Normalized to the reference white luminance value yn
+/// if present, in case of stimulus values.  Else, in case of illuminants only, normalized to
 /// a y value of 100.
 impl From<XYZ> for [f64;3] {
     fn from(xyz0: XYZ) -> Self {
-        // with a reference illuminant
-        let s = if let Some(xyzn) = xyz0.xyzn {
-            approx::assert_ulps_ne!(xyzn.y, 0.0);
-            100.0/xyzn.y
-        } else { // no reference illuminant
-            let yr = xyz0.xyz.y;
-            if ulps_eq!(yr, 0.0) {
-                1.0
-            } else {
-                100.0/yr
-            }
-        };
-        xyz0.xyz.iter().map(|v|*v *s).collect::<Vec<f64>>().try_into().unwrap()
+        let xyz = xyz0.xyz.unwrap_or(xyz0.xyzn);
+        let s = 100.0/xyz0.xyzn.y;
+        xyz.into_iter().map(|&v|s*v).collect::<Vec<f64>>().try_into().unwrap()
     }
 }
 
@@ -323,15 +306,15 @@ impl AbsDiffEq for XYZ {
     }
 
     fn abs_diff_eq(&self, other: &Self, epsilon: Self::Epsilon) -> bool {
-        let xyzn_test = match (self.xyzn, other.xyzn) {
+        let xyz_test = match (self.xyz, other.xyz) {
             (None, None) => true,
-            (Some(xyzn0), Some(xyzn1) ) => 
-                xyzn0.abs_diff_eq(&xyzn1, epsilon),
+            (Some(xyz0), Some(xyz1) ) => 
+                xyz0.abs_diff_eq(&xyz1, epsilon),
             _ => false
         };
         self.observer == other.observer &&
-        self.xyz.abs_diff_eq(&other.xyz, epsilon) &&
-        xyzn_test
+        self.xyzn.abs_diff_eq(&other.xyzn, epsilon) &&
+        xyz_test
     }
 }
 
@@ -341,15 +324,15 @@ impl approx::UlpsEq for XYZ {
     }
 
     fn ulps_eq(&self, other: &Self, epsilon: Self::Epsilon, max_ulps: u32) -> bool {
-        let xyzn_test = match (self.xyzn, other.xyzn) {
+        let xyz_test = match (self.xyz, other.xyz) {
             (None, None) => true,
-            (Some(xyzn0), Some(xyzn1) ) => 
-                xyzn0.ulps_eq(&xyzn1, epsilon, max_ulps),
+            (Some(xyz0), Some(xyz1) ) => 
+                xyz0.ulps_eq(&xyz1, epsilon, max_ulps),
             _ => false
         };
         self.observer == other.observer &&
-        self.xyz.ulps_eq(&other.xyz, epsilon, max_ulps) &&
-        xyzn_test
+        self.xyzn.ulps_eq(&other.xyzn, epsilon, max_ulps) &&
+        xyz_test
     }
 }
 
@@ -374,7 +357,10 @@ impl std::ops::Mul<f64> for XYZ {
     type Output = XYZ;
 
     fn mul(mut self, rhs: f64) -> Self::Output {
-        self.xyz *= rhs;
+        if let Some(mut xyz) = self.xyz {
+            xyz *= rhs;
+        }
+        self.xyzn *= rhs;
         self
     }
 }
@@ -383,7 +369,10 @@ impl std::ops::Mul<XYZ> for f64 {
     type Output = XYZ;
 
     fn mul(self, mut rhs: XYZ) -> Self::Output {
-        rhs.xyz *= self;
+        if let Some(mut xyz) = rhs.xyz {
+            xyz *= self;
+        }
+        rhs.xyzn *= self;
         rhs 
     }
 }
@@ -392,7 +381,13 @@ impl std::ops::Add<XYZ> for XYZ {
     type Output = XYZ;
 
     fn add(mut self, rhs: XYZ) -> Self::Output {
-        self.xyz += rhs.xyz;
+        self.xyzn += rhs.xyzn;
+        self.xyz = match (rhs.xyz, self.xyz) {
+            (None, None) =>  None,
+            (Some(xyz1), Some(xyz2))
+                => Some (xyz1 + xyz2),
+            (Some(xyz), None) | (None, Some(xyz)) => Some(xyz),
+        };
         self
          
     }
@@ -478,9 +473,11 @@ impl XYZ {
 
 
     /// Get the XYZ tristimulus value as an array.
+    /// Values of the stimulus, if present, else the illuminant.
     #[wasm_bindgen(js_name=values)]
     pub fn values_js(&self)->js_sys::Array {
-        let &[x, y, z] = self.xyz.as_ref();
+        
+        let &[x, y, z] = self.xyz.unwrap_or(self.xyzn).as_ref();
         js_sys::Array::of3(&x.into(), &y.into(), &z.into())
 
     }

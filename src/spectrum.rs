@@ -161,9 +161,9 @@ mod spectrum_tests {
     #[test]
     fn test_spectrum_from_rgb(){
         let white: Stimulus = RGB::new(1.0, 1.0, 1.0, None, None).into();
-        approx::assert_ulps_eq!(CIE1931.xyz(&white, None), CIE1931.xyz_d65().set_illuminance(100.0), epsilon = 1E-6);
+        approx::assert_ulps_eq!(CIE1931.xyz_raw(&white, None), CIE1931.xyz_d65().set_illuminance(100.0), epsilon = 1E-6);
         let red = Stimulus::srgb(255, 0, 0);
-        assert_ulps_eq!(CIE1931.xyz(&red, None).chromaticity().as_ref(), &[0.64, 0.33].as_ref(), epsilon = 1E-5);
+        assert_ulps_eq!(CIE1931.xyz_raw(&red, None).chromaticity().as_ref(), &[0.64, 0.33].as_ref(), epsilon = 1E-5);
     }
 
     #[test]
@@ -175,12 +175,12 @@ mod spectrum_tests {
 
     #[test]
     fn test_chromaticity(){
-        let xyz0 = CIE1931.xyz(&D65, None);
+        let xyz0 = CIE1931.xyz_raw(&D65, None);
         let [x0, y0] = xyz0.chromaticity();
 
         let illuminance = D65.illuminance(&CIE1931);
         let d65 = D65.clone().set_illuminance(&CIE1931, 100.0);
-        let xyz = CIE1931.xyz(&d65, None);
+        let xyz = CIE1931.xyz_raw(&d65, None);
         let [x, y] = xyz.chromaticity();
     
         assert_ulps_eq!(x0, x);
@@ -541,7 +541,7 @@ mod tests {
 
     #[test]
     fn ee() {
-        let [x, y ] = CIE1931.xyz(
+        let [x, y ] = CIE1931.xyz_raw(
             &Illuminant::equal_energy().set_illuminance(&CIE1931, 100.0), None).chromaticity();
         assert_ulps_eq!(x, 0.333_3, epsilon = 5E-5);
         assert_ulps_eq!(y, 0.333_3, epsilon = 5E-5);
@@ -549,7 +549,7 @@ mod tests {
 
     #[test]
     fn d65() {
-        let [x, y ] = CIE1931.xyz(
+        let [x, y ] = CIE1931.xyz_raw(
             &&Illuminant::d65().set_illuminance(&CIE1931, 100.0), None).chromaticity();
         // See table T3 CIE15:2004 (calculated with 5nm intervals, instead of 1nm, as used here)
         assert_ulps_eq!(x, 0.312_72, epsilon = 5E-5);
@@ -558,7 +558,7 @@ mod tests {
 
     #[test]
     fn d50() {
-        let [x, y ] = CIE1931.xyz(&Illuminant::d50().set_illuminance(&CIE1931, 100.0), None).chromaticity();
+        let [x, y ] = CIE1931.xyz_raw(&Illuminant::d50().set_illuminance(&CIE1931, 100.0), None).chromaticity();
         // See table T3 CIE15:2004 (calculated with 5nm intervals, instead of 1nm, as used here)
         assert_ulps_eq!(x, 0.345_67, epsilon = 5E-5);
         assert_ulps_eq!(y, 0.358_51, epsilon = 5E-5);
@@ -567,7 +567,7 @@ mod tests {
     #[cfg_attr(test, cfg(feature="cie-illuminants"))]
     fn a() {
         let a: Illuminant = StdIlluminant::A.into();
-        let [x, y ] = CIE1931.xyz(&a, None).chromaticity();
+        let [x, y ] = CIE1931.xyz_raw(&a, None).chromaticity();
         // See table T3 CIE15:2004 (calculated with 5nm intervals, instead of 1nm, as used here)
         assert_ulps_eq!(x, 0.447_58, epsilon = 5E-5);
         assert_ulps_eq!(y, 0.407_45, epsilon = 5E-5);

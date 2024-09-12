@@ -385,14 +385,14 @@ fn test_cct(){
 
 #[test]
 fn f1_test(){
-    let xyz_f1 = CIE1931.xyz_std_illuminant(&crate::StdIlluminant::F1, None);
+    let xyz_f1 = CIE1931.xyz_cie_table(&crate::StdIlluminant::F1, None);
     // value from CIE Standard CIE15:2004 Table T8.1
     approx::assert_ulps_eq!(xyz_f1.cct().unwrap().t(), 6430.0, epsilon = 0.5);
 }
 
 #[test]
 fn f3_1_test(){
-    let xyz_f3_1 = CIE1931.xyz_std_illuminant(&crate::StdIlluminant::F3_1, None);
+    let xyz_f3_1 = CIE1931.xyz_cie_table(&crate::StdIlluminant::F3_1, None);
     // value from CIE Standard CIE15:2004 Table T8.1
     approx::assert_ulps_eq!(xyz_f3_1.cct().unwrap().t(), 2932.0, epsilon = 0.5);
 }

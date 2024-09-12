@@ -119,8 +119,8 @@ pub enum CmtError {
     InvalidChromaticityValues,
     #[error("This Method Requires CIE 1931-based XYZ values")]
     RequiresCIE1931XYZ,
-    #[error("Please provide a Reference Illuminant")]
-    NoReferenceIlluminantProvided,
+    #[error("Colorant is required here")]
+    NoColorant,
     #[error("RequiresSameIlluminant")]
     RequiresSameIlluminant,
 }

@@ -61,7 +61,7 @@ impl From<RGB> for Stimulus {
     fn from(rgb: RGB) -> Self {
         let prim = &rgb.space.data().0.primaries;
         let yrgb = rgb.observer.data().rgb2xyz(&rgb.space).row(1);
-        rgb.data.iter().zip(yrgb.iter()).zip(prim.iter()).map(|((v,w),s)|*v * *w * s.clone()).sum()
+        rgb.rgb.iter().zip(yrgb.iter()).zip(prim.iter()).map(|((v,w),s)|*v * *w * s.clone()).sum()
     }
 }
 

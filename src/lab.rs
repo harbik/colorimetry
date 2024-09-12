@@ -13,7 +13,7 @@ pub struct CieLab {
 }
 
 impl CieLab {
-    pub fn new(xyz: Vector3<f64>, xyzn: Vector3<f64>) -> CieLab {
+    pub fn new(xyzn: Vector3<f64>, xyz: Vector3<f64>) -> CieLab {
         CieLab {lab: lab(xyz, xyzn), xyzn}
     }
 
@@ -37,10 +37,10 @@ impl TryFrom<XYZ> for CieLab {
     type Error = CmtError;
     
     fn try_from(xyz0: XYZ) -> Result<Self, Self::Error> {
-        if let Some(xyzn) = xyz0.xyzn {
-            Ok(CieLab::new(xyz0.xyz, xyzn))
+        if let Some(xyz) = xyz0.xyz {
+            Ok(CieLab::new(xyz0.xyzn, xyz))
         } else {
-            Err(CmtError::NoReferenceIlluminantProvided)
+            Err(CmtError::NoColorant)
         }
     }
 }

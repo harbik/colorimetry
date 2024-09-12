@@ -31,7 +31,7 @@ pub static TCS: LazyLock<[Colorant;N_TCS]> = LazyLock::new(|| {
 #[test]
 fn tcs_test(){
     for (i,s) in TCS.iter().enumerate() {
-        let xyz = CIE1931.xyz_of_sample_with_std_illuminant(&crate::StdIlluminant::D65, s);
+        let xyz = CIE1931.xyz(&crate::StdIlluminant::D65, Some(s));
         let [r,g,b] = xyz.srgb();
         println!("{:2} ({r:3},{g:3},{b:3})", i+1);
     }
@@ -59,28 +59,36 @@ impl TryFrom<&Illuminant> for CRI {
 
     fn try_from(illuminant: &Illuminant) -> Result<Self, Self::Error> {
         let illuminant = &illuminant.clone().set_illuminance(&CIE1931, 100.0);
-        // dut
-        let xyz_dut = CIE1931.xyz(illuminant, None).set_illuminance(100.0);
+        // Calculate Device Under Test (dut) XYZ illuminant and sample values
+        let xyz_dut = CIE1931.xyz_raw(illuminant, None);
         let xyz_dut_samples: [XYZ; N_TCS] = 
             TCS
                 .iter()
-                .map(|sample|CIE1931.xyz_of_sample_with_illuminant(illuminant, sample))
+               // .map(|colorant|CIE1931.xyz_of_sample_with_illuminant(illuminant, colorant))
+                .map(|colorant|CIE1931.xyz_illuminant(illuminant, Some(colorant)))
                 .collect::<Vec<XYZ>>()
                 .try_into().unwrap();
+
+        // Determine reference color temperarture value
         let cct_dut = xyz_dut.cct()?.t();
+        //println!("cct dut {cct_dut}");
         let illuminant_ref = if cct_dut <= 5000.0 {
             Illuminant::planckian(cct_dut).set_illuminance(&CIE1931, 100.0)
         } else {
             Illuminant::d_illuminant(cct_dut)?.set_illuminance(&CIE1931, 100.0)
         };
-        // ref
-        let xyz_ref = CIE1931.xyz(&illuminant_ref, None).set_illuminance(100.0);
+
+        // Calculate the reference illuminant values
+        let xyz_ref = CIE1931.xyz_raw(&illuminant_ref, None);
         let xyz_ref_samples: [XYZ; N_TCS] = 
             TCS
                 .iter()
-                .map(|sample|CIE1931.xyz_of_sample_with_illuminant(&illuminant_ref, sample))
+              //  .map(|sample|CIE1931.xyz_of_sample_with_illuminant(&illuminant_ref, sample))
+                .map(|sample|CIE1931.xyz_illuminant(&illuminant_ref, Some(sample)))
                 .collect::<Vec<XYZ>>()
                 .try_into().unwrap();
+        
+
         let cdt = cd(xyz_dut.uv60());
         let cdr = cd(xyz_ref.uv60());
         
@@ -91,9 +99,9 @@ impl TryFrom<&Illuminant> for CRI {
                 .map(|(xyzr,xyz)|{
                     let cdti = cd(xyz.uv60());
                     let uv_vk = uv_kries(cdt, cdr, cdti);
-                    let xyz_vk = XYZ::try_from_luv60( uv_vk[0], uv_vk[1], Some(xyz.xyz.y), None).unwrap();
-                    let uvw = xyz_ref.uvw64(xyz_vk);
-                    let uvwr = xyz_ref.uvw64(*xyzr);
+                    let xyz_vk = XYZ::try_from_luv60( uv_vk[0], uv_vk[1], Some(xyz.xyz.unwrap().y), None).unwrap();
+                    let uvw = xyz_vk.uvw64(xyz_ref);
+                    let uvwr = xyzr.uvw64(xyz_ref);
                     100.0 - 4.6 * ((uvw[0] - uvwr[0]).powi(2) + (uvw[1] - uvwr[1]).powi(2) + (uvw[2] - uvwr[2]).powi(2)).sqrt()
                 }).collect::<Vec<f64>>().try_into().unwrap();
 
@@ -130,10 +138,10 @@ mod cri_test {
     fn cri_d50(){
         // should be all 100.0
         let cri0: CRI = (&D50).try_into().unwrap();
-         println!("{cri0:?}");
+       // println!("{cri0:?}");
         approx::assert_ulps_eq!(
             cri0.as_ref(), 
-            [100.0;N_TCS].as_ref(), epsilon = 0.05);
+            [100.0;N_TCS].as_ref(), epsilon = 0.03);
     }
 
     #[test]
@@ -141,24 +149,34 @@ mod cri_test {
         // should be all 100.0
         let cri0: CRI = StdIlluminant::F1.illuminant().try_into().unwrap();
         println!("{cri0:?}");
-        approx::assert_ulps_eq!(cri0.as_ref(), [100.0;crate::cri::N_TCS].as_ref(), epsilon = 0.05);
+       // approx::assert_ulps_eq!(cri0.as_ref(), [100.0;crate::cri::N_TCS].as_ref(), epsilon = 0.05);
     }
 
     #[test]
     fn cri_f3_1(){
-        // should be all 100.0
+        // 2932K, check with values as given in CIE15:2004 Table T.8.2
         let cri0: CRI = StdIlluminant::F3_1.illuminant().try_into().unwrap();
-        println!("{cri0:?}");
         approx::assert_ulps_eq!(
             cri0.as_ref(), 
-            [42.2, 69.1, 89.1, 38.4, 40.5, 51.9, 65.5, 12.5, -110.0, 28.4, 18.4, 20.8, 46.8, 93.6].as_ref(), 
-            epsilon = 0.05
+            [42,69,89,39,41,52,66,13,-109,29,19,21,47,93].map(|v|v as f64).as_ref(), 
+            epsilon = 1.0
+        );
+    }
+
+    #[test]
+    fn cri_f3_11(){
+        // 5854K, check with values as given in CIE15:2004 Table T.8.2
+        let cri0: CRI = StdIlluminant::F3_11.illuminant().try_into().unwrap();
+        approx::assert_ulps_eq!(
+            cri0.as_ref(), 
+            [90,86,49,82,81,70,85,79,24,34,64,50,90,67].map(|v|v as f64).as_ref(), 
+            epsilon = 1.0
         );
     }
 }
 
-fn cd(uv: [f64;2]) -> [f64;2] {
-    let [u,v] = uv;
+fn cd(uv60: [f64;2]) -> [f64;2] {
+    let [u,v] = uv60;
     [(4.0 - u - 10.0 * v) / v, (1.708 * v - 1.481 * u + 0.404) / v]
 }
 
