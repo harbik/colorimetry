@@ -2,7 +2,7 @@ use core::f64;
 use std::sync::OnceLock;
 use wasm_bindgen::prelude::wasm_bindgen;
 use nalgebra::{Matrix3, SMatrix, Vector3};
-use crate::{lab::CieLab, physics::{planck, planck_slope, planck_slope_c2}, spectrum::{Spectrum, NS}, to_wavelength, xyz::XYZ, CmtError, Colorant, Illuminant, LineAB, RgbSpace, StdIlluminant};
+use crate::{lab::CieLab, physics::{planck, planck_slope, planck_slope_c2}, spectrum::{Spectrum, NS}, to_wavelength, xyz::XYZ, CmtError, Colorant, Illuminant, LineAB, RefWhite, RgbSpace, StdIlluminant};
 
 
 
@@ -64,14 +64,15 @@ pub struct ObserverData {
 }
 
 impl ObserverData {
-    /// Calulates Tristimulus values for a standard illuminant, or the sample colorant illuminated
-    /// with the `StandardIlluminant`, if present.
+    /// Calulates Tristimulus values for an illuminant, and the sample colorant illuminated
+    /// with the illuminant if present.
     /// The values are normalized for a white illuminance of 100 cd/m2.
     /// This uses buffered data for the tristimulus values of the standar dilluminants.
-    pub fn xyz(&self, std_illuminant: &StdIlluminant, colorant: Option<&Colorant>) -> XYZ {
-        let xyzn = self.xyz_cie_table(std_illuminant, None);
+    pub fn xyz(&self, refwhite: &impl RefWhite, colorant: Option<&Colorant>) -> XYZ {
+       // let xyzn = self.xyz_cie_table(illuminant, None);
+        let xyzn = refwhite.xyzn(self.tag, None);
         let xyz = if let Some(colorant) = colorant {
-            let s = std_illuminant.illuminant().0 * colorant.0;
+            let s = refwhite.spectrum().0 * colorant.0;
             self.xyz_raw(&s, Some(xyzn))
         } else {
             xyzn
@@ -84,6 +85,7 @@ impl ObserverData {
         and an optional colorant, also by its spectral represenation.
         Tristimulus values produced here are normalized to a luminous value of 100.0
     */
+    /*
     pub fn xyz_illuminant(&self, illuminant: &Illuminant, colorant: Option<&Colorant>) -> XYZ {
        // let xyzn = self.data * illuminant.0.0 * self.lumconst;
         let xyzn = self.xyz_raw(illuminant, None);
@@ -96,6 +98,7 @@ impl ObserverData {
         };
         xyz.set_illuminance(100.0)
     }
+     */
     
 
 
@@ -109,9 +112,9 @@ impl ObserverData {
     pub fn xyz_raw(&self, spectrum: &Spectrum, rhs: Option<XYZ>) -> XYZ {
         let xyz = self.data * spectrum.0 * self.lumconst;
         if let Some(xyz0) = rhs { // A illuminant/colorant
-            XYZ::new(xyz0.xyzn, Some(xyz), self.tag)
+            XYZ::from_vecs(xyz0.xyzn, Some(xyz), self.tag)
         } else { // illuminant only
-            XYZ::new(xyz, None, self.tag)
+            XYZ::from_vecs(xyz, None, self.tag)
         }
     }
 
@@ -163,14 +166,14 @@ impl ObserverData {
         and converting the resulting value to RGB values.
         ```
             use colorimetry::{CIE1931, StdIlluminant, RgbSpace};
-            let rgb: [u8;3] = CIE1931.xyz_from_illuminant_x_fn(&StdIlluminant::D65, |x|x).rgb(None).into();
+            let rgb: [u8;3] = CIE1931.xyz_from_std_illuminant_x_fn(&StdIlluminant::D65, |x|x).rgb(None).into();
             assert_eq!(rgb, [212, 171, 109]); 
         ```
         Linear low pass filter, with a value of 1.0 for a wavelength of 380nm, and a value of 0.0 for 780nm,
         and converting the resulting value to RGB values.
         ```
             use colorimetry::{CIE1931, StdIlluminant, RgbSpace};
-            let rgb: [u8;3] = CIE1931.xyz_from_illuminant_x_fn(&StdIlluminant::D65, |x|1.0-x).rgb(None).into();
+            let rgb: [u8;3] = CIE1931.xyz_from_std_illuminant_x_fn(&StdIlluminant::D65, |x|1.0-x).rgb(None).into();
             assert_eq!(rgb, [158, 202, 237]); 
         ```
 
@@ -280,7 +283,7 @@ impl ObserverData {
             Err(CmtError::NoUniqueSpectralLocus(min, max))
         } else {
             let &[x, y, z] = self.data.column(l-380).as_ref();
-            Ok(XYZ::new(Vector3::new(x, y, z), None, self.tag))
+            Ok(XYZ::from_vecs(Vector3::new(x, y, z), None, self.tag))
         }
     }
 
@@ -473,7 +476,7 @@ mod obs_test {
     fn test_xyz_from_illuminant_x_fn(){
         let xyz = CIE1931.xyz_from_std_illuminant_x_fn(&StdIlluminant::D65, |_v|1.0);
         let d65xyz =  CIE1931.xyz_d65().xyzn;
-        approx::assert_ulps_eq!(xyz, crate::XYZ::new(d65xyz, Some(d65xyz), crate::Observer::Std1931));
+        approx::assert_ulps_eq!(xyz, crate::XYZ::from_vecs(d65xyz, Some(d65xyz), crate::Observer::Std1931));
 
     }
     

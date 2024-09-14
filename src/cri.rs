@@ -11,7 +11,7 @@ use nalgebra::{ArrayStorage, SMatrix};
 use wasm_bindgen::prelude::*;
 
 
-use crate::{CmtError, Colorant, Illuminant, RgbSpace, Spectrum, CIE1931, XYZ};
+use crate::{CmtError, Colorant, Spectrum, RgbSpace, Illuminant, CIE1931, XYZ, RefWhite};
 
 /// Nummer of Test Color Sample Spectra
 const N_TCS: usize = 14;
@@ -65,7 +65,7 @@ impl TryFrom<&Illuminant> for CRI {
             TCS
                 .iter()
                // .map(|colorant|CIE1931.xyz_of_sample_with_illuminant(illuminant, colorant))
-                .map(|colorant|CIE1931.xyz_illuminant(illuminant, Some(colorant)))
+                .map(|colorant|CIE1931.xyz(illuminant, Some(colorant)))
                 .collect::<Vec<XYZ>>()
                 .try_into().unwrap();
 
@@ -84,7 +84,7 @@ impl TryFrom<&Illuminant> for CRI {
             TCS
                 .iter()
               //  .map(|sample|CIE1931.xyz_of_sample_with_illuminant(&illuminant_ref, sample))
-                .map(|sample|CIE1931.xyz_illuminant(&illuminant_ref, Some(sample)))
+                .map(|sample|CIE1931.xyz(&illuminant_ref, Some(sample)))
                 .collect::<Vec<XYZ>>()
                 .try_into().unwrap();
         

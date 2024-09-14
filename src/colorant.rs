@@ -52,12 +52,12 @@ impl Colorant {
     /// ```rust
     /// # use approx::assert_ulps_eq;
     /// use colorimetry as cmt;
-    /// let bandfilter = cmt::Spectrum::band_filter(550.0, 1.0).values();
+    /// let bandfilter = cmt::Colorant::top_hat(550.0, 1.0).values();
     /// assert_ulps_eq!(bandfilter[549-380], 0.0);
     /// assert_ulps_eq!(bandfilter[550-380], 1.0);
     /// assert_ulps_eq!(bandfilter[551-380], 0.0);
     ///
-    /// let bandfilter = cmt::Spectrum::band_filter(550.0, 2.0).values();
+    /// let bandfilter = cmt::Colorant::top_hat(550.0, 2.0).values();
     /// assert_ulps_eq!(bandfilter[548-380], 0.0);
     /// assert_ulps_eq!(bandfilter[549-380], 1.0);
     /// assert_ulps_eq!(bandfilter[550-380], 1.0);

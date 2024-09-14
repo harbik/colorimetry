@@ -3,18 +3,35 @@ use std::ops::Add;
 
 use approx::{ulps_eq, AbsDiffEq};
 use nalgebra::Vector3;
-use crate::{geometry::{LineAB, Orientation}, observer::{self, Observer}, CmtError, RgbSpace, RGB};
+use crate::{geometry::{LineAB, Orientation}, observer::{self, Observer}, CmtError, Illuminant, RgbSpace, Spectrum, RGB};
 use wasm_bindgen::prelude::wasm_bindgen; 
 
+/// A trait allowing to override the way the tristimulus valus of an illuminant directly, without
+/// calculating them from the spectrum, which is the default implementation.
+/// This is used with standard illuminants, especially D65, which is used so frequently, that their
+/// tristimulus values are calculated only once.
+pub trait RefWhite {
+    // Default implementation takes the illuminant spectrum, and calculates tristimulus values using the
+    // provided observer's color matching data.
+    fn xyzn(&self, observer: crate::Observer, y: Option<f64>) -> crate::XYZ {
+        let xyz = observer.data().xyz_raw(&self.spectrum(), None);
+        if let Some(illuminance) = y {
+            xyz.set_illuminance(illuminance)
+        } else {
+            xyz
+        }
+    }
+    fn spectrum(&self) -> &Illuminant;
+}
 
 #[wasm_bindgen]
 #[derive(Clone, Copy, Debug, PartialEq)]
-/// A set of two CIE XYZ Tristimulus values, associated with a Standard Observer.
+/// A set of two CIE XYZ Tristimulus values, for a Standard Observer.
 /// 
-/// One is associated with an illuminant or a reference white, denoted by the fieldname `xyzn`, and
-/// a second, optional value, a set of tristimulus values for a stimulus, or in colloqial language,
-/// a color sensation, when looking at an object.  XYZ values are not often used directly, but form
-/// the basis for many colorimetric models, such as CIELAB and CIECAM.
+/// One is associated with an illuminant or a reference white value, denoted by the fieldname `xyzn`, and
+/// a second, optional value, a set of tristimulus values for a stimulus, or 'a color' value.
+/// XYZ values are not often used directly, but form the basis for many colorimetric models, such as
+/// CIELAB and CIECAM.
 pub struct XYZ {
      pub(crate) observer: Observer,
      pub(crate) xyzn:  Vector3<f64>, // illuminant values
@@ -24,9 +41,21 @@ pub struct XYZ {
 
 impl XYZ {
 
-    /// Define a set of XYZ-values directly, using an identifier for its
-    /// associated observer, such as `Cie::Std1931` or `Cie::Std2015`.
-    pub fn new(xyzn: Vector3<f64>, xyz: Option<Vector3<f64>>, observer: Observer) -> Self {
+    /// Define a set of [XYZ]-values directly, using an identifier for its
+    /// associated observer, such as [Observer::Std1931] or [Observer::Std2015].
+    /// 
+    pub const fn new(xyzn: &[f64], xyz: Option<&[f64]>, observer: Observer) -> Self {
+        let xyzn = Vector3::<f64>::new(xyzn[0], xyzn[1], xyzn[2]);
+        let xyz = if let Some(xyz) = xyz {
+            Some(Vector3::<f64>::new(xyz[0], xyz[1], xyz[2]))
+        } else {
+            None
+        };
+        Self { observer, xyz, xyzn} 
+    }
+
+    /// Defines [XYZ] values from [nalgebra::Vector3] values directly.
+    pub const fn from_vecs(xyzn: Vector3<f64>, xyz: Option<Vector3<f64>>, observer: Observer) -> XYZ {
         Self { observer, xyz, xyzn} 
     }
     
@@ -42,7 +71,7 @@ impl XYZ {
         } else {
             let s = l/y;
             let xyz = Vector3::new(x * s, l, (1.0 - x - y)*s);
-            Ok(Self::new(xyz, None, observer))
+            Ok(Self::from_vecs(xyz, None, observer))
 
         }
     }
@@ -61,7 +90,7 @@ impl XYZ {
         if self.observer == other.observer {
             let data = self.xyzn + other.xyzn;
             match (self.xyz, other.xyz) {
-               (None, None) => Ok(XYZ::new(data, None, self.observer)),
+               (None, None) => Ok(XYZ::from_vecs(data, None, self.observer)),
                 _ => Err(CmtError::NoReferenceWhiteAllowed)
             }
 
@@ -72,11 +101,11 @@ impl XYZ {
 
     /// XYZ Tristimulus values in an an array: [X, Y, Z]
     /// ```
-    /// use crate::colorimetry::{Spectrum, CIE1931};
+    /// use crate::colorimetry::{StdIlluminant, CIE1931};
     /// use approx::assert_ulps_eq;
     ///
-    /// let d65_xyz = CIE1931.xyz(&Spectrum::d65_illuminant()).set_illuminance(100.0);
-    /// let [x, y, z] = d65_xyz.values();
+    /// let d65_xyz = CIE1931.xyz(&StdIlluminant::D65, None).set_illuminance(100.0);
+    /// let [x, y, z] = d65_xyz.into();
     /// // Calculated Spreadsheet Values from CIE Datasets, over a range from 380 to 780nm
     /// assert_ulps_eq!(x, 95.042_267, epsilon = 1E-6);
     /// assert_ulps_eq!(y, 100.0);
@@ -89,15 +118,16 @@ impl XYZ {
     /// Set the illuminance of an illuminant, either for an illuminant directly,
     /// or for the reference illuminant, in case a color sample XYZ.
     /// ```
-    /// use crate::colorimetry::{Spectrum, CIE1931, StdIlluminant};
+    /// use crate::colorimetry::{Colorant, CIE1931, StdIlluminant, XYZ, Observer};
     /// use approx::assert_ulps_eq;
+    /// const D65A: [f64;3] = [95.04, 100.0, 108.86];
     ///
-    /// let d65_xyz = CIE1931.xyz(&Spectrum::d65_illuminant(), None).set_illuminance(100.0);
-    /// assert_ulps_eq!(d65_xyz, CIE1931.xyz_d65());
+    /// let d65_xyz = CIE1931.xyz(&StdIlluminant::D65, None).set_illuminance(100.0);
+    /// assert_ulps_eq!(d65_xyz, XYZ::new(&D65A, None, Observer::Std1931), epsilon = 1E-2);
     /// 
-    /// let d65_xyz_sample = CIE1931.xyz_of_sample_with_std_illuminant(&StdIlluminant::D65, &Spectrum::white());
+    /// let d65_xyz_sample = CIE1931.xyz(&StdIlluminant::D65, Some(&Colorant::white()));
     /// 
-    /// assert_ulps_eq!(d65_xyz_sample, CIE1931.xyz_d65());
+    /// assert_ulps_eq!(d65_xyz_sample, XYZ::new(&D65A, Some(&D65A), Observer::Std1931), epsilon = 1E-2);
     /// ```
     pub fn set_illuminance(mut self, illuminance: f64) -> Self {
         let s = illuminance/self.xyzn.y;
@@ -118,10 +148,10 @@ impl XYZ {
     
     /// The chromaticity coordinates as an array with an  x and y coordinate
     /// ```
-    /// use crate::colorimetry::{Illuminant, CIE1931};
+    /// use crate::colorimetry::{StdIlluminant, CIE1931};
     /// use approx::assert_ulps_eq;
     ///
-    /// let d65_xyz = CIE1931.xyz(&Illuminant::d65(), None);
+    /// let d65_xyz = CIE1931.xyz(&StdIlluminant::D65, None);
     /// let xy = d65_xyz.chromaticity();
     /// assert_ulps_eq!(xy.as_slice(), [0.312_738, 0.329_052].as_slice(), epsilon = 1E-6);
     /// ```
@@ -339,16 +369,16 @@ impl approx::UlpsEq for XYZ {
 #[test]
 fn ulps_xyz_test() {
     use approx::assert_ulps_eq;
-    let xyz0 = XYZ::new(Vector3::zeros(), None, Observer::Std1931);
+    let xyz0 = XYZ::from_vecs(Vector3::zeros(), None, Observer::Std1931);
 
-    let xyz1 = XYZ::new(Vector3::new(0.0, 0.0, f64::EPSILON), None,  Observer::Std1931);
+    let xyz1 = XYZ::from_vecs(Vector3::new(0.0, 0.0, f64::EPSILON), None,  Observer::Std1931);
     assert_ulps_eq!(xyz0, xyz1, epsilon=1E-5);
 
-    let xyz2 = XYZ::new(Vector3::new(0.0, 0.0, 2.0 * f64::EPSILON), None,  Observer::Std1931);
+    let xyz2 = XYZ::from_vecs(Vector3::new(0.0, 0.0, 2.0 * f64::EPSILON), None,  Observer::Std1931);
     approx::assert_ulps_ne!(xyz0, xyz2);
 
     // different observer
-    let xyz3 = XYZ::new(Vector3::zeros(), None, Observer::Std1976);
+    let xyz3 = XYZ::from_vecs(Vector3::zeros(), None, Observer::Std1976);
     approx::assert_ulps_ne!(xyz0, xyz3);
 
 }
@@ -468,7 +498,7 @@ impl XYZ {
         if x<0.0 || y<0.0 || z<0.0 {
                 return Err(CmtError::ErrorString("XYZ values should be all positive values".into()));
         }
-        Ok(XYZ::new(Vector3::new(x, y, z), None, obs))
+        Ok(XYZ::from_vecs(Vector3::new(x, y, z), None, obs))
     }
 
 

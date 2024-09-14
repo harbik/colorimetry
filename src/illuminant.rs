@@ -1,10 +1,10 @@
-use std::ops::Deref;
+use std::ops::{Deref, Mul};
 use wasm_bindgen::prelude::*;
 
 use colored::Color;
 use nalgebra::{ArrayStorage, SMatrix, SVector};
 
-use crate::{gaussian_peak_one, led_ohno, stefan_boltzmann, wavelength, wavelengths, CmtError, ObserverData, Spectrum, StdIlluminant, D50, D65, NS};
+use crate::{gaussian_peak_one, led_ohno, stefan_boltzmann, wavelength, wavelengths, CmtError, RefWhite, ObserverData, Spectrum, StdIlluminant, D50, D65, NS};
 
 
 #[derive(Clone)]
@@ -67,19 +67,15 @@ impl Illuminant {
     /// The generated spectrum is scaled to have a total power, over the full
     /// spectrum (including infrared), of 1 Watt.
     /// ```rust
-    /// # use crate::colorimetry::{Spectrum, CIE1931};
+    /// # use crate::colorimetry::{Illuminant, CIE1931};
     /// # use approx::assert_ulps_eq;
     /// 
-    /// let p3000 = Spectrum::planckian_illuminant(3000.0);
-    /// let [x, y] = CIE1931.xyz(&p3000).chromaticity();
-    /// let l = CIE1931.xyz(&p3000).luminous_value();
-    /// assert_ulps_eq!(l, 20.668_927, epsilon = 1E-6);
+    /// let p3000 = Illuminant::planckian(3000.0);
+    /// let xyz = CIE1931.xyz(&p3000, None);
+    /// let [x,y] = xyz.chromaticity();
     /// assert_ulps_eq!(x, 0.436_935, epsilon = 1E-6);
     /// assert_ulps_eq!(y, 0.404_083, epsilon = 1E-6);
     /// 
-    /// ```
-    /// ```javascript
-    /// let x = 350.0;
     /// ```
     pub fn planckian(cct: f64) -> Self {
 
@@ -97,7 +93,7 @@ impl Illuminant {
     /// by Yoshi Ohno, from NIST, in his article, _Spectral Design
     /// considerations for white LED Color Rendering_, **Optical Engineering 44(11)**, 
     /// November 2005.
-    pub fn led_illuminant(center: f64, width: f64) -> Self {
+    pub fn led(center: f64, width: f64) -> Self {
         let [center_m, width_m] = wavelengths([center, width]);
         let data = SVector::<f64,NS>::from_fn(|i,_j|
             // j = 0, first column
@@ -159,6 +155,55 @@ impl Illuminant {
             let s = Spectrum::linear_interpolate(&[380.0, 780.0], &v).unwrap();
             Ok(Illuminant(s).set_irradiance(1.0))
         }
+    }
+}
+
+impl Mul<f64> for Illuminant {
+    /// Multiply a spectrum with a scalar f64 value.
+    /// ```
+    ///     use crate::colorimetry::Illuminant;
+    ///     use approx::assert_ulps_eq;
+    ///
+    ///     let mut led = Illuminant::led(550.0, 25.0);
+    ///     let mut irradiance = led.irradiance();
+    ///     assert_ulps_eq!(led.irradiance(), 1.0, epsilon = 1E-10);
+    ///
+    ///     led = led * 10.0;
+    ///     assert_ulps_eq!(led.irradiance(), 10.0, epsilon = 1E-10);
+    /// ```
+    type Output = Self;
+
+    // spectrum * scalar
+    fn mul(self, rhs: f64) -> Self::Output {
+        Self(self.0 * rhs) // uses Spectrum::Mul
+    }
+}
+
+impl Mul<Illuminant> for f64 {
+    /// Multiply a spectrum with a scalar f64 value.
+    /// ```
+    ///     use crate::colorimetry::Illuminant;
+    ///     use approx::assert_ulps_eq;
+    ///
+    ///     let mut led = Illuminant::led(550.0, 25.0);
+    ///     let mut irradiance = led.irradiance();
+    ///     assert_ulps_eq!(led.irradiance(), 1.0, epsilon = 1E-10);
+    ///
+    ///     led = 10.0 * led;
+    ///     assert_ulps_eq!(led.irradiance(), 10.0, epsilon = 1E-10);
+    /// ```
+    type Output = Illuminant;
+
+    // scalar * spectrum
+    fn mul(self, rhs: Illuminant) -> Self::Output {
+        Illuminant(self * rhs.0) 
+    }
+}
+
+impl RefWhite for Illuminant {
+    
+    fn spectrum(&self) -> &Self {
+        self
     }
 }
 

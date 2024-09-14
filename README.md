@@ -39,30 +39,47 @@ or add this line to the dependencies in your Cargo.toml file:
     Calculates CIE 224:2017 Color Fidelity Index, and associated values.
     Contains 99 test color samples.
 
+## Spectral Composition
+All spectral calculations in this library use the [Spectrum] class as a base, which contains the spectral data.
 
-## Use [Spectrum] for spectral data
-All spectral calculations in this library use the `Spectrum` class, which contains the spectral data and spectrum type.
 For practical considerations, it uses a wavelength domain from 380 to 780 nanometers, with 1 nanometer intervals, as recommended in the [CIE15:2004](https://archive.org/details/gov.law.cie.15.2004) standard.
-This results in some inconsistencies with older data, as in the past, other wavelength domains were often being used for integration.
-In particular, chromaticity coordinates for the standard illuminants D65, D50, and A differ slightly from published values.
+[Spectrum] uses a [nalgebra::Vector3<f64>] type, with a length of 401 elements, to capture these spectral data.
+Historically, different wavelength domains have been recommended and used by the CIE, such as ranges from 300 to 830 nanometer, and an interval size of 5 nanometer.
+The choice of domain has a small impact on calculated colorimetric values, and the reference values calculated here can differ a bit from the ones published by the CIE in the past.
+
+
+## Illuminants
+We need light to see.
+Objects 'get color' only when they are illuminated.
+In this library an [Illuminant] is a spectral representation of the light which hits an object.
+
+The most common illuminant is daylight.
+The CIE has defined the D65 standard illuminant, and recommends to use this as default daylight illuminant.
+This library uses [StdIlluminant] for the CIE recommended standard illuminants, in particular [StdIlluminant::D65] for default daylight.
+Daylight is not constant - it varies with time of day, season, and weather.
+
+
+Another source of light are electric lamps, such a incandescent light bulbs.
+They generate light by thermal emission from a very hot tungsten filament in a glass envelope.
+In physics, the spectral properties of thermal emission is described by Planck's law.
+For incandescent light bulbs, the CIE recommends to use the A-illuminant, in this library available as [StdIlluminant:A].
+
 
 This example calculates the Illuminance and CIE 1931 (x, y) chromaticity
 coordinates for a Planckian (thermal emission-based) illuminator with a
 Correlated Color Temperature of 3000 Kelvin using the CIE 1931 standard observer.
 
 ```rust
-    use crate::colorimetry::{Spectrum, CIE1931};
+    use crate::colorimetry::{Illuminant, CIE1931};
     use approx::assert_ulps_eq;
 
-    let p3000 = Spectrum::planckian_illuminant(3000.0);
-    let xy = CIE1931.xyz(&p3000).chromaticity();
-    let l = CIE1931.xyz(&p3000).luminous_value();
+    let p3000 = Illuminant::planckian(3000.0);
+    let xy = CIE1931.xyz(&p3000, None).chromaticity();
 
-    assert_ulps_eq!(l, 20.668_927, epsilon = 1E-6);
     assert_ulps_eq!(xy.as_ref(), [0.436_935,0.404_083].as_ref(), epsilon = 1E-6);
 ```
 
-Besides the [Spectrum::planckian_illuminant] constructor, [Spectrum] has many other constructors.
+Besides the [Illuminant::planckian] constructor, [Illuminant] has many other constructors.
 For example, [Spectrum::d65_illuminant] and [Spectrum::d50_illuminant] provide spectral distributions of the CIE D65, and D50 standard illuminants, defined by the CIE in tabular form.
 Many other Standard Illuminants can be used, such as the A, Fluorescent, and LED Illuminants defined by the CIE, when the library is compiled with the "cie-illuminants" feature.
 This feature is a default feature, but can be disabled when not used and compact binaries are required.
@@ -71,8 +88,7 @@ For example, to get the A illuminant spectrum:
 ```rust
     use colorimetry::{StdIlluminant, CIE1931};
 
-    let a_illuminant = StdIlluminant::A.spectrum();
-    let xy_a = CIE1931.xyz(a_illuminant).chromaticity();
+    let xy_a = CIE1931.xyz(&StdIlluminant::A, None).chromaticity();
     // see <https://en.wikipedia.org/wiki/Standard_illuminant#Illuminant_A>
     approx::assert_ulps_eq!(xy_a.as_ref(), [0.44758, 0.40745].as_ref(), epsilon=1E-5)
 ```
@@ -81,14 +97,14 @@ Other interesting constructors are [Spectrum::srgb], and [Spectrum::rgb], which 
 The first takes three `u8` arguments, while the second uses an [RGB] object as argument.
 
 ```rust
-    use colorimetry::{CIE1931, Spectrum, RGB};
-    let red = Spectrum::srgb(255, 0, 0);
+    use colorimetry::{CIE1931, Stimulus, RGB};
+    let red = Stimulus::srgb(255, 0, 0);
     approx::assert_ulps_eq!(
-            CIE1931.xyz(&red).chromaticity().as_ref(),
-                &[0.64, 0.33].as_ref(), epsilon = 1E-5);
-
-    let white = Spectrum::rgb(RGB::new(1.0, 1.0, 1.0, None, None));
-    approx::assert_ulps_eq!(CIE1931.xyz(&white), CIE1931.xyz_d65(), epsilon = 1E-6);
+            CIE1931.xyz(&red, None)
+                .chromaticity()
+                .as_ref(),
+            &[0.64, 0.33]
+            .as_ref(), epsilon = 1E-5);
 ```
 
 When dealing with spectral data defined over a domain not matching with the one used in this library you can use [Spectrum::linear_interpolate].
@@ -107,6 +123,8 @@ All color models are using the tristimulus values of a stimulus, essentially a l
 
 ## [CieLab] Color Model
 Likewise, the [CIE1931.lab_d65] and [CIE1931.lab_d50] methods can be used to get CIELAB coordinates for a spectrum measured from a color sample, as an instance of the [CieLab](crate::lab::CieLab) class.
+
+## Color
 
 ## [RGB] Color Values, and [RgbSpace] Color Spaces.
 

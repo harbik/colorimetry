@@ -84,7 +84,7 @@ impl Spectrum {
     # use approx::assert_ulps_eq;
     let data = [0.0, 1.0];
     let wl = [380.0, 780.0];
-    let mut spd = cmt::Spectrum::linear_interpolate(cmt::Category::Colorant, &wl, &data).unwrap().values();
+    let mut spd = cmt::Spectrum::linear_interpolate(&wl, &data).unwrap().values();
     assert_ulps_eq!(spd[0], 0.);
     assert_ulps_eq!(spd[100], 0.25);
     assert_ulps_eq!(spd[200], 0.5);
@@ -95,7 +95,7 @@ impl Spectrum {
     // wavelength domain.
     let data = vec![0.0, 1.0, 1.0, 0.0];
     let wl = vec![480.0, 490.0, 570.0, 580.0];
-    let spd = cmt::Spectrum::linear_interpolate(cmt::Category::Colorant, &wl, &data).unwrap().values();
+    let spd = cmt::Spectrum::linear_interpolate(&wl, &data).unwrap().values();
     assert_ulps_eq!(spd[0], 0.0);
     assert_ulps_eq!(spd[100], 0.0);
     assert_ulps_eq!(spd[110], 1.0);
@@ -155,7 +155,7 @@ impl Sum for Spectrum {
 
 #[cfg(test)]
 mod spectrum_tests {
-    use crate::{Illuminant, Spectrum, Stimulus, CIE1931, D65, RGB};
+    use crate::{Spectrum, Illuminant, Stimulus, CIE1931, D65, RGB};
     use approx::assert_ulps_eq;
 
     #[test]
@@ -169,7 +169,7 @@ mod spectrum_tests {
     #[test]
     fn test_led(){
         use approx::assert_ulps_eq;
-        let ls = Illuminant::led_illuminant(550.0, 25.0);
+        let ls = Illuminant::led(550.0, 25.0);
         assert_ulps_eq!(ls.irradiance(), 1.0, epsilon = 1E-9);
     }
 
@@ -309,18 +309,6 @@ impl Mul<&Spectrum> for &Spectrum {
 }
 
 impl Mul<f64> for Spectrum {
-    /// Multiply a spectrum with a scalar f64 value.
-    /// ```
-    ///     use crate::colorimetry::Spectrum;
-    ///     use approx::assert_ulps_eq;
-    ///
-    ///     let mut led = Spectrum::led_illuminant(550.0, 25.0);
-    ///     let mut irradiance = led.irradiance();
-    ///     assert_ulps_eq!(led.irradiance(), 1.0, epsilon = 1E-10);
-    ///
-    ///     led = led * 10.0;
-    ///     assert_ulps_eq!(led.irradiance(), 10.0, epsilon = 1E-10);
-    /// ```
     type Output = Spectrum;
 
     // spectrum * scalar
@@ -330,18 +318,6 @@ impl Mul<f64> for Spectrum {
 }
 
 impl Mul<Spectrum> for f64 {
-    /// Multiply a spectrum with a scalar f64 value.
-    /// ```
-    ///     use crate::colorimetry::Spectrum;
-    ///     use approx::assert_ulps_eq;
-    ///
-    ///     let mut led = Spectrum::led_illuminant(550.0, 25.0);
-    ///     let mut irradiance = led.irradiance();
-    ///     assert_ulps_eq!(led.irradiance(), 1.0, epsilon = 1E-10);
-    ///
-    ///     led = 10.0 * led;
-    ///     assert_ulps_eq!(led.irradiance(), 10.0, epsilon = 1E-10);
-    /// ```
     type Output = Spectrum;
 
     // scalar * spectrum
@@ -423,15 +399,6 @@ fn add_spectra(){
 }
 
 impl MulAssign for Spectrum {
-    /// Element wise multiply (filter) a spectrum with another spectrum.
-    /// ```
-    /// use colorimetry::{Spectrum, CIE1931, XYZ};
-    /// let mut spc = Spectrum::d65_illuminant().set_illuminance(&CIE1931, 100.0);
-    /// spc *= Spectrum::white(); // no change in color point, multiply with all ones
-    /// let xyz = CIE1931.xyz(&spc); // calculate tristimulus values
-    /// approx::assert_ulps_eq!(xyz, CIE1931.xyz_d65());
-    /// 
-    /// ```
     fn mul_assign(&mut self, rhs: Self) {
         self.0.iter_mut().zip(rhs.0.iter()).for_each(|(v,w)| *v *= *w);
 
@@ -439,21 +406,6 @@ impl MulAssign for Spectrum {
 }
 
 impl MulAssign<f64> for Spectrum {
-    /// Scale a spectrum with a scaler value.
-    /// Depending on the type of spectrum this has different meanings.
-    /// - for an illuminant, this scales the irradiance,
-    /// - for a ColorPatch, this scales the total reflectivity.
-    /// - for a filter, it changes its transmission.
-    /// ```
-    ///     use crate::colorimetry::Spectrum;
-    ///     use approx::assert_ulps_eq;
-    ///
-    ///     let mut led = Spectrum::led_illuminant(550.0, 25.0);
-    ///     assert_ulps_eq!(led.irradiance(), 1.0, epsilon = 1E-10);
-    ///
-    ///     led *= 10.0;
-    ///     assert_ulps_eq!(led.irradiance(), 10.0, epsilon = 1E-10);
-    /// ```
     fn mul_assign(&mut self, rhs: f64) {
         self.0.iter_mut().for_each(|v| *v *= rhs);
 

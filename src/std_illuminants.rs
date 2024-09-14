@@ -27,6 +27,7 @@ The Fluorescent `F3_X` series is included here, with X ranging from 1 to 15.
 use std::{ops::Deref, vec};
 use nalgebra::{ArrayStorage, SMatrix};
 use wasm_bindgen::prelude::*;
+use crate::{CmtError, Spectrum, RefWhite, Illuminant, NS};
 
 /**
 The CIE Standard Illuminants, available in the library, defined as enums.
@@ -48,7 +49,6 @@ A static reference to the spectra can be obtained using the "spectrum" method.
  */
 
 
-use crate::{CmtError, Illuminant, Spectrum, NS};
 
 // This macro generates the `StdIlluminant` enumerator, representing the standard illuminants
 // available in the library.  It adds the illuminants defined as static data by their name as an
@@ -93,6 +93,16 @@ macro_rules! std_illuminants {
 impl From<StdIlluminant> for Illuminant {
     fn from(std_illuminant: StdIlluminant) -> Self {
         std_illuminant.illuminant().clone()
+    }
+}
+
+impl RefWhite for StdIlluminant {
+    fn xyzn(&self, observer: crate::Observer, illuminance: Option<f64>) -> crate::XYZ {
+        observer.data().xyz_cie_table(self, illuminance)
+    }
+    
+    fn spectrum(&self) -> &Illuminant {
+        self.illuminant()
     }
 }
 
