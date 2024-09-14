@@ -202,8 +202,8 @@ impl Mul<Illuminant> for f64 {
 
 impl RefWhite for Illuminant {
     
-    fn spectrum(&self) -> &Self {
-        self
+    fn spectrum(&self) -> &Spectrum {
+        &self.0
     }
 }
 

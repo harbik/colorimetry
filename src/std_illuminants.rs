@@ -101,7 +101,7 @@ impl RefWhite for StdIlluminant {
         observer.data().xyz_cie_table(self, illuminance)
     }
     
-    fn spectrum(&self) -> &Illuminant {
+    fn spectrum(&self) -> &Spectrum {
         self.illuminant()
     }
 }

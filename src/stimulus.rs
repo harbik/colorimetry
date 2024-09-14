@@ -42,7 +42,7 @@ impl Stimulus {
 
 impl RefWhite for Stimulus {
 
-    fn spectrum(&self) -> &crate::Illuminant {
+    fn spectrum(&self) -> &Spectrum {
         todo!()
     }
 }

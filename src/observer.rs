@@ -72,7 +72,7 @@ impl ObserverData {
        // let xyzn = self.xyz_cie_table(illuminant, None);
         let xyzn = refwhite.xyzn(self.tag, None);
         let xyz = if let Some(colorant) = colorant {
-            let s = refwhite.spectrum().0 * colorant.0;
+            let s = refwhite.spectrum() * colorant;
             self.xyz_raw(&s, Some(xyzn))
         } else {
             xyzn

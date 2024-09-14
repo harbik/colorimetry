@@ -21,7 +21,7 @@ pub trait RefWhite {
             xyz
         }
     }
-    fn spectrum(&self) -> &Illuminant;
+    fn spectrum(&self) -> &Spectrum;
 }
 
 #[wasm_bindgen]
