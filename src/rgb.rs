@@ -3,7 +3,7 @@ use approx::AbsDiffEq;
 use colored::Color;
 use nalgebra::{Matrix3, Vector3};
 use wasm_bindgen::prelude::wasm_bindgen;
-use crate::{spectrum::Spectrum, xyz::XYZ, Colorant, Illuminant, Observer, RgbSpace, Stimulus, CIE1931};
+use crate::{spectrum::Spectrum, xyz::XYZ, Colorant, Filter, Illuminant, Observer, RgbSpace, Stimulus, CIE1931};
 
 
 /// Representation of a color stimulus in a set of Red, Green, and Blue (RGB) values,

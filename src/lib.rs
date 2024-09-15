@@ -18,6 +18,7 @@ pub use rgbspace::*;
 pub use spectrum::*;
 pub use std_illuminants::*;
 pub use stimulus::*;
+pub use traits::*;
 pub use lab::*;
 pub use xyz::*;
 use wasm_bindgen::JsValue;
@@ -40,6 +41,7 @@ pub mod rgbspace;
 pub mod spectrum;
 pub mod std_illuminants;
 pub mod stimulus;
+pub mod traits;
 pub mod xyz;
 
 

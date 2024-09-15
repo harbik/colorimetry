@@ -100,11 +100,10 @@ The first takes three `u8` arguments, while the second uses an [RGB] object as a
     use colorimetry::{CIE1931, Stimulus, RGB};
     let red = Stimulus::srgb(255, 0, 0);
     approx::assert_ulps_eq!(
-            CIE1931.xyz(&red, None)
-                .chromaticity()
-                .as_ref(),
-            &[0.64, 0.33]
-            .as_ref(), epsilon = 1E-5);
+        CIE1931.xyz(&red, None).chromaticity().as_ref(),
+        &[0.64, 0.33].as_ref(),
+        epsilon = 1E-5
+    );
 ```
 
 When dealing with spectral data defined over a domain not matching with the one used in this library you can use [Spectrum::linear_interpolate].

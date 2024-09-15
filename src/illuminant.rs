@@ -4,7 +4,7 @@ use wasm_bindgen::prelude::*;
 use colored::Color;
 use nalgebra::{ArrayStorage, SMatrix, SVector};
 
-use crate::{gaussian_peak_one, led_ohno, stefan_boltzmann, wavelength, wavelengths, CmtError, RefWhite, ObserverData, Spectrum, StdIlluminant, D50, D65, NS};
+use crate::{gaussian_peak_one, led_ohno, stefan_boltzmann, wavelength, wavelengths, CmtError, Light, ObserverData, Spectrum, StdIlluminant, D50, D65, NS};
 
 
 #[derive(Clone)]
@@ -200,10 +200,10 @@ impl Mul<Illuminant> for f64 {
     }
 }
 
-impl RefWhite for Illuminant {
+impl Light for Illuminant {
     
     fn spectrum(&self) -> &Spectrum {
-        &self.0
+        self
     }
 }
 

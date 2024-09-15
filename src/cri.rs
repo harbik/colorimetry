@@ -11,7 +11,7 @@ use nalgebra::{ArrayStorage, SMatrix};
 use wasm_bindgen::prelude::*;
 
 
-use crate::{CmtError, Colorant, Spectrum, RgbSpace, Illuminant, CIE1931, XYZ, RefWhite};
+use crate::{CmtError, Colorant, Spectrum, RgbSpace, Illuminant, CIE1931, XYZ, Light};
 
 /// Nummer of Test Color Sample Spectra
 const N_TCS: usize = 14;

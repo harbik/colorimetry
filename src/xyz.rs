@@ -6,23 +6,6 @@ use nalgebra::Vector3;
 use crate::{geometry::{LineAB, Orientation}, observer::{self, Observer}, CmtError, Illuminant, RgbSpace, Spectrum, RGB};
 use wasm_bindgen::prelude::wasm_bindgen; 
 
-/// A trait allowing to override the way the tristimulus valus of an illuminant directly, without
-/// calculating them from the spectrum, which is the default implementation.
-/// This is used with standard illuminants, especially D65, which is used so frequently, that their
-/// tristimulus values are calculated only once.
-pub trait RefWhite {
-    // Default implementation takes the illuminant spectrum, and calculates tristimulus values using the
-    // provided observer's color matching data.
-    fn xyzn(&self, observer: crate::Observer, y: Option<f64>) -> crate::XYZ {
-        let xyz = observer.data().xyz_raw(&self.spectrum(), None);
-        if let Some(illuminance) = y {
-            xyz.set_illuminance(illuminance)
-        } else {
-            xyz
-        }
-    }
-    fn spectrum(&self) -> &Spectrum;
-}
 
 #[wasm_bindgen]
 #[derive(Clone, Copy, Debug, PartialEq)]

@@ -1,6 +1,6 @@
 use std::{iter::Sum, ops::{Deref, Mul}};
 
-use crate::{Spectrum, RefWhite, ObserverData, Illuminant, RGB};
+use crate::{Spectrum, Light, ObserverData, Illuminant, RGB};
 
 
 
@@ -40,10 +40,10 @@ impl Stimulus {
 
 }
 
-impl RefWhite for Stimulus {
+impl Light for Stimulus {
 
     fn spectrum(&self) -> &Spectrum {
-        todo!()
+        self
     }
 }
 

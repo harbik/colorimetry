@@ -3,7 +3,7 @@ use std::ops::{Add, AddAssign, Deref, DerefMut, Mul, MulAssign};
 use colored::Color;
 use nalgebra::SVector;
 
-use crate::{gaussian_peak_one, wavelengths, CmtError, Spectrum, NS};
+use crate::{gaussian_peak_one, wavelengths, CmtError, Filter, Spectrum, NS};
 
 
 #[derive(Clone, Debug)]
@@ -92,6 +92,11 @@ impl Colorant {
     }
 }
 
+impl Filter for Colorant {
+    fn spectrum(&self) -> &Spectrum {
+        self
+    }
+}
 
 impl Deref for Colorant {
     type Target = Spectrum;

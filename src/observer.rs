@@ -2,7 +2,11 @@ use core::f64;
 use std::sync::OnceLock;
 use wasm_bindgen::prelude::wasm_bindgen;
 use nalgebra::{Matrix3, SMatrix, Vector3};
-use crate::{lab::CieLab, physics::{planck, planck_slope, planck_slope_c2}, spectrum::{Spectrum, NS}, to_wavelength, xyz::XYZ, CmtError, Colorant, Illuminant, LineAB, RefWhite, RgbSpace, StdIlluminant};
+use crate::{
+    lab::CieLab, 
+    physics::{planck, planck_slope}, 
+    spectrum::{Spectrum, NS}, 
+    to_wavelength, xyz::XYZ, CmtError, Colorant, Filter, Light, LineAB, RgbSpace, StdIlluminant};
 
 
 
@@ -64,15 +68,19 @@ pub struct ObserverData {
 }
 
 impl ObserverData {
-    /// Calulates Tristimulus values for an illuminant, and the sample colorant illuminated
-    /// with the illuminant if present.
-    /// The values are normalized for a white illuminance of 100 cd/m2.
-    /// This uses buffered data for the tristimulus values of the standar dilluminants.
-    pub fn xyz(&self, refwhite: &impl RefWhite, colorant: Option<&Colorant>) -> XYZ {
+    /// Calulates Tristimulus values for an object implementing the [Light] trait, and an optional [Filter],
+    /// filtering the light.
+    ///
+    /// The Light trait is implemented by [StdIlluminant] and [crate::Illuminant].
+    /// [Colorant] implments the [Filter] trait.
+    /// [crate::RGB], which represents a display pixel, implements both in thislibrary.
+    /// As a light, it is the light emitted from the pixel, as a filter it is the RGB-composite
+    /// filter which is applied to the underlying standard illuminant of color space.
+    pub fn xyz(&self, light: &dyn Light, filter: Option<&dyn Filter>) -> XYZ {
        // let xyzn = self.xyz_cie_table(illuminant, None);
-        let xyzn = refwhite.xyzn(self.tag, None);
-        let xyz = if let Some(colorant) = colorant {
-            let s = refwhite.spectrum() * colorant;
+        let xyzn = light.xyzn(self.tag, None);
+        let xyz = if let Some(flt) = filter {
+            let s = light.spectrum() * flt.spectrum();
             self.xyz_raw(&s, Some(xyzn))
         } else {
             xyzn
