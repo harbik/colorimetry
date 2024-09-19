@@ -3,7 +3,7 @@ use std::{collections::HashMap, sync::{LazyLock, OnceLock}};
 
 use strum_macros::EnumIter;
 use wasm_bindgen::prelude::wasm_bindgen;
-use crate::{gamma::GammaCurve, gaussian_filtered_primaries, spectrum::Spectrum, Illuminant, StdIlluminant, Stimulus, D65};
+use crate::{gamma::GammaCurve, gaussian_filtered_primaries, spectrum::Spectrum, Colorant, Illuminant, StdIlluminant, Stimulus, CIE1931, D65};
 
 
 // The display P3 red coordinate is outside the CIE 1931 gamut using the CIE 1931 1 nanometer
@@ -28,12 +28,12 @@ pub static XY_PRIMARIES: LazyLock<HashMap<&str, ([[f64;2];3], StdIlluminant)>> =
 #[derive(Debug, Clone, Copy, Default, EnumIter, PartialEq)]
 #[wasm_bindgen]
 /**
-A Light Weight tag, to represent an RGB color space.
+A Light Weight tag, representing an RGB color space.
 Used for example in the RGB value set, to identify the color space being used.  
  */
 pub enum RgbSpace {
     #[default]
-    SRGB, // D65 filtered Gaussians
+    SRGB,
     ADOBE,
     DisplayP3,
 }
@@ -99,6 +99,22 @@ impl RgbSpaceData {
         Self { primaries, white, gamma }
     }
 
+    /**
+      Get primaries as colorants.
+
+      Buffered - calculated on first use by division with the referene white illuminant.
+      Reference white spectra should not have 0.0 values.
+     */
+    pub fn primaries_as_colorants(&self) -> &[Colorant;3] {
+        static PRIMARY_FILTERS: OnceLock<[Colorant;3]> = OnceLock::new();
+        PRIMARY_FILTERS.get_or_init(||{
+            let white = self.white.illuminant().clone().set_illuminance(&CIE1931, 100.0).0;
+            // RGB primaries defined with reference to CIE1931, and 100 cd/m2.
+            let sv:  Vec<Spectrum> = self.primaries.iter().map(|v|&v.0/&white).collect();
+            let sa: [Spectrum;3] = sv.try_into().unwrap();
+            sa.map(|v|Colorant(v))
+        })
+    }
 
     /**
     The sRGB color space, created by HP and Microsoft in 1996.  It is the
@@ -197,7 +213,7 @@ mod rgbspace_tests {
         for space in RgbSpace::iter() {
             let (rgbspace, rgbstr) = space.data();
             for i in 0..3 {
-                let xy = CIE1931.xyz_raw(&rgbspace.primaries[i], None).chromaticity();
+                let xy = CIE1931.xyz_from_spectrum(&rgbspace.primaries[i], None).chromaticity();
                 let xywant = XY_PRIMARIES[rgbstr].0[i];
                 assert_ulps_eq!(xy.as_ref(), xywant.as_ref(), epsilon = 1E-5);
 

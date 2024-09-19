@@ -1,9 +1,9 @@
-use std::sync::OnceLock;
+use std::{borrow::Cow, sync::OnceLock};
 use approx::AbsDiffEq;
 use colored::Color;
 use nalgebra::{Matrix3, Vector3};
 use wasm_bindgen::prelude::wasm_bindgen;
-use crate::{spectrum::Spectrum, xyz::XYZ, Colorant, Filter, Illuminant, Observer, RgbSpace, Stimulus, CIE1931};
+use crate::{spectrum::Spectrum, xyz::XYZ, Colorant, Filter, Illuminant, Light, Observer, RgbSpace, Stimulus, CIE1931};
 
 
 /// Representation of a color stimulus in a set of Red, Green, and Blue (RGB) values,
@@ -120,6 +120,54 @@ mod rgb_tests {
 
 }
 
+impl Light for RGB {
+
+    fn spectrum(&self) -> Cow<Spectrum> {
+        let prim = &self.space.data().0.primaries;
+        let yrgb = self.observer.data().rgb2xyz(&self.space).row(1);
+//        self.rgb.iter().zip(yrgb.iter()).zip(prim.iter()).map(|((v,w),s)|*v * *w * &s.0).sum()
+        let s = self.rgb.iter().zip(yrgb.iter()).zip(prim.iter())
+            .fold(
+                Spectrum::default(),
+                |acc, ((&v,&w),s)| {
+                    acc + v * w * &s.0
+                }
+            );
+        Cow::Owned(s)
+    }
+}
+
+/**
+    An RGB pixel as a filter.
+
+    This excludes the reference white light.
+    Ii is the filter function only, which is used in combination with a reference illuminant to achieve
+    a stimulus in accordance with the colorspace in which is defined.
+    
+    ```
+    use colorimetry::{CIE1931, RGB, XYZ, StdIlluminant, XYZ_D65WHITE};
+    
+    // rgb white in using CIE1931 standard observer, and sRGB color space.
+    let rgb = RGB::from_u8(255, 255, 255, None, None);
+    let d65: XYZ = CIE1931.xyz(&StdIlluminant::D65, Some(&rgb));
+    approx::assert_ulps_eq!(d65, XYZ_D65WHITE, epsilon=1E-2);
+    ```
+ */
+impl Filter for RGB {
+    fn spectrum(&self) -> Cow<Spectrum> {
+        let prim = self.space.data().0.primaries_as_colorants();
+        let yrgb = self.observer.data().rgb2xyz(&self.space).row(1);
+        let s = self.rgb.iter().zip(yrgb.iter()).zip(prim.iter())
+            .fold(
+                Spectrum::default(),
+                |acc, ((&v,&w),s)| {
+                    acc + v * w * &s.0
+                }
+            );
+        Cow::Owned(s)
+    }
+}
+
 impl AsRef<Vector3<f64>> for RGB {
     fn as_ref(&self) -> &Vector3<f64> {
         &self.rgb
@@ -155,6 +203,7 @@ impl approx::UlpsEq for RGB {
         self.observer == other.observer && self.rgb.ulps_eq(&other.rgb, epsilon, max_ulps)
     }
 }
+
 
 pub fn gaussian_filtered_primaries(white: &Spectrum, red: [f64;3], green: [f64;2], blue: [f64;2]) -> [Stimulus; 3] {
     let [rc, rw, f] = red;

@@ -60,7 +60,7 @@ impl TryFrom<&Illuminant> for CRI {
     fn try_from(illuminant: &Illuminant) -> Result<Self, Self::Error> {
         let illuminant = &illuminant.clone().set_illuminance(&CIE1931, 100.0);
         // Calculate Device Under Test (dut) XYZ illuminant and sample values
-        let xyz_dut = CIE1931.xyz_raw(illuminant, None);
+        let xyz_dut = CIE1931.xyz_from_spectrum(illuminant, None);
         let xyz_dut_samples: [XYZ; N_TCS] = 
             TCS
                 .iter()
@@ -79,7 +79,7 @@ impl TryFrom<&Illuminant> for CRI {
         };
 
         // Calculate the reference illuminant values
-        let xyz_ref = CIE1931.xyz_raw(&illuminant_ref, None);
+        let xyz_ref = CIE1931.xyz_from_spectrum(&illuminant_ref, None);
         let xyz_ref_samples: [XYZ; N_TCS] = 
             TCS
                 .iter()

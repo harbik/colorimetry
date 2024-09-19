@@ -24,7 +24,7 @@ phosphor-converted Blue LED and Red LED standard illuminant.
 The Fluorescent `F3_X` series is included here, with X ranging from 1 to 15.
 */
 
-use std::{ops::Deref, vec};
+use std::{borrow::Cow, ops::Deref, vec};
 use nalgebra::{ArrayStorage, SMatrix};
 use wasm_bindgen::prelude::*;
 use crate::{CmtError, Spectrum, Light, Illuminant, NS};
@@ -101,8 +101,9 @@ impl Light for StdIlluminant {
         observer.data().xyz_cie_table(self, illuminance)
     }
     
-    fn spectrum(&self) -> &Spectrum {
-        self.illuminant()
+    fn spectrum(&self) -> Cow<'_,Spectrum> {
+       // Cow::Borrowed(self.illuminant())
+        (&self.illuminant().0).into()
     }
 }
 

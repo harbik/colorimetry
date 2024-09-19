@@ -1,4 +1,4 @@
-use std::{iter::Sum, ops::{Deref, Mul}};
+use std::{borrow::Cow, iter::Sum, ops::{Deref, Mul}};
 
 use crate::{Spectrum, Light, ObserverData, Illuminant, RGB};
 
@@ -42,8 +42,8 @@ impl Stimulus {
 
 impl Light for Stimulus {
 
-    fn spectrum(&self) -> &Spectrum {
-        self
+    fn spectrum(&self) -> Cow<Spectrum> {
+        Cow::Borrowed(self)
     }
 }
 

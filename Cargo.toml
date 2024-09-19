@@ -26,6 +26,7 @@ strum = "0.26.3"
 strum_macros = "0.26.4"
 num-traits = "0.2.19"
 paste = "1.0.15"
+# spliny = "0.2"
 
 [features]
 defaults = ["cie-illuminants", "supplemental-observers"]
@@ -33,6 +34,7 @@ cie-illuminants = []
 cct = []
 supplemental-observers = []
 cri = ["cct"]
+munsell-matt = []
 
 [dev-dependencies] # for examples and tests
 argmin = "0.10.0"

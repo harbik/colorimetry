@@ -8,7 +8,7 @@ pub use cct::*;
 pub use colorant::*;
 #[cfg(feature="cri")]
 pub use cri::*;
-pub use data::*;
+pub use data::cie_data::*;
 pub use geometry::*;
 pub use illuminant::*;
 pub use observer::*;
@@ -34,6 +34,8 @@ pub mod gamma;
 pub mod geometry;
 pub mod illuminant;
 pub mod lab;
+#[cfg(feature="munsell-matt")]
+pub mod munsell_matt;
 pub mod observer;
 pub mod physics;
 pub mod rgb;
@@ -125,6 +127,8 @@ pub enum CmtError {
     NoColorant,
     #[error("RequiresSameIlluminant")]
     RequiresSameIlluminant,
+    #[error("Spectrum {0} not found in Collection")]
+    SpectrumNotFound(String),
 }
 
 impl From<&str> for CmtError {
@@ -145,5 +149,9 @@ impl From<CmtError> for JsValue {
     }
 }
 
- 
+// Set "rust-analyzer.check.features": "all" or ["cri", ...] to limit processing time
+// `cargo build --all-features`
+// `wasm-pack build --target web --release --all-features`
+// or `cargo build --no-default-features`: 193K wasm-file
+// `wasm-pack build --target web --release --no-default-features`
  

@@ -1,4 +1,4 @@
-use std::ops::{Deref, Mul};
+use std::{borrow::Cow, ops::{Deref, Mul}};
 use wasm_bindgen::prelude::*;
 
 use colored::Color;
@@ -202,8 +202,8 @@ impl Mul<Illuminant> for f64 {
 
 impl Light for Illuminant {
     
-    fn spectrum(&self) -> &Spectrum {
-        self
+    fn spectrum(&self) -> Cow<Spectrum> {
+        Cow::Borrowed(self)
     }
 }
 
@@ -262,7 +262,7 @@ impl Illuminant {
 fn test_d_illuminant(){
 
     let s = Illuminant::d_illuminant(6504.0).unwrap();
-    let xyz = crate::CIE1931.xyz_raw(&s, None).set_illuminance(100.0);
+    let xyz = crate::CIE1931.xyz_from_spectrum(&s, None).set_illuminance(100.0);
     approx::assert_ulps_eq!(xyz, crate::CIE1931.xyz_d65(), epsilon = 2E-2);
 }
 

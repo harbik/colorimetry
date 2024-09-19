@@ -1,5 +1,4 @@
-use core::f64;
-use std::sync::OnceLock;
+use std::{borrow::{Borrow, Cow}, sync::OnceLock};
 use wasm_bindgen::prelude::wasm_bindgen;
 use nalgebra::{Matrix3, SMatrix, Vector3};
 use crate::{
@@ -34,7 +33,7 @@ impl Observer {
      */
     pub fn data(&self) -> &'static ObserverData {
         match self {
-            Observer::Std1931 =>  &crate::data::CIE1931,
+            Observer::Std1931 =>  &crate::data::cie_data::CIE1931,
             _ => todo!()
         }
     }
@@ -80,35 +79,13 @@ impl ObserverData {
        // let xyzn = self.xyz_cie_table(illuminant, None);
         let xyzn = light.xyzn(self.tag, None);
         let xyz = if let Some(flt) = filter {
-            let s = light.spectrum() * flt.spectrum();
-            self.xyz_raw(&s, Some(xyzn))
+            let s = *light.spectrum() * *flt.spectrum();
+            self.xyz_from_spectrum(&s, Some(xyzn))
         } else {
             xyzn
         };
         xyz.set_illuminance(100.0)
     }
-
-    /**
-        Calculate Tristimulus values in form of an [XYZ] object for a general illuminant, given by a spectral representation
-        and an optional colorant, also by its spectral represenation.
-        Tristimulus values produced here are normalized to a luminous value of 100.0
-    */
-    /*
-    pub fn xyz_illuminant(&self, illuminant: &Illuminant, colorant: Option<&Colorant>) -> XYZ {
-       // let xyzn = self.data * illuminant.0.0 * self.lumconst;
-        let xyzn = self.xyz_raw(illuminant, None);
-        let xyz = if let Some(colorant) = colorant {
-            let s = illuminant.0 * colorant.0;
-            self.xyz_raw(&s, Some(xyzn))
-
-        } else {
-            xyzn
-        };
-        xyz.set_illuminance(100.0)
-    }
-     */
-    
-
 
     /**
         Calculates Tristimulus valus, in form of an [XYZ] object, using a general spectrum.
@@ -117,7 +94,7 @@ impl ObserverData {
         This produces the raw XYZ data, not normalized to 100.0
 
     */
-    pub fn xyz_raw(&self, spectrum: &Spectrum, rhs: Option<XYZ>) -> XYZ {
+    pub fn xyz_from_spectrum(&self, spectrum: &Spectrum, rhs: Option<XYZ>) -> XYZ {
         let xyz = self.data * spectrum.0 * self.lumconst;
         if let Some(xyz0) = rhs { // A illuminant/colorant
             XYZ::from_vecs(xyz0.xyzn, Some(xyz), self.tag)
@@ -130,16 +107,16 @@ impl ObserverData {
     /**
         Tristimulus Values for the Standard Illuminants in this library.
 
-        Values are calculated on first use, and are not normalized, unless an illuminous value is provide,
-        in case that is used.
+        Values are calculated on first use, and are not normalized by default, unless an illuminous
+        value is provided, in case they are.
     */
     pub fn xyz_cie_table(&self, std_illuminant: &StdIlluminant, illuminance: Option<f64>) -> XYZ {
         const EMPTY:OnceLock<XYZ> = OnceLock::new();
-        const XYZ_STD_ILLUMINANTS_LEN: usize = 32;
+        const XYZ_STD_ILLUMINANTS_LEN: usize = 64;
         static XYZ_STD_ILLUMINANTS : OnceLock<[OnceLock<XYZ>;XYZ_STD_ILLUMINANTS_LEN]> = OnceLock::new();
         let xyz_std_illuminants = XYZ_STD_ILLUMINANTS.get_or_init(||[EMPTY; XYZ_STD_ILLUMINANTS_LEN]);
         let xyz = *xyz_std_illuminants[*std_illuminant as usize].get_or_init(||{
-            self.xyz_raw(std_illuminant.illuminant(), None)
+            self.xyz_from_spectrum(std_illuminant.illuminant(), None)
         });
         if let Some(l) = illuminance {
             xyz.set_illuminance(l)
@@ -254,16 +231,16 @@ impl ObserverData {
     /// Calculates the L*a*b* CIELAB D65 values of a Colorant, using D65 as an illuminant.
     /// Accepts a Colorant Spectrum only.
     /// Returns f64::NAN's otherwise.
-    pub fn lab_d65(&self, colorant: &Colorant) -> CieLab {
-        let xyz0 = self.xyz(&StdIlluminant::D65, Some(colorant));
+    pub fn lab_d65(&self, filter: &dyn Filter) -> CieLab {
+        let xyz0 = self.xyz(&StdIlluminant::D65, Some(filter));
         CieLab::new(xyz0.xyzn, xyz0.xyz.unwrap())
     }
 
     /// Calculates the L*a*b* CIELAB D50 values of a Colorant, using D65 as an illuminant.
     /// Accepts a Colorant Spectrum only.
     /// Returns f64::NAN's otherwise.
-    pub fn lab_d50(&self, colorant: &Colorant) -> CieLab {
-        let xyz0 = self.xyz(&StdIlluminant::D50, Some(colorant));
+    pub fn lab_d50(&self, filter: &dyn Filter) -> CieLab {
+        let xyz0 = self.xyz(&StdIlluminant::D50, Some(filter));
         CieLab::new(xyz0.xyzn, xyz0.xyz.unwrap())
     }
 
@@ -371,7 +348,7 @@ impl ObserverData {
             let mut rgb2xyz = 
                 Matrix3::from_iterator(space.primaries
                     .iter()
-                    .flat_map(|s|self.xyz_raw(s, None)
+                    .flat_map(|s|self.xyz_from_spectrum(s, None)
                     .set_illuminance(1.0).values()));
            // let xyzw = self.xyz_raw(&space.white, None).set_illuminance(1.0);
             let xyzw = self.xyz(&space.white, None).set_illuminance(1.0);
@@ -402,7 +379,12 @@ impl ObserverData {
 
 }
 
+// JS-WASM Interface code
+#[cfg(target_arch="wasm32")]
+#[wasm_bindgen]
+impl ObserverData {
 
+}
 
 
 #[cfg(test)]

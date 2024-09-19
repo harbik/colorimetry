@@ -1,4 +1,4 @@
-use std::ops::{Add, AddAssign, Deref, DerefMut, Mul, MulAssign};
+use std::{borrow::Cow, ops::{Add, AddAssign, Deref, DerefMut, Mul, MulAssign}};
 
 use colored::Color;
 use nalgebra::SVector;
@@ -90,11 +90,14 @@ impl Colorant {
         );
         Self(Spectrum(data))
     }
+
 }
 
+
+
 impl Filter for Colorant {
-    fn spectrum(&self) -> &Spectrum {
-        self
+    fn spectrum(&self) -> Cow<Spectrum> {
+        Cow::Borrowed(self)
     }
 }
 

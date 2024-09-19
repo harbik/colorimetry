@@ -6,6 +6,10 @@ use nalgebra::Vector3;
 use crate::{geometry::{LineAB, Orientation}, observer::{self, Observer}, CmtError, Illuminant, RgbSpace, Spectrum, RGB};
 use wasm_bindgen::prelude::wasm_bindgen; 
 
+const D65A: [f64;3] = [95.04, 100.0, 108.86];
+pub const XYZ_D65: XYZ = XYZ::new(&D65A, None, Observer::Std1931);
+pub const XYZ_D65WHITE: XYZ = XYZ::new(&D65A, Some(&D65A), Observer::Std1931);
+
 
 #[wasm_bindgen]
 #[derive(Clone, Copy, Debug, PartialEq)]
