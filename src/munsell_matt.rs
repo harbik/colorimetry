@@ -1,5 +1,4 @@
 /*!
- *
 Munsell Matt Spectral Data
 
 Data derived from data measured by a team from the University of Eastern Finland, using a Perkin-Elmer lambda 9 UV/VIS/NIR spectrofotometer,

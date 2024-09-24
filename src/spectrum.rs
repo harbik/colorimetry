@@ -8,6 +8,7 @@ cells. The spectral composition of light, and the objects involved in its proces
 and painted patches, is represented by the [Spectrum]-object in this library.
 The spectral sensitivity of human vision is described by an [Observer](crate::Observer).
 */
+use core::f64;
 use std::{borrow::Cow, collections::BTreeMap, default, error::Error, iter::Sum, ops::{Add, AddAssign, Deref, Div, Index, IndexMut, Mul, MulAssign}};
 
 use num_traits::ToPrimitive;
@@ -114,14 +115,36 @@ impl Spectrum {
         Ok(Self(SVector::<f64, 401>::from_array_storage(nalgebra::ArrayStorage([data]))))
     }
 
+    
+    /// Interpolation using Sprague
+    /// 
+    /// This method can only use equally distant data points as input.
+    /// See Kerf's paper
+    /// [The Interpolation Method of Sprague-Karup](https://www.sciencedirect.com/science/article/pii/0771050X75900273)
+    /// for the description of the method.
+    /// This implementation uses end-point values for extrapolation, as recommended by CIE15:2004 7.2.2.1.
+    
+    pub fn sprague_interpolate(wavelengths: [f64;2], data: &[f64]) ->Result<Self, crate::CmtError> {
+        let data = sprinterp(wavelengths.try_into().unwrap(), data)?;
+        Ok(Self(SVector::<f64, 401>::from_array_storage(nalgebra::ArrayStorage([data]))))
+    }
+
+
     /**
     Smooth a Spectrum by convolution with a Gaussian function
      */
-    pub fn smoothing_filter(mut self, mut width: f64) -> Self {
+    pub fn smooth(mut self, mut width: f64) -> Self {
         if width < 1E-3 { width *= 1E6 }; // to nanometer
         let sigma = width / ((8.0 * 2f64.ln()).sqrt());
         let sd3 = (3.0 * sigma).floor() as i32;
-        let kernel =  DVector::<f64>::from_iterator((2*sd3+1) as usize, (-sd3..=sd3).into_iter().map(|i| gaussian_peak_one(i as f64, 0.0, sigma)));
+        let kernel =  
+            DVector::<f64>
+                ::from_iterator(
+                    (2*sd3+1) as usize,
+                    (-sd3..=sd3)
+                        .into_iter()
+                        .map(|i| gaussian_peak_one(i as f64, 0.0, sigma)
+                    ));
         self.0 = self.0.convolve_same(kernel);
         self
     }
@@ -152,45 +175,6 @@ impl Sum for Spectrum {
         s
     }
 }
-
-#[cfg(test)]
-mod spectrum_tests {
-    use crate::{Spectrum, Illuminant, Stimulus, CIE1931, D65, RGB};
-    use approx::assert_ulps_eq;
-
-    #[test]
-    fn test_spectrum_from_rgb(){
-        let white: Stimulus = RGB::new(1.0, 1.0, 1.0, None, None).into();
-        approx::assert_ulps_eq!(CIE1931.xyz_from_spectrum(&white, None), CIE1931.xyz_d65().set_illuminance(100.0), epsilon = 1E-6);
-        let red = Stimulus::srgb(255, 0, 0);
-        assert_ulps_eq!(CIE1931.xyz_from_spectrum(&red, None).chromaticity().as_ref(), &[0.64, 0.33].as_ref(), epsilon = 1E-5);
-    }
-
-    #[test]
-    fn test_led(){
-        use approx::assert_ulps_eq;
-        let ls = Illuminant::led(550.0, 25.0);
-        assert_ulps_eq!(ls.irradiance(), 1.0, epsilon = 1E-9);
-    }
-
-    #[test]
-    fn test_chromaticity(){
-        let xyz0 = CIE1931.xyz_from_spectrum(&D65, None);
-        let [x0, y0] = xyz0.chromaticity();
-
-        let illuminance = D65.illuminance(&CIE1931);
-        let d65 = D65.clone().set_illuminance(&CIE1931, 100.0);
-        let xyz = CIE1931.xyz_from_spectrum(&d65, None);
-        let [x, y] = xyz.chromaticity();
-    
-        assert_ulps_eq!(x0, x);
-        assert_ulps_eq!(y0, y);
-    }
-
-}
-
-
-
 
 // JS-WASM Interface code
 #[cfg(target_arch="wasm32")]
@@ -353,23 +337,6 @@ impl <'a> From<&'a Spectrum> for Cow<'a, Spectrum> {
     }
 }
 
-#[test]
-fn mul_spectra_test(){
-    use approx::assert_ulps_eq;
-    let g = Colorant::gray(0.5);
-
-    let w = 2.0 * g.clone();
-    for i in 380..780 {
-        assert_ulps_eq!(w[i], 1.0);
-    }
-
-    let v = g * 2.0;
-    for i in 380..780 {
-        assert_ulps_eq!(v[i], 1.0);
-    }
-
-}
-
 
 // Addition of spectra, typically used for illuminant (multiple sources).
 // Additive mixing
@@ -408,28 +375,6 @@ impl AddAssign<&Spectrum> for Spectrum {
     fn add_assign(&mut self, rhs: &Self) {
         self.0 += rhs.0
     }
-}
-#[test]
-fn add_spectra(){
-    use approx::assert_ulps_eq;
-    use crate::Colorant;
-    let mut g1 = Colorant::gray(0.5);
-    let g2 = Colorant::gray(0.5);
-    let g = g1.clone() + g2.clone();
-    for i in 380..780 {
-        assert_ulps_eq!(g[i], 1.0);
-    }
-
-    g1 += &g2;
-    for i in 380..780 {
-        assert_ulps_eq!(g1[i], 1.0);
-    }
-
-    let v = 2.0 * *Colorant::gaussian(550.0, 50.0) + -2.0 * *Colorant::gaussian(550.0, 50.0);
-    for i in 380..780 {
-        assert_ulps_eq!(v[i], 0.0);
-    }
-
 }
 
 impl MulAssign for Spectrum {
@@ -478,87 +423,14 @@ impl IndexMut<usize> for Spectrum {
     }
 }
 
-#[test]
-fn index_test(){
-    use approx::assert_ulps_eq;
-    let mut s = Colorant::white();
-
-    // Set a spectral value
-    s[500] = 0.5;
-    assert_ulps_eq!(s[500], 0.5);
-
-    // A read from an index out of the 380..=780 range with given f64::NAN.
-    s[300] = 0.5;
-    assert!(s[300].is_nan());
-}
-
 /// Convenience function for specifying wavelengths in nanometers or meters.
-/// Can use integer and float values.
-/// Wavelength values larger than 1E-3 are assumed to have the unit nanometer
+///
+/// This accepts integer and float values.
+/// Wwavelength values larger than 1E-3 are assumed to have the unit nanometer
 /// and are converted to a unit of meters.
+/// All integer values are nanometaer values.
 pub fn wavelengths<T: ToPrimitive, const N: usize>(v:[T; N]) -> [f64;N] {
     v.map(|x|wavelength(x))
-}
-
-#[test]
-fn test_wavelengths() {
-    use approx::assert_ulps_eq;
-
-    let mut v1 = [380.0];
-    v1 = wavelengths(v1);
-    assert_ulps_eq!(v1[0], 380E-9);
-
-    let mut v2 = [380E-9, 780E-9];
-    v2 = wavelengths(v2);
-    assert_ulps_eq!(v2[0], 380E-9);
-    assert_ulps_eq!(v2[1], 780E-9);
-
-}
-
-
-
-#[cfg(test)]
-mod tests {
-
-    use crate::spectrum::Spectrum;
-
-    use crate::data::cie_data::CIE1931;
-    use crate::{Illuminant, StdIlluminant};
-    use approx::assert_ulps_eq;
-
-    #[test]
-    fn ee() {
-        let [x, y ] = CIE1931.xyz_from_spectrum(
-            &Illuminant::equal_energy().set_illuminance(&CIE1931, 100.0), None).chromaticity();
-        assert_ulps_eq!(x, 0.333_3, epsilon = 5E-5);
-        assert_ulps_eq!(y, 0.333_3, epsilon = 5E-5);
-    }
-
-    #[test]
-    fn d65() {
-        let [x, y ] = CIE1931.xyz_from_spectrum(
-            &&Illuminant::d65().set_illuminance(&CIE1931, 100.0), None).chromaticity();
-        // See table T3 CIE15:2004 (calculated with 5nm intervals, instead of 1nm, as used here)
-        assert_ulps_eq!(x, 0.312_72, epsilon = 5E-5);
-        assert_ulps_eq!(y, 0.329_03, epsilon = 5E-5);
-    }
-
-    #[test]
-    fn d50() {
-        let [x, y ] = CIE1931.xyz_from_spectrum(&Illuminant::d50().set_illuminance(&CIE1931, 100.0), None).chromaticity();
-        // See table T3 CIE15:2004 (calculated with 5nm intervals, instead of 1nm, as used here)
-        assert_ulps_eq!(x, 0.345_67, epsilon = 5E-5);
-        assert_ulps_eq!(y, 0.358_51, epsilon = 5E-5);
-    }
-
-    #[cfg_attr(test, cfg(feature="cie-illuminants"))]
-    fn a() {
-        let a: Illuminant = StdIlluminant::A.into();
-        let [x, y ] = CIE1931.xyz_from_spectrum(&a, None).chromaticity();
-        // See table T3 CIE15:2004 (calculated with 5nm intervals, instead of 1nm, as used here)
-        assert_ulps_eq!(x, 0.447_58, epsilon = 5E-5);
-        assert_ulps_eq!(y, 0.407_45, epsilon = 5E-5);
-    }
 }
 
 /// Linear interpolatino over a dataset over an equidistant wavelength domain
@@ -581,50 +453,6 @@ fn linterp(mut wl: [f64;2], data: &[f64]) -> Result<[f64;NS], CmtError> {
         }
     });
     Ok(spd)
-}
-
-#[test]
-fn test_linterp(){
-    use approx::assert_ulps_eq;
-
-    let data = [0.0, 1.0,  0.0];
-    let wl = [380.0, 780.0];
-    let spd = linterp(wl, &data).unwrap();
-    assert_ulps_eq!(spd[0], 0.);
-    assert_ulps_eq!(spd[100], 0.5);
-    assert_ulps_eq!(spd[200], 1.0);
-    assert_ulps_eq!(spd[300], 0.5);
-    assert_ulps_eq!(spd[400], 0.0);
-
-    let data = [0.0, 1.0];
-    let wl = [380.0, 780.0];
-    let spd = linterp(wl, &data).unwrap();
-    assert_ulps_eq!(spd[0], 0.);
-    assert_ulps_eq!(spd[100], 0.25);
-    assert_ulps_eq!(spd[200], 0.5);
-    assert_ulps_eq!(spd[300], 0.75);
-    assert_ulps_eq!(spd[400], 1.0);
-
-    let data2 = [0.0, 1.0];
-    let wl2 = [480.0, 580.0];
-    let spd2 = linterp(wl2, &data2).unwrap();
-   // print!("{:?}", spd2);
-    assert_ulps_eq!(spd2[0], 0.0);
-    assert_ulps_eq!(spd2[100], 0.0);
-    assert_ulps_eq!(spd2[150], 0.5, epsilon = 1E-10);
-    assert_ulps_eq!(spd2[200], 1.0);
-    assert_ulps_eq!(spd2[300], 1.0);
-    assert_ulps_eq!(spd2[400], 1.0);
-
-    let data3 = [0.0, 1.0];
-    let wl3 = [0.0, 1000.0];
-    let spd3 = linterp(wl3, &data3).unwrap();
-   // print!("{:?}", spd2);
-    assert_ulps_eq!(spd3[0], 0.38);
-    assert_ulps_eq!(spd3[100], 0.48);
-    assert_ulps_eq!(spd3[200], 0.58);
-    assert_ulps_eq!(spd3[300], 0.68);
-    assert_ulps_eq!(spd3[400], 0.78);
 }
 
 /**
@@ -670,31 +498,300 @@ fn linterp_irr(wl: &[f64], data: &[f64]) -> Result<[f64;NS], CmtError> {
     }
 }
 
-#[test]
-fn test_linterp_irr(){
+/// Sprague interpolation over a dataset over an equidistant wavelength domain
+fn sprinterp(mut wl: [f64;2], data: &[f64]) -> Result<[f64;NS], CmtError> {
+    let imax = data.len()-1;
+    if imax <6 { return Err(CmtError::ProvideAtLeastNValues(imax))};
+    let f64_imax = imax as f64;
+
+    // function to deal with extrapolation
+    let di = |i:i32| -> f64 {
+        if i>=0 && i<=imax as i32 { data[i as usize] }
+        else if i<0 { data[0] } 
+        else { data[imax] }
+    };
+
+    wl.sort_by(|a, b| a.partial_cmp(b).unwrap()); 
+    let [wl, wh] = wavelengths(wl);
+
+    let mut spd = [0f64; NS];
+    spd.iter_mut().enumerate().for_each(|(i,v)|{
+        let l = (i + 380) as f64 * 1E-9; // wavelength in meters
+        let t = (l-wl)/(wh - wl); // length parameter
+        let th = (t * f64_imax).clamp(0.0, f64_imax);
+        let h = th.fract();
+        let j = th.trunc() as i32;
+        *v = sprague(h, &[di(j-2), di(j-1), di(j), di(j+1), di(j+2), di(j+3)]);
+    });
+    Ok(spd)
+}
+
+fn sprague(h: f64, v: &[f64]) -> f64 {
+    let cf = [
+        v[2],
+        (v[0] - 8.0 * v[1] + 8.0 * v[3] - v[4]) / 12.0,
+        (-v[0] + 16.0 * v[1] - 30.0 * v[2] + 16.0 * v[3] - v[4]) / 24.0,
+        (-9.0 * v[0] + 39.0 * v[1] - 70.0 * v[2] + 66.0 * v[3] - 33.0 * v[4] + 7.0 * v[5]) / 24.0,
+        (13.0 * v[0] - 64.0 * v[1] + 126.0 * v[2] - 124.0 * v[3] + 61.0 * v[4] - 12.0 * v[5]) / 24.0,
+        (-5.0 * v[0] + 25.0 * v[1] - 50.0 * v[2] + 50.0 * v[3] - 25.0 * v[4] + 5.0 * v[5]) / 24.0,
+    ];
+    // horner's rule
+    cf.into_iter().rev().fold(0.0, |acc, coeff| acc * h + coeff)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::*;
     use approx::assert_ulps_eq;
+    use std::f64::consts::PI;
 
-    let mut data = vec![0.0, 1.0, 0.0];
-    let mut wl = vec![380.0, 480.0,  780.0];
-    let mut spd = linterp_irr(&wl, &data).unwrap();
-   // println!("{:?}", spd);
-    assert_ulps_eq!(spd[0], 0.);
-    assert_ulps_eq!(spd[50], 0.5);
-    assert_ulps_eq!(spd[100], 1.0);
-    assert_ulps_eq!(spd[250], 0.5);
-    assert_ulps_eq!(spd[400], 0.0);
+    #[test]
+    fn test_spectrum_from_rgb(){
+        let white: Stimulus = RGB::new(1.0, 1.0, 1.0, None, None).into();
+        approx::assert_ulps_eq!(CIE1931.xyz_from_spectrum(&white, None), CIE1931.xyz_d65().set_illuminance(100.0), epsilon = 1E-6);
+        let red = Stimulus::srgb(255, 0, 0);
+        assert_ulps_eq!(CIE1931.xyz_from_spectrum(&red, None).chromaticity().as_ref(), &[0.64, 0.33].as_ref(), epsilon = 1E-5);
+    }
 
-    // top hat with slanted angles
-    data = vec![0.0, 1.0, 1.0, 0.0];
-    wl = vec![480.0, 490.0, 570.0, 580.0];
-    spd = linterp_irr(&wl, &data).unwrap();
-   // println!("{:?}", spd);
-    assert_ulps_eq!(spd[0], 0.0);
-    assert_ulps_eq!(spd[100], 0.0);
-    assert_ulps_eq!(spd[110], 1.0);
-    assert_ulps_eq!(spd[190], 1.0);
-    assert_ulps_eq!(spd[200], 0.0);
-    assert_ulps_eq!(spd[300], 0.0);
-    assert_ulps_eq!(spd[400], 0.0);
+    #[test]
+    fn test_led(){
+        use approx::assert_ulps_eq;
+        let ls = Illuminant::led(550.0, 25.0);
+        assert_ulps_eq!(ls.irradiance(), 1.0, epsilon = 1E-9);
+    }
+
+    #[test]
+    fn test_chromaticity(){
+        let xyz0 = CIE1931.xyz_from_spectrum(&D65, None);
+        let [x0, y0] = xyz0.chromaticity();
+
+        let illuminance = D65.illuminance(&CIE1931);
+        let d65 = D65.clone().set_illuminance(&CIE1931, 100.0);
+        let xyz = CIE1931.xyz_from_spectrum(&d65, None);
+        let [x, y] = xyz.chromaticity();
+    
+        assert_ulps_eq!(x0, x);
+        assert_ulps_eq!(y0, y);
+    }
+
+    #[test]
+    fn index_test(){
+        let mut s = Colorant::white();
+
+        // Set a spectral value
+        s[500] = 0.5;
+        assert_ulps_eq!(s[500], 0.5);
+
+        // A read from an index out of the 380..=780 range with given f64::NAN.
+        s[300] = 0.5;
+        assert!(s[300].is_nan());
+    }
+
+    #[test]
+    fn test_wavelengths() {
+        use approx::assert_ulps_eq;
+
+        let mut v1 = [380.0];
+        v1 = crate::wavelengths(v1);
+        assert_ulps_eq!(v1[0], 380E-9);
+
+        let mut v2 = [380E-9, 780E-9];
+        v2 = wavelengths(v2);
+        assert_ulps_eq!(v2[0], 380E-9);
+        assert_ulps_eq!(v2[1], 780E-9);
+
+    }
+
+    #[test]
+    fn ee() {
+        let [x, y ] = CIE1931.xyz_from_spectrum(
+            &Illuminant::equal_energy().set_illuminance(&CIE1931, 100.0), None).chromaticity();
+        assert_ulps_eq!(x, 0.333_3, epsilon = 5E-5);
+        assert_ulps_eq!(y, 0.333_3, epsilon = 5E-5);
+    }
+
+    #[test]
+    fn d65() {
+        let [x, y ] = CIE1931.xyz_from_spectrum(
+            &&Illuminant::d65().set_illuminance(&CIE1931, 100.0), None).chromaticity();
+        // See table T3 CIE15:2004 (calculated with 5nm intervals, instead of 1nm, as used here)
+        assert_ulps_eq!(x, 0.312_72, epsilon = 5E-5);
+        assert_ulps_eq!(y, 0.329_03, epsilon = 5E-5);
+    }
+
+    #[test]
+    fn d50() {
+        let [x, y ] = CIE1931.xyz_from_spectrum(&Illuminant::d50().set_illuminance(&CIE1931, 100.0), None).chromaticity();
+        // See table T3 CIE15:2004 (calculated with 5nm intervals, instead of 1nm, as used here)
+        assert_ulps_eq!(x, 0.345_67, epsilon = 5E-5);
+        assert_ulps_eq!(y, 0.358_51, epsilon = 5E-5);
+    }
+
+    #[cfg_attr(test, cfg(feature="cie-illuminants"))]
+    fn a() {
+        let a: Illuminant = StdIlluminant::A.into();
+        let [x, y ] = CIE1931.xyz_from_spectrum(&a, None).chromaticity();
+        // See table T3 CIE15:2004 (calculated with 5nm intervals, instead of 1nm, as used here)
+        assert_ulps_eq!(x, 0.447_58, epsilon = 5E-5);
+        assert_ulps_eq!(y, 0.407_45, epsilon = 5E-5);
+    }
+    #[test]
+    fn add_spectra(){
+        use approx::assert_ulps_eq;
+        use crate::Colorant;
+        let mut g1 = Colorant::gray(0.5);
+        let g2 = Colorant::gray(0.5);
+        let g = g1.clone() + g2.clone();
+        for i in 380..780 {
+            assert_ulps_eq!(g[i], 1.0);
+        }
+
+        g1 += &g2;
+        for i in 380..780 {
+            assert_ulps_eq!(g1[i], 1.0);
+        }
+
+        let v = 2.0 * *Colorant::gaussian(550.0, 50.0) + -2.0 * *Colorant::gaussian(550.0, 50.0);
+        for i in 380..780 {
+            assert_ulps_eq!(v[i], 0.0);
+        }
+
+    }
+    #[test]
+    fn mul_spectra_test(){
+        use approx::assert_ulps_eq;
+        let g = Colorant::gray(0.5);
+    
+        let w = 2.0 * g.clone();
+        for i in 380..780 {
+            assert_ulps_eq!(w[i], 1.0);
+        }
+    
+        let v = g * 2.0;
+        for i in 380..780 {
+            assert_ulps_eq!(v[i], 1.0);
+        }
+    
+    }
+
+    #[test]
+    fn test_linterp(){
+        use approx::assert_ulps_eq;
+
+        let data = [0.0, 1.0,  0.0];
+        let wl = [380.0, 780.0];
+        let spd = linterp(wl, &data).unwrap();
+        assert_ulps_eq!(spd[0], 0.);
+        assert_ulps_eq!(spd[100], 0.5);
+        assert_ulps_eq!(spd[200], 1.0);
+        assert_ulps_eq!(spd[300], 0.5);
+        assert_ulps_eq!(spd[400], 0.0);
+
+        let data = [0.0, 1.0];
+        let wl = [380.0, 780.0];
+        let spd = linterp(wl, &data).unwrap();
+        assert_ulps_eq!(spd[0], 0.);
+        assert_ulps_eq!(spd[100], 0.25);
+        assert_ulps_eq!(spd[200], 0.5);
+        assert_ulps_eq!(spd[300], 0.75);
+        assert_ulps_eq!(spd[400], 1.0);
+
+        let data2 = [0.0, 1.0];
+        let wl2 = [480.0, 580.0];
+        let spd2 = linterp(wl2, &data2).unwrap();
+    // print!("{:?}", spd2);
+        assert_ulps_eq!(spd2[0], 0.0);
+        assert_ulps_eq!(spd2[100], 0.0);
+        assert_ulps_eq!(spd2[150], 0.5, epsilon = 1E-10);
+        assert_ulps_eq!(spd2[200], 1.0);
+        assert_ulps_eq!(spd2[300], 1.0);
+        assert_ulps_eq!(spd2[400], 1.0);
+
+        let data3 = [0.0, 1.0];
+        let wl3 = [0.0, 1000.0];
+        let spd3 = linterp(wl3, &data3).unwrap();
+    // print!("{:?}", spd2);
+        assert_ulps_eq!(spd3[0], 0.38);
+        assert_ulps_eq!(spd3[100], 0.48);
+        assert_ulps_eq!(spd3[200], 0.58);
+        assert_ulps_eq!(spd3[300], 0.68);
+        assert_ulps_eq!(spd3[400], 0.78);
+    }
+
+    #[test]
+    fn sprague_ones() {
+        let wl = [380.0, 780.0];
+        let data = &[1.0; 81];
+        let tinterpolate = sprinterp(wl, data).unwrap();
+        tinterpolate.iter().for_each(|v|approx::assert_ulps_eq!(*v, 1.0));
+    }
+
+    #[test]
+    fn sprague_tanh() {
+        // Test interpolation of 10nm to 1nm intervals for tanh.
+        // This function behaves well w.r.t. constant extrapolation.
+        const NF: i32 = 20;
+        const NT: i32 = NF * 10;
+        let wl = [380.0, 780.0];
+        let data: Vec<f64> = (-NF..=NF).into_iter().map(|i|((i as f64/(NF as f64))*1.5*PI).tanh()).collect();
+        let data_want: Vec<f64> = (-NT..=NT).into_iter().map(|i|((i as f64/(NT as f64))*1.5*PI).tanh()).collect();
+        let tinterpolate = sprinterp(wl, &data).unwrap();
+        tinterpolate.iter().zip(data_want.iter()).for_each(|(&v, w)|approx::assert_ulps_eq!(v, w, epsilon=1E-4));
+    }
+
+    #[test]
+    fn sprague_sin() {
+        let wl = [380.0, 780.0];
+        let data: Vec<f64> = (0..=80).into_iter().map(|i|{
+            let x = i as f64/80.0;
+            (x*PI).sin()
+        }).collect();
+        let tinterpolate = sprinterp(wl, &data).unwrap();
+        tinterpolate.iter().enumerate().for_each(|(i, &v)|{
+            let x = i as f64/400.0;
+            let y = (x*PI).sin();
+            let d = (y-v).abs();
+          //  println!("{i} {y:.4} {v:.4} {d:.6}");
+            approx::assert_ulps_eq!(y,v, epsilon=4E-3)
+        });
+        // non boundary points have very high accuracy
+        tinterpolate.iter().enumerate().skip(10).take(380).for_each(|(i, &v)|{
+            let x = i as f64/400.0;
+            let y = (x*PI).sin();
+            let d = (y-v).abs();
+            println!("{i} {y:.4} {v:.4} {d:.6e}");
+            approx::assert_ulps_eq!(y,v, epsilon=5E-10)
+        });
+    }
+
+    #[test]
+    fn test_linterp_irr(){
+        use approx::assert_ulps_eq;
+
+        let mut data = vec![0.0, 1.0, 0.0];
+        let mut wl = vec![380.0, 480.0,  780.0];
+        let mut spd = linterp_irr(&wl, &data).unwrap();
+    // println!("{:?}", spd);
+        assert_ulps_eq!(spd[0], 0.);
+        assert_ulps_eq!(spd[50], 0.5);
+        assert_ulps_eq!(spd[100], 1.0);
+        assert_ulps_eq!(spd[250], 0.5);
+        assert_ulps_eq!(spd[400], 0.0);
+
+        // top hat with slanted angles
+        data = vec![0.0, 1.0, 1.0, 0.0];
+        wl = vec![480.0, 490.0, 570.0, 580.0];
+        spd = linterp_irr(&wl, &data).unwrap();
+    // println!("{:?}", spd);
+        assert_ulps_eq!(spd[0], 0.0);
+        assert_ulps_eq!(spd[100], 0.0);
+        assert_ulps_eq!(spd[110], 1.0);
+        assert_ulps_eq!(spd[190], 1.0);
+        assert_ulps_eq!(spd[200], 0.0);
+        assert_ulps_eq!(spd[300], 0.0);
+        assert_ulps_eq!(spd[400], 0.0);
+
+    }
 
 }

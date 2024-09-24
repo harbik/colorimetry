@@ -129,6 +129,8 @@ pub enum CmtError {
     RequiresSameIlluminant,
     #[error("Spectrum {0} not found in Collection")]
     SpectrumNotFound(String),
+    #[error("Provide at least {0} values")]
+    ProvideAtLeastNValues(usize),
 }
 
 impl From<&str> for CmtError {
