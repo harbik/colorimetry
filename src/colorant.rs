@@ -6,7 +6,7 @@ use nalgebra::SVector;
 use crate::{gaussian_peak_one, wavelengths, CmtError, Filter, Spectrum, NS};
 
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct Colorant(pub(crate) Spectrum);
 impl Colorant {
     /// Create a Colorant Spectrum, with data check.
@@ -83,8 +83,8 @@ impl Colorant {
     /// full-width-half-maximum value, both in units of meter, or nanometer.
     ///
     /// The filter has a peak value of 1.0
-    pub fn gaussian(center: f64, width: f64) -> Self {
-        let [center_m, width_m] = wavelengths([center, width]);
+    pub fn gaussian(center: f64, fwhm: f64) -> Self {
+        let [center_m, width_m] = wavelengths([center, crate::sigma_from_fwhm(fwhm)]);
         let data = SVector::<f64,NS>::from_fn(|i,_j|
             gaussian_peak_one((i+380) as f64 * 1E-9, center_m, width_m)
         );

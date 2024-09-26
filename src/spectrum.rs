@@ -17,7 +17,7 @@ use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 
 use nalgebra::{DVector, SVector};
 
-use crate::{data::cie_data::{D50, D65}, observer::ObserverData, physics::{gaussian_peak_one, led_ohno, planck, stefan_boltzmann}, wavelength, CmtError, Colorant, StdIlluminant, C, CIE1931, RGB};
+use crate::{data::cie_data::{D50, D65}, observer::ObserverData, physics::{gaussian_peak_one, led_ohno, planck, stefan_boltzmann}, sigma_from_fwhm, wavelength, CmtError, Colorant, StdIlluminant, C, CIE1931, RGB};
 
 
 // Standard Spectrum domain ranging from 380 to 780 nanometer,
@@ -133,10 +133,10 @@ impl Spectrum {
     /**
     Smooth a Spectrum by convolution with a Gaussian function
      */
-    pub fn smooth(mut self, mut width: f64) -> Self {
-        if width < 1E-3 { width *= 1E6 }; // to nanometer
-        let sigma = width / ((8.0 * 2f64.ln()).sqrt());
-        let sd3 = (3.0 * sigma).floor() as i32;
+    pub fn smooth(mut self, mut fwhm: f64) -> Self {
+        if fwhm < 1E-3 { fwhm *= 1E6 }; // to nanometer
+        let sigma = sigma_from_fwhm(fwhm);
+        let sd3 = (6.0 * sigma).floor() as i32;
         let kernel =  
             DVector::<f64>
                 ::from_iterator(
@@ -145,7 +145,8 @@ impl Spectrum {
                         .into_iter()
                         .map(|i| gaussian_peak_one(i as f64, 0.0, sigma)
                     ));
-        self.0 = self.0.convolve_same(kernel);
+        let t = self.0.convolve_full(kernel);
+        self.0 = SVector::from_iterator(t.iter().copied().skip(sd3 as usize).take(NS));
         self
     }
 
@@ -636,6 +637,7 @@ mod tests {
         assert_ulps_eq!(x, 0.447_58, epsilon = 5E-5);
         assert_ulps_eq!(y, 0.407_45, epsilon = 5E-5);
     }
+
     #[test]
     fn add_spectra(){
         use approx::assert_ulps_eq;
@@ -717,6 +719,22 @@ mod tests {
         assert_ulps_eq!(spd3[200], 0.58);
         assert_ulps_eq!(spd3[300], 0.68);
         assert_ulps_eq!(spd3[400], 0.78);
+    }
+
+    #[test]
+    fn test_smooth() {
+        let mut s = Colorant::default();
+        s[550] = 1.0;
+        s =Colorant(s.smooth(5.0));
+
+        let w = Colorant::gaussian(550.0, 5.0);
+
+        s.0.0.iter().zip(w.0.0.iter()).enumerate().for_each(|(i, (s,w))|{
+            let j = i + 380;
+           // println!("{j} {s:.6} {w:.6}");
+            approx::assert_abs_diff_eq!(s,w, epsilon=1E-8);
+        });
+
     }
 
     #[test]

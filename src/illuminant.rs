@@ -7,7 +7,7 @@ use nalgebra::{ArrayStorage, SMatrix, SVector};
 use crate::{gaussian_peak_one, led_ohno, stefan_boltzmann, wavelength, wavelengths, CmtError, Light, ObserverData, Spectrum, StdIlluminant, D50, D65, NS};
 
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 #[wasm_bindgen]
 pub struct Illuminant(pub(crate) Spectrum);
 
@@ -18,6 +18,7 @@ impl Deref for Illuminant{
         &self.0
     }
 }
+
 
 impl Illuminant {
     /// Create a Colorant Spectrum, with data check.
