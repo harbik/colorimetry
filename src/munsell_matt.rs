@@ -78,6 +78,8 @@ impl Iterator for MunsellMattIterator {
     }
 }
 
+impl ExactSizeIterator for MunsellMattIterator{}
+
 impl IntoIterator for MunsellMattCollection {
     type Item = MunsellMatt;
 

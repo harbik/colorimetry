@@ -40,20 +40,7 @@ display.
 pub struct Spectrum(pub(crate) SVector<f64, NS>);
 
 impl Spectrum {
-    pub fn try_new(data: &[f64]) -> Result<Self, crate::CmtError> {
-        if data.len()!=NS {
-            Err(crate::CmtError::DataSize401Error)
-        } else {
-            Ok(Self(SVector::<f64, NS>::from_iterator(data.into_iter().copied())))
-        }
-    }
 
-    /**
-    Get the spectral distribution values as an array.
-     */
-    pub fn values(&self) -> [f64; NS] {
-        self.0.as_slice().try_into().unwrap() // unwrap: we know that data has size NS
-    }
 
     pub fn mul(mut self, rhs: &Self) -> Self {
         self.0 = self.0.component_mul(&rhs.0) ;
@@ -133,7 +120,7 @@ impl Spectrum {
     /**
     Smooth a Spectrum by convolution with a Gaussian function
      */
-    pub fn smooth(mut self, mut fwhm: f64) -> Self {
+    pub fn smooth(&mut self, mut fwhm: f64) {
         if fwhm < 1E-3 { fwhm *= 1E6 }; // to nanometer
         let sigma = sigma_from_fwhm(fwhm);
         let sd3 = (6.0 * sigma).floor() as i32;
@@ -147,7 +134,6 @@ impl Spectrum {
                     ));
         let t = self.0.convolve_full(kernel);
         self.0 = SVector::from_iterator(t.iter().copied().skip(sd3 as usize).take(NS));
-        self
     }
 
 
@@ -163,9 +149,33 @@ impl Spectrum {
 
 }
 
+impl TryFrom<&[f64]> for Spectrum {
+    type Error = CmtError;
+
+    fn try_from(data: &[f64]) -> Result<Self, Self::Error> {
+        if data.len()!=NS {
+            Err(crate::CmtError::DataSize401Error)
+        } else {
+            Ok(Self(SVector::<f64, NS>::from_iterator(data.into_iter().copied())))
+        }
+    }
+}
+
 impl Default for Spectrum {
     fn default() -> Self {
         Self (SVector::<f64, NS>::zeros()) 
+    }
+}
+
+impl AsRef<[f64;401]> for Spectrum {
+    fn as_ref(&self) -> &[f64;401] {
+        &self.0.data.0[0]
+    }
+}
+
+impl AsRef<[f64]> for Spectrum {
+    fn as_ref(&self) -> &[f64] {
+        &self.0.data.0[0]
     }
 }
 
@@ -194,7 +204,7 @@ impl Spectrum {
     /// which takes a wavelength domain and spectral data as arguments.
     #[wasm_bindgen(constructor)]
     pub fn new_js(data: &[f64]) -> Result<Spectrum, wasm_bindgen::JsError> {
-        Ok(Spectrum::try_new(data)?)
+        Ok(Spectrum::try_from(data)?)
     }
 
     /// Returns the spectral data values, as a Float64Array containing 401 data
@@ -202,7 +212,8 @@ impl Spectrum {
     /// stepsize of 1 nanometer.
     #[wasm_bindgen(js_name=Values)]
     pub fn values_js(&self) -> Box<[f64]> {
-        self.values().into()
+        let values: &[f64] = self.as_ref();
+        values.into()
     }
 
     /**
@@ -725,7 +736,7 @@ mod tests {
     fn test_smooth() {
         let mut s = Colorant::default();
         s[550] = 1.0;
-        s =Colorant(s.smooth(5.0));
+        s.smooth(5.0);
 
         let w = Colorant::gaussian(550.0, 5.0);
 

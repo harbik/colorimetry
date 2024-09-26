@@ -43,7 +43,7 @@ or add this line to the dependencies in your Cargo.toml file:
 All spectral calculations in this library use the [Spectrum] class as a base, which contains the spectral data.
 
 For practical considerations, it uses a wavelength domain from 380 to 780 nanometers, with 1 nanometer intervals, as recommended in the [CIE15:2004](https://archive.org/details/gov.law.cie.15.2004) standard.
-[Spectrum] uses a [nalgebra::Vector3<f64>] type, with a length of 401 elements, to capture these spectral data.
+[Spectrum] uses a [`nalgebra::Vector<f64>`] type, with a length of 401 elements, to capture these spectral data.
 Historically, different wavelength domains have been recommended and used by the CIE, such as ranges from 300 to 830 nanometer, and an interval size of 5 nanometer.
 The choice of domain has a small impact on calculated colorimetric values, and the reference values calculated here can differ a bit from the ones published by the CIE in the past.
 
@@ -62,7 +62,7 @@ Daylight is not constant - it varies with time of day, season, and weather.
 Another source of light are electric lamps, such a incandescent light bulbs.
 They generate light by thermal emission from a very hot tungsten filament in a glass envelope.
 In physics, the spectral properties of thermal emission is described by Planck's law.
-For incandescent light bulbs, the CIE recommends to use the A-illuminant, in this library available as [StdIlluminant:A].
+For incandescent light bulbs, the CIE recommends to use the A-illuminant, in this library available as [StdIlluminant::A].
 
 
 This example calculates the Illuminance and CIE 1931 (x, y) chromaticity
@@ -80,7 +80,7 @@ Correlated Color Temperature of 3000 Kelvin using the CIE 1931 standard observer
 ```
 
 Besides the [Illuminant::planckian] constructor, [Illuminant] has many other constructors.
-For example, [Spectrum::d65_illuminant] and [Spectrum::d50_illuminant] provide spectral distributions of the CIE D65, and D50 standard illuminants, defined by the CIE in tabular form.
+For example, [Illuminant::d65] and [Illuminant::d50] provide spectral distributions of the CIE D65, and D50 standard illuminants, defined by the CIE in tabular form.
 Many other Standard Illuminants can be used, such as the A, Fluorescent, and LED Illuminants defined by the CIE, when the library is compiled with the "cie-illuminants" feature.
 This feature is a default feature, but can be disabled when not used and compact binaries are required.
 The available standard illuminants are accessible through [StdIlluminant], which is an enum, and implements a `spectrum` method for its variants, producing a reference to a `Spectrum`.
@@ -93,7 +93,7 @@ For example, to get the A illuminant spectrum:
     approx::assert_ulps_eq!(xy_a.as_ref(), [0.44758, 0.40745].as_ref(), epsilon=1E-5)
 ```
 
-Other interesting constructors are [Spectrum::srgb], and [Spectrum::rgb], which create a spectrum of a set of [RGB] pixel values.
+Other interesting constructors are the [Stimulus::srgb], and [Stimulus::rgb], which create a spectrum of a set of [RGB] pixel values.
 The first takes three `u8` arguments, while the second uses an [RGB] object as argument.
 
 ```rust

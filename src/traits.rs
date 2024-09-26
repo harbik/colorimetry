@@ -6,7 +6,7 @@ use crate::{Colorant, Illuminant, Spectrum};
 /**
 Spectral representation of Lights, typically in form of (standard) Illuminants.
 
-Also allows to use lookup tristimulus values, such as the very common [D65] illuminant (see [crate::StdIlluminant] implemention).
+Also allows to use lookup tristimulus values, such as the very common [crate::StdIlluminant::D65] illuminant (see [crate::StdIlluminant] implemention).
 Calculating them from a spectrum is the default implementation.  For standard illuminants,
 especially D65, which are used so frequently, their values are obtained from buffered entries.
 */

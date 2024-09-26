@@ -21,14 +21,7 @@ impl Deref for Illuminant{
 
 
 impl Illuminant {
-    /// Create a Colorant Spectrum, with data check.
-    /// 
-    /// In this library, the Colorant category represents color filters and color patches, with have spectral values between 0.0 and 1.0.
-    /// This is the preferred way to crete a colorant, as it does a range check.
-    pub fn try_new(data: &[f64]) -> Result<Self, crate::CmtError> {
-        let spectrum = Spectrum::try_new(data)?;
-        Ok(Self(spectrum))
-    }
+
     /// E, or Equal Energy Illuminant with an irradiance of 1 Watt per square
     /// meter in the spectrum between 380 and 780 nanometer
     pub fn equal_energy() -> Self {
@@ -159,6 +152,14 @@ impl Illuminant {
     }
 }
 
+impl TryFrom<&[f64]> for Illuminant {
+    type Error = CmtError;
+
+    fn try_from(value: &[f64]) -> Result<Self, Self::Error> {
+        Ok(Illuminant(value.try_into()?))
+    }
+}
+
 impl Mul<f64> for Illuminant {
     /// Multiply a spectrum with a scalar f64 value.
     /// ```
@@ -225,7 +226,7 @@ impl Illuminant {
     /// which takes a wavelength domain and spectral data as arguments.
     #[wasm_bindgen(constructor)]
     pub fn new_js(data: &[f64]) -> Result<Illuminant, wasm_bindgen::JsError> {
-        Ok(Illuminant(Spectrum::try_new(data)?))
+        Ok(Illuminant(Spectrum::try_from(data)?))
     }
 
     /// Returns the spectral data values, as a Float64Array containing 401 data
@@ -233,7 +234,8 @@ impl Illuminant {
     /// stepsize of 1 nanometer.
     #[wasm_bindgen(js_name=Values)]
     pub fn values_js(&self) -> Box<[f64]> {
-        self.values().into()
+        let values: &[f64] = self.as_ref();
+        values.into()
     }
 
  

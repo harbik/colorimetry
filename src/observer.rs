@@ -334,8 +334,6 @@ impl ObserverData {
         self.spectral_locus_index_max()+380
     }
 
-
- 
     /// Calculates the RGB to XYZ matrix, for a particular color space.
     /// The matrices are buffered.
     pub fn rgb2xyz(&self, rgbspace: &RgbSpace) -> &'static Matrix3<f64> {
