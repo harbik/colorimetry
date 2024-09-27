@@ -82,6 +82,7 @@ impl Colorant {
         Self(Spectrum(data))
     }
 
+
 }
 
 /// Create a Colorant Spectrum from a data slice, with data check.
@@ -101,7 +102,38 @@ impl TryFrom<&[f64]> for Colorant {
     }
 }
 
-/// Make colorant data available as a generic [`Filter`] entity, as used particular
+impl<F> From<F> for Colorant 
+    where F: Fn(f64)-> f64 {
+    /**
+        Colorant from an analytical function, defined over a domain from 0.0 to 1.0, covering the
+        wavelength range from 380 to 780 nanometer.
+
+        Values are clamped to a range from 0.0 to 1.0.
+        ```rust
+        use colorimetry::{Colorant, CIE1931, D65};
+
+        // linear filter from 0.0 to 1.0.
+        let tilt: Colorant = (|x:f64|x).into();
+        let xy = CIE1931.xyz(&D65, Some(&tilt)).chromaticity();
+        approx::assert_abs_diff_eq!(xy.as_ref(), [0.4066, 0.4049].as_ref(), epsilon = 1E-4);
+
+        // parabolic filter
+        let parabolic: Colorant = (|x:f64|1.0 - 4.0 * (x - 0.5).powi(2)).into();
+        let xy = CIE1931.xyz(&D65, Some(&parabolic)).chromaticity();
+        approx::assert_abs_diff_eq!(xy.as_ref(), [0.3466, 0.3862].as_ref(), epsilon = 1E-4);
+        ```
+    */
+    fn from(f: F) -> Self {
+        let data = SVector::from_fn(|i,_j|{
+            let x = i as f64/(NS-1) as f64;
+            f(x).clamp(0.0, 1.0)
+        });
+        Colorant(Spectrum(data))
+    }
+}
+
+
+/// Make colorant data available as a generic [`Filter`] entity, used in particular
 /// in the [`crate::Observer`] tristiumulus `xyz`-function.
 impl Filter for Colorant {
     fn spectrum(&self) -> Cow<Spectrum> {
@@ -117,18 +149,18 @@ impl Deref for Colorant {
     }
 }
 
-/// Mutable Access Spectrum methods on references of colorant.
-/// 
-/// ```rust
-/// use colorimetry::Colorant;
-/// let mut cth = Colorant::top_hat(500.0, 10.0);
-/// cth.smooth(5.0); // use spectrum's smooth method
-/// 
-/// let v = cth[505];
-/// approx::assert_abs_diff_eq!(v, 1.0);
-/// ```
 impl DerefMut for Colorant {
 
+    /// Mutable Access Spectrum methods on references of colorant.
+    ///
+    /// ```rust
+    /// use colorimetry::Colorant;
+    /// let mut cth = Colorant::top_hat(500.0, 10.0);
+    /// cth.smooth(5.0); // use spectrum's smooth method
+    ///
+    /// let v = cth[505];
+    /// approx::assert_abs_diff_eq!(v, 1.0);
+    /// ```
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
@@ -137,8 +169,11 @@ impl DerefMut for Colorant {
 impl Add for Colorant {
     type Output = Self;
 
+    /// Adds two colorants
     fn add(self, rhs: Self) -> Self::Output {
-        Colorant(self.0 + rhs.0)
+        let mut r = self.0 + rhs.0;
+        r.clamp(0.0, 1.0);
+        Colorant(r)
     }
 }
 
@@ -158,8 +193,43 @@ impl Mul<Colorant> for f64 {
     }
 }
 
+impl Mul<Colorant> for Colorant {
+    type Output = Self;
+
+    /// Multiplication of two colorants using the `*`-operator.
+    /// 
+    /// Subtractive Mixing.
+    /// ```rust
+    /// use colorimetry::Colorant;
+    /// let w = Colorant::white();
+    /// let b = Colorant::black();
+    /// let r: Colorant = w * b;
+    /// ```
+    fn mul(self, rhs: Self) -> Self::Output {
+        Self(self.0 * rhs.0) // use spectrum multiplication
+    }
+}
+
+impl Mul<&Colorant> for &Colorant {
+    type Output = Colorant;
+
+    /// Multiplication of two colorant references using the `*`-operator.
+    /// 
+    /// Non-consuming multiplication.
+    /// Subtractive Mixing.
+    /// ```rust
+    /// use colorimetry::Colorant;
+    /// let w = Colorant::white();
+    /// let b = Colorant::black();
+    /// let r: Colorant = &w * &b;
+    /// approx::assert_abs_diff_eq(r,b);
+    /// ```
+    fn mul(self, rhs: &Colorant) -> Self::Output {
+        Colorant(&self.0 * &rhs.0) // use spectrum multiplication
+    }
+}
 impl AddAssign<&Self> for Colorant {
     fn add_assign(&mut self, rhs: &Self) {
-        self.0 += rhs.0
+        self.0 += rhs.0 // use spectral multiplication
     }
 }

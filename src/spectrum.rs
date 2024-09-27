@@ -116,6 +116,10 @@ impl Spectrum {
         Ok(Self(SVector::<f64, 401>::from_array_storage(nalgebra::ArrayStorage([data]))))
     }
 
+    pub fn clamp(&mut self, min: f64, max: f64) {
+        self.0.iter_mut().for_each(|v|*v = v.clamp(min, max));
+    }
+
 
     /**
     Smooth a Spectrum by convolution with a Gaussian function
@@ -124,7 +128,7 @@ impl Spectrum {
         if fwhm < 1E-3 { fwhm *= 1E6 }; // to nanometer
         let sigma = sigma_from_fwhm(fwhm);
         let sd3 = (6.0 * sigma).floor() as i32;
-        let kernel =  
+        let mut kernel =  
             DVector::<f64>
                 ::from_iterator(
                     (2*sd3+1) as usize,
@@ -132,6 +136,13 @@ impl Spectrum {
                         .into_iter()
                         .map(|i| gaussian_peak_one(i as f64, 0.0, sigma)
                     ));
+
+        // The smooth operation should not change the energy in a spectrum, so we scale the kernel
+        // vector to have a sum of 1.0.
+        let sum = kernel.sum();
+        kernel.iter_mut().for_each(|v|*v /= sum);
+
+        // use nalgebra's convolve to apply the smooth function, and shift it
         let t = self.0.convolve_full(kernel);
         self.0 = SVector::from_iterator(t.iter().copied().skip(sd3 as usize).take(NS));
     }
@@ -292,12 +303,10 @@ impl Mul for Spectrum {
     }
 }
 
-// Multiplication of two references to spectra using the `*`-operator, typically for a combinations of an illuminant and a colorant,
-// or when combining multiple colorants, and producing a new spectrum. Subtractive Mixing.
 impl Mul<&Spectrum> for &Spectrum {
     type Output = Spectrum;
 
-    // multiply two cie spectra
+    /// Multiplication of two references to spectra using the `*`-operator.
     fn mul(self, rhs: &Spectrum) -> Self::Output {
         let s = self.0.component_mul(&(rhs.0));
         Spectrum(s)

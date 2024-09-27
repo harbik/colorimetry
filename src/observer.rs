@@ -88,10 +88,11 @@ impl ObserverData {
     }
 
     /**
-        Calculates Tristimulus valus, in form of an [XYZ] object, using a general spectrum.
-        If a reference white is given (rhs), it will copy its xyzn-value, and the spectrum is interpreted as a stimulus,
-        being a combination of an illuminant with a colorant.
-        This produces the raw XYZ data, not normalized to 100.0
+        Calculates Tristimulus valus, in form of an [XYZ] object of a general spectrum.
+        If a reference white is given (rhs), it will copy its  tristimulus value, and the spectrum
+        is interpreted as a stimulus, being a combination of an illuminant with a colorant.
+        If no reference white is given, the spectrum is interpreted as an illuminant.
+        This method produces the raw XYZ data, not normalized to 100.0
 
     */
     pub fn xyz_from_spectrum(&self, spectrum: &Spectrum, rhs: Option<XYZ>) -> XYZ {

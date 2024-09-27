@@ -9,7 +9,7 @@ use crate::{xyz::XYZ, CmtError};
 #[derive(Debug, Clone, Copy)]
 pub struct CieLab {
     pub(crate) lab: Vector3<f64>,
-    pub(crate) xyzn: Vector3<f64>, // Reference whit tristimulus valuse
+    pub(crate) xyzn: Vector3<f64>, // Reference white tristimulus valuse
 }
 
 impl CieLab {
