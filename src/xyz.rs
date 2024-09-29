@@ -397,13 +397,19 @@ impl std::ops::Mul<XYZ> for f64 {
 impl std::ops::Add<XYZ> for XYZ {
     type Output = XYZ;
 
+    /// Add tristimulus values using the "+" operator.
+    /// 
+    /// Panics if not the same oberver is used.
+    /// If either XYZ's has only a reference, the others XYZ value is promoted to be a reference,
+    /// treating it as a direct stimulus.
     fn add(mut self, rhs: XYZ) -> Self::Output {
-        self.xyzn += rhs.xyzn;
-        self.xyz = match (rhs.xyz, self.xyz) {
-            (None, None) =>  None,
+        assert!(self.observer == rhs.observer, "Can not add two XYZ values for different observers");
+        (self.xyz, self.xyzn) = match (rhs.xyz, self.xyz) {
+            (None, None) =>  (None, self.xyzn + rhs.xyzn),
             (Some(xyz1), Some(xyz2))
-                => Some (xyz1 + xyz2),
-            (Some(xyz), None) | (None, Some(xyz)) => Some(xyz),
+                => (Some (xyz1 + xyz2), self.xyzn + rhs.xyzn),
+            (Some(xyz), None) => (None, xyz + self.xyzn),
+            (None, Some(xyz)) => (None, xyz + rhs.xyzn),
         };
         self
          

@@ -74,14 +74,13 @@ impl Colorant {
     /// full-width-half-maximum value, both in units of meter, or nanometer.
     ///
     /// The filter has a peak value of 1.0
-    pub fn gaussian(center: f64, fwhm: f64) -> Self {
-        let [center_m, width_m] = wavelengths([center, crate::sigma_from_fwhm(fwhm)]);
+    pub fn gaussian(center: f64, sigma: f64) -> Self {
+        let [center_m, width_m] = wavelengths([center, sigma]);
         let data = SVector::<f64,NS>::from_fn(|i,_j|
             gaussian_peak_one((i+380) as f64 * 1E-9, center_m, width_m)
         );
         Self(Spectrum(data))
     }
-
 
 }
 

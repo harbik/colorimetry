@@ -61,7 +61,7 @@ macro_rules! std_illuminants {
         #[cfg(not(feature="cie-illuminants"))]
         #[allow(non_camel_case_types)]
         #[wasm_bindgen]
-        #[derive(Clone, Copy, strum_macros::Display, strum_macros::EnumIter)]
+        #[derive(Clone, Copy, Debug, strum_macros::Display, strum_macros::EnumIter)]
         pub enum StdIlluminant  {
                 $($val,)*
         }
@@ -70,7 +70,7 @@ macro_rules! std_illuminants {
         #[cfg(feature="cie-illuminants")]
         #[allow(non_camel_case_types)]
         #[wasm_bindgen]
-        #[derive(Clone, Copy, strum_macros::Display, strum_macros::EnumIter)]
+        #[derive(Clone, Debug, Copy, strum_macros::Display, strum_macros::EnumIter)]
         pub enum StdIlluminant  {
                 $($val,)*
                 $($cieval,)*

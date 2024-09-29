@@ -41,9 +41,9 @@ struct GaussWithAnchor{
 }
 
 impl GaussWithAnchor {
-    fn new(xyz: XYZ, b: XYZ, d: StdIlluminant) -> Self {
-        let [x, y] = xyz.chromaticity();
-        Self { x, y, anchor: b.set_illuminance(100.0), d}
+    fn new(xyz: XYZ, anchor: XYZ, d: StdIlluminant) -> Self {
+        let [x,y] = xyz.chromaticity();
+        Self { x, y, anchor: anchor.set_illuminance(100.0), d}
     }
 }
 
@@ -74,11 +74,12 @@ fn gauss(s: &str, i: usize ) -> Result<Vec<f64>, String>{
     let res = Executor::new(problem, solver)
         .configure(|state|
             state
-                .max_iters(100)
+                .max_iters(1000)
                 .target_cost(1E-5)
         )
         .run().unwrap();
-    if res.state.get_termination_reason().unwrap()==&TerminationReason::TargetCostReached {
+    let tr = res.state.get_termination_reason().unwrap();
+    if tr==&TerminationReason::TargetCostReached {
         Ok(res.state.best_param.unwrap())
     } else {
         Err(res.state.get_termination_reason().unwrap().text().to_string())
@@ -98,15 +99,16 @@ fn gauss_with_anchor(s: &str, i: usize, j: usize ) -> Result<Vec<f64>, String>{
     let w = 40.0;
     let c = 0.1;
 
-    let solver = NelderMead::new(vec![vec![l, w, c], vec![l+5.0,w, c], vec![l, w+2.0, c], vec![l, w, c+0.5]]);
+    let solver = NelderMead::new(vec![vec![l, w, c], vec![l+5.0,w, c], vec![l, w+5.0, c], vec![l, w, c+0.05]]);
     let res = Executor::new(problem, solver)
         .configure(|state|
             state
-                .max_iters(100)
+                .max_iters(1000)
                 .target_cost(1E-5)
         )
         .run().unwrap();
-    if res.state.get_termination_reason().unwrap()==&TerminationReason::TargetCostReached {
+    let tr = res.state.get_termination_reason().unwrap();
+    if tr==&TerminationReason::TargetCostReached {
         Ok(res.state.best_param.unwrap())
     } else {
         Err(res.state.get_termination_reason().unwrap().text().to_string())
@@ -130,6 +132,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>>{
             gauss(s, 2)?.try_into().unwrap()
         );
     }
+//    println!("{XY_PRIMARIES:?}");
 
 
 

@@ -100,6 +100,11 @@ pub fn sigma_from_fwhm(fwhm: f64) -> f64 {
 }
 
 #[inline]
+pub fn fwhm_from_sigma(sigma: f64) -> f64 {
+    sigma * 2.35482
+}
+
+#[inline]
 pub fn gaussian_peak_one(x: f64, mu: f64, sigma: f64) -> f64 {
     let exponent = -((x - mu).powi(2)) / (2.0 * sigma.powi(2));
     exponent.exp()
