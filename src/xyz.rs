@@ -3,8 +3,17 @@ use std::ops::Add;
 
 use approx::{ulps_eq, AbsDiffEq};
 use nalgebra::Vector3;
-use crate::{geometry::{LineAB, Orientation}, observer::{self, Observer}, CmtError, Illuminant, RgbSpace, Spectrum, RGB};
+use crate::{
+    geometry::{LineAB, Orientation},
+    observer::{self, Observer},
+    CmtError,
+    illuminant::Illuminant,
+    rgbspace::RgbSpace,
+    spectrum::Spectrum,
+    rgb::RGB
+};
 use wasm_bindgen::prelude::wasm_bindgen; 
+
 
 const D65A: [f64;3] = [95.04, 100.0, 108.86];
 pub const XYZ_D65: XYZ = XYZ::new(&D65A, None, Observer::Std1931);
@@ -12,7 +21,7 @@ pub const XYZ_D65WHITE: XYZ = XYZ::new(&D65A, Some(&D65A), Observer::Std1931);
 
 
 #[wasm_bindgen]
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Default)]
 /// A set of two CIE XYZ Tristimulus values, for a Standard Observer.
 /// 
 /// One is associated with an illuminant or a reference white value, denoted by the fieldname `xyzn`, and
@@ -353,26 +362,11 @@ impl approx::UlpsEq for XYZ {
     }
 }
 
-#[test]
-fn ulps_xyz_test() {
-    use approx::assert_ulps_eq;
-    let xyz0 = XYZ::from_vecs(Vector3::zeros(), None, Observer::Std1931);
-
-    let xyz1 = XYZ::from_vecs(Vector3::new(0.0, 0.0, f64::EPSILON), None,  Observer::Std1931);
-    assert_ulps_eq!(xyz0, xyz1, epsilon=1E-5);
-
-    let xyz2 = XYZ::from_vecs(Vector3::new(0.0, 0.0, 2.0 * f64::EPSILON), None,  Observer::Std1931);
-    approx::assert_ulps_ne!(xyz0, xyz2);
-
-    // different observer
-    let xyz3 = XYZ::from_vecs(Vector3::zeros(), None, Observer::Std1976);
-    approx::assert_ulps_ne!(xyz0, xyz3);
-
-}
 
 impl std::ops::Mul<f64> for XYZ {
     type Output = XYZ;
 
+    /// Multiplication with a right-handed float f64.
     fn mul(mut self, rhs: f64) -> Self::Output {
         if let Some(mut xyz) = self.xyz {
             xyz *= rhs;
@@ -385,6 +379,8 @@ impl std::ops::Mul<f64> for XYZ {
 impl std::ops::Mul<XYZ> for f64 {
     type Output = XYZ;
 
+    /// Multiplication of a [`XYZ`]` value on the right of "*" with a float on the left,
+    /// resulting in a new [`XYZ`]`.
     fn mul(self, mut rhs: XYZ) -> Self::Output {
         if let Some(mut xyz) = rhs.xyz {
             xyz *= self;
@@ -400,8 +396,8 @@ impl std::ops::Add<XYZ> for XYZ {
     /// Add tristimulus values using the "+" operator.
     /// 
     /// Panics if not the same oberver is used.
-    /// If either XYZ's has only a reference, the others XYZ value is promoted to be a reference,
-    /// treating it as a direct stimulus.
+    /// If either XYZ's has only a xyzn-value, indicating it is an illuminant or a stimulus, the other's xyz-value is requalified
+    /// as a direct stimulus, overwriting it's xyz value.
     fn add(mut self, rhs: XYZ) -> Self::Output {
         assert!(self.observer == rhs.observer, "Can not add two XYZ values for different observers");
         (self.xyz, self.xyzn) = match (rhs.xyz, self.xyz) {
@@ -416,11 +412,13 @@ impl std::ops::Add<XYZ> for XYZ {
     }
 }
 
+/*
 impl Default for XYZ {
     fn default() -> Self {
         Self { observer: Default::default(), xyz: Default::default(), xyzn: Default::default() }
     }
 }
+ */
 
 // JS-WASM Interface code
 #[cfg(target_arch="wasm32")]
@@ -522,7 +520,7 @@ impl XYZ {
 #[cfg(test)]
 mod xyz_test {
     use approx::assert_ulps_eq;
-    use crate::{LineAB, Observer, CIE1931, RGB, RgbSpace, XYZ};
+    use crate::prelude::*;
 
     #[test] 
     fn xyz_d65_test(){
@@ -594,5 +592,23 @@ mod xyz_test {
         assert_ulps_eq!(xy_blue.as_ref(), [0.15, 0.06].as_ref(), epsilon = 1E-5);
         let rgbb = xyz_blue.rgb(None);
         assert_ulps_eq!(rgbb, rgb_blue);
+    }
+
+    #[test]
+    fn ulps_xyz_test() {
+        use approx::assert_ulps_eq;
+        use nalgebra::Vector3;
+        let xyz0 = XYZ::from_vecs(Vector3::zeros(), None, Observer::Std1931);
+
+        let xyz1 = XYZ::from_vecs(Vector3::new(0.0, 0.0, f64::EPSILON), None,  Observer::Std1931);
+        assert_ulps_eq!(xyz0, xyz1, epsilon=1E-5);
+
+        let xyz2 = XYZ::from_vecs(Vector3::new(0.0, 0.0, 2.0 * f64::EPSILON), None,  Observer::Std1931);
+        approx::assert_ulps_ne!(xyz0, xyz2);
+
+        // different observer
+        let xyz3 = XYZ::from_vecs(Vector3::zeros(), None, Observer::Std1976);
+        approx::assert_ulps_ne!(xyz0, xyz3);
+
     }
 }

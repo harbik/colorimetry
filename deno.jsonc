@@ -23,7 +23,8 @@
         "test": "deno test -Aq --parallel",
         "addreadme": "cp README_JSR.md ./pkg/README.md",
         "addtypes": "sed -i '' '1s-^-/// <reference types=\"./colorimetry.d.ts\"/>\\n-' ./pkg/colorimetry.js",
-        "build": "wasm-pack build --target web && deno task addtypes && deno task addreadme"
+        "build": "wasm-pack build --target web && deno task addtypes && deno task addreadme",
+        "doc": "cargo doc --all-features --no-deps --open"
     }
   }
 

@@ -1,7 +1,13 @@
 
 use std::borrow::Cow;
 
-use crate::{Colorant, Illuminant, Spectrum};
+use crate::{
+    colorant::Colorant,
+    illuminant::Illuminant,
+    spectrum::Spectrum,
+    observer::Observer,
+    xyz::XYZ
+};
 
 /**
 Spectral representation of Lights, typically in form of (standard) Illuminants.
@@ -13,7 +19,7 @@ especially D65, which are used so frequently, their values are obtained from buf
 pub trait Light {
     // Default implementation takes the illuminant spectrum, and calculates tristimulus values using the
     // provided observer's color matching data.
-    fn xyzn(&self, observer: crate::Observer, y: Option<f64>) -> crate::XYZ {
+    fn xyzn(&self, observer: Observer, y: Option<f64>) -> XYZ {
         let xyz = observer.data().xyz_from_spectrum(&self.spectrum(), None);
         if let Some(illuminance) = y {
             xyz.set_illuminance(illuminance)

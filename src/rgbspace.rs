@@ -3,7 +3,16 @@ use std::{collections::HashMap, sync::{LazyLock, OnceLock}};
 
 use strum_macros::EnumIter;
 use wasm_bindgen::prelude::wasm_bindgen;
-use crate::{gamma::GammaCurve, gaussian_filtered_primaries, spectrum::Spectrum, Colorant, Illuminant, StdIlluminant, Stimulus, CIE1931, D65};
+use crate::{
+    gamma::GammaCurve,
+    rgb::gaussian_filtered_primaries,
+    spectrum::Spectrum,
+    colorant::Colorant,
+    illuminant::Illuminant,
+    std_illuminants::StdIlluminant,
+    stimulus::Stimulus,
+    data::cie_data::{CIE1931, D65}
+};
 
 
 // The display P3 red coordinate is outside the CIE 1931 gamut using the CIE 1931 1 nanometer
@@ -202,7 +211,8 @@ impl RgbSpaceData {
 
 #[cfg(test)]
 mod rgbspace_tests {
-    use crate::{RgbSpaceData, RgbSpace, CIE1931, XY_PRIMARIES, Spectrum, D65};
+    //use crate::{RgbSpaceData, RgbSpace, CIE1931, XY_PRIMARIES, Spectrum, D65};
+    use crate::prelude::*;
     use approx::assert_ulps_eq;
     use strum::IntoEnumIterator;
 

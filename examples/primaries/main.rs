@@ -1,7 +1,6 @@
 use argmin::{core::{CostFunction, Executor, State, TerminationReason}, solver::neldermead::NelderMead};
 use colored::Colorize;
-use colorimetry::{Colorant, StdIlluminant, CIE1931, XYZ};
-use colorimetry::XY_PRIMARIES;
+use colorimetry::prelude::*;
 
 
 

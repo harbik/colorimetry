@@ -4,7 +4,10 @@ use wasm_bindgen::prelude::*;
 use colored::Color;
 use nalgebra::{ArrayStorage, SMatrix, SVector};
 
-use crate::{gaussian_peak_one, led_ohno, stefan_boltzmann, wavelength, wavelengths, CmtError, Light, ObserverData, Spectrum, StdIlluminant, D50, D65, NS};
+use crate::{
+    cri::CRI,
+    data::cie_data::{D50, D65}, observer::ObserverData, physics::{gaussian_peak_one, led_ohno, planck, stefan_boltzmann, wavelength}, spectrum::{Spectrum, NS, wavelengths}, std_illuminants::StdIlluminant, traits::Light, CmtError
+};
 
 
 #[derive(Clone, Default)]
@@ -74,7 +77,7 @@ impl Illuminant {
     pub fn planckian(cct: f64) -> Self {
 
         let s = 1E-9/stefan_boltzmann(cct); // 1W/m2 total irradiance
-        let data = SVector::<f64,NS>::from_fn(|i,_j|s * crate::planck((i+380) as f64*1e-9, cct));
+        let data = SVector::<f64,NS>::from_fn(|i,_j|s * planck((i+380) as f64*1e-9, cct));
         Self(Spectrum(data))
     }
 
@@ -126,7 +129,9 @@ impl Illuminant {
     /// Test Color Samples required for the calculation.  These are downloaded
     /// seperately to limit the size of the main web assembly library.
     #[cfg(feature="cri")]
-    pub fn cri(&self) -> Result<crate::CRI, CmtError> {
+    pub fn cri(&self) -> Result<CRI, CmtError> {
+        use crate::cri::CRI;
+
         self.try_into()
     }
 
@@ -263,10 +268,10 @@ impl Illuminant {
 
 #[test]
 fn test_d_illuminant(){
-
+    use crate::prelude::*;
     let s = Illuminant::d_illuminant(6504.0).unwrap();
-    let xyz = crate::CIE1931.xyz_from_spectrum(&s, None).set_illuminance(100.0);
-    approx::assert_ulps_eq!(xyz, crate::CIE1931.xyz_d65(), epsilon = 2E-2);
+    let xyz = CIE1931.xyz_from_spectrum(&s, None).set_illuminance(100.0);
+    approx::assert_ulps_eq!(xyz, CIE1931.xyz_d65(), epsilon = 2E-2);
 }
 
 const CIE_D_S_LEN: usize = 81;

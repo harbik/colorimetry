@@ -27,7 +27,13 @@ The Fluorescent `F3_X` series is included here, with X ranging from 1 to 15.
 use std::{borrow::Cow, ops::Deref, vec};
 use nalgebra::{ArrayStorage, SMatrix};
 use wasm_bindgen::prelude::*;
-use crate::{CmtError, Spectrum, Light, Illuminant, NS};
+use crate::{
+    CmtError,
+    spectrum::Spectrum,
+    traits::Light,
+    illuminant::Illuminant,
+    spectrum::NS
+};
 
 /**
 The CIE Standard Illuminants, available in the library, defined as enums.
@@ -77,12 +83,12 @@ macro_rules! std_illuminants {
         }
 
         impl StdIlluminant {
-            pub fn illuminant(&self) -> &crate::Illuminant {
+            pub fn illuminant(&self) -> &crate::illuminant::Illuminant {
                 match self {
-                    $(Self::$val => &crate::$val,)*
+                    $(Self::$val => &crate::data::cie_data::$val,)*
                     $(
                         #[cfg(feature="cie-illuminants")]
-                        Self::$cieval => &crate::$cieval,
+                        Self::$cieval => &crate::data::cie_data::$cieval,
                     )*
                 }
             }
@@ -97,7 +103,7 @@ impl From<StdIlluminant> for Illuminant {
 }
 
 impl Light for StdIlluminant {
-    fn xyzn(&self, observer: crate::Observer, illuminance: Option<f64>) -> crate::XYZ {
+    fn xyzn(&self, observer: crate::observer::Observer, illuminance: Option<f64>) -> crate::xyz::XYZ {
         observer.data().xyz_cie_table(self, illuminance)
     }
     

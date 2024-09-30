@@ -15,7 +15,12 @@ use std::{collections::BTreeMap, sync::LazyLock};
 use wasm_bindgen::prelude::*;
 use js_sys::Iter;
 
-use crate::{data::munsell_matt_data::{MUNSELL_MATT_DATA, MUNSELL_MATT_KEYS}, CmtError, Filter, Spectrum};
+use crate::{
+    data::munsell_matt_data::{MUNSELL_MATT_DATA, MUNSELL_MATT_KEYS},
+    CmtError,
+    traits::Filter,
+    spectrum::Spectrum
+};
 
 
 pub(crate) const MATT_N: usize = 81;
@@ -98,8 +103,7 @@ impl Filter for MunsellMatt {
 
 #[cfg(test)]
 mod test_munsell_matt {
-    use crate::{munsell_matt::MunsellMatt, CIE1931};
-    use super::MunsellMattCollection;
+    use crate::prelude::*;
 
     #[test]
     fn test_iter(){

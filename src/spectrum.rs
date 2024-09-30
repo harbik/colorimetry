@@ -13,11 +13,21 @@ use std::{borrow::Cow, collections::BTreeMap, default, error::Error, iter::Sum, 
 
 use num_traits::ToPrimitive;
 use url::Url;
-use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
+
+use wasm_bindgen::prelude::*;
 
 use nalgebra::{DVector, SVector};
 
-use crate::{data::cie_data::{D50, D65}, observer::ObserverData, physics::{gaussian_peak_one, led_ohno, planck, stefan_boltzmann}, sigma_from_fwhm, wavelength, CmtError, Colorant, StdIlluminant, C, CIE1931, RGB};
+use crate::{
+    data::cie_data::{D50, D65, CIE1931},
+    observer::ObserverData,
+    physics::{gaussian_peak_one, led_ohno, planck, stefan_boltzmann, sigma_from_fwhm, wavelength},
+    CmtError,
+    colorant::Colorant,
+    std_illuminants::StdIlluminant,
+    physics::C,
+    rgb::RGB
+};
 
 
 // Standard Spectrum domain ranging from 380 to 780 nanometer,
@@ -563,7 +573,7 @@ fn sprague(h: f64, v: &[f64]) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::*;
+    use crate::prelude::*;
     use approx::assert_ulps_eq;
     use std::f64::consts::PI;
 
@@ -614,7 +624,7 @@ mod tests {
         use approx::assert_ulps_eq;
 
         let mut v1 = [380.0];
-        v1 = crate::wavelengths(v1);
+        v1 = wavelengths(v1);
         assert_ulps_eq!(v1[0], 380E-9);
 
         let mut v2 = [380E-9, 780E-9];
@@ -661,7 +671,6 @@ mod tests {
     #[test]
     fn add_spectra(){
         use approx::assert_ulps_eq;
-        use crate::Colorant;
         let mut g1 = Colorant::gray(0.5);
         let g2 = Colorant::gray(0.5);
         let g = g1.clone() + g2.clone();

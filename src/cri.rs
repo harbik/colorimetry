@@ -11,7 +11,7 @@ use nalgebra::{ArrayStorage, SMatrix};
 use wasm_bindgen::prelude::*;
 
 
-use crate::{CmtError, Colorant, Spectrum, RgbSpace, Illuminant, CIE1931, XYZ, Light};
+use crate::{CmtError, colorant::Colorant, spectrum::Spectrum, rgbspace::RgbSpace, illuminant::Illuminant, data::cie_data::CIE1931, xyz::XYZ, traits::Light};
 
 /// Nummer of Test Color Sample Spectra
 const N_TCS: usize = 14;
@@ -31,7 +31,7 @@ pub static TCS: LazyLock<[Colorant;N_TCS]> = LazyLock::new(|| {
 #[test]
 fn tcs_test(){
     for (i,s) in TCS.iter().enumerate() {
-        let xyz = CIE1931.xyz(&crate::StdIlluminant::D65, Some(s));
+        let xyz = CIE1931.xyz(&crate::std_illuminants::StdIlluminant::D65, Some(s));
         let [r,g,b] = xyz.srgb();
         println!("{:2} ({r:3},{g:3},{b:3})", i+1);
     }
@@ -132,7 +132,7 @@ impl CRI {
 
 #[cfg(test)]
 mod cri_test {
-    use crate::{cri::N_TCS, StdIlluminant, CRI, D50};
+    use crate::prelude::*;
 
     #[test]
     fn cri_d50(){
@@ -141,7 +141,7 @@ mod cri_test {
        // println!("{cri0:?}");
         approx::assert_ulps_eq!(
             cri0.as_ref(), 
-            [100.0;N_TCS].as_ref(), epsilon = 0.03);
+            [100.0;crate::cri::N_TCS].as_ref(), epsilon = 0.03);
     }
 
     #[test]

@@ -3,9 +3,16 @@ use wasm_bindgen::prelude::wasm_bindgen;
 use nalgebra::{Matrix3, SMatrix, Vector3};
 use crate::{
     lab::CieLab, 
-    physics::{planck, planck_slope}, 
+    physics::{planck, planck_slope, to_wavelength}, 
     spectrum::{Spectrum, NS}, 
-    to_wavelength, xyz::XYZ, CmtError, Colorant, Filter, Light, LineAB, RgbSpace, StdIlluminant};
+    xyz::XYZ, 
+    CmtError, 
+    colorant::Colorant, 
+    traits::{Filter, Light}, 
+    geometry::LineAB, 
+    rgbspace::RgbSpace, 
+    std_illuminants::StdIlluminant
+};
 
 
 
@@ -389,7 +396,7 @@ impl ObserverData {
 #[cfg(test)]
 mod obs_test {
 
-    use crate::{StdIlluminant, CIE1931};
+    use crate::prelude::{StdIlluminant, CIE1931};
     use approx::assert_ulps_eq;
 
     #[test]
@@ -424,7 +431,7 @@ mod obs_test {
     // See `colorimetry::data::D65`.
     fn test_rgb2xyz_cie1931(){
         let want =  nalgebra::Matrix3::new(0.4124564,  0.3575761,  0.1804375, 0.2126729,  0.7151522,  0.0721750, 0.0193339,  0.1191920,  0.9503041);
-        let got = CIE1931.rgb2xyz(&crate::RgbSpace::SRGB);
+        let got = CIE1931.rgb2xyz(&crate::rgbspace::RgbSpace::SRGB);
         approx::assert_ulps_eq!(want, got, epsilon = 3E-4);
     }
 
@@ -433,7 +440,7 @@ mod obs_test {
     // See comments at `test_rgb2xyz_cie1931`.
     fn test_xyz2rgb_cie1931(){
         let want =  nalgebra::Matrix3::new(3.2404542, -1.5371385, -0.4985314, -0.9692660,  1.8760108,  0.0415560, 0.0556434, -0.2040259,  1.0572252);
-        let got = CIE1931.xyz2rgb(crate::RgbSpace::SRGB);
+        let got = CIE1931.xyz2rgb(crate::rgbspace::RgbSpace::SRGB);
         approx::assert_ulps_eq!(want, got, epsilon = 3E-4);
     }
 
@@ -465,21 +472,21 @@ mod obs_test {
     fn test_xyz_from_illuminant_x_fn(){
         let xyz = CIE1931.xyz_from_std_illuminant_x_fn(&StdIlluminant::D65, |_v|1.0);
         let d65xyz =  CIE1931.xyz_d65().xyzn;
-        approx::assert_ulps_eq!(xyz, crate::XYZ::from_vecs(d65xyz, Some(d65xyz), crate::Observer::Std1931));
+        approx::assert_ulps_eq!(xyz, crate::xyz::XYZ::from_vecs(d65xyz, Some(d65xyz), crate::observer::Observer::Std1931));
 
     }
     
     #[test]
     fn test_xyz_of_sample_with_standard_illuminant(){
-        use crate::{XYZ, StdIlluminant::D65 as d65};
+        use crate::prelude::{XYZ, StdIlluminant::D65 as d65};
         let xyz = 
             CIE1931
-                .xyz(&d65, Some(&crate::Colorant::white()));
+                .xyz(&d65, Some(&crate::colorant::Colorant::white()));
         approx::assert_ulps_eq!(xyz, CIE1931.xyz_from_std_illuminant_x_fn(&d65, |_|1.0));
 
         let xyz = 
             CIE1931
-                .xyz(&d65, Some(&crate::Colorant::black()));
+                .xyz(&d65, Some(&crate::colorant::Colorant::black()));
         approx::assert_ulps_eq!(xyz, CIE1931.xyz_from_std_illuminant_x_fn(&d65, |_|0.0));
     }
     

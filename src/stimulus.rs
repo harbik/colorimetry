@@ -1,6 +1,12 @@
 use std::{borrow::Cow, iter::Sum, ops::{Deref, Mul}};
 
-use crate::{Spectrum, Light, ObserverData, Illuminant, RGB};
+use crate::{
+    spectrum::Spectrum,
+    traits::Light,
+    observer::ObserverData,
+    illuminant::Illuminant,
+    rgb::RGB
+};
 
 
 
@@ -26,7 +32,7 @@ impl Stimulus {
     /// a linear combination of the spectral primaries, which are Gaudssian filtered components in
     /// this library.
     pub fn srgb(r_u8: u8, g_u8: u8, b_u8: u8) -> Self {
-        let rgb = RGB::from_u8(r_u8, g_u8, b_u8, Some(crate::Observer::Std1931), Some(crate::RgbSpace::SRGB));
+        let rgb = RGB::from_u8(r_u8, g_u8, b_u8, Some(crate::observer::Observer::Std1931), Some(crate::rgbspace::RgbSpace::SRGB));
         rgb.into()
     }
 
