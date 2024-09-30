@@ -1,6 +1,6 @@
 
 # Overview
-The Colorimetry Library is a library for color calculations in illumination and engineering projects.
+The Colorimetry Library is a library for color calculations in illumination and color engineering projects.
 It can be used for Rust projects and provides JavaScript/WebAssembly interfaces.
 The algorithms implemented try to follow the recommendations of the International Commission on Illumination,
 the International Color Consortium, the Illumination Engineering Society, and many others.
@@ -21,7 +21,7 @@ or add this line to the dependencies in your Cargo.toml file:
 
 ## Features 
 
-- **cie-illuminants**  _(default)_
+- **cie-illuminants** _(default)_
     Include a large collection of standard illuminants such as the Fluorescent and LED series.
     Included by default. 
 - **supplemental-observers** _(default)_
@@ -34,7 +34,7 @@ or add this line to the dependencies in your Cargo.toml file:
 - **cct**
     Calculate correlated color temperature for illuminants.
     Builds a 4096 length lookup table, with each row consisting of 3*f64 values.
-    The table rows are only calculated when required, but table space is reserved in the exectable.
+    The table rows are only calculated when required, but table space is reserved in the executable.
 - **color-fidelity**
     Calculates CIE 224:2017 Color Fidelity Index, and associated values.
     Contains 99 test color samples.
@@ -44,7 +44,7 @@ All spectral calculations in this library use the [Spectrum] class as a base, wh
 
 For practical considerations, it uses a wavelength domain from 380 to 780 nanometers, with 1 nanometer intervals, as recommended in the [CIE15:2004](https://archive.org/details/gov.law.cie.15.2004) standard.
 [Spectrum] uses a [`nalgebra::Vector<f64>`] type, with a length of 401 elements, to capture these spectral data.
-Historically, different wavelength domains have been recommended and used by the CIE, such as ranges from 300 to 830 nanometer, and an interval size of 5 nanometer.
+Historically, different wavelength domains have been recommended and used by the CIE, such as ranges from 300 to 830 nanometers, and an interval size of 5 nanometers.
 The choice of domain has a small impact on calculated colorimetric values, and the reference values calculated here can differ a bit from the ones published by the CIE in the past.
 
 
@@ -54,15 +54,15 @@ Objects 'get color' only when they are illuminated.
 In this library an [Illuminant] is a spectral representation of the light which hits an object.
 
 The most common illuminant is daylight.
-The CIE has defined the D65 standard illuminant, and recommends to use this as default daylight illuminant.
+The CIE has defined the D65 standard illuminant, and recommends using this as default daylight illuminant.
 This library uses [StdIlluminant] for the CIE recommended standard illuminants, in particular [StdIlluminant::D65] for default daylight.
 Daylight is not constant - it varies with time of day, season, and weather.
 
 
-Another source of light are electric lamps, such a incandescent light bulbs.
+Another source of light are electric lamps, such as incandescent light bulbs.
 They generate light by thermal emission from a very hot tungsten filament in a glass envelope.
 In physics, the spectral properties of thermal emission is described by Planck's law.
-For incandescent light bulbs, the CIE recommends to use the A-illuminant, in this library available as [StdIlluminant::A].
+For incandescent light bulbs, the CIE recommends using the A-illuminant, in this library available as [StdIlluminant::A].
 
 
 This example calculates the Illuminance and CIE 1931 (x, y) chromaticity
@@ -83,7 +83,7 @@ Besides the [Illuminant::planckian] constructor, [Illuminant] has many other con
 For example, [Illuminant::d65] and [Illuminant::d50] provide spectral distributions of the CIE D65, and D50 standard illuminants, defined by the CIE in tabular form.
 Many other Standard Illuminants can be used, such as the A, Fluorescent, and LED Illuminants defined by the CIE, when the library is compiled with the "cie-illuminants" feature.
 This feature is a default feature, but can be disabled when not used and compact binaries are required.
-The available standard illuminants are accessible through [StdIlluminant], which is an enum, and implements a `spectrum` method for its variants, producing a reference to a `Spectrum`.
+The available standard illuminants are accessible through [StdIlluminant], which is a `enum`, and implements a `spectrum` method for its variants, producing a reference to a `Spectrum`.
 For example, to get the A illuminant spectrum:
 ```rust
     use colorimetry::{StdIlluminant, CIE1931};
@@ -93,7 +93,7 @@ For example, to get the A illuminant spectrum:
     approx::assert_ulps_eq!(xy_a.as_ref(), [0.44758, 0.40745].as_ref(), epsilon=1E-5)
 ```
 
-Other interesting constructors are the [Stimulus::srgb], and [Stimulus::rgb], which create a spectrum of a set of [RGB] pixel values.
+Other interesting constructors are the [`Stimulus::srgb`], and [`Stimulus::rgb`], which create a spectrum of a set of [RGB] pixel values.
 The first takes three `u8` arguments, while the second uses an [RGB] object as argument.
 
 ```rust
@@ -111,17 +111,17 @@ This function can also be used to define arbitrary spectral shapes by providing 
 
 ## The CIE Standard Colorimetric [Observer]
 [CIE1931] is a static instance of the [Observer] class representing colorimetric standard observers, and is always included.
-With the default **supplemental-observers** feature also other observers are included,  such as the CIE 1976 10º,  s, the CIE 2015 2º and CIE 2015 10º observers.
+With the default **supplemental-observers** feature also other observers are included, such as the CIE 1976 10º, s, the CIE 2015 2º and CIE 2015 10º observers.
 An observer is represented by three functions, called color matching functions, which are supposed to be an indirect representation of the spectral sensitivities of the _L_, _M_, and _S_ cones in the back of eyes.
 
-The primary function of an [Observer], such as the [CIE1931] colorimetric standard observer, is the [CIE1931.xyz] method, which takes a spectral distribution as a single argument, and produces an [XYZ] object, encapsulating the CIE 1931 X, Y, and Z tristimulus values.
+The primary function of an [Observer], such as the [CIE1931] colorimetric standard observer, is the [`CIE1931.xyz`] method, which takes a spectral distribution as a single argument, and produces an [XYZ] object, encapsulating the CIE 1931 X, Y, and Z tristimulus values.
 
 ## [XYZ] Tristimulus Values
-These tristimulus values are an representation of the response of each of the three cones, and an inproduct of the spectrum and the color matching functions.
+These tristimulus values are a representation of the response of each of the three cones, and an inproduct of the spectrum and the color matching functions.
 All color models are using the tristimulus values of a stimulus, essentially a light ray being detected by a set of cones, as a basis.
 
-## [CieLab] Color Model
-Likewise, the [CIE1931.lab_d65] and [CIE1931.lab_d50] methods can be used to get CIELAB coordinates for a spectrum measured from a color sample, as an instance of the [CieLab](crate::lab::CieLab) class.
+## [`CieLab`] Color Model
+Likewise, the [CIE1931.lab_d65] and [CIE1931.lab_d50] methods can be used to get CIELAB coordinates for a spectrum measured from a color sample, as an instance of the [`CieLab`](crate::lab::CieLab) class.
 
 ## Color
 

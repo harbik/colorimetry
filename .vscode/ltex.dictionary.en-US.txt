@@ -1,0 +1,15 @@
+Colorimetry
+io
+jsr
+Deno
+toml
+StdIlluminant
+planckian
+inproduct
+tristimulus
+CIELAB
+RgbSpace
+cie-illuminants
+Tristimulus
+Harbers
+Bik
