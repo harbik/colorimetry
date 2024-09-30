@@ -6,7 +6,7 @@ use nalgebra::{ArrayStorage, SMatrix, SVector};
 
 use crate::{
     cri::CRI,
-    data::cie_data::{D50, D65}, observer::ObserverData, physics::{gaussian_peak_one, led_ohno, planck, stefan_boltzmann, wavelength}, spectrum::{Spectrum, NS, wavelengths}, std_illuminants::StdIlluminant, traits::Light, CmtError
+    data::cie_data::{D50, D65}, observer::ObserverData, physics::{gaussian_peak_one, led_ohno, planck, stefan_boltzmann, wavelength}, spectrum::{Spectrum, NS, wavelengths}, std_illuminants::StdIlluminant, traits::Light, error::CmtError
 };
 
 
@@ -252,7 +252,7 @@ impl Illuminant {
     /// seperately to limit the size of the main web assembly library.
     #[cfg(feature="cri")]
     #[wasm_bindgen(js_name=cri)]
-    pub fn cri_js(&self) -> Result<crate::cri::CRI, crate::CmtError> {
+    pub fn cri_js(&self) -> Result<crate::cri::CRI, CmtError> {
         todo!()
     }
 

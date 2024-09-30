@@ -28,7 +28,7 @@ use std::{borrow::Cow, ops::Deref, vec};
 use nalgebra::{ArrayStorage, SMatrix};
 use wasm_bindgen::prelude::*;
 use crate::{
-    CmtError,
+    error::CmtError,
     spectrum::Spectrum,
     traits::Light,
     illuminant::Illuminant,

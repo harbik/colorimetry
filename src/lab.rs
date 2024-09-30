@@ -3,7 +3,7 @@ use nalgebra::{RowVector3, Vector3};
 
 use strum_macros::Display;
 use wasm_bindgen::prelude::wasm_bindgen;
-use crate::{xyz::XYZ, CmtError};
+use crate::{xyz::XYZ, error::CmtError};
 
 #[wasm_bindgen]
 #[derive(Debug, Clone, Copy)]

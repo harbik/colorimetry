@@ -17,7 +17,7 @@ use js_sys::Iter;
 
 use crate::{
     data::munsell_matt_data::{MUNSELL_MATT_DATA, MUNSELL_MATT_KEYS},
-    CmtError,
+    error::CmtError,
     traits::Filter,
     spectrum::Spectrum
 };

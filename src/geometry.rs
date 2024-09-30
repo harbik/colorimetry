@@ -4,7 +4,7 @@ use core::f64;
 use nalgebra::ComplexField;
 use wasm_bindgen::prelude::wasm_bindgen;
 
-use crate::CmtError;
+use crate::error::CmtError;
 
 /// Distance of point (x,y) to line going through points (x0,y0) having slope m
 /// 

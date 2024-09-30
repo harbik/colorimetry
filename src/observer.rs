@@ -6,7 +6,7 @@ use crate::{
     physics::{planck, planck_slope, to_wavelength}, 
     spectrum::{Spectrum, NS}, 
     xyz::XYZ, 
-    CmtError, 
+    error::CmtError, 
     colorant::Colorant, 
     traits::{Filter, Light}, 
     geometry::LineAB, 

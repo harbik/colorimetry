@@ -22,7 +22,7 @@ use crate::{
     data::cie_data::{D50, D65, CIE1931},
     observer::ObserverData,
     physics::{gaussian_peak_one, led_ohno, planck, stefan_boltzmann, sigma_from_fwhm, wavelength},
-    CmtError,
+    error::CmtError,
     colorant::Colorant,
     std_illuminants::StdIlluminant,
     physics::C,
@@ -103,11 +103,11 @@ impl Spectrum {
     assert_ulps_eq!(spd[400], 0.0);
     ```
     */
-    pub fn linear_interpolate(wavelengths: &[f64], data: &[f64]) ->Result<Self, crate::CmtError> {
+    pub fn linear_interpolate(wavelengths: &[f64], data: &[f64]) ->Result<Self, CmtError> {
         let data = match wavelengths.len() {
            2 =>  linterp(wavelengths.try_into().unwrap(), data)?,
            3.. => linterp_irr(wavelengths, data)?,
-           _ => return Err(crate::CmtError::InterpolateWavelengthError)
+           _ => return Err(CmtError::InterpolateWavelengthError)
         };
         Ok(Self(SVector::<f64, 401>::from_array_storage(nalgebra::ArrayStorage([data]))))
     }
@@ -121,7 +121,7 @@ impl Spectrum {
     /// for the description of the method.
     /// This implementation uses end-point values for extrapolation, as recommended by CIE15:2004 7.2.2.1.
     
-    pub fn sprague_interpolate(wavelengths: [f64;2], data: &[f64]) ->Result<Self, crate::CmtError> {
+    pub fn sprague_interpolate(wavelengths: [f64;2], data: &[f64]) ->Result<Self, CmtError> {
         let data = sprinterp(wavelengths.try_into().unwrap(), data)?;
         Ok(Self(SVector::<f64, 401>::from_array_storage(nalgebra::ArrayStorage([data]))))
     }
@@ -175,7 +175,7 @@ impl TryFrom<&[f64]> for Spectrum {
 
     fn try_from(data: &[f64]) -> Result<Self, Self::Error> {
         if data.len()!=NS {
-            Err(crate::CmtError::DataSize401Error)
+            Err(CmtError::DataSize401Error)
         } else {
             Ok(Self(SVector::<f64, NS>::from_iterator(data.into_iter().copied())))
         }
@@ -283,7 +283,7 @@ impl Spectrum {
     ```
     */
     #[wasm_bindgen(js_name=linearInterpolate)]
-    pub fn linear_interpolate_js(wavelengths: &[f64], data: &[f64], total_js: &JsValue) -> Result<Spectrum, crate::CmtError> {
+    pub fn linear_interpolate_js(wavelengths: &[f64], data: &[f64], total_js: &JsValue) -> Result<Spectrum, CmtError> {
         Self::linear_interpolate(wavelengths, data)
 
     }
@@ -295,7 +295,7 @@ impl Spectrum {
     /// seperately to limit the size of the main web assembly library.
     #[cfg(feature="cri")]
     #[wasm_bindgen(js_name=cri)]
-    pub fn cri_js(&self) -> Result<crate::cri::CRI, crate::CmtError> {
+    pub fn cri_js(&self) -> Result<crate::cri::CRI, CmtError> {
         todo!()
     }
 

@@ -6,7 +6,7 @@ use nalgebra::Vector3;
 use crate::{
     geometry::{LineAB, Orientation},
     observer::{self, Observer},
-    CmtError,
+    error::CmtError,
     illuminant::Illuminant,
     rgbspace::RgbSpace,
     spectrum::Spectrum,
@@ -464,9 +464,9 @@ impl XYZ {
     */
 
     #[wasm_bindgen(constructor, variadic)]
-    pub fn new_js(x: f64, y:f64, opt : &js_sys::Array) -> Result<XYZ, crate::CmtError> {
+    pub fn new_js(x: f64, y:f64, opt : &js_sys::Array) -> Result<XYZ, crate::error::CmtError> {
         use wasm_bindgen::convert::TryFromJsValue;
-        use crate::CmtError; 
+        use crate::error::CmtError; 
         let (x, y, z, obs) = match opt.length() {
             0 => (x * 100.0/y, 100.0, (1.0 - x - y) * 100.0/y, Observer::Std1931),
             1 => {
@@ -478,7 +478,7 @@ impl XYZ {
                 }
             }
             2 => {
-                let z = opt.get(0).as_f64().ok_or(crate::CmtError::ErrorString("please provide a z value as number".into()))?;
+                let z = opt.get(0).as_f64().ok_or(CmtError::ErrorString("please provide a z value as number".into()))?;
                 let obs = Observer::try_from_js_value(opt.get(1))?;
                 (x, y, z, obs)
             }

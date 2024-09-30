@@ -3,7 +3,7 @@ use std::{borrow::Cow, ops::{Add, AddAssign, Deref, DerefMut, Mul, MulAssign}};
 use colored::Color;
 use nalgebra::SVector;
 
-use crate::{physics::{gaussian_peak_one, wavelength}, spectrum::wavelengths, CmtError, traits::Filter, spectrum::{Spectrum, NS}};
+use crate::{physics::{gaussian_peak_one, wavelength}, spectrum::wavelengths, error::CmtError, traits::Filter, spectrum::{Spectrum, NS}};
 
 
 #[derive(Clone, Debug, Default)]
