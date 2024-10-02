@@ -20,7 +20,7 @@
         "@harbik/colorimetry": "jsr:@harbik/colorimetry@^0.0.2"
     },
     "tasks": {
-        "test": "deno test -Aq --parallel",
+        "test": "cargo test --all-features",
         "addreadme": "cp README_JSR.md ./pkg/README.md",
         "addtypes": "sed -i '' '1s-^-/// <reference types=\"./colorimetry.d.ts\"/>\\n-' ./pkg/colorimetry.js",
         "build": "wasm-pack build --target web && deno task addtypes && deno task addreadme",

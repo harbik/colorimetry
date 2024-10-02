@@ -21,7 +21,10 @@ pub const C2: f64 = H * C / KB; // Now exact
 pub const C2_NBS_1931: f64 = 1.435E-2; // A Illuminant
 pub const C2_IPTS_1948: f64 = 1.4380E-2; // Illuminant series D
 pub const C2_ITS_1968: f64 = 1.4388E-2;
+//pub const FWHM2STDDEV: f64 = 2.354820045;
 
+// calculated on first dereference, can not use floating point calculations in const (yet?)
+pub static FWHM: LazyLock<f64> = LazyLock::new(|| (8.0 * 2f64.ln()).sqrt());
 
 
 /**
@@ -91,17 +94,17 @@ pub fn led_ohno(wl: f64, center: f64, width: f64) -> f64 {
 
 
 use core::f64;
-use std::f64::consts::PI;
+use std::{f64::consts::PI, sync::LazyLock};
 
 
 #[inline]
 pub fn sigma_from_fwhm(fwhm: f64) -> f64 {
-    fwhm/2.35482
+    fwhm/ *FWHM
 }
 
 #[inline]
 pub fn fwhm_from_sigma(sigma: f64) -> f64 {
-    sigma * 2.35482
+    sigma * *FWHM
 }
 
 #[inline]
@@ -140,15 +143,16 @@ pub fn wavelength<T: ToPrimitive>(i: T) -> f64 {
 /// from 380E-9 to 780E-9 meter. 
 /// ```
 /// // Wavelength from an index value in the domain from 0 to 400:
-/// let l = colorimetry::to_wavelength(200, 0, 400);
+/// use colorimetry::prelude::*;
+/// let l = to_wavelength(200, 0, 400);
 /// approx::assert_ulps_eq!(l, 580E-9);
 ///
 /// // Wavelength from from a function defined over a domain from 0.0 to 1.0:
-/// let l = colorimetry::to_wavelength(0.0, 0.0, 1.0);
+/// let l = to_wavelength(0.0, 0.0, 1.0);
 /// approx::assert_ulps_eq!(l, 380E-9);
 ///
 /// // Wavelength defined in integer nanometer values, to floating point meters
-/// let l = colorimetry::to_wavelength(780, 380, 780);
+/// let l = to_wavelength(780, 380, 780);
 /// approx::assert_ulps_eq!(l, 780E-9);
 /// ```
 #[inline]

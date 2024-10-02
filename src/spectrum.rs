@@ -11,6 +11,7 @@ The spectral sensitivity of human vision is described by an [Observer](crate::Ob
 use core::f64;
 use std::{borrow::Cow, collections::BTreeMap, default, error::Error, iter::Sum, ops::{Add, AddAssign, Deref, Div, Index, IndexMut, Mul, MulAssign}};
 
+use approx::{AbsDiff, AbsDiffEq};
 use num_traits::ToPrimitive;
 use url::Url;
 
@@ -46,7 +47,7 @@ are available in this library, such as standard illuminants A and D65, Planckian
 display.
  */
 #[wasm_bindgen]
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Spectrum(pub(crate) SVector<f64, NS>);
 
 impl Spectrum {
@@ -78,29 +79,29 @@ impl Spectrum {
     ```rust
     // Creates a linear gradient filter, with a zero transmission at 380 nanometer, and full
     // transmission at 780 nanometer. This is an example using a uniform wavelength domain as input.
-    use colorimetry as cmt;
-    # use approx::assert_ulps_eq;
+    use colorimetry::prelude::*;
+    use approx::assert_ulps_eq;
     let data = [0.0, 1.0];
     let wl = [380.0, 780.0];
-    let mut spd = cmt::Spectrum::linear_interpolate(&wl, &data).unwrap().values();
-    assert_ulps_eq!(spd[0], 0.);
-    assert_ulps_eq!(spd[100], 0.25);
-    assert_ulps_eq!(spd[200], 0.5);
-    assert_ulps_eq!(spd[300], 0.75);
-    assert_ulps_eq!(spd[400], 1.0);
+    let mut spd = Spectrum::linear_interpolate(&wl, &data).unwrap();
+    assert_ulps_eq!(spd[380], 0.);
+    assert_ulps_eq!(spd[380+100], 0.25);
+    assert_ulps_eq!(spd[380+200], 0.5);
+    assert_ulps_eq!(spd[380+300], 0.75);
+    assert_ulps_eq!(spd[380+400], 1.0);
 
     // Creates a top hat filter, with slanted angles, using an irregular
     // wavelength domain.
     let data = vec![0.0, 1.0, 1.0, 0.0];
     let wl = vec![480.0, 490.0, 570.0, 580.0];
-    let spd = cmt::Spectrum::linear_interpolate(&wl, &data).unwrap().values();
-    assert_ulps_eq!(spd[0], 0.0);
-    assert_ulps_eq!(spd[100], 0.0);
-    assert_ulps_eq!(spd[110], 1.0);
-    assert_ulps_eq!(spd[190], 1.0);
-    assert_ulps_eq!(spd[200], 0.0);
-    assert_ulps_eq!(spd[300], 0.0);
-    assert_ulps_eq!(spd[400], 0.0);
+    let spd = Spectrum::linear_interpolate(&wl, &data).unwrap();
+    assert_ulps_eq!(spd[380+0], 0.0);
+    assert_ulps_eq!(spd[380+100], 0.0);
+    assert_ulps_eq!(spd[380+110], 1.0);
+    assert_ulps_eq!(spd[380+190], 1.0);
+    assert_ulps_eq!(spd[380+200], 0.0);
+    assert_ulps_eq!(spd[380+300], 0.0);
+    assert_ulps_eq!(spd[380+400], 0.0);
     ```
     */
     pub fn linear_interpolate(wavelengths: &[f64], data: &[f64]) ->Result<Self, CmtError> {
@@ -205,6 +206,18 @@ impl Sum for Spectrum {
         let mut s = Self::default() ;
         iter.for_each(|si|s += si);
         s
+    }
+}
+
+impl AbsDiffEq for Spectrum {
+    type Epsilon = f64;
+
+    fn default_epsilon() -> Self::Epsilon {
+        f64::default_epsilon()
+    }
+
+    fn abs_diff_eq(&self, other: &Self, epsilon: Self::Epsilon) -> bool {
+        self.0.abs_diff_eq(&other.0, epsilon)
     }
 }
 
@@ -756,12 +769,14 @@ mod tests {
         s[550] = 1.0;
         s.smooth(5.0);
 
-        let w = Colorant::gaussian(550.0, 5.0);
-
+        let sigma = sigma_from_fwhm(5.0);
+        let w = Colorant::gaussian(550.0, sigma);
+        let scale = sigma * (PI*2.0).sqrt(); // integral of a gaussian
         s.0.0.iter().zip(w.0.0.iter()).enumerate().for_each(|(i, (s,w))|{
             let j = i + 380;
-           // println!("{j} {s:.6} {w:.6}");
-            approx::assert_abs_diff_eq!(s,w, epsilon=1E-8);
+            let w = w / scale; // change the reference gaussian colorant to have an integral of 1.0
+            //println!("{j} {s:.6} {w:.6}");
+            approx::assert_abs_diff_eq!(s,&w, epsilon=1E-8);
         });
 
     }

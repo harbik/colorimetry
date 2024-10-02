@@ -70,13 +70,12 @@ coordinates for a Planckian (thermal emission-based) illuminator with a
 Correlated Color Temperature of 3000 Kelvin using the CIE 1931 standard observer.
 
 ```rust
-    use crate::colorimetry::{Illuminant, CIE1931};
-    use approx::assert_ulps_eq;
+    use crate::colorimetry::prelude::*;
 
     let p3000 = Illuminant::planckian(3000.0);
     let xy = CIE1931.xyz(&p3000, None).chromaticity();
 
-    assert_ulps_eq!(xy.as_ref(), [0.436_935,0.404_083].as_ref(), epsilon = 1E-6);
+    approx::assert_abs_diff_eq!(xy.as_ref(), [0.436_935,0.404_083].as_ref(), epsilon = 1E-6);
 ```
 
 Besides the [Illuminant::planckian] constructor, [Illuminant] has many other constructors.
@@ -86,20 +85,20 @@ This feature is a default feature, but can be disabled when not used and compact
 The available standard illuminants are accessible through [StdIlluminant], which is a `enum`, and implements a `spectrum` method for its variants, producing a reference to a `Spectrum`.
 For example, to get the A illuminant spectrum:
 ```rust
-    use colorimetry::{StdIlluminant, CIE1931};
+    use colorimetry::prelude::*;
 
     let xy_a = CIE1931.xyz(&StdIlluminant::A, None).chromaticity();
     // see <https://en.wikipedia.org/wiki/Standard_illuminant#Illuminant_A>
-    approx::assert_ulps_eq!(xy_a.as_ref(), [0.44758, 0.40745].as_ref(), epsilon=1E-5)
+    approx::assert_abs_diff_eq!(xy_a.as_ref(), [0.44758, 0.40745].as_ref(), epsilon=1E-5)
 ```
 
 Other interesting constructors are the [`Stimulus::srgb`], and [`Stimulus::rgb`], which create a spectrum of a set of [RGB] pixel values.
 The first takes three `u8` arguments, while the second uses an [RGB] object as argument.
 
 ```rust
-    use colorimetry::{CIE1931, Stimulus, RGB};
+    use colorimetry::prelude::*;
     let red = Stimulus::srgb(255, 0, 0);
-    approx::assert_ulps_eq!(
+    approx::assert_abs_diff_eq!(
         CIE1931.xyz(&red, None).chromaticity().as_ref(),
         &[0.64, 0.33].as_ref(),
         epsilon = 1E-5

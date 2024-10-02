@@ -97,7 +97,7 @@ impl XYZ {
 
     /// XYZ Tristimulus values in an an array: [X, Y, Z]
     /// ```
-    /// use crate::colorimetry::{StdIlluminant, CIE1931};
+    /// use colorimetry::prelude::*;
     /// use approx::assert_ulps_eq;
     ///
     /// let d65_xyz = CIE1931.xyz(&StdIlluminant::D65, None).set_illuminance(100.0);
@@ -114,7 +114,7 @@ impl XYZ {
     /// Set the illuminance of an illuminant, either for an illuminant directly,
     /// or for the reference illuminant, in case a color sample XYZ.
     /// ```
-    /// use crate::colorimetry::{Colorant, CIE1931, StdIlluminant, XYZ, Observer};
+    /// use colorimetry::prelude::*;
     /// use approx::assert_ulps_eq;
     /// const D65A: [f64;3] = [95.04, 100.0, 108.86];
     ///
@@ -135,16 +135,9 @@ impl XYZ {
         self
     }
     
-    /*
-    pub fn set_xyzn(mut self, xyzn: Vector3<f64>) -> Self {
-        self.xyzn = Some(xyzn);
-        self
-    }
-     */
-    
     /// The chromaticity coordinates as an array with an  x and y coordinate
     /// ```
-    /// use crate::colorimetry::{StdIlluminant, CIE1931};
+    /// use colorimetry::prelude::*;
     /// use approx::assert_ulps_eq;
     ///
     /// let d65_xyz = CIE1931.xyz(&StdIlluminant::D65, None);

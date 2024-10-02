@@ -6,6 +6,7 @@ pub use super::cri::*;
 pub use super::data::cie_data::*;
 pub use super::geometry::*;
 pub use super::illuminant::*;
+#[cfg(feature="munsell-matt")]
 pub use super::munsell_matt::*;
 pub use super::observer::*;
 pub use super::physics::*;

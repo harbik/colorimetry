@@ -158,14 +158,14 @@ impl ObserverData {
         Linear high pass filter, with a value of 0.0 for a wavelength of 380nm, and a value of 1.0 for 780nm,
         and converting the resulting value to RGB values.
         ```
-            use colorimetry::{CIE1931, StdIlluminant, RgbSpace};
+            use colorimetry::prelude::*;
             let rgb: [u8;3] = CIE1931.xyz_from_std_illuminant_x_fn(&StdIlluminant::D65, |x|x).rgb(None).into();
             assert_eq!(rgb, [212, 171, 109]); 
         ```
         Linear low pass filter, with a value of 1.0 for a wavelength of 380nm, and a value of 0.0 for 780nm,
         and converting the resulting value to RGB values.
         ```
-            use colorimetry::{CIE1931, StdIlluminant, RgbSpace};
+            use colorimetry::prelude::*;
             let rgb: [u8;3] = CIE1931.xyz_from_std_illuminant_x_fn(&StdIlluminant::D65, |x|1.0-x).rgb(None).into();
             assert_eq!(rgb, [158, 202, 237]); 
         ```

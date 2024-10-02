@@ -6,7 +6,7 @@
   
  */
 
-use std::sync::{LazyLock, OnceLock};
+use std::{ops::Index, sync::{LazyLock, OnceLock}};
 use nalgebra::{ArrayStorage, SMatrix};
 use wasm_bindgen::prelude::*;
 
@@ -49,6 +49,24 @@ fn tcs_test(){
 #[derive(Debug, Clone, Copy)]
 /// Encapcsulated Array of calculated Ri values, from a test light source.
 pub struct CRI([f64;N_TCS]);
+
+impl CRI {
+    pub fn try_new(s: &Illuminant) -> Result<Self, CmtError> {
+        s.try_into()
+    }
+
+    pub fn ra(&self) -> f64 {
+        self.0.iter().take(8).sum::<f64>()/8.0
+    }
+}
+
+impl Index<usize> for CRI {
+    type Output = f64;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.0[index]
+    }
+}
 
 /// CRI calculation.
 /// 
@@ -115,14 +133,7 @@ impl AsRef<[f64]> for CRI {
     }
 }
 
-impl CRI {
-    pub fn try_new(s: &Illuminant) -> Result<Self, CmtError> {
-        s.try_into()
-    }
-}
-
 // JS-WASM Interface code
-
 #[cfg(target_arch="wasm32")] 
 #[wasm_bindgen]
 impl CRI {

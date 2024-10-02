@@ -44,7 +44,7 @@ A static reference to the spectra can be obtained using the "spectrum" method.
 
 ```
 // print all the StdIlluminants
-    use colorimetry::StdIlluminant;
+    use colorimetry::prelude::*;
     use strum::IntoEnumIterator;
 
     for spc in StdIlluminant::iter() {
@@ -99,6 +99,13 @@ macro_rules! std_illuminants {
 impl From<StdIlluminant> for Illuminant {
     fn from(std_illuminant: StdIlluminant) -> Self {
         std_illuminant.illuminant().clone()
+    }
+}
+
+impl AsRef<Illuminant> for StdIlluminant {
+    
+    fn as_ref(&self) -> &Illuminant {
+        self.illuminant()
     }
 }
 

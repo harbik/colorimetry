@@ -147,23 +147,24 @@ impl Light for RGB {
     }
 }
 
-/**
-    An RGB pixel as a filter.
-
-    This excludes the reference white light.
-    Ii is the filter function only, which is used in combination with a reference illuminant to achieve
-    a stimulus in accordance with the colorspace in which is defined.
-    
-    ```
-    use colorimetry::{CIE1931, RGB, XYZ, StdIlluminant, XYZ_D65WHITE};
-    
-    // rgb white in using CIE1931 standard observer, and sRGB color space.
-    let rgb = RGB::from_u8(255, 255, 255, None, None);
-    let d65: XYZ = CIE1931.xyz(&StdIlluminant::D65, Some(&rgb));
-    approx::assert_ulps_eq!(d65, XYZ_D65WHITE, epsilon=1E-2);
-    ```
- */
 impl Filter for RGB {
+
+    /**
+        An RGB pixel as a filter.
+
+        This excludes the reference white light.
+        Ii is the filter function only, which is used in combination with a reference illuminant to achieve
+        a stimulus in accordance with the colorspace in which is defined.
+        
+        ```
+        use colorimetry::prelude::*;
+        
+        // rgb white in using CIE1931 standard observer, and sRGB color space.
+        let rgb = RGB::from_u8(255, 255, 255, None, None);
+        let d65: XYZ = CIE1931.xyz(&StdIlluminant::D65, Some(&rgb));
+        approx::assert_ulps_eq!(d65, XYZ_D65WHITE, epsilon=1E-2);
+        ```
+    */
     fn spectrum(&self) -> Cow<Spectrum> {
         let prim = self.space.data().0.primaries_as_colorants();
         let yrgb = self.observer.data().rgb2xyz(&self.space).row(1);

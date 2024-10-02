@@ -5,9 +5,11 @@ use colored::Color;
 use nalgebra::{ArrayStorage, SMatrix, SVector};
 
 use crate::{
-    cri::CRI,
     data::cie_data::{D50, D65}, observer::ObserverData, physics::{gaussian_peak_one, led_ohno, planck, stefan_boltzmann, wavelength}, spectrum::{Spectrum, NS, wavelengths}, std_illuminants::StdIlluminant, traits::Light, error::CmtError
 };
+
+#[cfg(feature="cri")]
+use crate::cri::CRI;
 
 
 #[derive(Clone, Default)]
@@ -64,7 +66,7 @@ impl Illuminant {
     /// The generated spectrum is scaled to have a total power, over the full
     /// spectrum (including infrared), of 1 Watt.
     /// ```rust
-    /// # use crate::colorimetry::{Illuminant, CIE1931};
+    /// # use colorimetry::prelude::*;
     /// # use approx::assert_ulps_eq;
     /// 
     /// let p3000 = Illuminant::planckian(3000.0);
@@ -168,7 +170,7 @@ impl TryFrom<&[f64]> for Illuminant {
 impl Mul<f64> for Illuminant {
     /// Multiply a spectrum with a scalar f64 value.
     /// ```
-    ///     use crate::colorimetry::Illuminant;
+    ///     use colorimetry::prelude::*;
     ///     use approx::assert_ulps_eq;
     ///
     ///     let mut led = Illuminant::led(550.0, 25.0);
@@ -189,7 +191,7 @@ impl Mul<f64> for Illuminant {
 impl Mul<Illuminant> for f64 {
     /// Multiply a spectrum with a scalar f64 value.
     /// ```
-    ///     use crate::colorimetry::Illuminant;
+    ///     use colorimetry::prelude::*;
     ///     use approx::assert_ulps_eq;
     ///
     ///     let mut led = Illuminant::led(550.0, 25.0);
