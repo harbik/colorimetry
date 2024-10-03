@@ -29,7 +29,7 @@ use crate::{
 pub enum Observer { 
     #[default]
     Std1931, 
-    Std1976, 
+    Std1964, 
     Std2015, 
     Std2015_10
 }
@@ -41,7 +41,9 @@ impl Observer {
     pub fn data(&self) -> &'static ObserverData {
         match self {
             Observer::Std1931 =>  &crate::data::cie_data::CIE1931,
-            _ => todo!()
+            Observer::Std1964 =>  &crate::data::cie_data::CIE1964,
+            Observer::Std2015 =>  &crate::data::cie_data::CIE2015,
+            Observer::Std2015_10 =>  &crate::data::cie_data::CIE2015_10,
         }
     }
 }

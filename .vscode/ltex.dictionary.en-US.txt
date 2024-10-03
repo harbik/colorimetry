@@ -13,3 +13,7 @@ cie-illuminants
 Tristimulus
 Harbers
 Bik
+Sprague
+cri
+cct
+Munsell

@@ -34,7 +34,7 @@ cie-illuminants = []
 cct = []
 supplemental-observers = []
 cri = ["cct"]
-munsell-matt = []
+munsell = []
 
 [dev-dependencies] # for examples and tests
 argmin = "0.10.0"

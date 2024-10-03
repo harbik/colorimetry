@@ -16,7 +16,7 @@ pub mod gamma;
 pub mod geometry;
 pub mod illuminant;
 pub mod lab;
-#[cfg(feature="munsell-matt")]
+#[cfg(feature="munsell")]
 pub mod munsell_matt;
 pub mod observer;
 pub mod physics;

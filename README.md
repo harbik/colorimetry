@@ -1,33 +1,61 @@
 
 # Overview
-The Colorimetry Library is a library for color calculations in illumination and color engineering projects.
-It can be used for Rust projects and provides JavaScript/WebAssembly interfaces.
-The algorithms implemented try to follow the recommendations of the International Commission on Illumination,
-the International Color Consortium, the Illumination Engineering Society, and many others.
+A Colorimetry Library for color modelling in illumination and engineering projects.
+Besides being a Rust library, it also provides JavaScript/WebAssembly interfaces, although still rudimentary at this stage.
+The algorithms implemented try to follow the recommendations of the International Commission on Illumination (CIE),
+the International Color Consortium (ICC), and the Illumination Engineering Society (IES).
 
-Here is a brief overview of the main objects in this library, with some introductory examples for use in Rust, Deno/TypeScript, and Web Applications.
-For detailed documentation, check either [crates.io](https://crates.io/crates/colorimetry) for Rust or [jsr.io](https://jsr.io/@harbik/colorimetry) for use in JavaScript Runtime applications.
+It is a spectral library, using spectral representations of color, allowing to use more advanced
+colorimetric observers besides the outdated and flawed CIE 1931 standard observer.
+It uses spectral representations of observers, illuminants, filters, and color patches defined over
+a wavelength domain from 380 to 780 nanometers, with 1 nanometer steps.
+Linear, Sprague, and Spline interpolation are available if your data uses other domains.
 
-# Use in Rust applications
+# Installation
 
-To use this library in Rust applications, run the command:
+To use this library in a Rust application, run the command:
  ```bash
     cargo add colorimetry
 ```
 or add this line to the dependencies in your Cargo.toml file:
 ```toml
-    colorimetry = "0.0.2"
+    colorimetry = "0.0.3"
+```
+The easiest way to use the objects and functions library is through its prelude.
+This example calculates the chromaticity values of the CIE D65 illuminant.
+```rust
+    use colorimetry::prelude::*;
+    let xy = CIE1931.xyz(&D65, None).chromaticity();
+    approx::assert_abs_diff_eq!(xy.as_ref(), [0.3127, 0.3291].as_ref(), epsilon=5E-5);
 ```
 
 ## Features 
 
-- **cie-illuminants** _(default)_
+The library includes many data collections, of which only a minimal set is included by default.
+A feature is enabled by including using the flag `-F`.
+For example, to include "cri" Color Rendering Index module illuminants, use:
+```bash
+    cargo add colorimetry -F cri
+```
+This can also be set manually, in your cargo.toml file, using
+```toml
+    colorimetry = {version = "0.0.3", features = ["cri"]}
+```
+
+The current features in this library are:
+
+- **cie-illuminants** _default_
     Include a large collection of standard illuminants such as the Fluorescent and LED series.
     Included by default. 
-- **supplemental-observers** _(default)_
+- **supplemental-observers** _default_
     The CIE 1931 Standard Observer is always included, but with feature several other standard and experimental
     colorimetric observers are included as well.
     Included by default.
+- **munsell**
+    Include reflection spectra for the Munsell colors.
+    This will increase the size of your executable quite a bit, and is not included by default.
+- **charts**
+    Include reflection spectra for various test charts.
 - **cri** 
     Include the color rendering index module, which calculates the Ra and R1 to R14 values for illuminants.
     This loads an additional 14 test color sample spectra.
@@ -35,6 +63,7 @@ or add this line to the dependencies in your Cargo.toml file:
     Calculate correlated color temperature for illuminants.
     Builds a 4096 length lookup table, with each row consisting of 3*f64 values.
     The table rows are only calculated when required, but table space is reserved in the executable.
+    This module is also included with the "cri" feature.
 - **color-fidelity**
     Calculates CIE 224:2017 Color Fidelity Index, and associated values.
     Contains 99 test color samples.
@@ -82,8 +111,7 @@ Besides the [Illuminant::planckian] constructor, [Illuminant] has many other con
 For example, [Illuminant::d65] and [Illuminant::d50] provide spectral distributions of the CIE D65, and D50 standard illuminants, defined by the CIE in tabular form.
 Many other Standard Illuminants can be used, such as the A, Fluorescent, and LED Illuminants defined by the CIE, when the library is compiled with the "cie-illuminants" feature.
 This feature is a default feature, but can be disabled when not used and compact binaries are required.
-The available standard illuminants are accessible through [StdIlluminant], which is a `enum`, and implements a `spectrum` method for its variants, producing a reference to a `Spectrum`.
-For example, to get the A illuminant spectrum:
+For example, to get the A illuminant's chromaticity:
 ```rust
     use colorimetry::prelude::*;
 

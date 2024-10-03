@@ -600,7 +600,7 @@ mod xyz_test {
         approx::assert_ulps_ne!(xyz0, xyz2);
 
         // different observer
-        let xyz3 = XYZ::from_vecs(Vector3::zeros(), None, Observer::Std1976);
+        let xyz3 = XYZ::from_vecs(Vector3::zeros(), None, Observer::Std1964);
         approx::assert_ulps_ne!(xyz0, xyz3);
 
     }
