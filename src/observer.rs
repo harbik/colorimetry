@@ -20,10 +20,18 @@ use crate::{
     Light-weight identifier added to the `XYZ` and `RGB` datasets,
     representing the colorimetric standard observer used.
 
-    No data included here, which would be the Rust way, to maintain
-    compatibility with wasm-bindgen, and to allow this enum to be directly used
-    in JavaScript.
+    No data included here, which would be the Rust way, but that does not work with wasm-bindgen.
+    This can be directly used in JavaScript, and has the benefit to be just an index.
  */
+#[cfg(not(feature="supplemental-observers"))]
+#[wasm_bindgen]
+#[derive(Clone, Copy, Default, PartialEq, Eq, Debug)]
+pub enum Observer { 
+    #[default]
+    Std1931, 
+}
+
+#[cfg(feature="supplemental-observers")]
 #[wasm_bindgen]
 #[derive(Clone, Copy, Default, PartialEq, Eq, Debug)]
 pub enum Observer { 
@@ -41,8 +49,11 @@ impl Observer {
     pub fn data(&self) -> &'static ObserverData {
         match self {
             Observer::Std1931 =>  &crate::data::cie_data::CIE1931,
+            #[cfg(feature="supplemental-observers")]
             Observer::Std1964 =>  &crate::data::cie_data::CIE1964,
+            #[cfg(feature="supplemental-observers")]
             Observer::Std2015 =>  &crate::data::cie_data::CIE2015,
+            #[cfg(feature="supplemental-observers")]
             Observer::Std2015_10 =>  &crate::data::cie_data::CIE2015_10,
         }
     }

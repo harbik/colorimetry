@@ -87,6 +87,7 @@ pub static CIE1931: ObserverData = ObserverData{tag: Observer::Std1931, lumconst
 ]))};
 
 
+#[cfg(feature="supplemental-observers")]
 pub static CIE1964: ObserverData = ObserverData{tag: Observer::Std1964, lumconst: 683.0, data: SMatrix::<f64, 3, NS>::from_array_storage( ArrayStorage([
     [0.000159952, 0.000017364, 0.000704776], [0.00021508, 0.000023327, 0.00094823], [0.00028749, 0.00003115, 0.0012682], [0.00038199, 0.00004135, 0.0016861], [0.00050455, 0.00005456, 0.0022285],
     [0.00066244, 0.00007156, 0.0029278], [0.0008645, 0.0000933, 0.0038237], [0.0011215, 0.00012087, 0.0049642], [0.00144616, 0.00015564, 0.0064067], [0.00185359, 0.0001992, 0.0082193],
@@ -172,7 +173,7 @@ pub static CIE1964: ObserverData = ObserverData{tag: Observer::Std1964, lumconst
 
 ]))};
 
-
+#[cfg(feature="supplemental-observers")]
 pub static CIE2015: ObserverData = ObserverData{tag: Observer::Std2015, lumconst: 683.0, data: SMatrix::<f64, 3, NS>::from_array_storage( ArrayStorage([
     [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0],
     [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0],
@@ -258,6 +259,7 @@ pub static CIE2015: ObserverData = ObserverData{tag: Observer::Std2015, lumconst
     
 ]))};
 
+#[cfg(feature="supplemental-observers")]
 pub static CIE2015_10: ObserverData = ObserverData{tag: Observer::Std2015_10, lumconst: 683.0, data: SMatrix::<f64, 3, NS>::from_array_storage( ArrayStorage([
     [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0],
     [0.0004076779, 0.0004076779, 0.01318752], [0.0004977769, 0.0004977769, 0.01597879], [0.0006064754, 0.0006064754, 0.01935758], [0.000737004, 0.000737004, 0.02343758], [0.0008929388, 0.0008929388, 0.02835021],
