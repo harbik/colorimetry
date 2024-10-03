@@ -85,10 +85,10 @@ macro_rules! std_illuminants {
         impl StdIlluminant {
             pub fn illuminant(&self) -> &crate::illuminant::Illuminant {
                 match self {
-                    $(Self::$val => &crate::data::cie_data::$val,)*
+                    $(Self::$val => &crate::data::illuminants::$val,)*
                     $(
                         #[cfg(feature="cie-illuminants")]
-                        Self::$cieval => &crate::data::cie_data::$cieval,
+                        Self::$cieval => &crate::data::illuminants::$cieval,
                     )*
                 }
             }

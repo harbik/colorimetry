@@ -11,7 +11,8 @@ use crate::{
     illuminant::Illuminant,
     std_illuminants::StdIlluminant,
     stimulus::Stimulus,
-    data::cie_data::{CIE1931, D65}
+    data::illuminants::D65,
+    data::observers::CIE1931,
 };
 
 

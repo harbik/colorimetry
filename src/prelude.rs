@@ -3,7 +3,8 @@ pub use super::cct::*;
 pub use super::colorant::*;
 #[cfg(feature="cri")]
 pub use super::cri::*;
-pub use super::data::cie_data::*;
+pub use super::data::illuminants::*;
+pub use super::data::observers::*;
 pub use super::geometry::*;
 pub use super::illuminant::*;
 #[cfg(feature="munsell")]

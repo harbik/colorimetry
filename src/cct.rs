@@ -49,7 +49,7 @@ use std::{cmp::max, sync::OnceLock};
 
 use approx::{assert_ulps_eq, relative_eq, ulps_eq, AbsDiffEq, RelativeEq, UlpsEq};
 
-use crate::{geometry::distance_to_line, physics::planck, error::CmtError, observer::{Observer, ObserverData}, data::cie_data::CIE1931, spectrum::NS, xyz::XYZ};
+use crate::{geometry::distance_to_line, physics::planck, error::CmtError, observer::{Observer, ObserverData}, data::observers::CIE1931, spectrum::NS, xyz::XYZ};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct CCT(f64, f64);

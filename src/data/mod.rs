@@ -1,4 +1,5 @@
 #[cfg(feature="munsell")]
-pub mod munsell_matt_data;
+pub mod munsell_matt;
 
-pub mod cie_data;
+pub mod illuminants;
+pub mod observers;

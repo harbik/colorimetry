@@ -48,13 +48,13 @@ impl Observer {
      */
     pub fn data(&self) -> &'static ObserverData {
         match self {
-            Observer::Std1931 =>  &crate::data::cie_data::CIE1931,
+            Observer::Std1931 =>  &crate::data::observers::CIE1931,
             #[cfg(feature="supplemental-observers")]
-            Observer::Std1964 =>  &crate::data::cie_data::CIE1964,
+            Observer::Std1964 =>  &crate::data::observers::CIE1964,
             #[cfg(feature="supplemental-observers")]
-            Observer::Std2015 =>  &crate::data::cie_data::CIE2015,
+            Observer::Std2015 =>  &crate::data::observers::CIE2015,
             #[cfg(feature="supplemental-observers")]
-            Observer::Std2015_10 =>  &crate::data::cie_data::CIE2015_10,
+            Observer::Std2015_10 =>  &crate::data::observers::CIE2015_10,
         }
     }
 }

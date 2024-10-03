@@ -20,7 +20,8 @@ use wasm_bindgen::prelude::*;
 use nalgebra::{DVector, SVector};
 
 use crate::{
-    data::cie_data::{D50, D65, CIE1931},
+    data::illuminants::{D50, D65},
+    data::observers::CIE1931,
     observer::ObserverData,
     physics::{gaussian_peak_one, led_ohno, planck, stefan_boltzmann, sigma_from_fwhm, wavelength},
     error::CmtError,

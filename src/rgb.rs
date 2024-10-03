@@ -12,7 +12,7 @@ use crate::{
     observer::Observer,
     rgbspace::RgbSpace,
     stimulus::Stimulus,
-    data::cie_data::CIE1931
+    data::observers::CIE1931
 };
 
 

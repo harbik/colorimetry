@@ -5,7 +5,7 @@ use colored::Color;
 use nalgebra::{ArrayStorage, SMatrix, SVector};
 
 use crate::{
-    data::cie_data::{D50, D65}, observer::ObserverData, physics::{gaussian_peak_one, led_ohno, planck, stefan_boltzmann, wavelength}, spectrum::{Spectrum, NS, wavelengths}, std_illuminants::StdIlluminant, traits::Light, error::CmtError
+    data::illuminants::{D50, D65}, observer::ObserverData, physics::{gaussian_peak_one, led_ohno, planck, stefan_boltzmann, wavelength}, spectrum::{Spectrum, NS, wavelengths}, std_illuminants::StdIlluminant, traits::Light, error::CmtError
 };
 
 #[cfg(feature="cri")]
