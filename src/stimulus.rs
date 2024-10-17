@@ -65,7 +65,7 @@ impl Sum for Stimulus {
 /// instance.
 ///
 /// It uses a linear combination of the spectral primaries as defined for a particular
-/// [RgbSpace](crate::RgbSpace).
+/// [`RgbSpace``](crate::rgbspace::RgbSpace).
 /// Most of the color spaces in this library use Daylight filtered Gaussian primaries,
 /// but you can also use your own color space based on primaries measured by a spectrometer.
 /// Spectral representations of pixels allow color matching for arbitrary observers,

@@ -271,3 +271,20 @@ fn triangle_test() {
     assert_ulps_eq!(c, 1.0/3.0);
 
 }
+
+#[inline]
+/// Calculates the Euclidian Distance between two points,
+/// in arbitrary space dimension. Typically used in two or three
+/// dimensional spaces.
+pub fn distance(p: &[f64], q: &[f64]) -> f64 {
+    let s2 = p.into_iter().zip(q.into_iter()).fold(0.0, |s,(&pi, &qi)|s + (pi - qi).powi(2));
+    s2.sqrt()
+}
+#[test]
+fn test_distance(){
+    approx::assert_abs_diff_eq!(distance(&[0.0],&[1.0]),1.0);
+    approx::assert_abs_diff_eq!(distance(&[0.0],&[0.0]), 0.0);
+    approx::assert_abs_diff_eq!(distance(&[0.0],&[2.0]), 2.0);
+    approx::assert_abs_diff_eq!(distance(&[0.0, 0.0],&[3.0, 4.0]), 5.0);
+    approx::assert_abs_diff_eq!(distance(&[0.0,0.0,0.0],&[1.0, 1.0,1.0]),  3.0f64.sqrt());
+}

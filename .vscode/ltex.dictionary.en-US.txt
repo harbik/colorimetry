@@ -17,3 +17,6 @@ Sprague
 cri
 cct
 Munsell
+colorimetry
+CIECAM
+CieLab

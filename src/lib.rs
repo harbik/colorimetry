@@ -5,6 +5,7 @@
 
 
 
+pub mod cam;
 #[cfg(feature="cct")]
 pub mod cct;
 pub mod colorant;
@@ -27,6 +28,7 @@ pub mod spectrum;
 pub mod std_illuminants;
 pub mod stimulus;
 pub mod traits;
+pub mod viewconditions;
 pub mod xyz;
 
 // Set "rust-analyzer.check.features": "all" or ["cri", ...] to limit processing time

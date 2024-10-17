@@ -3,19 +3,40 @@ use nalgebra::{RowVector3, Vector3};
 
 use strum_macros::Display;
 use wasm_bindgen::prelude::wasm_bindgen;
-use crate::{xyz::XYZ, error::CmtError};
+use crate::{error::CmtError, prelude::Observer, xyz::XYZ};
 
 #[wasm_bindgen]
 #[derive(Debug, Clone, Copy)]
 pub struct CieLab {
+    pub(crate) observer: Observer,
     pub(crate) lab: Vector3<f64>,
-    pub(crate) xyzn: Vector3<f64>, // Reference white tristimulus valuse
+    pub(crate) xyzn: Vector3<f64>, // Reference white tristimulus value
 }
 
+impl TryFrom<XYZ> for CieLab {
+    type Error = CmtError;
+
+    fn try_from(xyz_val: XYZ) -> Result<Self, Self::Error> {
+        if let Some(xyz) = xyz_val.xyz {
+            let lab = lab(xyz, xyz_val.xyzn);
+            Ok(Self{
+                observer:xyz_val.observer,
+                lab,
+                xyzn: xyz_val.xyzn
+            })
+        } else {
+            Err(CmtError::NoColorant)
+        }
+    }
+}
+
+
 impl CieLab {
+    /*
     pub fn new(xyzn: Vector3<f64>, xyz: Vector3<f64>) -> CieLab {
         CieLab {lab: lab(xyz, xyzn), xyzn}
     }
+     */
 
     /**
      * 
@@ -30,19 +51,6 @@ impl CieLab {
         }
     }
 
-}
-
-impl TryFrom<XYZ> for CieLab {
-    
-    type Error = CmtError;
-    
-    fn try_from(xyz0: XYZ) -> Result<Self, Self::Error> {
-        if let Some(xyz) = xyz0.xyz {
-            Ok(CieLab::new(xyz0.xyzn, xyz))
-        } else {
-            Err(CmtError::NoColorant)
-        }
-    }
 }
 
 impl AsRef<[f64;3]> for CieLab {

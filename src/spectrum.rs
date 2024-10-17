@@ -6,7 +6,7 @@ call color.  These models are based the spectral composition of stimuli, essenti
 hitting the photosensitive cells in the back of our eyes, and the spectral sensitiviy of these 
 cells. The spectral composition of light, and the objects involved in its processing such as filters
 and painted patches, is represented by the [Spectrum]-object in this library.
-The spectral sensitivity of human vision is described by an [Observer](crate::Observer).
+The spectral sensitivity of human vision is described by an [`Observer`](crate::observer::Observer).
 */
 use core::f64;
 use std::{borrow::Cow, collections::BTreeMap, default, error::Error, iter::Sum, ops::{Add, AddAssign, Deref, Div, Index, IndexMut, Mul, MulAssign}};
