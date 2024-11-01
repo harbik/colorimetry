@@ -17,44 +17,39 @@ use crate::{error::CmtError, geometry::distance, prelude::Observer, traits::{Fil
 
 use super::viewconditions::{ViewConditions, ReferenceValues};
 
-pub struct Cam16 {
-    /// Colorimetric Observer used
+#[derive(Debug)]
+pub struct CieCam16 {
+    /// Colorimetric Observer used.
+    /// The standard requires use of the CIE1931 standard observer.
     pub(crate) observer: Observer,
     /// Correlates of Lightness, Chroma, and hue-angle
     pub(crate) jch: Vector3<f64>,
     /// Tristimulus values of the reference white beng use
     pub(crate) xyzn: Vector3<f64>,
     /// Viewing Conditions
-    pub(crate) vc: ViewConditions,
+    pub(crate) vc: ViewConditions, // 6 f64
 
 }
 
-impl Cam16 {
+impl CieCam16 {
 
-    fn new(&self, xyz: XYZ, vc: ViewConditions) -> Result<Self, CmtError> {
+    /// CIECAM16 coordinates for a particular set of viewing conditions.
+    /// 
+
+    fn new(xyz: XYZ, vc: ViewConditions) -> Result<Self, CmtError> {
         let xyz0= xyz.xyz.ok_or(CmtError::NoColorant)?;
         let xyzn0 = xyz.xyzn;
         let ReferenceValues {
             n, z, nbb, ncb, d_rgb, aw, qu} 
             = ReferenceValues::new(
                 xyzn0,
-                self.vc,
+                vc,
             );
         let vcdd = vc.dd();
         let vcfl = vc.f_l();
-
 		let mut rgb = M16 * xyz0;
-
-        // rgb_C
         rgb.component_mul_assign(&Vector3::from(d_rgb));
-        
-        // rgb_pw
-        rgb = MCAT02INV * rgb;
-        rgb = MHPE * rgb;
-
-        // rgb_pa
         rgb.apply(|v|vc.lum_adapt(v, 0.26, qu));
-       // rgb = vc.lum_adapt(rgb);
 
         let ca = rgb[0] - 12.0 / 11.0 * rgb[1] + rgb[2] / 11.0;
         let cb = (rgb[0] + rgb[1] - 2. * rgb[2]) / 9.0;
@@ -62,7 +57,6 @@ impl Cam16 {
         // calculate h in radians
         let mut h = cb.atan2(ca);
         if h<0.0 { h+= 2.0* PI;}
-
 
         // calculate J = jj
         let jj = 100.0 * (achromatic_rsp(rgb, nbb) / aw).powf(vc.c * z);
@@ -113,11 +107,26 @@ impl Cam16 {
         }
     }
 
-    // Inverse Transform, using optional different view conditions or a different reference white.
-    // If not other conditions are provided those of the current observer are used.
-    fn xyz(&self, white: Option<Vector3<f64>>, vc: Option<ViewConditions>) -> XYZ {
-        let vc = vc.unwrap_or(self.vc);
-        let xyzn = white.unwrap_or(self.xyzn);
+    /// Inverse Transform, using optional different view conditions or a different reference white.
+    /// 
+    /// This can be used to match colors with different viewing conditions, for example to match the
+    /// colors as viewied in a viewing cabinet to the colors on a display.
+    /// Also a different white adaptation state can be given, as a chromatic adaptation transform is
+    /// included in the CIECAM model.
+    /// If no different white adaptation or viewing conditionns are given, this is a straight back
+    /// transform from the input parameters, which can for example be used to test the backward
+    /// transform.
+    fn xyz(&self, white_opt: Option<XYZ>, vc_opt: Option<ViewConditions>) -> Result<XYZ, CmtError> {
+        let vc = vc_opt.unwrap_or(self.vc);
+        let xyzn = if let Some(white) = white_opt {
+            if white.observer == self.observer {
+                white.xyzn
+            } else {
+                return Err(CmtError::RequireSameObserver)
+            }
+        } else {
+            self.xyzn
+        };
         let ReferenceValues {n, z, nbb, ncb, d_rgb, aw, qu} 
             = ReferenceValues::new(xyzn, vc);
         let d_rgb_vec = Vector3::from(d_rgb);
@@ -143,7 +152,7 @@ impl Cam16 {
         let rgb = rgb_p.component_div(&d_rgb_vec);
 
         let xyz = M16INV * rgb;
-        XYZ::new(xyzn.as_ref(), Some(xyz.as_ref()), self.observer)
+        Ok(XYZ::new(xyzn.as_ref(), Some(xyz.as_ref()), self.observer))
 
     }
 
@@ -229,8 +238,35 @@ pub static MRGBAINV: Matrix3<f64> = matrix![
     460.0/C16_3, -220.0/C16_3, -6_300.0/C16_3;
      ] ;
 
-#[test]
-fn test_m16(){
-    approx::assert_abs_diff_eq!(M16INV * M16, Matrix3::identity(), epsilon= 1E-8);
+
+#[cfg(test)]
+mod cam_test {
+    use approx::{assert_ulps_eq, assert_abs_diff_eq};
+    use crate::prelude::*;
+    use super::*;
+
+    #[test]
+    fn test_m16(){
+        approx::assert_abs_diff_eq!(M16INV * M16, Matrix3::identity(), epsilon= 1E-8);
+
+    }
+
+    #[test]
+    fn test_worked_example(){
+        // see section 7 CIE 248:2022
+        let xyz = XYZ::new(&[96.46, 100.0, 108.62], Some(&[60.70, 49.60, 10.29]), Observer::Std1931);
+        let vc = ViewConditions::new(16.0, 1.0, 1.0, 0.69, 40.0, None);
+        let cam = CieCam16::new(xyz, vc).unwrap();
+        let &[j,c,h] = cam.jch.as_ref();
+       // println!("J:\t{j:?}\nC:\t{c:?}\nh:\t{h:?}");
+        approx::assert_abs_diff_eq!(j, 70.4406, epsilon=1E-4);
+        approx::assert_abs_diff_eq!(c, 58.6035, epsilon=1E-4);
+        approx::assert_abs_diff_eq!(h, 57.9145, epsilon=1E-4);
+        
+        // inverse transformation, with no change in white adaptation of viewing conditions.
+        let xyz_rev = cam.xyz(None, None).unwrap();
+        assert_abs_diff_eq!(xyz, xyz_rev, epsilon =1E-4);
+    
+    }
 
 }

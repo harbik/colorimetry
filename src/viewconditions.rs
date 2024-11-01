@@ -15,8 +15,9 @@ pub struct ViewConditions {
 
 	pub f: f64,
 
-    /// Adaptation Luminance
-	pub la: f64,
+    /// Adaptation Luminance, in cd/m2.
+    /// La = Lw/5, with Lw: luminance of a perfect white object
+	pub la: f64, 
 	pub nc: f64,
 	pub yb: f64,
 	pub c: f64,
@@ -61,7 +62,7 @@ impl ViewConditions {
     /// CIE recommends to use:
     /// l = 0.26;
     /// u = max(150.0, Rwc, Gwc, Bwc);
-    pub fn lum_adapt(&self, v: &mut f64, l: f64, u:f64) {
+    pub fn lum_adapt(&self, q: &mut f64, ql: f64, qu:f64) {
         let fl = self.f_l();        
 
         // CIECAM16 eq 3.4
@@ -71,24 +72,24 @@ impl ViewConditions {
         };
 
         // CIECAM16 eq 3.5
-        let fp = |u: f64|->f64 {
-            let t = fl * u/ 100.;
+        let fp = |qu: f64|->f64 {
+            let t = fl * qu/ 100.;
             let den = 1.68 * 27.13 * fl * t.powf(-0.58); 
             let nom = (27.13 + t.powf(0.42)).powi(2);
             den/nom
         };
         
         // CIECAM16 eq 3.3
-        if *v < l {
-            *v = f(l) * *v/l;
-        } else if *v>u {
-            *v = f(u) * fp(u)* (*v - u);
+        if *q < ql {
+            *q = f(ql) * *q/ql;
+        } else if *q>qu {
+            *q = f(qu) * fp(qu)* (*q - qu);
         } else {
-            *v = f(*v);
+            *q = f(*q);
         };
 
         // CIECAM16 eq 3.2
-        *v += 0.1;
+        *q += 0.1;
 
     }
 
@@ -127,7 +128,9 @@ pub const CIE_HOME_DISPLAY:  ViewConditions = ViewConditions {
     dopt: None,
 };
 
-// ViewParameters used in CieCam forward and backward transformations
+/// Values used in CieCam forward and backward transformations, only dependent on the view
+/// conditions and the reference white.
+/// For a set of colors, viewed under the same conditions, these have to be calculated only once.
 #[derive(Clone, Copy, Debug)]
 pub struct ReferenceValues {
     pub(crate) n: f64,
@@ -136,12 +139,13 @@ pub struct ReferenceValues {
     pub(crate) ncb: f64,
     pub(crate) d_rgb: [f64;3],
     pub(crate) aw: f64,
-    pub(crate) qu: f64, // see lum_adapt_2
+    pub(crate) qu: f64, // see lum_adapt
 }
 
 impl ReferenceValues {
     pub fn new(xyzn: Vector3<f64>, vc: ViewConditions) -> Self {
 		let mut rgb_w = M16 * xyzn;
+       // println!("***RGBw {rgb_w}");
 		let vcd = vc.dd();
 		let yw = xyzn[1];
 		let d_rgb = rgb_w.map(|v|vcd * yw /v + 1.0 - vcd);
@@ -150,14 +154,14 @@ impl ReferenceValues {
 		let nbb = 0.725 * n.powf(-0.2);
 		let ncb = nbb;
         rgb_w.component_mul_assign(&Vector3::from(d_rgb)); // rgb_wc
+      //  println!("***RGBwc {rgb_w}");
         let qu = 150f64.max(rgb_w[0].max(rgb_w[1]).max(rgb_w[2]));
-        rgb_w = MCAT02INV * rgb_w;
-        rgb_w = MHPE *rgb_w;
 
 		// rgb_paw
-		rgb_w.apply(|v|vc.lum_adapt(v, 0.26, qu));
-
+		rgb_w.apply(|q|vc.lum_adapt(q, 0.26, qu));
+//        println!("***RGBaw {rgb_w}");
 		let aw = achromatic_rsp(rgb_w, nbb);
+//        println!("***aw {aw} qu {qu}");
 
         Self { n, z, nbb, ncb, d_rgb: d_rgb.into(), aw, qu}
     }
