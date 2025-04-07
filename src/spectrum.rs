@@ -52,7 +52,15 @@ display.
 pub struct Spectrum(pub(crate) SVector<f64, NS>);
 
 impl Spectrum {
-
+    /// Create a new spectrum from the given data. The data must be the 401 values
+    /// from 380 to 780 nm.
+    ///
+    /// If you have spectral data not exactly matching the range 380-780 nm with 1 nm interval,
+    /// you can instead use [`linear_interpolate`](Spectrum::linear_interpolate)
+    /// or [`sprague_interpolate`](Spectrum::sprague_interpolate).
+    pub fn new(data: [f64; NS]) -> Self {
+        Self(SVector::<f64, NS>::from_array_storage(nalgebra::ArrayStorage([data])))
+    }
 
     pub fn mul(mut self, rhs: &Self) -> Self {
         self.0 = self.0.component_mul(&rhs.0) ;
@@ -170,6 +178,12 @@ impl Spectrum {
     }
 
 
+}
+
+impl From<[f64; NS]> for Spectrum {
+    fn from(data: [f64; NS]) -> Self {
+        Self::new(data)
+    }
 }
 
 impl TryFrom<&[f64]> for Spectrum {
