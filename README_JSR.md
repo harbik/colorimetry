@@ -18,7 +18,7 @@ Here is a brief overview of the main objects in this library, with some introduc
 
 > Deno is the open-source JavaScript runtime for the modern web. Built on web
 > standards with zero-config TypeScript, unmatched security, and a complete
-> built-in toolchain, Deno is the easiest, most productive way to JavaScript.
+> built-in tool chain, Deno is the easiest, most productive way to JavaScript.
 
 
 For Deno installation instructions, see the following: [install Deno](https://docs.deno.com/runtime/manual/getting_started/installation/).
