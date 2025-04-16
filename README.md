@@ -106,14 +106,18 @@ Another source of light are electric lamps, such as incandescent light bulbs.
 They generate light by thermal emission from a very hot tungsten filament in a glass envelope.
 In physics, the spectral properties of thermal emission is described by Planck's law.
 For incandescent light bulbs, the CIE recommends using the A-illuminant, in this library available as [`StdIlluminant::A`](crate::std_illuminants::StdIlluminant::A).
+To use this illuminant you need to enable the `cie-illuminants` feature on this crate.
 
 For example, to get the A illuminant's chromaticity:
 ```rust
+    # #[cfg(feature="cie-illuminants")]
+    # {
     use colorimetry::prelude::*;
 
     let xy_a = CIE1931.xyz(&StdIlluminant::A, None).chromaticity();
     // see <https://en.wikipedia.org/wiki/Standard_illuminant#Illuminant_A>
     approx::assert_abs_diff_eq!(xy_a.as_ref(), [0.44758, 0.40745].as_ref(), epsilon=1E-5)
+    # }
 ```
 
 Non-standard illuminants are represented by a `Illuminant`.
