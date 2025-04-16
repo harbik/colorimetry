@@ -1,5 +1,5 @@
 // to run this example use: 
-//  `cargo run --features cct --example cct -x 0.333 -y 0.333`
+//  `cargo run --features cct --example cct -- -x 0.333 -y 0.333`
 
 use colorimetry::prelude::*;
 use colored::Colorize;
