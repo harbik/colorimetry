@@ -198,7 +198,6 @@ dependencies = [
  "nalgebra",
  "num-traits",
  "once_cell",
- "paste",
  "rand",
  "strum",
  "strum_macros",
