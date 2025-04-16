@@ -1,6 +1,5 @@
 use std::{borrow::Cow, sync::OnceLock};
 use approx::AbsDiffEq;
-use colored::Color;
 use nalgebra::{Matrix3, Vector3};
 use wasm_bindgen::prelude::wasm_bindgen;
 use crate::{
