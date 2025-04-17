@@ -1,7 +1,6 @@
 use std::{borrow::Cow, ops::{Deref, Mul}};
 use wasm_bindgen::prelude::*;
 
-use colored::Color;
 use nalgebra::{ArrayStorage, SMatrix, SVector};
 
 use crate::{

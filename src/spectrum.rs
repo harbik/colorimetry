@@ -13,7 +13,6 @@ use std::{borrow::Cow, collections::BTreeMap, default, error::Error, iter::Sum, 
 
 use approx::{AbsDiff, AbsDiffEq};
 use num_traits::ToPrimitive;
-use url::Url;
 
 use wasm_bindgen::prelude::*;
 
@@ -166,18 +165,6 @@ impl Spectrum {
         let t = self.0.convolve_full(kernel);
         self.0 = SVector::from_iterator(t.iter().copied().skip(sd3 as usize).take(NS));
     }
-
-
-
-    /// Downloads a spectrum
-    pub async fn fetch(loc: &str) -> Result<Self, Box<dyn Error>> {
-        let _url = Url::parse(loc)?;
-        todo!()
-
-
-    }
-
-
 }
 
 impl From<[f64; NS]> for Spectrum {
