@@ -81,6 +81,18 @@ impl RGB {
 
     }
 
+    /// Returns the RGB values as an array with the red, green, and blue values respectively
+    ///
+    /// ```rust
+    /// # use colorimetry::rgb::RGB;
+    /// let rgb = RGB::new(0.1, 0.2, 0.3, None, None);
+    /// let [r, g, b] = rgb.values();
+    /// assert_eq!([r, g, b], [0.1, 0.2, 0.3]);
+    /// ```
+    pub fn values(&self) -> [f64; 3] {
+        *self.rgb.as_ref()
+    }
+
     /// Converts the RGB value to a tri-stimulus XYZ value
     pub fn xyz(&self) -> XYZ {
         const YW: f64 = 100.0;
@@ -128,6 +140,23 @@ impl RGB {
 mod rgb_tests {
     use crate::prelude::*;
 
+    #[test]
+    fn get_values_f64() {
+        let rgb = RGB::new(0.1, 0.2, 0.3, None, None);
+        let [r, g, b] = <[f64; 3]>::from(rgb);
+        assert_eq!(r, 0.1);
+        assert_eq!(g, 0.2);
+        assert_eq!(b, 0.3);
+    }
+
+    #[test]
+    fn get_values_u8() {
+        let rgb = RGB::new(0.1, 0.2, 0.3, None, None);
+        let [r, g, b] = <[u8; 3]>::from(rgb);
+        assert_eq!(r, 89);
+        assert_eq!(g, 124);
+        assert_eq!(b, 149);
+    }
 }
 
 impl Light for RGB {
@@ -190,6 +219,12 @@ impl From<RGB> for [u8;3] {
     fn from(rgb: RGB) -> Self {
         let data: &[f64;3] =rgb.rgb.as_ref();
         data.map(|v|(rgb.space.data().0.gamma.encode(v.clamp(0.0, 1.0))*255.0).round() as u8)
+    }
+}
+
+impl From<RGB> for [f64;3] {
+    fn from(rgb: RGB) -> Self {
+        rgb.values()
     }
 }
 
