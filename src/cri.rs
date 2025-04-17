@@ -156,6 +156,7 @@ mod cri_test {
     }
 
     #[test]
+    #[cfg(feature = "cie-illuminants")]
     fn cri_f1(){
         // should be all 100.0
         let cri0: CRI = StdIlluminant::F1.illuminant().try_into().unwrap();
@@ -164,6 +165,7 @@ mod cri_test {
     }
 
     #[test]
+    #[cfg(feature = "cie-illuminants")]
     fn cri_f3_1(){
         // 2932K, check with values as given in CIE15:2004 Table T.8.2
         let cri0: CRI = StdIlluminant::F3_1.illuminant().try_into().unwrap();
@@ -175,6 +177,7 @@ mod cri_test {
     }
 
     #[test]
+    #[cfg(feature = "cie-illuminants")]
     fn cri_f3_11(){
         // 5854K, check with values as given in CIE15:2004 Table T.8.2
         let cri0: CRI = StdIlluminant::F3_11.illuminant().try_into().unwrap();

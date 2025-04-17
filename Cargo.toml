@@ -42,3 +42,11 @@ colored = "2.2.0"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
+
+[[example]]
+name = "cct"
+required-features = ["cct"]
+
+[[example]]
+name = "cri"
+required-features = ["cri"]
