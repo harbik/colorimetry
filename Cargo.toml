@@ -50,3 +50,6 @@ required-features = ["cct"]
 [[example]]
 name = "cri"
 required-features = ["cri"]
+
+[package.metadata.docs.rs]
+all-features = true

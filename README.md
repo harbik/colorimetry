@@ -34,6 +34,7 @@ This example calculates the chromaticity values of the CIE D65 illuminant.
 
 The library includes many data collections, of which only a minimal set is included by default.
 A feature is enabled by including using the flag `-F`.
+
 For example, to include "cri" Color Rendering Index module illuminants, use:
 ```bash
     cargo add colorimetry -F cri
@@ -47,6 +48,7 @@ This can also be set manually, in your cargo.toml file, using
 ```toml
     colorimetry = {version = "0.0.3", features = ["cri"]}
 ```
+The online documentation includes all the features.
 
 The current features in this library are:
 
@@ -74,6 +76,7 @@ The current features in this library are:
 - **color-fidelity**
     Calculates CIE 224:2017 Color Fidelity Index, and associated values.
     Contains 99 test color samples.
+
 
 ## Spectral Distributions
 All spectral calculations in this library use the [`Spectrum`](crate::spectrum::Spectrum) class as a base, which contains the spectral data.
