@@ -1,0 +1,62 @@
+---
+name: Build and test
+on:
+  pull_request:
+  push:
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: --deny warnings
+
+jobs:
+  build-and-test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        rust: [stable, beta]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install and set correct Rust toolchain version
+        run: rustup override set ${{ matrix.rust }}
+
+      # cargo-hack is needed to exhaustively test all combinations of features further down
+      - name: Install cargo-hack
+        uses: taiki-e/install-action@cargo-hack
+
+      - name: Build
+        run: cargo --version && cargo build --all-targets --all-features --locked
+
+      # Run through all tests with all combinations of features
+      - name: Test
+        run: cargo hack --feature-powerset --exclude-all-features test
+
+      # Make sure documentation builds without warnings (broken links etc)
+      - name: Generate documentation
+        # Only testing documentation on stable. Saves time and avoids some churn
+        if: matrix.rust == 'stable'
+        shell: bash
+        # Only building with all features, since some documentation link to feature-gated
+        # features, and will generate errors otherwise.
+        run: RUSTDOCFLAGS="--deny warnings" cargo doc --all-features
+
+  # Make sure the library builds with all dependencies downgraded to their
+  # oldest versions allowed by the semver spec. This ensures we have not
+  # under-specified any dependency
+  minimal-versions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install needed Rust toolchain versions
+        run: |
+          rustup install stable
+          rustup install nightly
+
+      - name: Downgrade dependencies to minimal versions
+        run: cargo +nightly update -Z minimal-versions
+
+      - name: Compile with minimal versions
+        run: cargo +stable build --all-targets --locked
