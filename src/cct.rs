@@ -375,20 +375,23 @@ fn compute_d_uv(mired: f64, d: f64) -> Option<f64> {
 // values from a Planckian spectrum. It will speed up when more than ~ 5_000 values are tested,
 // as the table will be completely calculated.
 #[test]
+#[ignore]
 fn test_cct_exhaustive() {
     const MIRED_START: f64 = 1.0;
     const MIRED_END: f64 = 1000.0;
-    const MIRED_STEP: f64 = 0.05;
+    const MIRED_STEP: f64 = 0.025;
 
-    const D_START: f64 = -0.05;
-    const D_END: f64 = 0.05;
-    const D_STEP: f64 = 0.005;
+    // Valid d range is supposed to be [-0.05, 0.05]. But for some values of `mired`, a `d`
+    // value close to the extremes can yield an error due to rounding when converting back
+    // and fourth between CCT and XYZ.
+    const D_START: f64 = -0.0499;
+    const D_END: f64 = 0.0499;
+    const D_STEP: f64 = 0.001;
 
     let mut mired = MIRED_START;
     while mired < MIRED_END {
-        // Make the d range exclusive in both ends, since it yields errors at the extremes
-        let mut d = D_START + D_STEP;
-        while d <= D_END - D_STEP {
+        let mut d = D_START;
+        while d <= D_END {
             if let Some(d_uv) = compute_d_uv(mired, d) {
                 assert_ulps_eq!(d_uv, 0.0, epsilon = 5.8E-5);
             }
