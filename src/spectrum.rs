@@ -9,7 +9,7 @@ and painted patches, is represented by the [Spectrum]-object in this library.
 The spectral sensitivity of human vision is described by an [`Observer`](crate::observer::Observer).
 */
 use core::f64;
-use std::{borrow::Cow, collections::BTreeMap, default, error::Error, iter::Sum, ops::{Add, AddAssign, Deref, Div, Index, IndexMut, Mul, MulAssign}};
+use std::{borrow::Cow, collections::BTreeMap, default, error::Error, iter::Sum, ops::{Add, AddAssign, Deref, Div, Index, IndexMut, Mul, MulAssign, RangeInclusive}};
 
 use approx::{AbsDiff, AbsDiffEq};
 use num_traits::ToPrimitive;
@@ -30,10 +30,14 @@ use crate::{
     rgb::RGB
 };
 
+/// The wavelength range of the spectrums supported by this library.
+///
+/// From 380 to 780 nanometers, inclusive in both ends.
+pub const SPECTRUM_WAVELENGTH_RANGE: RangeInclusive<usize> = 380..=780;
 
-// Standard Spectrum domain ranging from 380 to 780 nanometer,
-// with 401 values.
-pub const NS: usize = 401;
+/// Number of values in the spectrum. This is 401.
+pub const NS: usize = *SPECTRUM_WAVELENGTH_RANGE.end() - *SPECTRUM_WAVELENGTH_RANGE.start() + 1;
+
 
 /**
 This container holds spectral values within a wavelength domain ranging from 380
@@ -444,11 +448,10 @@ impl Index<usize> for Spectrum {
     type Output = f64;
 
     fn index(&self, i: usize) -> &Self::Output {
-        if i<380 || i>780 {
+        if !SPECTRUM_WAVELENGTH_RANGE.contains(&i) {
             &f64::NAN
         } else {
-            &self.0[(i-380,0)]
-
+            &self.0[(i - SPECTRUM_WAVELENGTH_RANGE.start(), 0)]
         }
     }
 }
