@@ -224,9 +224,10 @@ impl Mul<&Colorant> for &Colorant {
     /// approx::assert_abs_diff_eq!(r,b);
     /// ```
     fn mul(self, rhs: &Colorant) -> Self::Output {
-        Colorant(&self.0 * &rhs.0) // use spectrum multiplication
+        Colorant(self.0 * rhs.0) // use spectrum multiplication
     }
 }
+
 impl AddAssign<&Self> for Colorant {
     fn add_assign(&mut self, rhs: &Self) {
         self.0 += rhs.0 // use spectral multiplication
