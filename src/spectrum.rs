@@ -134,7 +134,7 @@ impl Spectrum {
     /// for the description of the method.
     /// This implementation uses end-point values for extrapolation, as recommended by CIE15:2004 7.2.2.1.
     pub fn sprague_interpolate(wavelengths: [f64;2], data: &[f64]) ->Result<Self, CmtError> {
-        let data = sprinterp(wavelengths.try_into().unwrap(), data)?;
+        let data = sprinterp(wavelengths, data)?;
         Ok(Self(SVector::<f64, 401>::from_array_storage(nalgebra::ArrayStorage([data]))))
     }
 
@@ -155,7 +155,6 @@ impl Spectrum {
                 ::from_iterator(
                     (2*sd3+1) as usize,
                     (-sd3..=sd3)
-                        .into_iter()
                         .map(|i| gaussian_peak_one(i as f64, 0.0, sigma)
                     ));
 
@@ -491,7 +490,7 @@ fn linterp(mut wl: [f64;2], data: &[f64]) -> Result<[f64;NS], CmtError> {
     spd.iter_mut().enumerate().for_each(|(i,v)|{
         let l = (i + 380) as f64 * 1E-9; // wavelength in meters
         let t = ((l-wl)/(wh - wl)).clamp(0.0, 1.0); // length parameter
-        let tf = (t * dlm1 as f64);
+        let tf = t * dlm1 as f64;
         let j = tf.trunc() as usize;
         let f = tf.fract();
         if j >= dlm1 {
