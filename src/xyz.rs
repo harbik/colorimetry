@@ -108,7 +108,10 @@ impl XYZ {
     /// assert_ulps_eq!(z, 108.861_036, epsilon = 1E-6);
     /// ```
     pub fn values(&self) -> [f64; 3] {
-        (*self).into()
+        let xyz_matrix = self.xyz.unwrap_or(self.xyzn);
+        let s = 100.0 / self.xyzn.y;
+        let xyz_array: [f64; 3] = *xyz_matrix.as_ref();
+        xyz_array.map(|v| v * s)
     }
 
     /// Set the illuminance of an illuminant, either for an illuminant directly,
@@ -304,11 +307,8 @@ impl AsRef<[f64;3]> for XYZ {
 /// if present, in case of stimulus values. Else, in case of illuminants only, normalized to
 /// a y value of 100.
 impl From<XYZ> for [f64;3] {
-    fn from(xyz0: XYZ) -> Self {
-        let xyz = xyz0.xyz.unwrap_or(xyz0.xyzn);
-        let s = 100.0/xyz0.xyzn.y;
-        let xyz_array: [f64; 3] = *xyz.as_ref();
-        xyz_array.map(|v| v * s)
+    fn from(xyz: XYZ) -> Self {
+        xyz.values()
     }
 }
 
