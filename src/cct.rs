@@ -257,7 +257,7 @@ pub fn robertson_table(im: usize) -> &'static [f64;3] {
 }
 
 fn im2t(im: usize) -> f64 {
-    1E6/( 1.0 + ((((MIRED_MAX-1)*im)) as f64) / ((N_STEPS-1) as f64)) 
+    1E6/( 1.0 + (((MIRED_MAX-1)*im) as f64) / ((N_STEPS-1) as f64))
 }  
 
 #[test]
