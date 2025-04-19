@@ -92,7 +92,7 @@ impl TryFrom<&[f64]> for Colorant {
     type Error = CmtError;
 
     fn try_from(data: &[f64]) -> Result<Self, Self::Error> {
-        if data.iter().any(|&v|v<0.0 || v>1.0){
+        if data.iter().any(|v| !(0.0..=1.0).contains(v)){
             Err(CmtError::OutOfRange { name: "Colorant Spectral Value".into(), low: 0.0, high: 1.0 })
         } else {
             let spectrum = Spectrum::try_from(data)?;
