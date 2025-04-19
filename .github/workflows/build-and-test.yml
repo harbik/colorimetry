@@ -33,6 +33,14 @@ jobs:
       - name: Test
         run: cargo hack --feature-powerset --exclude-all-features test
 
+      - name: Run expensive CCT test
+        # Only run this expensive test on one platform.
+        # The code under test is not platform specific anyway.
+        if: matrix.os == 'ubuntu-latest' && matrix.rust == 'stable'
+        shell: bash
+        # Run with optimizations (--release) to greatly speed up test run
+        run: cargo test --all-features --release test_cct_exhaustive -- --ignored
+
       # Make sure documentation builds without warnings (broken links etc)
       - name: Generate documentation
         # Only testing documentation on stable. Saves time and avoids some churn

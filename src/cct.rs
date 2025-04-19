@@ -344,39 +344,71 @@ fn test_cct(){
     let xyz: XYZ = CCT(6000.0, -0.051).try_into().unwrap();
     let cct: Result<CCT,_> = xyz.try_into();
     assert_eq!(cct, Err(CmtError::CCTDuvLowError));
+}
 
+// Helper for tests computing the uv prime distance and verifying it's
+// withit acceptable limits.
+fn compute_d_uv(mired: f64, d: f64) -> Option<f64> {
+    let t = 1E6 / mired;
 
-    // Test round trip random values, and check the difference by distance in uv-prime space.  For a
-    // 4096 size table, distances are found to be less than 6E-5 over the full range of temperatures
-    // (1000K, 1_000_000K) and duv values (-0.05, 0.05). This is a relatively slow test, as it tends
-    // to fill the Robertson lookup table fully, with each entry requiring to calculate tristimulus
-    // values from a Planckian spectrum. It will speed up when more than ~ 5_000 values are tested, 
-    // as the table will be completely calculated.
+    // Get a CCT to test. Unwrap OK as range restricted above.
+    let cct0 = CCT::try_new(t, d).unwrap();
 
-    let seed: u64 = 27; // using a fixed seed, generating the same random numbers at every run.
-    let mut rng = <rand::rngs::StdRng as rand::SeedableRng>::seed_from_u64(seed);
+    // calculate XYZ0, skip value if not a valid point
+    let Ok(xyz0): Result<XYZ, _> = CCT::try_new(t, d).unwrap().try_into() else {
+        return None;
+    };
 
-    for i in 0..100 {
-      //  let mut rng = rand::thread_rng();
-        let mired = rand::Rng::gen_range(&mut rng, 1.0..1000.0); // mired temp
-        let t = 1E6/mired;
-        let d = rand::Rng::gen_range(&mut rng, -0.05..0.05);
-        
-        // Get a CCT to test. Unwrap OK as range restricted above.
-        let cct0  = CCT::try_new(t,d).unwrap();
+    // calculate the cct to test.
+    let cct: CCT = xyz0.try_into().unwrap();
 
-        // calculate XYZ0, skip value if not a valid point
-        let Ok(xyz0):Result<XYZ,_> = CCT::try_new(t,d).unwrap().try_into() else { continue;};
-        
-        // calculate the cct to test.
-        let cct: CCT = xyz0.try_into().unwrap();
+    // calculate XYZ, should not fail, a CCT and Duv very close to already fetted values.
+    let xyz: XYZ = cct.try_into().unwrap();
+    let d_uv = xyz.uv_prime_distance(&xyz0);
+    Some(d_uv)
+}
 
-        // calculate XYZ, should not fail, a CCT and Duv very close to already fetted values.
-        let xyz: XYZ = cct.try_into().unwrap();
-        let d = xyz.uv_prime_distance(&xyz0);
-        assert_ulps_eq!(d, 0.0, epsilon=6E-5);
+// Test round trip random values, and check the difference by distance in uv-prime space.  For a
+// 4096 size table, distances are found to be less than 5.8E-5 over the full range of temperatures
+// (1000K, 1_000_000K) and duv values (-0.05, 0.05). This is a relatively slow test, as it tends
+// to fill the Robertson lookup table fully, with each entry requiring to calculate tristimulus
+// values from a Planckian spectrum. It will speed up when more than ~ 5_000 values are tested,
+// as the table will be completely calculated.
+#[test]
+#[ignore]
+fn test_cct_exhaustive() {
+    const MIRED_START: f64 = 1.0;
+    const MIRED_END: f64 = 1000.0;
+    const MIRED_STEP: f64 = 0.025;
+
+    // Valid d range is supposed to be [-0.05, 0.05]. But for some values of `mired`, a `d`
+    // value close to the extremes can yield an error due to rounding when converting back
+    // and fourth between CCT and XYZ.
+    const D_START: f64 = -0.0499;
+    const D_END: f64 = 0.0499;
+    const D_STEP: f64 = 0.001;
+
+    let mut mired = MIRED_START;
+    while mired < MIRED_END {
+        let mut d = D_START;
+        while d <= D_END {
+            if let Some(d_uv) = compute_d_uv(mired, d) {
+                assert_ulps_eq!(d_uv, 0.0, epsilon = 5.8E-5);
+            }
+            d += D_STEP;
+        }
+        mired += MIRED_STEP;
     }
+}
 
+/// Test the UV prime distance error at the worst case input values (empirically found).
+#[test]
+fn test_cct_at_max_error() {
+    let mired = 999.757;
+    let d = 0.0005;
+
+    let d_uv = compute_d_uv(mired, d).unwrap();
+    assert_ulps_eq!(d_uv, 0.0, epsilon = 5.8E-5);
 }
 
 #[test]
