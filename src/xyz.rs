@@ -301,13 +301,14 @@ impl AsRef<[f64;3]> for XYZ {
  */
 
 /// Get normalized tristimulus values as an array. Normalized to the reference white luminance value yn
-/// if present, in case of stimulus values.  Else, in case of illuminants only, normalized to
+/// if present, in case of stimulus values. Else, in case of illuminants only, normalized to
 /// a y value of 100.
 impl From<XYZ> for [f64;3] {
     fn from(xyz0: XYZ) -> Self {
         let xyz = xyz0.xyz.unwrap_or(xyz0.xyzn);
         let s = 100.0/xyz0.xyzn.y;
-        xyz.into_iter().map(|&v|s*v).collect::<Vec<f64>>().try_into().unwrap()
+        let xyz_array: [f64; 3] = *xyz.as_ref();
+        xyz_array.map(|v| v * s)
     }
 }
 
