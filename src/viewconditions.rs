@@ -48,13 +48,7 @@ impl ViewConditions {
     /// Hyperbolic post-adaptation response compression function
     /// 
     /// As used in CIECAM02 and CAM16
-    /*
-    pub fn lum_adapt(&self, v: &mut f64) {
-        let t = (self.f_l() * *v / 100.).powf(0.42);
-        *v = v.signum() * 400. * t / (27.13 + t) + 0.1;
-    }
-     */
-
+    ///
     /// Modified hyperbolic post-adaptation response compression function
     /// 
     /// Updated to fix some issues with the function as used in CIECAM02 and CAM16.
