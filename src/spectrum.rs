@@ -129,7 +129,6 @@ impl Spectrum {
     /// [The Interpolation Method of Sprague-Karup](https://www.sciencedirect.com/science/article/pii/0771050X75900273)
     /// for the description of the method.
     /// This implementation uses end-point values for extrapolation, as recommended by CIE15:2004 7.2.2.1.
-    
     pub fn sprague_interpolate(wavelengths: [f64;2], data: &[f64]) ->Result<Self, CmtError> {
         let data = sprinterp(wavelengths.try_into().unwrap(), data)?;
         Ok(Self(SVector::<f64, 401>::from_array_storage(nalgebra::ArrayStorage([data]))))

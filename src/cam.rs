@@ -34,8 +34,6 @@ pub struct CieCam16 {
 impl CieCam16 {
 
     /// CIECAM16 coordinates for a particular set of viewing conditions.
-    /// 
-
     fn new(xyz: XYZ, vc: ViewConditions) -> Result<Self, CmtError> {
         let xyz0= xyz.xyz.ok_or(CmtError::NoColorant)?;
         let xyzn0 = xyz.xyzn;
