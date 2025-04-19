@@ -2,7 +2,10 @@
 #![allow(dead_code, unused_variables, unused_imports, )]
 #![doc = include_str!("../README.md")]
 
-
+// This library contains lots and lots of float constants for colorimetry.
+// If clippy finds a constant that is close to one of the well known standard library
+// constanst, it will complain by default. This yields a lot of false positives.
+#![allow(clippy::approx_constant)]
 
 
 pub mod cam;
