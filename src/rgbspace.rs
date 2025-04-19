@@ -120,8 +120,7 @@ impl RgbSpaceData {
         PRIMARY_FILTERS.get_or_init(||{
             let white = self.white.illuminant().clone().set_illuminance(&CIE1931, 100.0).0;
             // RGB primaries defined with reference to CIE1931, and 100 cd/m2.
-            let sv:  Vec<Spectrum> = self.primaries.iter().map(|v|&v.0/&white).collect();
-            let sa: [Spectrum;3] = sv.try_into().unwrap();
+            let sa = self.primaries.each_ref().map(|v| &v.0 / &white);
             sa.map(|v|Colorant(v))
         })
     }

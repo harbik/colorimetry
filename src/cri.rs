@@ -79,13 +79,9 @@ impl TryFrom<&Illuminant> for CRI {
         let illuminant = &illuminant.clone().set_illuminance(&CIE1931, 100.0);
         // Calculate Device Under Test (dut) XYZ illuminant and sample values
         let xyz_dut = CIE1931.xyz_from_spectrum(illuminant, None);
-        let xyz_dut_samples: [XYZ; N_TCS] = 
-            TCS
-                .iter()
-               // .map(|colorant|CIE1931.xyz_of_sample_with_illuminant(illuminant, colorant))
-                .map(|colorant|CIE1931.xyz(illuminant, Some(colorant)))
-                .collect::<Vec<XYZ>>()
-                .try_into().unwrap();
+        let xyz_dut_samples: [XYZ; N_TCS] = TCS
+            .each_ref()
+            .map(|colorant| CIE1931.xyz(illuminant, Some(colorant)));
 
         // Determine reference color temperarture value
         let cct_dut = xyz_dut.cct()?.t();
@@ -98,14 +94,9 @@ impl TryFrom<&Illuminant> for CRI {
 
         // Calculate the reference illuminant values
         let xyz_ref = CIE1931.xyz_from_spectrum(&illuminant_ref, None);
-        let xyz_ref_samples: [XYZ; N_TCS] = 
-            TCS
-                .iter()
-              //  .map(|sample|CIE1931.xyz_of_sample_with_illuminant(&illuminant_ref, sample))
-                .map(|sample|CIE1931.xyz(&illuminant_ref, Some(sample)))
-                .collect::<Vec<XYZ>>()
-                .try_into().unwrap();
-        
+        let xyz_ref_samples: [XYZ; N_TCS] = TCS
+            .each_ref()
+            .map(|colorant| CIE1931.xyz(&illuminant_ref, Some(colorant)));
 
         let cdt = cd(xyz_dut.uv60());
         let cdr = cd(xyz_ref.uv60());
