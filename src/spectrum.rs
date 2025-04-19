@@ -491,7 +491,7 @@ fn linterp(mut wl: [f64;2], data: &[f64]) -> Result<[f64;NS], CmtError> {
     spd.iter_mut().enumerate().for_each(|(i,v)|{
         let l = (i + 380) as f64 * 1E-9; // wavelength in meters
         let t = ((l-wl)/(wh - wl)).clamp(0.0, 1.0); // length parameter
-        let tf = (t * dlm1 as f64) as f64;
+        let tf = (t * dlm1 as f64);
         let j = tf.trunc() as usize;
         let f = tf.fract();
         if j >= dlm1 {
