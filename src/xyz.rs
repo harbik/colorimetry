@@ -312,12 +312,6 @@ impl From<XYZ> for [f64;3] {
     }
 }
 
-impl From<&XYZ> for [f64;3] {
-    fn from(xyz0: &XYZ) -> Self {
-        xyz0.clone().into()
-    }
-}
-
 impl AbsDiffEq for XYZ {
     type Epsilon = f64;
 
