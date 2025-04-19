@@ -92,7 +92,7 @@ impl TryFrom<&[f64]> for Colorant {
     type Error = CmtError;
 
     fn try_from(data: &[f64]) -> Result<Self, Self::Error> {
-        if data.iter().any(|&v|v<0.0 || v>1.0){
+        if data.iter().any(|v| !(0.0..=1.0).contains(v)){
             Err(CmtError::OutOfRange { name: "Colorant Spectral Value".into(), low: 0.0, high: 1.0 })
         } else {
             let spectrum = Spectrum::try_from(data)?;
@@ -224,9 +224,10 @@ impl Mul<&Colorant> for &Colorant {
     /// approx::assert_abs_diff_eq!(r,b);
     /// ```
     fn mul(self, rhs: &Colorant) -> Self::Output {
-        Colorant(&self.0 * &rhs.0) // use spectrum multiplication
+        Colorant(self.0 * rhs.0) // use spectrum multiplication
     }
 }
+
 impl AddAssign<&Self> for Colorant {
     fn add_assign(&mut self, rhs: &Self) {
         self.0 += rhs.0 // use spectral multiplication

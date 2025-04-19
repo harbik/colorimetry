@@ -22,20 +22,7 @@ on Wikipedia.  Instead of a dash, use the `_` character to access these
 illuminants by their name here, so use `StdIlluminant::LED_BH1` to use the
 phosphor-converted Blue LED and Red LED standard illuminant.
 The Fluorescent `F3_X` series is included here, with X ranging from 1 to 15.
-*/
 
-use std::{borrow::Cow, ops::Deref, vec};
-use nalgebra::{ArrayStorage, SMatrix};
-use wasm_bindgen::prelude::*;
-use crate::{
-    error::CmtError,
-    spectrum::Spectrum,
-    traits::Light,
-    illuminant::Illuminant,
-    spectrum::NS
-};
-
-/**
 The CIE Standard Illuminants, available in the library, defined as enums.
 
 The illuminants D65 and D50 are always included in this library, all the others will be only
@@ -51,9 +38,18 @@ A static reference to the spectra can be obtained using the "spectrum" method.
         println!{"{spc}"};
     }
 ```
+*/
 
- */
-
+use std::{borrow::Cow, ops::Deref, vec};
+use nalgebra::{ArrayStorage, SMatrix};
+use wasm_bindgen::prelude::*;
+use crate::{
+    error::CmtError,
+    spectrum::Spectrum,
+    traits::Light,
+    illuminant::Illuminant,
+    spectrum::NS
+};
 
 
 // This macro generates the `StdIlluminant` enumerator, representing the standard illuminants

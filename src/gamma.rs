@@ -14,7 +14,7 @@ impl GammaCurve{
 
     // from rgb coordinates to xyz, gamma > 1.0
     pub fn decode(&self, x: f64) -> f64 { 
-        if x<0.0 || x>1.0 { 
+        if !(0.0..=1.0).contains(&x) {
             f64::NAN
         } else {
             match self.p.len() {

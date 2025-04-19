@@ -122,7 +122,7 @@ impl RgbSpaceData {
             // RGB primaries defined with reference to CIE1931, and 100 cd/m2.
             let sv:  Vec<Spectrum> = self.primaries.iter().map(|v|&v.0/&white).collect();
             let sa: [Spectrum;3] = sv.try_into().unwrap();
-            sa.map(|v|Colorant(v))
+            sa.map(Colorant)
         })
     }
 

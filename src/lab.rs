@@ -38,9 +38,6 @@ impl CieLab {
     }
      */
 
-    /**
-     * 
-     */
     pub fn delta_e(&self, other: &Self) -> Result<f64, CmtError> {
         if ulps_eq!(self.xyzn, other.xyzn) {
             let &[l1, a1, b1] = self.lab.as_ref();

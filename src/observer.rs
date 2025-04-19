@@ -72,7 +72,7 @@ use nalgebra::{Matrix3, SMatrix, Vector3};
 use crate::{
     lab::CieLab, 
     physics::{planck, planck_slope, to_wavelength}, 
-    spectrum::{Spectrum, NS}, 
+    spectrum::{Spectrum, NS, SPECTRUM_WAVELENGTH_RANGE},
     xyz::XYZ, 
     error::CmtError, 
     colorant::Colorant, 
@@ -351,7 +351,7 @@ impl ObserverData {
     pub fn spectral_locus_by_nm(&self, l: usize) -> Result<XYZ, CmtError> {
         let min = self.spectral_locus_nm_min();
         let max = self.spectral_locus_nm_max();
-        if l<380 || l>780 {
+        if !SPECTRUM_WAVELENGTH_RANGE.contains(&l) {
             return Err(CmtError::WavelengthOutOfRange);
         };
         if l<min || l>max {
