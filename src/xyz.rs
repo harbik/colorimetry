@@ -2,7 +2,7 @@ use core::f64;
 use std::ops::Add;
 
 use approx::{ulps_eq, AbsDiffEq};
-use nalgebra::Vector3;
+use nalgebra::{ArrayStorage, Vector3};
 use crate::{
     geometry::{LineAB, Orientation},
     observer::{self, Observer},
@@ -15,10 +15,9 @@ use crate::{
 use wasm_bindgen::prelude::wasm_bindgen; 
 
 
-const D65A: [f64;3] = [95.04, 100.0, 108.86];
-pub const XYZ_D65: XYZ = XYZ::new(&D65A, None, Observer::Std1931);
-pub const XYZ_D65WHITE: XYZ = XYZ::new(&D65A, Some(&D65A), Observer::Std1931);
-
+const D65A: [f64; 3] = [95.04, 100.0, 108.86];
+pub const XYZ_D65: XYZ = XYZ::new(D65A, None, Observer::Std1931);
+pub const XYZ_D65WHITE: XYZ = XYZ::new(D65A, Some(D65A), Observer::Std1931);
 
 #[wasm_bindgen]
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
@@ -39,11 +38,11 @@ impl XYZ {
 
     /// Define a set of [XYZ]-values directly, using an identifier for its
     /// associated observer, such as [Observer::Std1931] or [Observer::Std2015].
-    /// 
-    pub const fn new(xyzn: &[f64], xyz: Option<&[f64]>, observer: Observer) -> Self {
-        let xyzn = Vector3::<f64>::new(xyzn[0], xyzn[1], xyzn[2]);
+    ///
+    pub const fn new(xyzn: [f64; 3], xyz: Option<[f64; 3]>, observer: Observer) -> Self {
+        let xyzn = Vector3::<f64>::from_array_storage(ArrayStorage([xyzn]));
         let xyz = if let Some(xyz) = xyz {
-            Some(Vector3::<f64>::new(xyz[0], xyz[1], xyz[2]))
+            Some(Vector3::<f64>::from_array_storage(ArrayStorage([xyz])))
         } else {
             None
         };
@@ -119,11 +118,11 @@ impl XYZ {
     /// const D65A: [f64;3] = [95.04, 100.0, 108.86];
     ///
     /// let d65_xyz = CIE1931.xyz(&StdIlluminant::D65, None).set_illuminance(100.0);
-    /// assert_ulps_eq!(d65_xyz, XYZ::new(&D65A, None, Observer::Std1931), epsilon = 1E-2);
-    /// 
+    /// assert_ulps_eq!(d65_xyz, XYZ::new(D65A, None, Observer::Std1931), epsilon = 1E-2);
+    ///
     /// let d65_xyz_sample = CIE1931.xyz(&StdIlluminant::D65, Some(&Colorant::white()));
-    /// 
-    /// assert_ulps_eq!(d65_xyz_sample, XYZ::new(&D65A, Some(&D65A), Observer::Std1931), epsilon = 1E-2);
+    ///
+    /// assert_ulps_eq!(d65_xyz_sample, XYZ::new(D65A, Some(D65A), Observer::Std1931), epsilon = 1E-2);
     /// ```
     pub fn set_illuminance(mut self, illuminance: f64) -> Self {
         let s = illuminance/self.xyzn.y;

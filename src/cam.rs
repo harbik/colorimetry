@@ -152,7 +152,7 @@ impl CieCam16 {
         let rgb = rgb_p.component_div(&d_rgb_vec);
 
         let xyz = M16INV * rgb;
-        Ok(XYZ::new(xyzn.as_ref(), Some(xyz.as_ref()), self.observer))
+        Ok(XYZ::from_vecs(xyzn, Some(xyz), self.observer))
 
     }
 
@@ -254,7 +254,7 @@ mod cam_test {
     #[test]
     fn test_worked_example(){
         // see section 7 CIE 248:2022
-        let xyz = XYZ::new(&[96.46, 100.0, 108.62], Some(&[60.70, 49.60, 10.29]), Observer::Std1931);
+        let xyz = XYZ::new([96.46, 100.0, 108.62], Some([60.70, 49.60, 10.29]), Observer::Std1931);
         let vc = ViewConditions::new(16.0, 1.0, 1.0, 0.69, 40.0, None);
         let cam = CieCam16::new(xyz, vc).unwrap();
         let &[j,c,h] = cam.jch.as_ref();
