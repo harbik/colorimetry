@@ -276,7 +276,7 @@ fn triangle_test() {
 /// in arbitrary space dimension. Typically used in two or three
 /// dimensional spaces.
 pub fn distance(p: &[f64], q: &[f64]) -> f64 {
-    let s2 = p.into_iter().zip(q).fold(0.0, |s,(&pi, &qi)|s + (pi - qi).powi(2));
+    let s2 = p.iter().zip(q).fold(0.0, |s,(&pi, &qi)|s + (pi - qi).powi(2));
     s2.sqrt()
 }
 #[test]

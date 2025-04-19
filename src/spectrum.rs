@@ -182,7 +182,7 @@ impl TryFrom<&[f64]> for Spectrum {
         if data.len()!=NS {
             Err(CmtError::DataSize401Error)
         } else {
-            Ok(Self(SVector::<f64, NS>::from_iterator(data.into_iter().copied())))
+            Ok(Self(SVector::<f64, NS>::from_iterator(data.iter().copied())))
         }
     }
 }
