@@ -129,10 +129,10 @@ impl XYZ {
     /// ```
     pub fn set_illuminance(mut self, illuminance: f64) -> Self {
         let s = illuminance/self.xyzn.y;
-        self.xyzn.iter_mut().for_each(|v|*v = *v * s);
+        self.xyzn.iter_mut().for_each(|v| *v *= s);
         if let Some(xyz0) = &mut self.xyz {
             // colorant with illuminant
-            xyz0.iter_mut().for_each(|v|*v = *v * s)
+            xyz0.iter_mut().for_each(|v| *v *= s)
          };
         self
     }

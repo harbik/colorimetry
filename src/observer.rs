@@ -386,7 +386,7 @@ impl ObserverData {
                     (0, _)  => break 0,
                     (1.., d) if d> -f64::EPSILON => break m,
                     _ => {
-                        m = m - 1;
+                        m -= 1;
                         lp = l;
                     }
                 }
@@ -414,7 +414,7 @@ impl ObserverData {
                     (400, _)  => break 400,
                     (..400, d) if d< f64::EPSILON => break m-1,
                     _ => {
-                        m = m + 1;
+                        m += 1;
                         lp = l;
                     }
                 }

@@ -24,7 +24,7 @@ impl Deref for Stimulus {
 impl Stimulus {
     pub fn set_luminance(mut self, obs: &ObserverData, luminance: f64) -> Self {
         let l = luminance / (obs.data.row(1) *  self.0.0 * obs.lumconst).x;
-        self.0.0.iter_mut().for_each(|v| *v = *v * l);
+        self.0.0.iter_mut().for_each(|v| *v *= l);
         self
     }
 

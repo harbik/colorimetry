@@ -104,7 +104,7 @@ impl Illuminant {
     // Also overwrite spectrum type to Illuminant
     pub fn set_irradiance(mut self, irradiance: f64) -> Self {
         let s = irradiance/self.0.0.sum();
-        self.0.0.iter_mut().for_each(|v|*v = *v *s);
+        self.0.0.iter_mut().for_each(|v| *v *= s);
         self
     }
 
@@ -116,7 +116,7 @@ impl Illuminant {
 
     pub fn set_illuminance(mut self, obs: &ObserverData, illuminance: f64) -> Self {
         let l = illuminance / (obs.data.row(1) *  self.0.0 * obs.lumconst).x;
-        self.0.0.iter_mut().for_each(|v| *v = *v * l);
+        self.0.0.iter_mut().for_each(|v| *v *= l);
         self
     }
 
