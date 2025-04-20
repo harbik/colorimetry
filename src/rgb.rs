@@ -168,7 +168,7 @@ impl Light for RGB {
             .fold(
                 Spectrum::default(),
                 |acc, ((&v,&w),s)| {
-                    acc + v * w * &s.0
+                    acc + v * w * s.0
                 }
             );
         Cow::Owned(s)
@@ -200,7 +200,7 @@ impl Filter for RGB {
             .fold(
                 Spectrum::default(),
                 |acc, ((&v,&w),s)| {
-                    acc + v * w * &s.0
+                    acc + v * w * s.0
                 }
             );
         Cow::Owned(s)
