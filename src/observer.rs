@@ -538,7 +538,7 @@ mod obs_test {
             observer
         } = CIE1931.xyz_cie_table(&StdIlluminant::D65, Some(100.0));
         approx::assert_ulps_eq!(xyzn, na::Vector3::new(95.04, 100.0, 108.86), epsilon=1E-2);
-        assert!(xyz == None);
+        assert!(xyz.is_none());
     }
     
     #[test]
