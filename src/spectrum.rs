@@ -660,7 +660,7 @@ mod tests {
     #[test]
     fn d65() {
         let [x, y ] = CIE1931.xyz_from_spectrum(
-            &&Illuminant::d65().set_illuminance(&CIE1931, 100.0), None).chromaticity();
+            &Illuminant::d65().set_illuminance(&CIE1931, 100.0), None).chromaticity();
         // See table T3 CIE15:2004 (calculated with 5nm intervals, instead of 1nm, as used here)
         assert_ulps_eq!(x, 0.312_72, epsilon = 5E-5);
         assert_ulps_eq!(y, 0.329_03, epsilon = 5E-5);
