@@ -798,8 +798,8 @@ mod tests {
         const NF: i32 = 20;
         const NT: i32 = NF * 10;
         let wl = [380.0, 780.0];
-        let data: Vec<f64> = (-NF..=NF).into_iter().map(|i|((i as f64/(NF as f64))*1.5*PI).tanh()).collect();
-        let data_want: Vec<f64> = (-NT..=NT).into_iter().map(|i|((i as f64/(NT as f64))*1.5*PI).tanh()).collect();
+        let data: Vec<f64> = (-NF..=NF).map(|i|((i as f64/(NF as f64))*1.5*PI).tanh()).collect();
+        let data_want: Vec<f64> = (-NT..=NT).map(|i|((i as f64/(NT as f64))*1.5*PI).tanh()).collect();
         let tinterpolate = sprinterp(wl, &data).unwrap();
         tinterpolate.iter().zip(data_want.iter()).for_each(|(&v, w)|approx::assert_ulps_eq!(v, w, epsilon=1E-4));
     }
@@ -807,7 +807,7 @@ mod tests {
     #[test]
     fn sprague_sin() {
         let wl = [380.0, 780.0];
-        let data: Vec<f64> = (0..=80).into_iter().map(|i|{
+        let data: Vec<f64> = (0..=80).map(|i|{
             let x = i as f64/80.0;
             (x*PI).sin()
         }).collect();
