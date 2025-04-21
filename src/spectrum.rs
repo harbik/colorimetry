@@ -615,7 +615,7 @@ mod tests {
 
     #[test]
     fn index_test(){
-        let mut s = Colorant::white();
+        let mut s = *Colorant::white().spectrum();
 
         // Set a spectral value
         s[500] = 0.5;
@@ -678,8 +678,8 @@ mod tests {
     #[test]
     fn add_spectra(){
         use approx::assert_ulps_eq;
-        let mut g1 = Colorant::gray(0.5);
-        let g2 = Colorant::gray(0.5);
+        let mut g1 = *Colorant::gray(0.5).spectrum();
+        let g2 = *Colorant::gray(0.5).spectrum();
         let g = g1.clone() + g2.clone();
         for i in 380..780 {
             assert_ulps_eq!(g[i], 1.0);
@@ -690,7 +690,8 @@ mod tests {
             assert_ulps_eq!(g1[i], 1.0);
         }
 
-        let v = 2.0 * *Colorant::gaussian(550.0, 50.0) + -2.0 * *Colorant::gaussian(550.0, 50.0);
+        let spectrum = *Colorant::gaussian(550.0, 50.0).spectrum();
+        let v = 2.0 * spectrum + -2.0 * spectrum;
         for i in 380..780 {
             assert_ulps_eq!(v[i], 0.0);
         }
@@ -699,7 +700,7 @@ mod tests {
     #[test]
     fn mul_spectra_test(){
         use approx::assert_ulps_eq;
-        let g = Colorant::gray(0.5);
+        let g = *Colorant::gray(0.5).spectrum();
     
         let w = 2.0 * g.clone();
         for i in 380..780 {
@@ -759,14 +760,14 @@ mod tests {
 
     #[test]
     fn test_smooth() {
-        let mut s = Colorant::default();
+        let mut s = *Colorant::default().spectrum();
         s[550] = 1.0;
         s.smooth(5.0);
 
         let sigma = sigma_from_fwhm(5.0);
         let w = Colorant::gaussian(550.0, sigma);
         let scale = sigma * (PI*2.0).sqrt(); // integral of a gaussian
-        s.0.0.iter().zip(w.0.0.iter()).enumerate().for_each(|(i, (s,w))|{
+        s.0.iter().zip(w.0.0.iter()).enumerate().for_each(|(i, (s,w))|{
             let j = i + 380;
             let w = w / scale; // change the reference gaussian colorant to have an integral of 1.0
             //println!("{j} {s:.6} {w:.6}");

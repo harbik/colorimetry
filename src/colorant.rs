@@ -41,18 +41,18 @@ impl Colorant {
     /// # use approx::assert_ulps_eq;
     /// use colorimetry::prelude::*;
     /// let colorant = Colorant::top_hat(550.0, 1.0);
-    /// let bandfilter: &[f64; NS] = colorant.as_ref();
-    /// assert_ulps_eq!(bandfilter[549-380], 0.0);
-    /// assert_ulps_eq!(bandfilter[550-380], 1.0);
-    /// assert_ulps_eq!(bandfilter[551-380], 0.0);
+    /// let bandfilter = colorant.spectrum();
+    /// assert_ulps_eq!(bandfilter[549], 0.0);
+    /// assert_ulps_eq!(bandfilter[550], 1.0);
+    /// assert_ulps_eq!(bandfilter[551], 0.0);
     ///
     /// let colorant = Colorant::top_hat(550.0, 2.0);
-    /// let bandfilter: &[f64; NS] = colorant.as_ref();
-    /// assert_ulps_eq!(bandfilter[548-380], 0.0);
-    /// assert_ulps_eq!(bandfilter[549-380], 1.0);
-    /// assert_ulps_eq!(bandfilter[550-380], 1.0);
-    /// assert_ulps_eq!(bandfilter[551-380], 1.0);
-    /// assert_ulps_eq!(bandfilter[552-380], 0.0);
+    /// let bandfilter = colorant.spectrum();
+    /// assert_ulps_eq!(bandfilter[548], 0.0);
+    /// assert_ulps_eq!(bandfilter[549], 1.0);
+    /// assert_ulps_eq!(bandfilter[550], 1.0);
+    /// assert_ulps_eq!(bandfilter[551], 1.0);
+    /// assert_ulps_eq!(bandfilter[552], 0.0);
     /// 
     /// ```
     pub fn top_hat(center: f64, width: f64) -> Self {
@@ -136,32 +136,7 @@ impl<F> From<F> for Colorant
 /// in the [`Observer`](crate::observer::Observer) tristiumulus `xyz`-function.
 impl Filter for Colorant {
     fn spectrum(&self) -> Cow<Spectrum> {
-        Cow::Borrowed(self)
-    }
-}
-
-impl Deref for Colorant {
-    type Target = Spectrum;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl DerefMut for Colorant {
-
-    /// Mutable Access Spectrum methods on references of colorant.
-    ///
-    /// ```rust
-    /// use colorimetry::prelude::*;
-    /// let mut cth = Colorant::top_hat(500.0, 10.0);
-    /// cth.smooth(5.0); // use spectrum's smooth method
-    ///
-    /// let v = cth[505];
-    /// approx::assert_abs_diff_eq!(v, 0.5939434271268909);
-    /// ```
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
+        Cow::Borrowed(&self.0)
     }
 }
 
@@ -256,6 +231,6 @@ impl AbsDiffEq for Colorant {
     }
 
     fn abs_diff_eq(&self, other: &Self, epsilon: Self::Epsilon) -> bool {
-        self.0.abs_diff_eq(other, epsilon)
+        self.spectrum().abs_diff_eq(&other.spectrum(), epsilon)
     }
 }
