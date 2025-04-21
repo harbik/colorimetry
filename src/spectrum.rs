@@ -317,8 +317,9 @@ impl Spectrum {
 }
 
 
-// Multiplication of two spectra using the `*`-operator, typically for a combinations of an illuminant and a colorant
-// or when combining multiple ColorPatchs or filters. Subtractive Mixing.
+/// Multiplication of two spectra using the `*`-operator, typically for a combinations of an
+/// illuminant and a colorant or when combining multiple ColorPatchs or filters.
+/// Subtractive Mixing.
 impl Mul for Spectrum {
     type Output = Self;
 
@@ -384,8 +385,8 @@ impl <'a> From<&'a Spectrum> for Cow<'a, Spectrum> {
 }
 
 
-// Addition of spectra, typically used for illuminant (multiple sources).
-// Additive mixing
+/// Addition of spectra, typically used for illuminant (multiple sources).
+/// Additive mixing
 impl Add for Spectrum {
     type Output = Self;
 
@@ -395,8 +396,8 @@ impl Add for Spectrum {
     }
 }
 
-// Addition of spectra, typically used for illuminant (multiple sources).
-// Additive mixing
+/// Addition of spectra, typically used for illuminant (multiple sources).
+/// Additive mixing
 impl Add for &Spectrum {
     type Output = Spectrum;
 
@@ -407,16 +408,16 @@ impl Add for &Spectrum {
     }
 }
 
-// Addition of spectra, typically used for illuminant (multiple sources).
-// Additive mixing
+/// Addition of spectra, typically used for illuminant (multiple sources).
+/// Additive mixing
 impl AddAssign for Spectrum {
     fn add_assign(&mut self, rhs: Self) {
         self.0 += rhs.0
     }
 }
 
-// Addition of spectra, typically used for illuminant (multiple sources).
-// Additive mixing
+/// Addition of spectra, typically used for illuminant (multiple sources).
+/// Additive mixing
 impl AddAssign<&Spectrum> for Spectrum {
     fn add_assign(&mut self, rhs: &Self) {
         self.0 += rhs.0
