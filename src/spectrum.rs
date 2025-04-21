@@ -65,11 +65,6 @@ impl Spectrum {
         Self(SVector::<f64, NS>::from_array_storage(nalgebra::ArrayStorage([data])))
     }
 
-    pub fn mul(mut self, rhs: &Self) -> Self {
-        self.0 = self.0.component_mul(&rhs.0) ;
-        self
-    }
-
     /**
     This function maps spectral data with irregular intervals or intervals different than 1
     nanometer to the standard spectrum as used in this library.
