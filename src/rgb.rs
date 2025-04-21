@@ -255,8 +255,8 @@ pub fn gaussian_filtered_primaries(white: &Spectrum, red: [f64;3], green: [f64;2
     let [gc, gw]=  green;
     let [bc, bw]=  blue;
     [
-        Stimulus(Stimulus(Colorant::gaussian(bc, bw).mul(white)).set_luminance(&CIE1931, 100.0).0.mul_f64(f) +
-        Stimulus(Colorant::gaussian(rc, rw).mul(white)).set_luminance(&CIE1931, 100.0).0.mul_f64(1.0-f)),
+        Stimulus(Stimulus(Colorant::gaussian(bc, bw).mul(white)).set_luminance(&CIE1931, 100.0).0 * f +
+        Stimulus(Colorant::gaussian(rc, rw).mul(white)).set_luminance(&CIE1931, 100.0).0 * (1.0 - f)),
         Stimulus(Colorant::gaussian(gc, gw).mul(white)).set_luminance(&CIE1931, 100.0),
         Stimulus(Colorant::gaussian(bc, bw).mul(white)).set_luminance(&CIE1931, 100.0),
     ]

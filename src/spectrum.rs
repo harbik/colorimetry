@@ -70,11 +70,6 @@ impl Spectrum {
         self
     }
 
-    pub fn mul_f64(mut self, rhs: f64) -> Self {
-        self.0 *= rhs;
-        self
-    }
-
     /**
     This function maps spectral data with irregular intervals or intervals different than 1
     nanometer to the standard spectrum as used in this library.
