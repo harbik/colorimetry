@@ -165,30 +165,40 @@ impl DerefMut for Colorant {
     }
 }
 
+/// Adds together the spectrums of two colorants, resulting in a new colorant.
+///
+/// The result is clamped to the valid colorant range of 0.0 to 1.0.
 impl Add for Colorant {
     type Output = Self;
 
-    /// Adds two colorants
     fn add(self, rhs: Self) -> Self::Output {
-        let mut r = self.0 + rhs.0;
-        r.clamp(0.0, 1.0);
-        Colorant(r)
+        let mut spectrum = self.0 + rhs.0;
+        spectrum.clamp(0.0, 1.0);
+        Colorant(spectrum)
     }
 }
 
+/// Multiply the spectrum of a colorant with a scalar value.
+///
+/// The result is clamped to the valid colorant range of 0.0 to 1.0.
 impl Mul<f64> for Colorant {
     type Output = Self;
 
     fn mul(self, rhs: f64) -> Self::Output {
-        Self(self.0 * rhs)
+        let mut spectrum = self.0 * rhs;
+        spectrum.clamp(0.0, 1.0);
+        Self(spectrum)
     }
 }
 
+/// Multiply the spectrum of a colorant with a scalar value.
+///
+/// The result is clamped to the valid colorant range of 0.0 to 1.0.
 impl Mul<Colorant> for f64 {
     type Output = Colorant;
 
     fn mul(self, rhs: Colorant) -> Self::Output {
-        Colorant(self * rhs.0)
+        rhs.mul(self)
     }
 }
 
@@ -228,9 +238,13 @@ impl Mul<&Colorant> for &Colorant {
     }
 }
 
+/// Add the spectrum of a colorant to this colorant.
+///
+/// The result is clamped to the valid colorant range of 0.0 to 1.0.
 impl AddAssign<&Self> for Colorant {
     fn add_assign(&mut self, rhs: &Self) {
-        self.0 += rhs.0 // use spectral multiplication
+        self.0 += rhs.0;
+        self.0.clamp(0.0, 1.0);
     }
 }
 
