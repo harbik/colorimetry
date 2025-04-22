@@ -137,7 +137,7 @@ impl Illuminant {
     }
 
     pub fn d_illuminant(cct: f64) -> Result<Illuminant, CmtError> {
-        if cct<4000.0 || cct>25000.0 {
+        if !(4000.0..=25000.0).contains(&cct) {
             Err(CmtError::OutOfRange{name:"CIE D Illuminant Temperature".to_string(), low: 4000.0, high: 25000.0})
         } else { 
             let xd = match cct {

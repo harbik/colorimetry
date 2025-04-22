@@ -121,7 +121,7 @@ impl RgbSpaceData {
             let white = self.white.illuminant().clone().set_illuminance(&CIE1931, 100.0).0;
             // RGB primaries defined with reference to CIE1931, and 100 cd/m2.
             let sa = self.primaries.each_ref().map(|v| &v.0 / &white);
-            sa.map(|v|Colorant(v))
+            sa.map(Colorant)
         })
     }
 

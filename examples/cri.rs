@@ -8,7 +8,6 @@ use strum::IntoEnumIterator;
 /// Prints the standard illuminants in the library, with their elated color temperature, with
 /// parameters distance to the Planckian, the general Color Rendering Index Ra, and the spectal
 /// color rendering index R9.
-
 fn main() -> Result<(), Box<dyn std::error::Error>>{
     for  spc in StdIlluminant::iter() {
 

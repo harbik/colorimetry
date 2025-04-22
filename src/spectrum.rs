@@ -9,7 +9,7 @@ and painted patches, is represented by the [Spectrum]-object in this library.
 The spectral sensitivity of human vision is described by an [`Observer`](crate::observer::Observer).
 */
 use core::f64;
-use std::{borrow::Cow, collections::BTreeMap, default, error::Error, iter::Sum, ops::{Add, AddAssign, Deref, Div, Index, IndexMut, Mul, MulAssign}};
+use std::{borrow::Cow, collections::BTreeMap, default, error::Error, iter::Sum, ops::{Add, AddAssign, Deref, Div, Index, IndexMut, Mul, MulAssign, RangeInclusive}};
 
 use approx::{AbsDiff, AbsDiffEq};
 use num_traits::ToPrimitive;
@@ -30,10 +30,14 @@ use crate::{
     rgb::RGB
 };
 
+/// The wavelength range of the spectrums supported by this library.
+///
+/// From 380 to 780 nanometers, inclusive in both ends.
+pub const SPECTRUM_WAVELENGTH_RANGE: RangeInclusive<usize> = 380..=780;
 
-// Standard Spectrum domain ranging from 380 to 780 nanometer,
-// with 401 values.
-pub const NS: usize = 401;
+/// Number of values in the spectrum. This is 401.
+pub const NS: usize = *SPECTRUM_WAVELENGTH_RANGE.end() - *SPECTRUM_WAVELENGTH_RANGE.start() + 1;
+
 
 /**
 This container holds spectral values within a wavelength domain ranging from 380
@@ -129,9 +133,8 @@ impl Spectrum {
     /// [The Interpolation Method of Sprague-Karup](https://www.sciencedirect.com/science/article/pii/0771050X75900273)
     /// for the description of the method.
     /// This implementation uses end-point values for extrapolation, as recommended by CIE15:2004 7.2.2.1.
-    
     pub fn sprague_interpolate(wavelengths: [f64;2], data: &[f64]) ->Result<Self, CmtError> {
-        let data = sprinterp(wavelengths.try_into().unwrap(), data)?;
+        let data = sprinterp(wavelengths, data)?;
         Ok(Self(SVector::<f64, 401>::from_array_storage(nalgebra::ArrayStorage([data]))))
     }
 
@@ -152,7 +155,6 @@ impl Spectrum {
                 ::from_iterator(
                     (2*sd3+1) as usize,
                     (-sd3..=sd3)
-                        .into_iter()
                         .map(|i| gaussian_peak_one(i as f64, 0.0, sigma)
                     ));
 
@@ -180,7 +182,7 @@ impl TryFrom<&[f64]> for Spectrum {
         if data.len()!=NS {
             Err(CmtError::DataSize401Error)
         } else {
-            Ok(Self(SVector::<f64, NS>::from_iterator(data.into_iter().copied())))
+            Ok(Self(SVector::<f64, NS>::from_iterator(data.iter().copied())))
         }
     }
 }
@@ -446,11 +448,10 @@ impl Index<usize> for Spectrum {
     type Output = f64;
 
     fn index(&self, i: usize) -> &Self::Output {
-        if i<380 || i>780 {
+        if !SPECTRUM_WAVELENGTH_RANGE.contains(&i) {
             &f64::NAN
         } else {
-            &self.0[(i-380,0)]
-
+            &self.0[(i - SPECTRUM_WAVELENGTH_RANGE.start(), 0)]
         }
     }
 }
@@ -490,7 +491,7 @@ fn linterp(mut wl: [f64;2], data: &[f64]) -> Result<[f64;NS], CmtError> {
     spd.iter_mut().enumerate().for_each(|(i,v)|{
         let l = (i + 380) as f64 * 1E-9; // wavelength in meters
         let t = ((l-wl)/(wh - wl)).clamp(0.0, 1.0); // length parameter
-        let tf = (t * dlm1 as f64) as f64;
+        let tf = t * dlm1 as f64;
         let j = tf.trunc() as usize;
         let f = tf.fract();
         if j >= dlm1 {
