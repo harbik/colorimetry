@@ -317,8 +317,9 @@ impl Spectrum {
 }
 
 
-// Multiplication of two spectra using the `*`-operator, typically for a combinations of an illuminant and a colorant
-// or when combining multiple ColorPatchs or filters. Subtractive Mixing.
+/// Multiplication of two spectra using the `*`-operator, typically for a combinations of an
+/// illuminant and a colorant or when combining multiple ColorPatchs or filters.
+/// Subtractive Mixing.
 impl Mul for Spectrum {
     type Output = Self;
 
@@ -384,8 +385,8 @@ impl <'a> From<&'a Spectrum> for Cow<'a, Spectrum> {
 }
 
 
-// Addition of spectra, typically used for illuminant (multiple sources).
-// Additive mixing
+/// Addition of spectra, typically used for illuminant (multiple sources).
+/// Additive mixing
 impl Add for Spectrum {
     type Output = Self;
 
@@ -395,8 +396,8 @@ impl Add for Spectrum {
     }
 }
 
-// Addition of spectra, typically used for illuminant (multiple sources).
-// Additive mixing
+/// Addition of spectra, typically used for illuminant (multiple sources).
+/// Additive mixing
 impl Add for &Spectrum {
     type Output = Spectrum;
 
@@ -407,16 +408,16 @@ impl Add for &Spectrum {
     }
 }
 
-// Addition of spectra, typically used for illuminant (multiple sources).
-// Additive mixing
+/// Addition of spectra, typically used for illuminant (multiple sources).
+/// Additive mixing
 impl AddAssign for Spectrum {
     fn add_assign(&mut self, rhs: Self) {
         self.0 += rhs.0
     }
 }
 
-// Addition of spectra, typically used for illuminant (multiple sources).
-// Additive mixing
+/// Addition of spectra, typically used for illuminant (multiple sources).
+/// Additive mixing
 impl AddAssign<&Spectrum> for Spectrum {
     fn add_assign(&mut self, rhs: &Self) {
         self.0 += rhs.0
@@ -660,7 +661,7 @@ mod tests {
     #[test]
     fn d65() {
         let [x, y ] = CIE1931.xyz_from_spectrum(
-            &&Illuminant::d65().set_illuminance(&CIE1931, 100.0), None).chromaticity();
+            &Illuminant::d65().set_illuminance(&CIE1931, 100.0), None).chromaticity();
         // See table T3 CIE15:2004 (calculated with 5nm intervals, instead of 1nm, as used here)
         assert_ulps_eq!(x, 0.312_72, epsilon = 5E-5);
         assert_ulps_eq!(y, 0.329_03, epsilon = 5E-5);
@@ -798,8 +799,8 @@ mod tests {
         const NF: i32 = 20;
         const NT: i32 = NF * 10;
         let wl = [380.0, 780.0];
-        let data: Vec<f64> = (-NF..=NF).into_iter().map(|i|((i as f64/(NF as f64))*1.5*PI).tanh()).collect();
-        let data_want: Vec<f64> = (-NT..=NT).into_iter().map(|i|((i as f64/(NT as f64))*1.5*PI).tanh()).collect();
+        let data: Vec<f64> = (-NF..=NF).map(|i|((i as f64/(NF as f64))*1.5*PI).tanh()).collect();
+        let data_want: Vec<f64> = (-NT..=NT).map(|i|((i as f64/(NT as f64))*1.5*PI).tanh()).collect();
         let tinterpolate = sprinterp(wl, &data).unwrap();
         tinterpolate.iter().zip(data_want.iter()).for_each(|(&v, w)|approx::assert_ulps_eq!(v, w, epsilon=1E-4));
     }
@@ -807,7 +808,7 @@ mod tests {
     #[test]
     fn sprague_sin() {
         let wl = [380.0, 780.0];
-        let data: Vec<f64> = (0..=80).into_iter().map(|i|{
+        let data: Vec<f64> = (0..=80).map(|i|{
             let x = i as f64/80.0;
             (x*PI).sin()
         }).collect();
