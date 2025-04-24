@@ -41,18 +41,18 @@ impl Colorant {
     /// # use approx::assert_ulps_eq;
     /// use colorimetry::prelude::*;
     /// let colorant = Colorant::top_hat(550.0, 1.0);
-    /// let bandfilter: &[f64; NS] = colorant.as_ref();
-    /// assert_ulps_eq!(bandfilter[549-380], 0.0);
-    /// assert_ulps_eq!(bandfilter[550-380], 1.0);
-    /// assert_ulps_eq!(bandfilter[551-380], 0.0);
+    /// let bandfilter = colorant.spectrum();
+    /// assert_ulps_eq!(bandfilter[549], 0.0);
+    /// assert_ulps_eq!(bandfilter[550], 1.0);
+    /// assert_ulps_eq!(bandfilter[551], 0.0);
     ///
     /// let colorant = Colorant::top_hat(550.0, 2.0);
-    /// let bandfilter: &[f64; NS] = colorant.as_ref();
-    /// assert_ulps_eq!(bandfilter[548-380], 0.0);
-    /// assert_ulps_eq!(bandfilter[549-380], 1.0);
-    /// assert_ulps_eq!(bandfilter[550-380], 1.0);
-    /// assert_ulps_eq!(bandfilter[551-380], 1.0);
-    /// assert_ulps_eq!(bandfilter[552-380], 0.0);
+    /// let bandfilter = colorant.spectrum();
+    /// assert_ulps_eq!(bandfilter[548], 0.0);
+    /// assert_ulps_eq!(bandfilter[549], 1.0);
+    /// assert_ulps_eq!(bandfilter[550], 1.0);
+    /// assert_ulps_eq!(bandfilter[551], 1.0);
+    /// assert_ulps_eq!(bandfilter[552], 0.0);
     /// 
     /// ```
     pub fn top_hat(center: f64, width: f64) -> Self {
@@ -136,59 +136,44 @@ impl<F> From<F> for Colorant
 /// in the [`Observer`](crate::observer::Observer) tristiumulus `xyz`-function.
 impl Filter for Colorant {
     fn spectrum(&self) -> Cow<Spectrum> {
-        Cow::Borrowed(self)
+        Cow::Borrowed(&self.0)
     }
 }
 
-impl Deref for Colorant {
-    type Target = Spectrum;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl DerefMut for Colorant {
-
-    /// Mutable Access Spectrum methods on references of colorant.
-    ///
-    /// ```rust
-    /// use colorimetry::prelude::*;
-    /// let mut cth = Colorant::top_hat(500.0, 10.0);
-    /// cth.smooth(5.0); // use spectrum's smooth method
-    ///
-    /// let v = cth[505];
-    /// approx::assert_abs_diff_eq!(v, 0.5939434271268909);
-    /// ```
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-
+/// Adds together the spectrums of two colorants, resulting in a new colorant.
+///
+/// The result is clamped to the valid colorant range of 0.0 to 1.0.
 impl Add for Colorant {
     type Output = Self;
 
-    /// Adds two colorants
     fn add(self, rhs: Self) -> Self::Output {
-        let mut r = self.0 + rhs.0;
-        r.clamp(0.0, 1.0);
-        Colorant(r)
+        let mut spectrum = self.0 + rhs.0;
+        spectrum.clamp(0.0, 1.0);
+        Colorant(spectrum)
     }
 }
 
+/// Multiply the spectrum of a colorant with a scalar value.
+///
+/// The result is clamped to the valid colorant range of 0.0 to 1.0.
 impl Mul<f64> for Colorant {
     type Output = Self;
 
     fn mul(self, rhs: f64) -> Self::Output {
-        Self(self.0 * rhs)
+        let mut spectrum = self.0 * rhs;
+        spectrum.clamp(0.0, 1.0);
+        Self(spectrum)
     }
 }
 
+/// Multiply the spectrum of a colorant with a scalar value.
+///
+/// The result is clamped to the valid colorant range of 0.0 to 1.0.
 impl Mul<Colorant> for f64 {
     type Output = Colorant;
 
     fn mul(self, rhs: Colorant) -> Self::Output {
-        Colorant(self * rhs.0)
+        rhs.mul(self)
     }
 }
 
@@ -228,9 +213,13 @@ impl Mul<&Colorant> for &Colorant {
     }
 }
 
+/// Add the spectrum of a colorant to this colorant.
+///
+/// The result is clamped to the valid colorant range of 0.0 to 1.0.
 impl AddAssign<&Self> for Colorant {
     fn add_assign(&mut self, rhs: &Self) {
-        self.0 += rhs.0 // use spectral multiplication
+        self.0 += rhs.0;
+        self.0.clamp(0.0, 1.0);
     }
 }
 
@@ -242,6 +231,6 @@ impl AbsDiffEq for Colorant {
     }
 
     fn abs_diff_eq(&self, other: &Self, epsilon: Self::Epsilon) -> bool {
-        self.0.abs_diff_eq(other, epsilon)
+        self.spectrum().abs_diff_eq(&other.spectrum(), epsilon)
     }
 }
