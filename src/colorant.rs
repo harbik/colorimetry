@@ -6,10 +6,28 @@ use nalgebra::SVector;
 use crate::{physics::{gaussian_peak_one, wavelength}, spectrum::wavelengths, error::CmtError, traits::Filter, spectrum::{Spectrum, NS}};
 
 
+/// A Colorant represents color filters and color patches. These are spectrums
+/// with spectral values between 0.0 and 1.0.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Colorant(pub(crate) Spectrum);
 
 impl Colorant {
+    /// Creates a Colorant from a spectrum, while validating the spectrum values.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the spectrum contains values outside the range 0.0 to 1.0.
+    pub fn new(spectrum: Spectrum) -> Result<Self, CmtError> {
+        if spectrum.values().iter().any(|v| !(0.0..=1.0).contains(v)) {
+            Err(CmtError::OutOfRange {
+                name: "Colorant Spectral Value".into(),
+                low: 0.0,
+                high: 1.0,
+            })
+        } else {
+            Ok(Self(spectrum))
+        }
+    }
 
     /// Theoretical spectrum of a perfect grey colorant, consisting of 401
     /// values equal to the value given in the argument, over a range from 380
@@ -84,20 +102,16 @@ impl Colorant {
 
 }
 
-/// Create a Colorant Spectrum from a data slice, with data check.
-/// 
-/// In this library, the Colorant category represents color filters and color patches, with have spectral values between 0.0 and 1.0.
-/// This is the preferred way to crete a colorant, as it does a range check.
-impl TryFrom<&[f64]> for Colorant {
+impl TryFrom<Spectrum> for Colorant {
     type Error = CmtError;
 
-    fn try_from(data: &[f64]) -> Result<Self, Self::Error> {
-        if data.iter().any(|v| !(0.0..=1.0).contains(v)){
-            Err(CmtError::OutOfRange { name: "Colorant Spectral Value".into(), low: 0.0, high: 1.0 })
-        } else {
-            let spectrum = Spectrum::try_from(data)?;
-            Ok(Self(spectrum))
-        }
+    /// Creates a Colorant from a spectrum, while validating the spectrum values.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the spectrum contains values outside the range 0.0 to 1.0.
+    fn try_from(spectrum: Spectrum) -> Result<Self, Self::Error> {
+        Self::new(spectrum)
     }
 }
 
