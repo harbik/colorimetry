@@ -4,7 +4,7 @@ use wasm_bindgen::prelude::*;
 use nalgebra::{ArrayStorage, SMatrix, SVector};
 
 use crate::{
-    data::illuminants::{D50, D65}, observer::ObserverData, physics::{gaussian_peak_one, led_ohno, planck, stefan_boltzmann, wavelength}, spectrum::{Spectrum, NS, wavelengths}, std_illuminants::StdIlluminant, traits::Light, error::CmtError
+    data::illuminants::{D50, D65}, error::CmtError, illuminant, observer::{Observer, ObserverData}, physics::{gaussian_peak_one, led_ohno, planck, stefan_boltzmann, wavelength}, spectrum::{wavelengths, Spectrum, NS}, std_illuminants::StdIlluminant, traits::Light, xyz::XYZ
 };
 
 #[cfg(feature="cri")]
@@ -160,6 +160,13 @@ impl Illuminant {
             Ok(Illuminant(s).set_irradiance(1.0))
         }
     }
+
+    /// Returns the XYZ tristimulus values for the illuminant.
+    pub fn xyz(&self, obs_opt: Option<Observer>) -> XYZ {
+        let obs = obs_opt.unwrap_or(Observer::Std1931);
+        obs.data().xyz_from_spectrum(&self.0, None)
+    }
+
 }
 
 /// Creates an illuminant directly from a spectrum.
@@ -275,6 +282,15 @@ fn test_d_illuminant(){
     use crate::prelude::*;
     let s = Illuminant::d_illuminant(6504.0).unwrap();
     let xyz = CIE1931.xyz_from_spectrum(&s, None).set_illuminance(100.0);
+    approx::assert_ulps_eq!(xyz, CIE1931.xyz_d65(), epsilon = 2E-2);
+}
+
+#[test]
+fn test_xyz(){
+    use crate::prelude::*;
+    let s = Illuminant::d_illuminant(6504.0).unwrap().values().clone();
+    let illuminant = Illuminant(Spectrum::from(s));
+    let xyz = illuminant.xyz(None).set_illuminance(100.0);
     approx::assert_ulps_eq!(xyz, CIE1931.xyz_d65(), epsilon = 2E-2);
 }
 
