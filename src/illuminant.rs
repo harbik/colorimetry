@@ -25,6 +25,10 @@ impl Deref for Illuminant{
 
 
 impl Illuminant {
+    /// Creates an illuminant directly from a spectrum.
+    pub fn new(spectrum: Spectrum) -> Self {
+        Illuminant(spectrum)
+    }
 
     /// E, or Equal Energy Illuminant with an irradiance of 1 Watt per square
     /// meter in the spectrum between 380 and 780 nanometer
@@ -158,11 +162,10 @@ impl Illuminant {
     }
 }
 
-impl TryFrom<&[f64]> for Illuminant {
-    type Error = CmtError;
-
-    fn try_from(value: &[f64]) -> Result<Self, Self::Error> {
-        Ok(Illuminant(value.try_into()?))
+/// Creates an illuminant directly from a spectrum.
+impl From<Spectrum> for Illuminant {
+    fn from(spectrum: Spectrum) -> Self {
+        Self::new(spectrum)
     }
 }
 
