@@ -15,16 +15,23 @@ pub const H: f64 = 6.6260700408181E-34;
 /// First radiation constant (W m<sup>2</sup>)
 pub const C1: f64 = 2. * std::f64::consts::PI * H * C * C;
 
-/// Second radiation constant (m K)
-/// see <https://en.wikipedia.org/wiki/Planckian_locus#International_Temperature_Scale>
-pub const C2: f64 = H * C / KB; // Now exact
-pub const C2_NBS_1931: f64 = 1.435E-2; // A Illuminant
-pub const C2_IPTS_1948: f64 = 1.4380E-2; // Illuminant series D
+
+/// Second radiation constant \( c_2 \) appears in Planck's law
+/// and has the SI unit **m·K** (meter times kelvin)
+/// It's definition is now exact, and is used to define the temperature scale, but it's value varied in the past.
+/// see [Wiki ITS](https://en.wikipedia.org/wiki/Planckian_locus#International_Temperature_Scale)
+pub const C2: f64 = H * C / KB;
+
+/// Value as used in the definition oof the A Illuminant
+pub const C2_NBS_1931: f64 = 1.435E-2;
+
+/// Value as used in the D Illuminant series.
+pub const C2_IPTS_1948: f64 = 1.4380E-2;
 pub const C2_ITS_1968: f64 = 1.4388E-2;
 //pub const FWHM2STDDEV: f64 = 2.354820045;
 
 // calculated on first dereference, can not use floating point calculations in const (yet?)
-pub static FWHM: LazyLock<f64> = LazyLock::new(|| (8.0 * 2f64.ln()).sqrt());
+pub(crate) static FWHM: LazyLock<f64> = LazyLock::new(|| (8.0 * 2f64.ln()).sqrt());
 
 
 /**
