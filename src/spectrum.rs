@@ -157,6 +157,13 @@ impl Spectrum {
         let t = self.0.convolve_full(kernel);
         self.0 = SVector::from_iterator(t.iter().copied().skip(sd3 as usize).take(NS));
     }
+
+    /// Returns the spectral data values, as an array of floats.
+    ///
+    /// The array contains the 401 data points from 380 to 780 nanometer.
+    pub fn values(&self) -> &[f64; NS] {
+        &self.0.data.0[0]
+    }
 }
 
 impl From<[f64; NS]> for Spectrum {
@@ -185,7 +192,7 @@ impl Default for Spectrum {
 
 impl AsRef<[f64;401]> for Spectrum {
     fn as_ref(&self) -> &[f64;401] {
-        &self.0.data.0[0]
+        self.values()
     }
 }
 
