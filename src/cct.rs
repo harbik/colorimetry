@@ -102,6 +102,10 @@ impl CCT {
         Self::try_new(cct, tint/1000.0)
     }
 
+    pub fn try_from_xyz(xyz: XYZ) -> Result<Self, CmtError> {
+        CCT::try_from(xyz)
+    }
+
     pub fn t(&self) -> f64 {
         self.0
     }
