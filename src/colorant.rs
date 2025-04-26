@@ -1,9 +1,9 @@
 use std::{borrow::Cow, ops::{Add, AddAssign, Deref, DerefMut, Mul, MulAssign}};
 
-use approx::AbsDiffEq;
+use approx::{assert_abs_diff_eq, AbsDiffEq};
 use nalgebra::SVector;
 
-use crate::{physics::{gaussian_peak_one, wavelength}, spectrum::wavelengths, error::CmtError, traits::Filter, spectrum::{Spectrum, NS}};
+use crate::{error::CmtError, lab::CieLab, physics::{gaussian_peak_one, wavelength}, prelude::{Illuminant, Observer, D65}, spectrum::{wavelengths, Spectrum, NS}, std_illuminants, traits::{Filter, Light}};
 
 
 /// A Colorant represents color filters and color patches. These are spectrums
@@ -100,6 +100,31 @@ impl Colorant {
         Self(Spectrum(data))
     }
 
+    /// Calculates the [Colorant] CIELAB values, using an illuminant and observer.
+    ///
+    /// The illuminant and observer are optional parameters.
+    /// If illuminant is `None`, the D65 illuminant is used.
+    /// If observer is `None`, the CIE 1931 observer is used.
+    pub fn cielab(&self, illuminant_opt: Option<&dyn Light>, obs_opt: Option<Observer>) -> CieLab {
+        let illuminant = illuminant_opt.unwrap_or(&D65);
+        let obs = obs_opt.unwrap_or(Observer::default());
+        let xyz = obs.data().xyz(illuminant, Some(self)).set_illuminance(100.0);
+        CieLab::try_from(xyz).unwrap()
+    }
+
+}
+
+#[test]
+fn test_colorant_cielab() {
+    // Test that the CIELAB values for a white colorant are as expected.
+    // A white surface has CIELAB values of L* = 100, a* = 0, b* = 0.
+    use approx::assert_abs_diff_eq;
+    use crate::prelude::*;
+    let colorant = Colorant::white();
+    let lab = colorant.cielab(None, None);
+    assert_abs_diff_eq!(lab.lab[0], 100.0, epsilon = 1E-4); // L* should be 100 for white
+    assert_abs_diff_eq!(lab.lab[1], 0.0, epsilon = 1E-4); // a* should be 0 for white
+    assert_abs_diff_eq!(lab.lab[2], 0.0, epsilon = 1E-4); // b* should be 0 for white
 }
 
 impl TryFrom<Spectrum> for Colorant {

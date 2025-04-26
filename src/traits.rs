@@ -17,8 +17,11 @@ Calculating them from a spectrum is the default implementation.  For standard il
 especially D65, which are used so frequently, their values are obtained from buffered entries.
 */
 pub trait Light {
-    // Default implementation takes the illuminant spectrum, and calculates tristimulus values using the
-    // provided observer's color matching data.
+    /// Calculates the tristimulus values of the light source, using the
+    /// provided observer's color matching data, and an optional illuminance value.
+    /// 
+    /// The illuminance value is optional, and if not provided, the actual luminous values in the
+    /// spectrum are used.
     fn xyzn(&self, observer: Observer, y: Option<f64>) -> XYZ {
         let xyz = observer.data().xyz_from_spectrum(&self.spectrum(), None);
         if let Some(illuminance) = y {
