@@ -107,7 +107,7 @@ impl Colorant {
     /// If observer is `None`, the CIE 1931 observer is used.
     pub fn cielab(&self, illuminant_opt: Option<&dyn Light>, obs_opt: Option<Observer>) -> CieLab {
         let illuminant = illuminant_opt.unwrap_or(&D65);
-        let obs = obs_opt.unwrap_or(Observer::default());
+        let obs = obs_opt.unwrap_or_default();
         let xyz = obs.data().xyz(illuminant, Some(self)).set_illuminance(100.0);
         CieLab::try_from(xyz).unwrap()
     }
