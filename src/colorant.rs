@@ -172,7 +172,7 @@ impl<F> From<F> for Colorant
 
 
 /// Make colorant data available as a generic [`Filter`] entity, used in particular
-/// in the [`Observer`](crate::observer::Observer) tristiumulus `xyz`-function.
+/// in the [`Observer`] tristiumulus `xyz`-function.
 impl Filter for Colorant {
     fn spectrum(&self) -> Cow<Spectrum> {
         Cow::Borrowed(&self.0)
