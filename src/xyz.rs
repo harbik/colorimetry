@@ -75,7 +75,7 @@ impl XYZ {
     ) -> Result<XYZ, CmtError> {
         let l = l.unwrap_or(100.0);
         let observer = observer.unwrap_or_default();
-        if (x + y) >= 1.0 {
+        if (x + y) > 1.0 {
             Err(CmtError::InvalidChromaticityValues)
         } else {
             let s = l / y;

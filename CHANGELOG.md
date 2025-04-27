@@ -54,6 +54,8 @@ Line wrap the file at 100 chars.                                              Th
 - Ensure the spectral values of a `Colorant` stays within the range 0.0 - 1.0. It was previously
   possible to move outside the allowed range due to the `DerefMut<Target=Spectrum>` implementation,
   and some missing clamping in other arithmetic operations on the colorant.
+- Relax bounds checking in `XYZ::try_from_chromaticity` to allow the sum of `x` and `y` to be
+  exactly `1.0` instead of just strictly smaller.
 
 
 ## [0.0.3] - 2025-04-16
