@@ -41,7 +41,15 @@ use std::{cmp::max, sync::OnceLock};
 
 use approx::{assert_ulps_eq, relative_eq, ulps_eq, AbsDiffEq, RelativeEq, UlpsEq};
 
-use crate::{geometry::distance_to_line, physics::planck, error::CmtError, observer::{Observer, ObserverData}, data::observers::CIE1931, spectrum::NS, xyz::XYZ};
+use crate::{
+    data::observers::CIE1931,
+    error::CmtError,
+    geometry::distance_to_line,
+    observer::{Observer, ObserverData},
+    physics::planck,
+    spectrum::NS,
+    xyz::XYZ,
+};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct CCT(f64, f64);
@@ -55,8 +63,7 @@ impl AbsDiffEq for CCT {
 
     fn abs_diff_eq(&self, other: &Self, epsilon: Self::Epsilon) -> bool {
         // Mired temperature?
-        self.0.abs_diff_eq(&other.0, epsilon) &&
-        self.1.abs_diff_eq(&other.1, epsilon)
+        self.0.abs_diff_eq(&other.0, epsilon) && self.1.abs_diff_eq(&other.1, epsilon)
     }
 }
 
@@ -65,10 +72,14 @@ impl RelativeEq for CCT {
         f64::default_max_relative()
     }
 
-    fn relative_eq(&self, other: &Self, epsilon: Self::Epsilon, max_relative: Self::Epsilon)
-        -> bool {
-        self.0.relative_eq(&other.0, epsilon, max_relative) &&
-        self.1.relative_eq(&other.1, epsilon, max_relative)
+    fn relative_eq(
+        &self,
+        other: &Self,
+        epsilon: Self::Epsilon,
+        max_relative: Self::Epsilon,
+    ) -> bool {
+        self.0.relative_eq(&other.0, epsilon, max_relative)
+            && self.1.relative_eq(&other.1, epsilon, max_relative)
     }
 }
 
@@ -78,8 +89,7 @@ impl UlpsEq for CCT {
     }
 
     fn ulps_eq(&self, other: &Self, epsilon: Self::Epsilon, max_ulps: u32) -> bool {
-        self.0.ulps_eq(&other.0, epsilon, max_ulps ) &&
-        self.1.ulps_eq(&other.1, epsilon, max_ulps )
+        self.0.ulps_eq(&other.0, epsilon, max_ulps) && self.1.ulps_eq(&other.1, epsilon, max_ulps)
     }
 }
 
@@ -87,19 +97,19 @@ impl CCT {
     /// Create from a Correlated Color Temperature and a Planckian Locus Distance.
     /// Both parameters are range restricted: 1000<cct<1_000_000, -0.05<duv<0.05
     pub fn try_new(cct: f64, duv: f64) -> Result<Self, CmtError> {
-        match (cct,duv) {
-            (_, d) if d>0.05 => Err(CmtError::CCTDuvHighError),
-            (_, d) if d< -0.05 => Err(CmtError::CCTDuvLowError),
-            (t, d) if ulps_eq!(t,im2t(0)) || ulps_eq!(t, im2t(N_STEPS-1)) => Ok(Self(t,d)),
-            (t, _) if t>im2t(0) => Err(CmtError::CCTTemperatureTooHigh),
-            (t, _) if t<im2t(N_STEPS-1) => Err(CmtError::CCTTemperatureTooLow),
-            (t, d) => Ok(Self(t,d)),
+        match (cct, duv) {
+            (_, d) if d > 0.05 => Err(CmtError::CCTDuvHighError),
+            (_, d) if d < -0.05 => Err(CmtError::CCTDuvLowError),
+            (t, d) if ulps_eq!(t, im2t(0)) || ulps_eq!(t, im2t(N_STEPS - 1)) => Ok(Self(t, d)),
+            (t, _) if t > im2t(0) => Err(CmtError::CCTTemperatureTooHigh),
+            (t, _) if t < im2t(N_STEPS - 1) => Err(CmtError::CCTTemperatureTooLow),
+            (t, d) => Ok(Self(t, d)),
         }
     }
 
     /// Create from a Correlated Color Temperature and a Tint value.
     pub fn try_new_with_tint(cct: f64, tint: f64) -> Result<Self, CmtError> {
-        Self::try_new(cct, tint/1000.0)
+        Self::try_new(cct, tint / 1000.0)
     }
 
     pub fn try_from_xyz(xyz: XYZ) -> Result<Self, CmtError> {
@@ -116,11 +126,10 @@ impl CCT {
     pub fn tint(&self) -> f64 {
         1000.0 * self.1
     }
-
 }
 
 /// Get cct and duv values as an array.
-impl From<CCT> for [f64;2] {
+impl From<CCT> for [f64; 2] {
     fn from(cct: CCT) -> Self {
         [cct.0, cct.1]
     }
@@ -129,13 +138,12 @@ impl From<CCT> for [f64;2] {
 /// Number of iterations in binary search.
 pub const N_DEPTH: usize = 12; // 2^12 iso temperature line
 
- 
 /// Number of iso-temperature lines used, over a range from 1 to N_MIRED_MAX, in this case library
 /// corresponding to a temperature range from 1000 to 1_000_000 Kelvin.
-/// 
+///
 /// An iso-temperature line is here defined by a point on the Planckian locus in the CIE 1960 UCS (u,v) space,
 /// and a slope.
-pub const N_STEPS:usize = 2 << (N_DEPTH -1);
+pub const N_STEPS: usize = 2 << (N_DEPTH - 1);
 
 /// Mired is a unit to express color temperature: M = 1_000_000K / T, with T an absolute correlated
 /// color temperature in units of Kelvin.
@@ -149,46 +157,54 @@ impl TryFrom<XYZ> for CCT {
     type Error = CmtError;
 
     fn try_from(xyz: XYZ) -> Result<Self, Self::Error> {
-        if xyz.observer != Observer::Std1931 { return Err(CmtError::RequiresCIE1931XYZ); }
+        if xyz.observer != Observer::Std1931 {
+            return Err(CmtError::RequiresCIE1931XYZ);
+        }
         let [u, v] = xyz.uv60();
         // index bounderies N_STEPS-1 length lookup table e.g. 0-4095
-        let [mut imlow, mut imhigh]  = [0usize, N_STEPS-1];
+        let [mut imlow, mut imhigh] = [0usize, N_STEPS - 1];
         let [mut dlow, mut dhigh] = [0.0, 0.0];
-       
+
         for _ in 0..N_DEPTH {
-            let im = (imhigh+imlow)/2;
+            let im = (imhigh + imlow) / 2;
             let &[ub, vb, m] = robertson_table(im);
             let d = distance_to_line(u, v, ub, vb, m);
-            if d<0.0 { // line is located left of (xyz)
+            if d < 0.0 {
+                // line is located left of (xyz)
                 imlow = im;
                 dlow = d;
-            } else { // line is located right of (xyz)
+            } else {
+                // line is located right of (xyz)
                 imhigh = im;
                 dhigh = d;
             }
-        }  
-        if imlow == 0 { // xyz is in the first interval, or above high temperature limit
+        }
+        if imlow == 0 {
+            // xyz is in the first interval, or above high temperature limit
             let &[ub, vb, m] = robertson_table(imlow);
             let d = distance_to_line(u, v, ub, vb, m);
-            match distance_to_line(u, v, ub, vb, m){
-                d if ulps_eq!(d,0.0,epsilon=1E-10) => { // at low temp limit
+            match distance_to_line(u, v, ub, vb, m) {
+                d if ulps_eq!(d, 0.0, epsilon = 1E-10) => {
+                    // at low temp limit
                     dlow = 0.0;
                     dhigh = 1.0;
                     imhigh = 1;
                 }
-                d if d>0.0 => return Err(CmtError::CCTTemperatureTooHigh),
-                d => dlow = d 
+                d if d > 0.0 => return Err(CmtError::CCTTemperatureTooHigh),
+                d => dlow = d,
             };
         };
-        if imhigh == N_STEPS - 1 { // xyz is in the last interval, or below low temperature limit
+        if imhigh == N_STEPS - 1 {
+            // xyz is in the last interval, or below low temperature limit
             let &[ub, vb, m] = robertson_table(imhigh);
-            match distance_to_line(u, v, ub, vb, m){
-                d if ulps_eq!(d,0.0,epsilon=1E-10) => { // at high temp limit
+            match distance_to_line(u, v, ub, vb, m) {
+                d if ulps_eq!(d, 0.0, epsilon = 1E-10) => {
+                    // at high temp limit
                     dhigh = -0.0;
                     imlow = N_STEPS - 2;
                 }
-                d if d<0.0 => return Err(CmtError::CCTTemperatureTooLow),
-                d => dlow = d 
+                d if d < 0.0 => return Err(CmtError::CCTTemperatureTooLow),
+                d => dlow = d,
             };
         };
 
@@ -196,30 +212,28 @@ impl TryFrom<XYZ> for CCT {
         let d = duv_interpolate(u, v, imlow, imhigh, dlow, dhigh);
         CCT::try_new(t, d)
     }
-
 }
-    
+
 /// Calculate tristimulus values from a Correlated Color Temperature and a Planckian Locus Distance.
 /// This can fail for lower temperatures, and positive distances, with a chromaticity outsiode the CIE 1931 gamut.
 impl TryFrom<CCT> for XYZ {
     type Error = CmtError;
     fn try_from(cct: CCT) -> Result<Self, Self::Error> {
         let CCT(t, d) = cct;
-        let [u0,v0,m] = iso_temp_line(t);
-        let du = m.signum() * d/(m*m+1.0).sqrt();
+        let [u0, v0, m] = iso_temp_line(t);
+        let du = m.signum() * d / (m * m + 1.0).sqrt();
         let dv = m * du;
-        XYZ::try_from_luv60(u0+du, v0+dv, None, None)
+        XYZ::try_from_luv60(u0 + du, v0 + dv, None, None)
     }
-    
 }
 
 /// Calculates Robertson's Table values for a temperature value of t, in units of Kelvin.
 /// These are the coordinates of the blackbody locus at temperature T, and it's line normal,
 /// which is the slope of the curve at that point rotated by 90º.
-fn iso_temp_line(t: f64) -> [f64;3] {
+fn iso_temp_line(t: f64) -> [f64; 3] {
     let xyz = CIE1931.xyz_planckian_locus(t);
     let [x, y, z] = xyz.values();
-    let [u, v ]= xyz.uv60();
+    let [u, v] = xyz.uv60();
     let [dx, dy, dz] = CIE1931.xyz_planckian_locus_slope(t).values();
     let sigma = x + 15.0 * y + 3.0 * z;
     let dsigma = dx + 15.0 * dy + 3.0 * dz;
@@ -227,9 +241,9 @@ fn iso_temp_line(t: f64) -> [f64;3] {
     let m = if ulps_eq!(den, 0.0) {
         f64::MAX
     } else {
-        (4.0 * dx * sigma - 4.0 * x * dsigma)/den
+        (4.0 * dx * sigma - 4.0 * x * dsigma) / den
     };
-    [u,v,m]
+    [u, v, m]
 }
 
 /// Table row of Robertson's Iso Correlated Color Temperature lines, with 4096
@@ -244,50 +258,47 @@ fn iso_temp_line(t: f64) -> [f64;3] {
 ///
 /// For more information, see `The Improved Robertson Method for Calculating
 /// Correlated Color Temperature` by Gerard Harbers.
-pub fn robertson_table(im: usize) -> &'static [f64;3] {
-    static ROBERTSON_TABLE: OnceLock<[OnceLock<[f64;3]>;N_STEPS]> = OnceLock::new();
+pub fn robertson_table(im: usize) -> &'static [f64; 3] {
+    static ROBERTSON_TABLE: OnceLock<[OnceLock<[f64; 3]>; N_STEPS]> = OnceLock::new();
 
     // Get reference to table, or initialize it when not done yet.
-    const UVM_EMPTY: OnceLock<[f64;3]> = OnceLock::new();
-    let robertson_table = ROBERTSON_TABLE.get_or_init(|| {
-        [UVM_EMPTY; N_STEPS]
-    });
-    
+    const UVM_EMPTY: OnceLock<[f64; 3]> = OnceLock::new();
+    let robertson_table = ROBERTSON_TABLE.get_or_init(|| [UVM_EMPTY; N_STEPS]);
+
     // Get table row, or calculate when not done yet.
-    robertson_table[im].get_or_init(||{
-            let cct = im2t(im);
-            iso_temp_line(cct)
+    robertson_table[im].get_or_init(|| {
+        let cct = im2t(im);
+        iso_temp_line(cct)
     })
 }
 
 fn im2t(im: usize) -> f64 {
-    1E6/( 1.0 + (((MIRED_MAX-1)*im) as f64) / ((N_STEPS-1) as f64))
-}  
+    1E6 / (1.0 + (((MIRED_MAX - 1) * im) as f64) / ((N_STEPS - 1) as f64))
+}
 
 #[test]
-fn im2t_test(){
+fn im2t_test() {
     let i0 = im2t(0);
     assert_ulps_eq!(i0, 1E6);
-    let ins = im2t(N_STEPS-1);
+    let ins = im2t(N_STEPS - 1);
     assert_ulps_eq!(ins, 1000.0);
 }
 
-
 fn robertson_interpolate(tp: f64, dp: f64, tn: f64, dn: f64) -> f64 {
-    (tp.recip() + dp/(dp-dn) * (tn.recip() - tp.recip())).recip()
+    (tp.recip() + dp / (dp - dn) * (tn.recip() - tp.recip())).recip()
 }
 
 /// Calculate distance to the Blackbody locus
-/// 
+///
 /// Finds intersection between iso-temperature lines at (ux,vx), and calculates the distance to this point for the
-/// table points. Linear interpolates the value between thse two, and substracts this value of the distance from 
+/// table points. Linear interpolates the value between thse two, and substracts this value of the distance from
 /// the test point to the intersection.
 fn duv_interpolate(u: f64, v: f64, imp: usize, imn: usize, dp: f64, dh: f64) -> f64 {
     let [ul, vl, ml] = robertson_table(imp);
     let [uh, vh, mh] = robertson_table(imn);
 
     // (ux, vx) intersection point of the two iso temperature lines
-    let ux =(ml * ul - vl - mh * uh + vh)/(ml - mh);
+    let ux = (ml * ul - vl - mh * uh + vh) / (ml - mh);
     let vx = ml * (ux - ul) + vl;
 
     // distances blackbody points to intersection
@@ -296,12 +307,12 @@ fn duv_interpolate(u: f64, v: f64, imp: usize, imn: usize, dp: f64, dh: f64) -> 
     let dd = (u - ux).hypot(v - vx);
 
     // interpolated distance at blackbody locus
-    let d = ddl + dp/(dp-dh) * (ddh - ddl);
+    let d = ddl + dp / (dp - dh) * (ddh - ddl);
     dd - d
 }
-    
+
 #[test]
-fn test_ends(){
+fn test_ends() {
     // Temperature  at the low end, should pass...
     let cct0 = CCT::try_new(1000.0, 0.0).unwrap();
     let xyz: XYZ = cct0.try_into().unwrap();
@@ -324,29 +335,29 @@ fn test_ends(){
     let cct0 = CCT::try_new(1E6 - 100.0, 0.0).unwrap();
     let xyz: XYZ = cct0.try_into().unwrap();
     let cct: CCT = xyz.try_into().unwrap();
-    approx::assert_abs_diff_eq!(cct, cct0, epsilon=0.2);
+    approx::assert_abs_diff_eq!(cct, cct0, epsilon = 0.2);
 }
 
 #[test]
-fn test_cct(){
+fn test_cct() {
     // Temperature too low here...
     let xyz: XYZ = CCT(999.0, 0.0).try_into().unwrap();
-    let cct: Result<CCT,_> = xyz.try_into();
+    let cct: Result<CCT, _> = xyz.try_into();
     assert_eq!(cct, Err(CmtError::CCTTemperatureTooLow));
 
     // ... and too high here.
-    let xyz: XYZ = CCT(1E6+1.0, 0.0).try_into().unwrap();
-    let cct: Result<CCT,_> = xyz.try_into();
+    let xyz: XYZ = CCT(1E6 + 1.0, 0.0).try_into().unwrap();
+    let cct: Result<CCT, _> = xyz.try_into();
     assert_eq!(cct, Err(CmtError::CCTTemperatureTooHigh));
 
     // DUV too high...
     let xyz: XYZ = CCT(6000.0, 0.051).try_into().unwrap();
-    let cct: Result<CCT,_> = xyz.try_into();
+    let cct: Result<CCT, _> = xyz.try_into();
     assert_eq!(cct, Err(CmtError::CCTDuvHighError));
 
     // and too low here.
     let xyz: XYZ = CCT(6000.0, -0.051).try_into().unwrap();
-    let cct: Result<CCT,_> = xyz.try_into();
+    let cct: Result<CCT, _> = xyz.try_into();
     assert_eq!(cct, Err(CmtError::CCTDuvLowError));
 }
 
@@ -427,7 +438,6 @@ fn f1_test() {
 #[cfg(feature = "cie-illuminants")]
 fn f3_1_test() {
     let xyz_f3_1 = CIE1931.xyz_cie_table(&crate::std_illuminants::StdIlluminant::F3_1, None);
-    // value from CIE Standard CIE15:2004 Table T8.1    
+    // value from CIE Standard CIE15:2004 Table T8.1
     approx::assert_ulps_eq!(xyz_f3_1.cct().unwrap().t(), 2932.0, epsilon = 0.5);
 }
-

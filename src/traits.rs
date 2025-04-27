@@ -1,12 +1,7 @@
-
 use std::borrow::Cow;
 
 use crate::{
-    colorant::Colorant,
-    illuminant::Illuminant,
-    spectrum::Spectrum,
-    observer::Observer,
-    xyz::XYZ
+    colorant::Colorant, illuminant::Illuminant, observer::Observer, spectrum::Spectrum, xyz::XYZ,
 };
 
 /**
@@ -19,7 +14,7 @@ especially D65, which are used so frequently, their values are obtained from buf
 pub trait Light {
     /// Calculates the tristimulus values of the light source, using the
     /// provided observer's color matching data, and an optional illuminance value.
-    /// 
+    ///
     /// The illuminance value is optional, and if not provided, the actual luminous values in the
     /// spectrum are used.
     fn xyzn(&self, observer: Observer, y: Option<f64>) -> XYZ {
@@ -41,7 +36,5 @@ impl From<&dyn Light> for Illuminant {
 }
 
 pub trait Filter {
-
     fn spectrum(&self) -> Cow<Spectrum>;
-
 }

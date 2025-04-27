@@ -1,14 +1,12 @@
-use std::{borrow::Cow, iter::Sum, ops::{Deref, Mul}};
-
-use crate::{
-    spectrum::Spectrum,
-    traits::Light,
-    observer::ObserverData,
-    illuminant::Illuminant,
-    rgb::RGB
+use std::{
+    borrow::Cow,
+    iter::Sum,
+    ops::{Deref, Mul},
 };
 
-
+use crate::{
+    illuminant::Illuminant, observer::ObserverData, rgb::RGB, spectrum::Spectrum, traits::Light,
+};
 
 #[derive(Clone)]
 pub struct Stimulus(pub(crate) Spectrum);
@@ -23,8 +21,8 @@ impl Deref for Stimulus {
 
 impl Stimulus {
     pub fn set_luminance(mut self, obs: &ObserverData, luminance: f64) -> Self {
-        let l = luminance / (obs.data.row(1) *  self.0.0 * obs.lumconst).x;
-        self.0.0.iter_mut().for_each(|v| *v *= l);
+        let l = luminance / (obs.data.row(1) * self.0 .0 * obs.lumconst).x;
+        self.0 .0.iter_mut().for_each(|v| *v *= l);
         self
     }
 
@@ -32,7 +30,13 @@ impl Stimulus {
     /// a linear combination of the spectral primaries, which are Gaudssian filtered components in
     /// this library.
     pub fn srgb(r_u8: u8, g_u8: u8, b_u8: u8) -> Self {
-        let rgb = RGB::from_u8(r_u8, g_u8, b_u8, Some(crate::observer::Observer::Std1931), Some(crate::rgbspace::RgbSpace::SRGB));
+        let rgb = RGB::from_u8(
+            r_u8,
+            g_u8,
+            b_u8,
+            Some(crate::observer::Observer::Std1931),
+            Some(crate::rgbspace::RgbSpace::SRGB),
+        );
         rgb.into()
     }
 
@@ -42,12 +46,9 @@ impl Stimulus {
     pub fn rgb(rgb: RGB) -> Self {
         rgb.into()
     }
-
-
 }
 
 impl Light for Stimulus {
-
     fn spectrum(&self) -> Cow<Spectrum> {
         Cow::Borrowed(self)
     }
@@ -55,8 +56,8 @@ impl Light for Stimulus {
 
 impl Sum for Stimulus {
     fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
-        let mut s = Spectrum::default() ;
-        iter.for_each(|si|s += si.0);
+        let mut s = Spectrum::default();
+        iter.for_each(|si| s += si.0);
         Stimulus(s)
     }
 }
@@ -74,7 +75,12 @@ impl From<RGB> for Stimulus {
     fn from(rgb: RGB) -> Self {
         let prim = &rgb.space.data().0.primaries;
         let yrgb = rgb.observer.data().rgb2xyz(&rgb.space).row(1);
-        rgb.rgb.iter().zip(yrgb.iter()).zip(prim.iter()).map(|((v,w),s)|*v * *w * s.clone()).sum()
+        rgb.rgb
+            .iter()
+            .zip(yrgb.iter())
+            .zip(prim.iter())
+            .map(|((v, w), s)| *v * *w * s.clone())
+            .sum()
     }
 }
 

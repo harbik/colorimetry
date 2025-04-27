@@ -1,7 +1,5 @@
-
 use num_traits::ToPrimitive;
 use wasm_bindgen::prelude::wasm_bindgen;
-
 
 /// The speed of light (m/s)
 pub const C: f64 = 299792458.0;
@@ -14,7 +12,6 @@ pub const H: f64 = 6.6260700408181E-34;
 
 /// First radiation constant (W m<sup>2</sup>)
 pub const C1: f64 = 2. * std::f64::consts::PI * H * C * C;
-
 
 /// Second radiation constant \( c_2 \) appears in Planck's law
 /// and has the SI unit **m·K** (meter times kelvin)
@@ -32,7 +29,6 @@ pub const C2_ITS_1968: f64 = 1.4388E-2;
 
 // calculated on first dereference, can not use floating point calculations in const (yet?)
 pub(crate) static FWHM: LazyLock<f64> = LazyLock::new(|| (8.0 * 2f64.ln()).sqrt());
-
 
 /**
 Planck with the second radiant constant as parameter.
@@ -60,7 +56,7 @@ pub fn planck_slope_c2(l: f64, t: f64, c2: f64) -> f64 {
 /// Planck Temperature second derivative: d2(Planck)/dT2
 pub fn planck_curvature_c2(l: f64, t: f64, c2: f64) -> f64 {
     let e = (c2 / (l * t)).exp();
-    planck_slope_c2(l, t, c2) / t * (c2/(l*t) * (e+1.0)/(e-1.0) -2.0)
+    planck_slope_c2(l, t, c2) / t * (c2 / (l * t) * (e + 1.0) / (e - 1.0) - 2.0)
 }
 
 #[inline]
@@ -72,7 +68,6 @@ pub fn planck(l: f64, t: f64) -> f64 {
 pub fn planck_slope(l: f64, t: f64) -> f64 {
     planck_slope_c2(l, t, crate::physics::C2)
 }
-
 
 /// Stefan-Boltzmann constant (W m<sup>-2</sup> K<sup>-4</sup>)
 const SIGMA: f64 = 5.670_374_419_184E-8;
@@ -95,18 +90,16 @@ const B: f64 = 1.08480681239; // scaling factor for width (l_w = B * l_fwhm)
 pub fn led_ohno(wl: f64, center: f64, width: f64) -> f64 {
     let width = B * width;
     let t = (wl - center) / (width);
-    let g = libm::expm1(-(t.powi(2)))+1.0;
+    let g = libm::expm1(-(t.powi(2))) + 1.0;
     (g + 2.0 * g.powi(5)) / (3.0 * A * width)
 }
-
 
 use core::f64;
 use std::{f64::consts::PI, sync::LazyLock};
 
-
 #[inline]
 pub fn sigma_from_fwhm(fwhm: f64) -> f64 {
-    fwhm/ *FWHM
+    fwhm / *FWHM
 }
 
 #[inline]
@@ -121,7 +114,7 @@ pub fn gaussian_peak_one(x: f64, mu: f64, sigma: f64) -> f64 {
 }
 
 #[test]
-fn gaussian_peak_one_test(){
+fn gaussian_peak_one_test() {
     use approx::assert_ulps_eq;
     let sigma = 10E-9;
     let mu = 500E-9;
@@ -147,7 +140,7 @@ pub fn wavelength<T: ToPrimitive>(i: T) -> f64 {
 }
 
 /// Map a value x, in a domain from xmin to xmax to a wavelength in the domain
-/// from 380E-9 to 780E-9 meter. 
+/// from 380E-9 to 780E-9 meter.
 /// ```
 /// // Wavelength from an index value in the domain from 0 to 400:
 /// use colorimetry::prelude::*;
@@ -163,11 +156,10 @@ pub fn wavelength<T: ToPrimitive>(i: T) -> f64 {
 /// approx::assert_ulps_eq!(l, 780E-9);
 /// ```
 #[inline]
-pub fn to_wavelength<T: ToPrimitive>(x: T, xmin: T, xmax:T) -> f64 {
+pub fn to_wavelength<T: ToPrimitive>(x: T, xmin: T, xmax: T) -> f64 {
     let xmin = xmin.to_f64().unwrap_or(f64::NAN);
     let xmax = xmax.to_f64().unwrap_or(f64::NAN);
     let x = x.to_f64().unwrap_or(f64::NAN);
-    let f = (x - xmin)/(xmax - xmin); 
+    let f = (x - xmin) / (xmax - xmin);
     380E-9 * (1.0 - f) + 780E-9 * f
 }
-

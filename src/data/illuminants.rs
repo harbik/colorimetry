@@ -1,21 +1,21 @@
-use nalgebra::{ArrayStorage, SVector, SMatrix};
+use nalgebra::{ArrayStorage, SMatrix, SVector};
 
-use crate::{illuminant::Illuminant, observer::{Observer, ObserverData}, spectrum::{Spectrum, NS}};
+use crate::{
+    illuminant::Illuminant,
+    observer::{Observer, ObserverData},
+    spectrum::{Spectrum, NS},
+};
 
 macro_rules! data_illuminant {
     ($name:ident, $data: tt) => {
         pub static $name: Illuminant = Illuminant(Spectrum(
-            SVector::<f64, NS>::from_array_storage(ArrayStorage([
-                $data
-            ]))
+            SVector::<f64, NS>::from_array_storage(ArrayStorage([$data])),
         ));
     };
     ($feature:literal, $name:ident, $data: tt) => {
         #[cfg(feature=$feature)]
         pub static $name: Illuminant = Illuminant(Spectrum(
-            SVector::<f64, NS>::from_array_storage(ArrayStorage([
-                $data
-            ]))
+            SVector::<f64, NS>::from_array_storage(ArrayStorage([$data])),
         ));
     };
 }
@@ -93,7 +93,6 @@ data_illuminant!(D50,[
 
 ]);
 
-
 /*
 macro_rules! data_illuminant {
     ($name:ident [$($val:expr),+]) => {
@@ -131,7 +130,7 @@ data_illuminant!("cie-illuminants", A, [ 9.7951, 10.0096, 10.2273, 10.4481, 10.6
 208.006, 208.599, 209.189, 209.778, 210.365, 210.949, 211.532, 212.112, 212.691, 213.268, 213.842, 214.415, 214.985, 215.553, 216.12, 216.684, 217.246, 217.806,
 218.364, 218.92, 219.473, 220.025, 220.574, 221.122, 221.667, 222.21, 222.751, 223.29, 223.826, 224.361, 224.893, 225.423, 225.951, 226.477, 227.0, 227.522,
 228.041, 228.558, 229.073, 229.585, 230.096, 230.604, 231.11, 231.614, 232.115, 232.615, 233.112, 233.606, 234.099, 234.589, 235.078, 235.564, 236.047, 236.529,
-237.008, 237.485, 237.959, 238.432, 238.902, 239.37, 239.836, 240.299, 240.76, 241.219, 241.675 ]); 
+237.008, 237.485, 237.959, 238.432, 238.902, 239.37, 239.836, 240.299, 240.76, 241.219, 241.675 ]);
 
 #[rustfmt::skip]
 data_illuminant!("cie-illuminants", F1, [1.87, 1.968, 2.0648, 2.1616, 2.2596, 2.36, 2.47328, 2.58904, 2.70616, 2.82352, 2.94, 3.04466632716049, 3.14866607253086, 3.25333265432099,
@@ -1438,5 +1437,3 @@ data_illuminant!("cie-illuminants", LED_V2, [0.0130887918150576, 0.0175834176220
 1.39970991833073, 1.36028092448643, 1.32284300335964, 1.29550773747079, 1.2628136030965, 1.2229160871038, 1.18521462226854, 1.14850364253762, 1.10175911458564,
 1.06005185858818, 1.03587318746756, 1.01851275811805, 0.990485104341776, 0.964594131181941, 0.942168757788518, 0.916503773358699, 0.888727950237188,
 0.862004691404681, 0.838215406113328]);
-
-

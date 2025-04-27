@@ -21,7 +21,7 @@ The relative amount of L, M, and S cones varies also between different observers
 
 ## Genetic Basis of Color Vision
 Primarily, this is caused by genetic differences.
-Genes on the X-chromosome contain the recipe for generating complex molecules called chromophores in our cones. 
+Genes on the X-chromosome contain the recipe for generating complex molecules called chromophores in our cones.
 When these molecules are excited by electromagnetic radiation, they trigger the generation of electrochemical reactions that form a stimulus sent to the virtual cortex in the back of our brain.
 There are different variations besides the primary distinction of L, M, and S type of chromophores.
 Genes such as an M- or L-type chromophore might be missing, causing red-green color blindness, the most common color deficiency in men.
@@ -62,76 +62,75 @@ In these diagrams, the end points of this perimeter, called spectral locus,
 are not uniquly defined by the wavelength paramter anymore.
 At these edges, a single chormaticity value can be associated with different wavelengths.
 Color matching functions defined by the CIE have a broad wavelength range.
-  
+
  */
 
-
-use std::{borrow::{Borrow, Cow}, sync::OnceLock};
-use wasm_bindgen::{convert::IntoWasmAbi, prelude::wasm_bindgen};
-use nalgebra::{Matrix3, SMatrix, Vector3};
 use crate::{
-    lab::CieLab, 
-    physics::{planck, planck_slope, to_wavelength}, 
+    colorant::Colorant,
+    error::CmtError,
+    geometry::LineAB,
+    lab::CieLab,
+    physics::{planck, planck_slope, to_wavelength},
+    rgbspace::RgbSpace,
     spectrum::{Spectrum, NS, SPECTRUM_WAVELENGTH_RANGE},
-    xyz::XYZ, 
-    error::CmtError, 
-    colorant::Colorant, 
-    traits::{Filter, Light}, 
-    geometry::LineAB, 
-    rgbspace::RgbSpace, 
-    std_illuminants::StdIlluminant
+    std_illuminants::StdIlluminant,
+    traits::{Filter, Light},
+    xyz::XYZ,
 };
-
-
+use nalgebra::{Matrix3, SMatrix, Vector3};
+use std::{
+    borrow::{Borrow, Cow},
+    sync::OnceLock,
+};
+use wasm_bindgen::{convert::IntoWasmAbi, prelude::wasm_bindgen};
 
 /**
-    Light-weight identifier added to the `XYZ` and `RGB` datasets,
-    representing the colorimetric standard observer used.
+   Light-weight identifier added to the `XYZ` and `RGB` datasets,
+   representing the colorimetric standard observer used.
 
-    No data included here, which would be the Rust way, but that does not work with wasm-bindgen.
-    This can be directly used in JavaScript, and has the benefit to be just an index.
- */
-#[cfg(not(feature="supplemental-observers"))]
+   No data included here, which would be the Rust way, but that does not work with wasm-bindgen.
+   This can be directly used in JavaScript, and has the benefit to be just an index.
+*/
+#[cfg(not(feature = "supplemental-observers"))]
 #[wasm_bindgen]
 #[derive(Clone, Copy, Default, PartialEq, Eq, Debug)]
-pub enum Observer { 
+pub enum Observer {
     #[default]
-    Std1931, 
+    Std1931,
 }
 
-#[cfg(feature="supplemental-observers")]
+#[cfg(feature = "supplemental-observers")]
 #[wasm_bindgen]
 #[derive(Clone, Copy, Default, PartialEq, Eq, Debug)]
-pub enum Observer { 
+pub enum Observer {
     #[default]
-    Std1931, 
-    Std1964, 
-    Std2015, 
-    Std2015_10
+    Std1931,
+    Std1964,
+    Std2015,
+    Std2015_10,
 }
 
 impl Observer {
     /**
-        Get a reference to the data for the specified `Observer`.
-     */
+       Get a reference to the data for the specified `Observer`.
+    */
     pub fn data(&self) -> &'static ObserverData {
         match self {
-            Observer::Std1931 =>  &crate::data::observers::CIE1931,
-            #[cfg(feature="supplemental-observers")]
-            Observer::Std1964 =>  &crate::data::observers::CIE1964,
-            #[cfg(feature="supplemental-observers")]
-            Observer::Std2015 =>  &crate::data::observers::CIE2015,
-            #[cfg(feature="supplemental-observers")]
-            Observer::Std2015_10 =>  &crate::data::observers::CIE2015_10,
+            Observer::Std1931 => &crate::data::observers::CIE1931,
+            #[cfg(feature = "supplemental-observers")]
+            Observer::Std1964 => &crate::data::observers::CIE1964,
+            #[cfg(feature = "supplemental-observers")]
+            Observer::Std2015 => &crate::data::observers::CIE2015,
+            #[cfg(feature = "supplemental-observers")]
+            Observer::Std2015_10 => &crate::data::observers::CIE2015_10,
         }
     }
 }
 
-
 /**
     A data structure to define Standard Observers, such as the CIE 1931 2º and
     the CIE 2015 standard observers.
-    
+
     These are defined in the form of the three color matching functions,
     typically denoted by $\hat{x}(\lamda)$,$\hat{y}{\lambda}$, and $\hat{z}(\lambda)$.
     Traditionally, the CIE1931 Colorimetric Standard Observer is used almost exclusively,
@@ -159,13 +158,13 @@ impl ObserverData {
     /// filtering the light.
     ///
     /// The Light trait is implemented by [`StdIlluminant`] and [Illuminant](crate::illuminant::Illuminant).
-    /// 
+    ///
     /// [`Colorant`] implments the [`Filter`] trait.
     /// [`RGB`](crate::rgb::RGB), which represents a display pixel, implements both in this library.
     /// As a light, it is the light emitted from the pixel, as a filter it is the RGB-composite
     /// filter which is applied to the underlying standard illuminant of color space.
     pub fn xyz(&self, light: &dyn Light, filter: Option<&dyn Filter>) -> XYZ {
-       // let xyzn = self.xyz_cie_table(illuminant, None);
+        // let xyzn = self.xyz_cie_table(illuminant, None);
         let xyzn = light.xyzn(self.tag, None);
         let xyz = if let Some(flt) = filter {
             let s = *light.spectrum() * *flt.spectrum();
@@ -186,13 +185,14 @@ impl ObserverData {
     */
     pub fn xyz_from_spectrum(&self, spectrum: &Spectrum, rhs: Option<XYZ>) -> XYZ {
         let xyz = self.data * spectrum.0 * self.lumconst;
-        if let Some(xyz0) = rhs { // A illuminant/colorant
+        if let Some(xyz0) = rhs {
+            // A illuminant/colorant
             XYZ::from_vecs(xyz0.xyzn, Some(xyz), self.tag)
-        } else { // illuminant only
+        } else {
+            // illuminant only
             XYZ::from_vecs(xyz, None, self.tag)
         }
     }
-
 
     /**
         Tristimulus Values for the Standard Illuminants in this library.
@@ -201,13 +201,14 @@ impl ObserverData {
         value is provided, in case they are.
     */
     pub fn xyz_cie_table(&self, std_illuminant: &StdIlluminant, illuminance: Option<f64>) -> XYZ {
-        const EMPTY:OnceLock<XYZ> = OnceLock::new();
+        const EMPTY: OnceLock<XYZ> = OnceLock::new();
         const XYZ_STD_ILLUMINANTS_LEN: usize = 64;
-        static XYZ_STD_ILLUMINANTS : OnceLock<[OnceLock<XYZ>;XYZ_STD_ILLUMINANTS_LEN]> = OnceLock::new();
-        let xyz_std_illuminants = XYZ_STD_ILLUMINANTS.get_or_init(||[EMPTY; XYZ_STD_ILLUMINANTS_LEN]);
-        let xyz = *xyz_std_illuminants[*std_illuminant as usize].get_or_init(||{
-            self.xyz_from_spectrum(std_illuminant.illuminant(), None)
-        });
+        static XYZ_STD_ILLUMINANTS: OnceLock<[OnceLock<XYZ>; XYZ_STD_ILLUMINANTS_LEN]> =
+            OnceLock::new();
+        let xyz_std_illuminants =
+            XYZ_STD_ILLUMINANTS.get_or_init(|| [EMPTY; XYZ_STD_ILLUMINANTS_LEN]);
+        let xyz = *xyz_std_illuminants[*std_illuminant as usize]
+            .get_or_init(|| self.xyz_from_spectrum(std_illuminant.illuminant(), None));
         if let Some(l) = illuminance {
             xyz.set_illuminance(l)
         } else {
@@ -242,39 +243,38 @@ impl ObserverData {
         ```
             use colorimetry::prelude::*;
             let rgb: [u8;3] = CIE1931.xyz_from_std_illuminant_x_fn(&StdIlluminant::D65, |x|x).rgb(None).into();
-            assert_eq!(rgb, [212, 171, 109]); 
+            assert_eq!(rgb, [212, 171, 109]);
         ```
         Linear low pass filter, with a value of 1.0 for a wavelength of 380nm, and a value of 0.0 for 780nm,
         and converting the resulting value to RGB values.
         ```
             use colorimetry::prelude::*;
             let rgb: [u8;3] = CIE1931.xyz_from_std_illuminant_x_fn(&StdIlluminant::D65, |x|1.0-x).rgb(None).into();
-            assert_eq!(rgb, [158, 202, 237]); 
+            assert_eq!(rgb, [158, 202, 237]);
         ```
 
     */
-    pub fn xyz_from_std_illuminant_x_fn(&self, illuminant: &StdIlluminant, f: impl Fn(f64) -> f64) -> XYZ {
+    pub fn xyz_from_std_illuminant_x_fn(
+        &self,
+        illuminant: &StdIlluminant,
+        f: impl Fn(f64) -> f64,
+    ) -> XYZ {
         let s = illuminant.illuminant();
         let xyzn = self.xyz_cie_table(illuminant, None).xyzn;
-        let xyz = 
-            self.data
-                .column_iter()
-                .zip(s.0.0.iter())
-                .enumerate()
-                .fold(
-                    Vector3::zeros(),
-                    |acc, (i, (cmfi, sv))| {
-                        acc + cmfi * f(i as f64/(NS -1) as f64).clamp(0.0, 1.0) * *sv
-                    }
-                );
+        let xyz =
+            self.data.column_iter().zip(s.0 .0.iter()).enumerate().fold(
+                Vector3::zeros(),
+                |acc, (i, (cmfi, sv))| {
+                    acc + cmfi * f(i as f64 / (NS - 1) as f64).clamp(0.0, 1.0) * *sv
+                },
+            );
         XYZ {
             xyz: Some(xyz * self.lumconst),
             xyzn,
-            observer: self.tag
-
-        }.set_illuminance(100.0)
+            observer: self.tag,
+        }
+        .set_illuminance(100.0)
     }
-
 
     /**
         Calculates XYZ tristimulus values for an illuminant with its spectral distribution
@@ -286,19 +286,17 @@ impl ObserverData {
         and yw is set to None.
     */
     pub fn xyz_fn_illuminant(&self, f: impl Fn(f64) -> f64) -> XYZ {
-        let xyzn = 
-            self.data
-                .column_iter()
-                .enumerate()
-                .fold(
-                    Vector3::zeros(),
-                     |acc, (i, cmf)| {
-                    acc + cmf * f(i as f64/(NS - 1) as f64)
-        });
+        let xyzn = self
+            .data
+            .column_iter()
+            .enumerate()
+            .fold(Vector3::zeros(), |acc, (i, cmf)| {
+                acc + cmf * f(i as f64 / (NS - 1) as f64)
+            });
         XYZ {
             xyz: None,
             xyzn,
-            observer: self.tag
+            observer: self.tag,
         }
     }
 
@@ -308,15 +306,14 @@ impl ObserverData {
     /// `xyz_from_illuminant_as_fn` uses functions over a domain from 0.0 to
     /// 1.0.
     pub fn xyz_planckian_locus(&self, cct: f64) -> XYZ {
-        self.xyz_fn_illuminant(|l|planck(to_wavelength(l, 0.0, 1.0), cct))
+        self.xyz_fn_illuminant(|l| planck(to_wavelength(l, 0.0, 1.0), cct))
     }
 
     /// The slope of the Plancking locus as a (dX/dT, dY/dT, dZ/dT) contained in
     /// a XYZ object.
     pub fn xyz_planckian_locus_slope(&self, cct: f64) -> XYZ {
-        self.xyz_fn_illuminant(|l|planck_slope(to_wavelength(l, 0.0, 1.0), cct))
+        self.xyz_fn_illuminant(|l| planck_slope(to_wavelength(l, 0.0, 1.0), cct))
     }
-    
 
     /// Calculates the L*a*b* CIELAB D65 values of a Colorant, using D65 as an illuminant.
     /// Accepts a Colorant Spectrum only.
@@ -339,14 +336,14 @@ impl ObserverData {
     /// as XYZ tristimulus values.  Tristimulus values are returned here,
     /// instead of chromaticity xy coordinates, to make use of the available XYZ
     /// transforms.
-    /// 
+    ///
     /// This function limits the input values to produce unique chromaticity
     /// values only.  Spectral locus points tend to freeze, or even fold back to
     /// lower wavelength values at the blue and red perimeter ends.  This can be
     /// quite anoying, for example when trying to calculate dominant wavelength,
     /// or when creating plots.  To get the allowed range, use the
     /// `spectral_wavelength_min` and `spectral_wavelength_max` methods.
-    /// 
+    ///
     /// See Wikipedia's [CIE 1931 Color Space](https://en.wikipedia.org/wiki/CIE_1931_color_space).
     pub fn spectral_locus_by_nm(&self, l: usize) -> Result<XYZ, CmtError> {
         let min = self.spectral_locus_nm_min();
@@ -354,20 +351,20 @@ impl ObserverData {
         if !SPECTRUM_WAVELENGTH_RANGE.contains(&l) {
             return Err(CmtError::WavelengthOutOfRange);
         };
-        if l<min || l>max {
+        if l < min || l > max {
             Err(CmtError::NoUniqueSpectralLocus(min, max))
         } else {
-            let &[x, y, z] = self.data.column(l-380).as_ref();
+            let &[x, y, z] = self.data.column(l - 380).as_ref();
             Ok(XYZ::from_vecs(Vector3::new(x, y, z), None, self.tag))
         }
     }
 
     /// Unrestricted, direct, access to the spectal locus data.
     /// To get unique values only please use the `spectral_locus_by_nm` function.
-    pub fn spectral_locus_by_index(&self, i:usize) -> [f64;2] {
+    pub fn spectral_locus_by_index(&self, i: usize) -> [f64; 2] {
         let &[x, y, z] = self.data.column(i).as_ref();
         let s = x + y + z;
-        [x/s, y/s]
+        [x / s, y / s]
     }
 
     /// The index value of the blue spectral locus edge.
@@ -375,16 +372,18 @@ impl ObserverData {
     /// Any further spectral locus points will hover around this edge, and will not have a unique wavelength.
     pub fn spectral_locus_index_min(&self) -> usize {
         static MIN: OnceLock<usize> = OnceLock::new();
-        *MIN.get_or_init(||{
+        *MIN.get_or_init(|| {
             const START: usize = 100;
-            let mut lp = LineAB::try_new(self.spectral_locus_by_index(START), [0.33333, 0.33333]).unwrap();
+            let mut lp =
+                LineAB::try_new(self.spectral_locus_by_index(START), [0.33333, 0.33333]).unwrap();
             let mut m = START - 1;
             loop {
-                let l = LineAB::try_new(self.spectral_locus_by_index(m), [0.33333, 0.33333]).unwrap();
+                let l =
+                    LineAB::try_new(self.spectral_locus_by_index(m), [0.33333, 0.33333]).unwrap();
                 match (m, l.angle_diff(lp)) {
-                    (0, d) if d> -f64::EPSILON => break m + 1,
-                    (0, _)  => break 0,
-                    (1.., d) if d> -f64::EPSILON => break m,
+                    (0, d) if d > -f64::EPSILON => break m + 1,
+                    (0, _) => break 0,
+                    (1.., d) if d > -f64::EPSILON => break m,
                     _ => {
                         m -= 1;
                         lp = l;
@@ -395,7 +394,7 @@ impl ObserverData {
     }
 
     pub fn spectral_locus_nm_min(&self) -> usize {
-        self.spectral_locus_index_min()+380
+        self.spectral_locus_index_min() + 380
     }
 
     /// The index value of the red spectral locus edge.
@@ -403,16 +402,18 @@ impl ObserverData {
     /// Any further spectral locus points will hover around this edge.
     pub fn spectral_locus_index_max(&self) -> usize {
         static MAX: OnceLock<usize> = OnceLock::new();
-        *MAX.get_or_init(||{
+        *MAX.get_or_init(|| {
             const START: usize = 300;
-            let mut lp = LineAB::try_new(self.spectral_locus_by_index(START), [0.33333, 0.33333]).unwrap();
+            let mut lp =
+                LineAB::try_new(self.spectral_locus_by_index(START), [0.33333, 0.33333]).unwrap();
             let mut m = START + 1;
             loop {
-                let l = LineAB::try_new(self.spectral_locus_by_index(m), [0.33333, 0.33333]).unwrap();
+                let l =
+                    LineAB::try_new(self.spectral_locus_by_index(m), [0.33333, 0.33333]).unwrap();
                 match (m, l.angle_diff(lp)) {
-                    (400, d) if d< f64::EPSILON => break m-1,
-                    (400, _)  => break 400,
-                    (..400, d) if d< f64::EPSILON => break m-1,
+                    (400, d) if d < f64::EPSILON => break m - 1,
+                    (400, _) => break 400,
+                    (..400, d) if d < f64::EPSILON => break m - 1,
                     _ => {
                         m += 1;
                         lp = l;
@@ -423,24 +424,24 @@ impl ObserverData {
     }
 
     pub fn spectral_locus_nm_max(&self) -> usize {
-        self.spectral_locus_index_max()+380
+        self.spectral_locus_index_max() + 380
     }
 
     /// Calculates the RGB to XYZ matrix, for a particular color space.
     /// The matrices are buffered.
     pub fn rgb2xyz(&self, rgbspace: &RgbSpace) -> &'static Matrix3<f64> {
-        const EMPTY:OnceLock<Matrix3<f64>> = OnceLock::new();
+        const EMPTY: OnceLock<Matrix3<f64>> = OnceLock::new();
         const RGB2XYZ_AR_LEN: usize = 16;
-        static RGB2XYZ_AR : OnceLock<[OnceLock<Matrix3<f64>>;RGB2XYZ_AR_LEN]> = OnceLock::new();
-        let rgb2xyz_ar =RGB2XYZ_AR.get_or_init(||[EMPTY;RGB2XYZ_AR_LEN]);
-        rgb2xyz_ar[*rgbspace as usize].get_or_init(||{
-            let (space,_) = rgbspace.data();
-            let mut rgb2xyz = 
-                Matrix3::from_iterator(space.primaries
-                    .iter()
-                    .flat_map(|s|self.xyz_from_spectrum(s, None)
-                    .set_illuminance(1.0).values()));
-           // let xyzw = self.xyz_raw(&space.white, None).set_illuminance(1.0);
+        static RGB2XYZ_AR: OnceLock<[OnceLock<Matrix3<f64>>; RGB2XYZ_AR_LEN]> = OnceLock::new();
+        let rgb2xyz_ar = RGB2XYZ_AR.get_or_init(|| [EMPTY; RGB2XYZ_AR_LEN]);
+        rgb2xyz_ar[*rgbspace as usize].get_or_init(|| {
+            let (space, _) = rgbspace.data();
+            let mut rgb2xyz = Matrix3::from_iterator(space.primaries.iter().flat_map(|s| {
+                self.xyz_from_spectrum(s, None)
+                    .set_illuminance(1.0)
+                    .values()
+            }));
+            // let xyzw = self.xyz_raw(&space.white, None).set_illuminance(1.0);
             let xyzw = self.xyz(&space.white, None).set_illuminance(1.0);
             let decomp = rgb2xyz.lu();
             // unwrap: only used with library color spaces
@@ -449,33 +450,27 @@ impl ObserverData {
                 col *= rgbw[i];
             }
             rgb2xyz
-
         })
     }
 
     /// Calculates the RGB to XYZ matrix, for a particular color space.
     /// The matrices are buffered.
     pub fn xyz2rgb(&self, rgbspace: RgbSpace) -> &'static Matrix3<f64> {
-        const EMPTY:OnceLock<Matrix3<f64>> = OnceLock::new();
+        const EMPTY: OnceLock<Matrix3<f64>> = OnceLock::new();
         const XYZ2RGB_AR_LEN: usize = 16;
-        static XYZ2RGB_AR : OnceLock<[OnceLock<Matrix3<f64>>;XYZ2RGB_AR_LEN]> = OnceLock::new();
-        let xyz2rgb =XYZ2RGB_AR.get_or_init(||[EMPTY;XYZ2RGB_AR_LEN]);
-        xyz2rgb[rgbspace as usize].get_or_init(||{
+        static XYZ2RGB_AR: OnceLock<[OnceLock<Matrix3<f64>>; XYZ2RGB_AR_LEN]> = OnceLock::new();
+        let xyz2rgb = XYZ2RGB_AR.get_or_init(|| [EMPTY; XYZ2RGB_AR_LEN]);
+        xyz2rgb[rgbspace as usize].get_or_init(|| {
             // unwrap: only used with library color spaces
             self.rgb2xyz(&rgbspace).try_inverse().unwrap()
         })
     }
-
-
 }
 
 // JS-WASM Interface code
-#[cfg(target_arch="wasm32")]
+#[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
-impl ObserverData {
-
-}
-
+impl ObserverData {}
 
 #[cfg(test)]
 mod obs_test {
@@ -484,18 +479,24 @@ mod obs_test {
     use approx::assert_ulps_eq;
 
     #[test]
-    fn test_spectral_locus(){
-        let [x,y] = CIE1931.spectral_locus_by_nm(CIE1931.spectral_locus_nm_min()).unwrap().chromaticity();
-        assert_ulps_eq!(x, 0.17411, epsilon=1E-5);
-        assert_ulps_eq!(y, 0.00496, epsilon=1E-5);
+    fn test_spectral_locus() {
+        let [x, y] = CIE1931
+            .spectral_locus_by_nm(CIE1931.spectral_locus_nm_min())
+            .unwrap()
+            .chromaticity();
+        assert_ulps_eq!(x, 0.17411, epsilon = 1E-5);
+        assert_ulps_eq!(y, 0.00496, epsilon = 1E-5);
 
-        let [x,y] = CIE1931.spectral_locus_by_nm(CIE1931.spectral_locus_nm_max()).unwrap().chromaticity();
-        assert_ulps_eq!(x, 0.73469, epsilon=1E-5);
-        assert_ulps_eq!(y, 0.26531, epsilon=1E-5);
+        let [x, y] = CIE1931
+            .spectral_locus_by_nm(CIE1931.spectral_locus_nm_max())
+            .unwrap()
+            .chromaticity();
+        assert_ulps_eq!(x, 0.73469, epsilon = 1E-5);
+        assert_ulps_eq!(y, 0.26531, epsilon = 1E-5);
     }
 
     #[test]
-    fn test_spectral_locus_min_max(){
+    fn test_spectral_locus_min_max() {
         let min = CIE1931.spectral_locus_index_min();
         println!("{min}");
         let max = CIE1931.spectral_locus_index_max();
@@ -513,8 +514,11 @@ mod obs_test {
     // their online dataset section. The spectra for the primaries are chosen to match the RGB primary values as given by the Color Space specifications.
     // The white point uses the standard's spectral distribution, as provided by the CIE, clipped to a domain from 380 to 780 nanometer.
     // See `colorimetry::data::D65`.
-    fn test_rgb2xyz_cie1931(){
-        let want =  nalgebra::Matrix3::new(0.4124564,  0.3575761,  0.1804375, 0.2126729,  0.7151522,  0.0721750, 0.0193339,  0.1191920,  0.9503041);
+    fn test_rgb2xyz_cie1931() {
+        let want = nalgebra::Matrix3::new(
+            0.4124564, 0.3575761, 0.1804375, 0.2126729, 0.7151522, 0.0721750, 0.0193339, 0.1191920,
+            0.9503041,
+        );
         let got = CIE1931.rgb2xyz(&crate::rgbspace::RgbSpace::SRGB);
         approx::assert_ulps_eq!(want, got, epsilon = 3E-4);
     }
@@ -522,56 +526,56 @@ mod obs_test {
     #[test]
     // Check the inverse transformation.
     // See comments at `test_rgb2xyz_cie1931`.
-    fn test_xyz2rgb_cie1931(){
-        let want =  nalgebra::Matrix3::new(3.2404542, -1.5371385, -0.4985314, -0.9692660,  1.8760108,  0.0415560, 0.0556434, -0.2040259,  1.0572252);
+    fn test_xyz2rgb_cie1931() {
+        let want = nalgebra::Matrix3::new(
+            3.2404542, -1.5371385, -0.4985314, -0.9692660, 1.8760108, 0.0415560, 0.0556434,
+            -0.2040259, 1.0572252,
+        );
         let got = CIE1931.xyz2rgb(crate::rgbspace::RgbSpace::SRGB);
         approx::assert_ulps_eq!(want, got, epsilon = 3E-4);
     }
 
     #[test]
-    fn test_xyz_std_illuminants(){
+    fn test_xyz_std_illuminants() {
         use crate::xyz::XYZ;
         use nalgebra as na;
-        let XYZ{
-            xyz, 
-            xyzn, 
-            observer
+        let XYZ {
+            xyz,
+            xyzn,
+            observer,
         } = CIE1931.xyz_cie_table(&StdIlluminant::D65, Some(100.0));
-        approx::assert_ulps_eq!(xyzn, na::Vector3::new(95.04, 100.0, 108.86), epsilon=1E-2);
+        approx::assert_ulps_eq!(xyzn, na::Vector3::new(95.04, 100.0, 108.86), epsilon = 1E-2);
         assert!(xyz.is_none());
     }
-    
+
     #[test]
-    fn test_planckian_locus(){
+    fn test_planckian_locus() {
         // see https://www.waveformlighting.com/tech/calculate-cie-1931-xy-coordinates-from-cct
         // for test data (not clear what CMF domain they use)
         let xy = CIE1931.xyz_planckian_locus(3000.0).chromaticity();
-        approx::assert_abs_diff_eq!(&xy.as_ref(), &[0.43693,0.40407].as_ref(), epsilon = 2E-5);
+        approx::assert_abs_diff_eq!(&xy.as_ref(), &[0.43693, 0.40407].as_ref(), epsilon = 2E-5);
 
         let xy = CIE1931.xyz_planckian_locus(6500.0).chromaticity();
-        approx::assert_abs_diff_eq!(&xy.as_ref(), &[0.31352,0.32363].as_ref(), epsilon = 6E-5);
+        approx::assert_abs_diff_eq!(&xy.as_ref(), &[0.31352, 0.32363].as_ref(), epsilon = 6E-5);
     }
-    
-    #[test]
-    fn test_xyz_from_illuminant_x_fn(){
-        let xyz = CIE1931.xyz_from_std_illuminant_x_fn(&StdIlluminant::D65, |_v|1.0);
-        let d65xyz =  CIE1931.xyz_d65().xyzn;
-        approx::assert_ulps_eq!(xyz, crate::xyz::XYZ::from_vecs(d65xyz, Some(d65xyz), crate::observer::Observer::Std1931));
 
-    }
-    
     #[test]
-    fn test_xyz_of_sample_with_standard_illuminant(){
-        use crate::prelude::{XYZ, StdIlluminant::D65 as d65};
-        let xyz = 
-            CIE1931
-                .xyz(&d65, Some(&crate::colorant::Colorant::white()));
-        approx::assert_ulps_eq!(xyz, CIE1931.xyz_from_std_illuminant_x_fn(&d65, |_|1.0));
-
-        let xyz = 
-            CIE1931
-                .xyz(&d65, Some(&crate::colorant::Colorant::black()));
-        approx::assert_ulps_eq!(xyz, CIE1931.xyz_from_std_illuminant_x_fn(&d65, |_|0.0));
+    fn test_xyz_from_illuminant_x_fn() {
+        let xyz = CIE1931.xyz_from_std_illuminant_x_fn(&StdIlluminant::D65, |_v| 1.0);
+        let d65xyz = CIE1931.xyz_d65().xyzn;
+        approx::assert_ulps_eq!(
+            xyz,
+            crate::xyz::XYZ::from_vecs(d65xyz, Some(d65xyz), crate::observer::Observer::Std1931)
+        );
     }
-    
+
+    #[test]
+    fn test_xyz_of_sample_with_standard_illuminant() {
+        use crate::prelude::{StdIlluminant::D65 as d65, XYZ};
+        let xyz = CIE1931.xyz(&d65, Some(&crate::colorant::Colorant::white()));
+        approx::assert_ulps_eq!(xyz, CIE1931.xyz_from_std_illuminant_x_fn(&d65, |_| 1.0));
+
+        let xyz = CIE1931.xyz(&d65, Some(&crate::colorant::Colorant::black()));
+        approx::assert_ulps_eq!(xyz, CIE1931.xyz_from_std_illuminant_x_fn(&d65, |_| 0.0));
+    }
 }
