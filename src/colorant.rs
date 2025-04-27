@@ -1,10 +1,20 @@
-use std::{borrow::Cow, ops::{Add, AddAssign, Deref, DerefMut, Mul, MulAssign}};
+use std::{
+    borrow::Cow,
+    ops::{Add, AddAssign, Deref, DerefMut, Mul, MulAssign},
+};
 
 use approx::{assert_abs_diff_eq, AbsDiffEq};
 use nalgebra::SVector;
 
-use crate::{error::CmtError, lab::CieLab, physics::{gaussian_peak_one, wavelength}, prelude::{Illuminant, Observer, D65}, spectrum::{wavelengths, Spectrum, NS}, std_illuminants, traits::{Filter, Light}};
-
+use crate::{
+    error::CmtError,
+    lab::CieLab,
+    physics::{gaussian_peak_one, wavelength},
+    prelude::{Illuminant, Observer, D65},
+    spectrum::{wavelengths, Spectrum, NS},
+    std_illuminants,
+    traits::{Filter, Light},
+};
 
 /// A Colorant represents color filters and color patches. These are spectrums
 /// with spectral values between 0.0 and 1.0.
@@ -33,7 +43,7 @@ impl Colorant {
     /// values equal to the value given in the argument, over a range from 380
     /// to 780 nanometer. Mainly used for color mixing calculations.
     pub fn gray(gval: f64) -> Self {
-        Self(Spectrum(SVector::<f64,NS>::repeat(gval.clamp(0.0, 1.0))))
+        Self(Spectrum(SVector::<f64, NS>::repeat(gval.clamp(0.0, 1.0))))
     }
 
     /// Theoretical spectrum of a perfect white colorant, consisting of 401
@@ -49,7 +59,6 @@ impl Colorant {
     pub fn black() -> Self {
         Self::gray(0.0)
     }
-
 
     /// A Rectangular Band Filter, specified by a central wavelength, and a
     /// width, both in units of meter, or nanometer.
@@ -71,20 +80,21 @@ impl Colorant {
     /// assert_ulps_eq!(bandfilter[550], 1.0);
     /// assert_ulps_eq!(bandfilter[551], 1.0);
     /// assert_ulps_eq!(bandfilter[552], 0.0);
-    /// 
+    ///
     /// ```
     pub fn top_hat(center: f64, width: f64) -> Self {
         let [center_m, width_m] = wavelengths([center, width]);
-        let left = center_m - width_m/2.0;
-        let right = center_m + width_m/2.0;
-        let data = SVector::<f64,NS>::from_fn(|i,_j|
-            {
-              //  let w = (i+380) as f64 * 1E-9;
-                let w = wavelength(i+380);
-                if w < left - f64::EPSILON || w > right + f64::EPSILON { 0.0}
-                else {1.0}
+        let left = center_m - width_m / 2.0;
+        let right = center_m + width_m / 2.0;
+        let data = SVector::<f64, NS>::from_fn(|i, _j| {
+            //  let w = (i+380) as f64 * 1E-9;
+            let w = wavelength(i + 380);
+            if w < left - f64::EPSILON || w > right + f64::EPSILON {
+                0.0
+            } else {
+                1.0
             }
-        );
+        });
         Self(Spectrum(data))
     }
 
@@ -94,9 +104,9 @@ impl Colorant {
     /// The filter has a peak value of 1.0
     pub fn gaussian(center: f64, sigma: f64) -> Self {
         let [center_m, width_m] = wavelengths([center, sigma]);
-        let data = SVector::<f64,NS>::from_fn(|i,_j|
-            gaussian_peak_one((i+380) as f64 * 1E-9, center_m, width_m)
-        );
+        let data = SVector::<f64, NS>::from_fn(|i, _j| {
+            gaussian_peak_one((i + 380) as f64 * 1E-9, center_m, width_m)
+        });
         Self(Spectrum(data))
     }
 
@@ -108,18 +118,20 @@ impl Colorant {
     pub fn cielab(&self, illuminant_opt: Option<&dyn Light>, obs_opt: Option<Observer>) -> CieLab {
         let illuminant = illuminant_opt.unwrap_or(&D65);
         let obs = obs_opt.unwrap_or_default();
-        let xyz = obs.data().xyz(illuminant, Some(self)).set_illuminance(100.0);
+        let xyz = obs
+            .data()
+            .xyz(illuminant, Some(self))
+            .set_illuminance(100.0);
         CieLab::try_from(xyz).unwrap()
     }
-
 }
 
 #[test]
 fn test_colorant_cielab() {
     // Test that the CIELAB values for a white colorant are as expected.
     // A white surface has CIELAB values of L* = 100, a* = 0, b* = 0.
-    use approx::assert_abs_diff_eq;
     use crate::prelude::*;
+    use approx::assert_abs_diff_eq;
     let colorant = Colorant::white();
     let lab = colorant.cielab(None, None);
     assert_abs_diff_eq!(lab.lab[0], 100.0, epsilon = 1E-4); // L* should be 100 for white
@@ -140,8 +152,10 @@ impl TryFrom<Spectrum> for Colorant {
     }
 }
 
-impl<F> From<F> for Colorant 
-    where F: Fn(f64)-> f64 {
+impl<F> From<F> for Colorant
+where
+    F: Fn(f64) -> f64,
+{
     /**
         Colorant from an analytical function, defined over a domain from 0.0 to 1.0, covering the
         wavelength range from 380 to 780 nanometer.
@@ -162,14 +176,13 @@ impl<F> From<F> for Colorant
         ```
     */
     fn from(f: F) -> Self {
-        let data = SVector::from_fn(|i,_j|{
-            let x = i as f64/(NS-1) as f64;
+        let data = SVector::from_fn(|i, _j| {
+            let x = i as f64 / (NS - 1) as f64;
             f(x).clamp(0.0, 1.0)
         });
         Colorant(Spectrum(data))
     }
 }
-
 
 /// Make colorant data available as a generic [`Filter`] entity, used in particular
 /// in the [`Observer`] tristiumulus `xyz`-function.
@@ -220,7 +233,7 @@ impl Mul<Colorant> for Colorant {
     type Output = Self;
 
     /// Multiplication of two colorants using the `*`-operator.
-    /// 
+    ///
     /// Subtractive Mixing.
     /// ```rust
     /// use colorimetry::prelude::*;
@@ -237,7 +250,7 @@ impl Mul<&Colorant> for &Colorant {
     type Output = Colorant;
 
     /// Multiplication of two colorant references using the `*`-operator.
-    /// 
+    ///
     /// Non-consuming multiplication.
     /// Subtractive Mixing.
     /// ```rust

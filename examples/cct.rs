@@ -1,9 +1,9 @@
-// to run this example use: 
+// to run this example use:
 //  `cargo run --features cct --example cct -- -x 0.333 -y 0.333`
 
-use colorimetry::prelude::*;
-use colored::Colorize;
 use clap::Parser;
+use colored::Colorize;
+use colorimetry::prelude::*;
 
 /// Calculate Correlated Color Temperature, Planckian Distance, and Tint, for a given set of (x,y)
 /// chromaticity values.
@@ -17,11 +17,9 @@ struct Args {
     /// CIE 1931 y Chromaticity coordinate
     #[arg(short, long)]
     y: f64,
-
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>>{
-    
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
     let xyz: XYZ = XYZ::try_from_chromaticity(args.x, args.y, None, None)?;
     let cct: CCT = xyz.try_into()?;
@@ -32,8 +30,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>>{
     println!("Duv  = {d:.5}");
     println!("Tint = {tint:.1}");
     println!();
-
-
 
     Ok(())
 }

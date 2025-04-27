@@ -40,17 +40,12 @@ A static reference to the spectra can be obtained using the "spectrum" method.
 ```
 */
 
-use std::{borrow::Cow, ops::Deref, vec};
-use nalgebra::{ArrayStorage, SMatrix};
-use wasm_bindgen::prelude::*;
 use crate::{
-    error::CmtError,
-    spectrum::Spectrum,
-    traits::Light,
-    illuminant::Illuminant,
-    spectrum::NS
+    error::CmtError, illuminant::Illuminant, spectrum::Spectrum, spectrum::NS, traits::Light,
 };
-
+use nalgebra::{ArrayStorage, SMatrix};
+use std::{borrow::Cow, ops::Deref, vec};
+use wasm_bindgen::prelude::*;
 
 // This macro generates the `StdIlluminant` enumerator, representing the standard illuminants
 // available in the library.  It adds the illuminants defined as static data by their name as an
@@ -99,28 +94,27 @@ impl From<StdIlluminant> for Illuminant {
 }
 
 impl AsRef<Illuminant> for StdIlluminant {
-    
     fn as_ref(&self) -> &Illuminant {
         self.illuminant()
     }
 }
 
 impl Light for StdIlluminant {
-    fn xyzn(&self, observer: crate::observer::Observer, illuminance: Option<f64>) -> crate::xyz::XYZ {
+    fn xyzn(
+        &self,
+        observer: crate::observer::Observer,
+        illuminance: Option<f64>,
+    ) -> crate::xyz::XYZ {
         observer.data().xyz_cie_table(self, illuminance)
     }
-    
-    fn spectrum(&self) -> Cow<'_,Spectrum> {
-       // Cow::Borrowed(self.illuminant())
+
+    fn spectrum(&self) -> Cow<'_, Spectrum> {
+        // Cow::Borrowed(self.illuminant())
         (&self.illuminant().0).into()
     }
 }
 
 std_illuminants!(D65 D50 [A F1 F2 F3 F4 F5 F6 F7 F8 F9 F10 F11 F12
-   F3_1 F3_2 F3_3 F3_4 F3_5 F3_6 F3_7 F3_8 F3_9 F3_10 F3_11 F3_12 F3_13 F3_14 F3_15
-   LED_B1 LED_B2 LED_B3 LED_B4 LED_B5 LED_BH1 LED_RGB1 LED_V1 LED_V2
-   ]);
-
-
-
-
+F3_1 F3_2 F3_3 F3_4 F3_5 F3_6 F3_7 F3_8 F3_9 F3_10 F3_11 F3_12 F3_13 F3_14 F3_15
+LED_B1 LED_B2 LED_B3 LED_B4 LED_B5 LED_BH1 LED_RGB1 LED_V1 LED_V2
+]);

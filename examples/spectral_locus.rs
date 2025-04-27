@@ -1,8 +1,8 @@
-// to run this example use: 
+// to run this example use:
 //  `cargo run --example spectral_locus`
 use colorimetry::prelude::*;
 
-fn main() -> Result<(), Box<dyn std::error::Error>>{
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let nm_min = CIE1931.spectral_locus_nm_min();
     let nm_max = CIE1931.spectral_locus_nm_max();
     println!("Spectral locus");
@@ -14,5 +14,4 @@ fn main() -> Result<(), Box<dyn std::error::Error>>{
         println!("{nm}\t{x:.4}\t{y:.4}");
     }
     Ok(())
-
 }

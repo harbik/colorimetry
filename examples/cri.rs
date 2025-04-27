@@ -1,18 +1,16 @@
-// to run this example use: 
+// to run this example use:
 //  `cargo run --features cie-illuminants,cri --example cri`
-use colorimetry::prelude::*;
 use colored::Colorize;
+use colorimetry::prelude::*;
 use strum::IntoEnumIterator;
-
 
 /// Prints the standard illuminants in the library, with their elated color temperature, with
 /// parameters distance to the Planckian, the general Color Rendering Index Ra, and the spectal
 /// color rendering index R9.
-fn main() -> Result<(), Box<dyn std::error::Error>>{
-    for  spc in StdIlluminant::iter() {
-
-       // Calculate CRI parameters
-        let cri : CRI = spc.as_ref().try_into()?;
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    for spc in StdIlluminant::iter() {
+        // Calculate CRI parameters
+        let cri: CRI = spc.as_ref().try_into()?;
         let ra = cri.ra();
         let r9 = cri[9];
 
@@ -33,5 +31,5 @@ fn main() -> Result<(), Box<dyn std::error::Error>>{
         println!();
     }
 
-Ok(())
+    Ok(())
 }

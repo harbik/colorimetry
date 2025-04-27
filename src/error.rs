@@ -1,5 +1,3 @@
-
-
 use wasm_bindgen::JsValue;
 
 #[derive(thiserror::Error, Debug, PartialEq)]
@@ -9,7 +7,7 @@ pub enum CmtError {
     #[error("please provide a single {0} argument only")]
     ProvideArgumentOnly(String),
     #[error("{name} should be within in range from {low} to {high}")]
-    OutOfRange{name: String, low: f64,  high: f64},
+    OutOfRange { name: String, low: f64, high: f64 },
     #[error("Currently only support for 3 primaries")]
     ThreePrimariesOnly,
     #[error("Out of Gamut")]
@@ -29,7 +27,7 @@ pub enum CmtError {
     #[error("CCT: Temperature too high")]
     CCTTemperatureTooHigh,
     #[error("CCT: Temperature too low")]
-    CCTTemperatureTooLow  ,
+    CCTTemperatureTooLow,
     #[error("CCT: Maximum evaluation depth for CCT calculation in this implementation is {0}")]
     CCTEvaluationDept(u32),
     #[error("MacAdam: Point outside triangle, no interpolation possible")]
@@ -73,7 +71,7 @@ pub enum CmtError {
     #[error("Wavelength out of range")]
     WavelengthOutOfRange,
     #[error("Allowed wavelength range for this function is {0} to {1} nanometer")]
-    NoUniqueSpectralLocus(usize,usize),
+    NoUniqueSpectralLocus(usize, usize),
     #[error("Invalid Chromaticity Values")]
     InvalidChromaticityValues,
     #[error("This Method Requires CIE 1931-based XYZ values")]

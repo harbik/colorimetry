@@ -1,9 +1,9 @@
 use approx::ulps_eq;
 use nalgebra::{RowVector3, Vector3};
 
+use crate::{error::CmtError, prelude::Observer, xyz::XYZ};
 use strum_macros::Display;
 use wasm_bindgen::prelude::wasm_bindgen;
-use crate::{error::CmtError, prelude::Observer, xyz::XYZ};
 
 #[wasm_bindgen]
 #[derive(Debug, Clone, Copy)]
@@ -19,17 +19,16 @@ impl TryFrom<XYZ> for CieLab {
     fn try_from(xyz_val: XYZ) -> Result<Self, Self::Error> {
         if let Some(xyz) = xyz_val.xyz {
             let lab = lab(xyz, xyz_val.xyzn);
-            Ok(Self{
-                observer:xyz_val.observer,
+            Ok(Self {
+                observer: xyz_val.observer,
                 lab,
-                xyzn: xyz_val.xyzn
+                xyzn: xyz_val.xyzn,
             })
         } else {
             Err(CmtError::NoColorant)
         }
     }
 }
-
 
 impl CieLab {
     /*
@@ -42,20 +41,18 @@ impl CieLab {
         if ulps_eq!(self.xyzn, other.xyzn) {
             let &[l1, a1, b1] = self.lab.as_ref();
             let &[l2, a2, b2] = other.lab.as_ref();
-            Ok(((l2-l1).powi(2) + (a2-a1).powi(2) + (b2-b1).powi(2)).sqrt())
+            Ok(((l2 - l1).powi(2) + (a2 - a1).powi(2) + (b2 - b1).powi(2)).sqrt())
         } else {
             Err(CmtError::RequiresSameIlluminant)
         }
     }
-
 }
 
-impl AsRef<[f64;3]> for CieLab {
-    fn as_ref(&self) -> &[f64;3] {
+impl AsRef<[f64; 3]> for CieLab {
+    fn as_ref(&self) -> &[f64; 3] {
         self.lab.as_ref()
     }
 }
-
 
 const DELTA: f64 = 24f64 / 116f64;
 const DELTA_POW2: f64 = DELTA * DELTA;
@@ -76,9 +73,8 @@ fn lab(xyz: Vector3<f64>, xyzn: Vector3<f64>) -> Vector3<f64> {
     let &[x, y, z] = xyz.as_ref();
     let &[xn, yn, zn] = xyzn.as_ref();
     Vector3::new(
-        116f64 * lab_f(y/yn) - 16f64, 
-        500f64 * (lab_f(x/xn) - lab_f(y/yn)), 
-        200f64 * (lab_f(y/yn) - lab_f(z/zn)) 
+        116f64 * lab_f(y / yn) - 16f64,
+        500f64 * (lab_f(x / xn) - lab_f(y / yn)),
+        200f64 * (lab_f(y / yn) - lab_f(z / zn)),
     )
-
 }

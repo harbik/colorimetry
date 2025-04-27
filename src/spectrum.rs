@@ -3,13 +3,20 @@
 
 The field of Colorimetry uses mathematical models to describe the sensations in our mind which we
 call color.  These models are based the spectral composition of stimuli, essentially rays of light
-hitting the photosensitive cells in the back of our eyes, and the spectral sensitiviy of these 
+hitting the photosensitive cells in the back of our eyes, and the spectral sensitiviy of these
 cells. The spectral composition of light, and the objects involved in its processing such as filters
 and painted patches, is represented by the [Spectrum]-object in this library.
 The spectral sensitivity of human vision is described by an [`Observer`](crate::observer::Observer).
 */
 use core::f64;
-use std::{borrow::Cow, collections::BTreeMap, default, error::Error, iter::Sum, ops::{Add, AddAssign, Deref, Div, Index, IndexMut, Mul, MulAssign, RangeInclusive}};
+use std::{
+    borrow::Cow,
+    collections::BTreeMap,
+    default,
+    error::Error,
+    iter::Sum,
+    ops::{Add, AddAssign, Deref, Div, Index, IndexMut, Mul, MulAssign, RangeInclusive},
+};
 
 use approx::{AbsDiff, AbsDiffEq};
 use num_traits::ToPrimitive;
@@ -19,15 +26,15 @@ use wasm_bindgen::prelude::*;
 use nalgebra::{DVector, SVector};
 
 use crate::{
+    colorant::Colorant,
     data::illuminants::{D50, D65},
     data::observers::CIE1931,
-    observer::ObserverData,
-    physics::{gaussian_peak_one, led_ohno, planck, stefan_boltzmann, sigma_from_fwhm, wavelength},
     error::CmtError,
-    colorant::Colorant,
-    std_illuminants::StdIlluminant,
+    observer::ObserverData,
     physics::C,
-    rgb::RGB
+    physics::{gaussian_peak_one, led_ohno, planck, sigma_from_fwhm, stefan_boltzmann, wavelength},
+    rgb::RGB,
+    std_illuminants::StdIlluminant,
 };
 
 /// The wavelength range of the spectrums supported by this library.
@@ -37,7 +44,6 @@ pub const SPECTRUM_WAVELENGTH_RANGE: RangeInclusive<usize> = 380..=780;
 
 /// Number of values in the spectrum. This is 401.
 pub const NS: usize = *SPECTRUM_WAVELENGTH_RANGE.end() - *SPECTRUM_WAVELENGTH_RANGE.start() + 1;
-
 
 /**
 This container holds spectral values within a wavelength domain ranging from 380
@@ -62,7 +68,9 @@ impl Spectrum {
     /// you can instead use [`linear_interpolate`](Spectrum::linear_interpolate)
     /// or [`sprague_interpolate`](Spectrum::sprague_interpolate).
     pub fn new(data: [f64; NS]) -> Self {
-        Self(SVector::<f64, NS>::from_array_storage(nalgebra::ArrayStorage([data])))
+        Self(SVector::<f64, NS>::from_array_storage(
+            nalgebra::ArrayStorage([data]),
+        ))
     }
 
     /**
@@ -106,52 +114,53 @@ impl Spectrum {
     assert_ulps_eq!(spd[380+400], 0.0);
     ```
     */
-    pub fn linear_interpolate(wavelengths: &[f64], data: &[f64]) ->Result<Self, CmtError> {
+    pub fn linear_interpolate(wavelengths: &[f64], data: &[f64]) -> Result<Self, CmtError> {
         let data = match wavelengths.len() {
-           2 =>  linterp(wavelengths.try_into().unwrap(), data)?,
-           3.. => linterp_irr(wavelengths, data)?,
-           _ => return Err(CmtError::InterpolateWavelengthError)
+            2 => linterp(wavelengths.try_into().unwrap(), data)?,
+            3.. => linterp_irr(wavelengths, data)?,
+            _ => return Err(CmtError::InterpolateWavelengthError),
         };
-        Ok(Self(SVector::<f64, 401>::from_array_storage(nalgebra::ArrayStorage([data]))))
+        Ok(Self(SVector::<f64, 401>::from_array_storage(
+            nalgebra::ArrayStorage([data]),
+        )))
     }
 
-    
     /// Interpolation using Sprague
-    /// 
+    ///
     /// This method can only use equally distant data points as input.
     /// See Kerf's paper
     /// [The Interpolation Method of Sprague-Karup](https://www.sciencedirect.com/science/article/pii/0771050X75900273)
     /// for the description of the method.
     /// This implementation uses end-point values for extrapolation, as recommended by CIE15:2004 7.2.2.1.
-    pub fn sprague_interpolate(wavelengths: [f64;2], data: &[f64]) ->Result<Self, CmtError> {
+    pub fn sprague_interpolate(wavelengths: [f64; 2], data: &[f64]) -> Result<Self, CmtError> {
         let data = sprinterp(wavelengths, data)?;
-        Ok(Self(SVector::<f64, 401>::from_array_storage(nalgebra::ArrayStorage([data]))))
+        Ok(Self(SVector::<f64, 401>::from_array_storage(
+            nalgebra::ArrayStorage([data]),
+        )))
     }
 
     pub fn clamp(&mut self, min: f64, max: f64) {
-        self.0.iter_mut().for_each(|v|*v = v.clamp(min, max));
+        self.0.iter_mut().for_each(|v| *v = v.clamp(min, max));
     }
-
 
     /**
     Smooth a Spectrum by convolution with a Gaussian function
      */
     pub fn smooth(&mut self, mut fwhm: f64) {
-        if fwhm < 1E-3 { fwhm *= 1E6 }; // to nanometer
+        if fwhm < 1E-3 {
+            fwhm *= 1E6
+        }; // to nanometer
         let sigma = sigma_from_fwhm(fwhm);
         let sd3 = (6.0 * sigma).floor() as i32;
-        let mut kernel =  
-            DVector::<f64>
-                ::from_iterator(
-                    (2*sd3+1) as usize,
-                    (-sd3..=sd3)
-                        .map(|i| gaussian_peak_one(i as f64, 0.0, sigma)
-                    ));
+        let mut kernel = DVector::<f64>::from_iterator(
+            (2 * sd3 + 1) as usize,
+            (-sd3..=sd3).map(|i| gaussian_peak_one(i as f64, 0.0, sigma)),
+        );
 
         // The smooth operation should not change the energy in a spectrum, so we scale the kernel
         // vector to have a sum of 1.0.
         let sum = kernel.sum();
-        kernel.iter_mut().for_each(|v|*v /= sum);
+        kernel.iter_mut().for_each(|v| *v /= sum);
 
         // use nalgebra's convolve to apply the smooth function, and shift it
         let t = self.0.convolve_full(kernel);
@@ -176,22 +185,24 @@ impl TryFrom<&[f64]> for Spectrum {
     type Error = CmtError;
 
     fn try_from(data: &[f64]) -> Result<Self, Self::Error> {
-        if data.len()!=NS {
+        if data.len() != NS {
             Err(CmtError::DataSize401Error)
         } else {
-            Ok(Self(SVector::<f64, NS>::from_iterator(data.iter().copied())))
+            Ok(Self(SVector::<f64, NS>::from_iterator(
+                data.iter().copied(),
+            )))
         }
     }
 }
 
 impl Default for Spectrum {
     fn default() -> Self {
-        Self (SVector::<f64, NS>::zeros()) 
+        Self(SVector::<f64, NS>::zeros())
     }
 }
 
-impl AsRef<[f64;401]> for Spectrum {
-    fn as_ref(&self) -> &[f64;401] {
+impl AsRef<[f64; 401]> for Spectrum {
+    fn as_ref(&self) -> &[f64; 401] {
         self.values()
     }
 }
@@ -204,8 +215,8 @@ impl AsRef<[f64]> for Spectrum {
 
 impl Sum for Spectrum {
     fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
-        let mut s = Self::default() ;
-        iter.for_each(|si|s += si);
+        let mut s = Self::default();
+        iter.for_each(|si| s += si);
         s
     }
 }
@@ -223,10 +234,9 @@ impl AbsDiffEq for Spectrum {
 }
 
 // JS-WASM Interface code
-#[cfg(target_arch="wasm32")]
+#[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
 impl Spectrum {
-
     /// Creates a new Spectrum object, using as input a `Category`, a
     /// Float64Array with exactly 401 datapoints, and an optional third
     /// parameter called total, representing the total irradiance, transmission,
@@ -297,24 +307,25 @@ impl Spectrum {
     ```
     */
     #[wasm_bindgen(js_name=linearInterpolate)]
-    pub fn linear_interpolate_js(wavelengths: &[f64], data: &[f64], total_js: &JsValue) -> Result<Spectrum, CmtError> {
+    pub fn linear_interpolate_js(
+        wavelengths: &[f64],
+        data: &[f64],
+        total_js: &JsValue,
+    ) -> Result<Spectrum, CmtError> {
         Self::linear_interpolate(wavelengths, data)
-
     }
 
     /// Calculates the Color Rendering Index values for illuminant spectrum.
-    /// 
+    ///
     /// To use this function, first use `await CRI.init()`, which downloads the
     /// Test Color Samples required for the calculation.  These are downloaded
     /// seperately to limit the size of the main web assembly library.
-    #[cfg(feature="cri")]
+    #[cfg(feature = "cri")]
     #[wasm_bindgen(js_name=cri)]
     pub fn cri_js(&self) -> Result<crate::cri::CRI, CmtError> {
         todo!()
     }
-
 }
-
 
 /// Multiplication of two spectra using the `*`-operator, typically for a combinations of an
 /// illuminant and a colorant or when combining multiple ColorPatchs or filters.
@@ -352,7 +363,7 @@ impl Mul<Spectrum> for f64 {
 
     // scalar * spectrum
     fn mul(self, rhs: Spectrum) -> Self::Output {
-        Spectrum(self * rhs.0) 
+        Spectrum(self * rhs.0)
     }
 }
 
@@ -361,7 +372,7 @@ impl Mul<&Spectrum> for f64 {
 
     // scalar * spectrum
     fn mul(self, rhs: &Spectrum) -> Self::Output {
-        Spectrum(self * rhs.0) 
+        Spectrum(self * rhs.0)
     }
 }
 
@@ -376,13 +387,11 @@ impl Div<&Spectrum> for &Spectrum {
 }
 
 /// Create a Copy On Write instance from a spectrum reference.
-impl <'a> From<&'a Spectrum> for Cow<'a, Spectrum> {
-    
+impl<'a> From<&'a Spectrum> for Cow<'a, Spectrum> {
     fn from(spectrum: &'a Spectrum) -> Self {
         Cow::Borrowed(spectrum)
     }
 }
-
 
 /// Addition of spectra, typically used for illuminant (multiple sources).
 /// Additive mixing
@@ -425,21 +434,22 @@ impl AddAssign<&Spectrum> for Spectrum {
 
 impl MulAssign for Spectrum {
     fn mul_assign(&mut self, rhs: Self) {
-        self.0.iter_mut().zip(rhs.0.iter()).for_each(|(v,w)| *v *= *w);
-
+        self.0
+            .iter_mut()
+            .zip(rhs.0.iter())
+            .for_each(|(v, w)| *v *= *w);
     }
 }
 
 impl MulAssign<f64> for Spectrum {
     fn mul_assign(&mut self, rhs: f64) {
         self.0.iter_mut().for_each(|v| *v *= rhs);
-
     }
 }
 
 /// Read a spectrum value by an integer wavelength value in the range from 380..=780
 /// nanometer.
-/// 
+///
 /// Invalid indices will result in a f64::NAN value.
 impl Index<usize> for Spectrum {
     type Output = f64;
@@ -455,15 +465,14 @@ impl Index<usize> for Spectrum {
 
 /// Mutable Access a spectrum value by an integer wavelength value in the range from 380..=780
 /// nanometer.
-/// 
+///
 /// Out of range indices will set the edge values.
 impl IndexMut<usize> for Spectrum {
-
     fn index_mut(&mut self, i: usize) -> &mut Self::Output {
         match i {
-            380..=780 => &mut self.0[(i-380,0)],
-            ..380 => &mut self.0[(0,0)],
-            781.. => &mut self.0[(400,0)],
+            380..=780 => &mut self.0[(i - 380, 0)],
+            ..380 => &mut self.0[(0, 0)],
+            781.. => &mut self.0[(400, 0)],
         }
     }
 }
@@ -474,27 +483,27 @@ impl IndexMut<usize> for Spectrum {
 /// Wwavelength values larger than 1E-3 are assumed to have the unit nanometer
 /// and are converted to a unit of meters.
 /// All integer values are nanometaer values.
-pub fn wavelengths<T: ToPrimitive, const N: usize>(v:[T; N]) -> [f64;N] {
-    v.map(|x|wavelength(x))
+pub fn wavelengths<T: ToPrimitive, const N: usize>(v: [T; N]) -> [f64; N] {
+    v.map(|x| wavelength(x))
 }
 
 /// Linear interpolatino over a dataset over an equidistant wavelength domain
-fn linterp(mut wl: [f64;2], data: &[f64]) -> Result<[f64;NS], CmtError> {
-    wl.sort_by(|a, b| a.partial_cmp(b).unwrap()); 
+fn linterp(mut wl: [f64; 2], data: &[f64]) -> Result<[f64; NS], CmtError> {
+    wl.sort_by(|a, b| a.partial_cmp(b).unwrap());
     let [wl, wh] = wavelengths(wl);
-    let dlm1 = data.len()-1; // data length min one
-    
+    let dlm1 = data.len() - 1; // data length min one
+
     let mut spd = [0f64; NS];
-    spd.iter_mut().enumerate().for_each(|(i,v)|{
+    spd.iter_mut().enumerate().for_each(|(i, v)| {
         let l = (i + 380) as f64 * 1E-9; // wavelength in meters
-        let t = ((l-wl)/(wh - wl)).clamp(0.0, 1.0); // length parameter
+        let t = ((l - wl) / (wh - wl)).clamp(0.0, 1.0); // length parameter
         let tf = t * dlm1 as f64;
         let j = tf.trunc() as usize;
         let f = tf.fract();
         if j >= dlm1 {
             *v = data[dlm1];
         } else {
-            *v = data[j] * (1.0 - f) + data[j+1] * f;
+            *v = data[j] * (1.0 - f) + data[j + 1] * f;
         }
     });
     Ok(spd)
@@ -507,66 +516,84 @@ wavelength domain.
 This algorithm uses a BTreeMap coolection, with wavelengths in picometers as key,
 to find a data interval containing the target wavelengths.
  */
-fn linterp_irr(wl: &[f64], data: &[f64]) -> Result<[f64;NS], CmtError> {
-    if wl.len()!=data.len() {
+fn linterp_irr(wl: &[f64], data: &[f64]) -> Result<[f64; NS], CmtError> {
+    if wl.len() != data.len() {
         Err(CmtError::InterpolateWavelengthError)
     } else {
         // BTreeMap can not work with floats as keys, using picometer unit
         // (E-12) here as key, so the precision is here three decimals in units
         // of nanometer
-        let a = 
-            if wl.iter().any(|v|*v>1E-3) { // nanometers 
-                BTreeMap::from_iter(wl.iter().map(|v|(*v*1E3) as usize).zip(data.iter().copied()))
-            } else { // meters
-                BTreeMap::from_iter(wl.iter().map(|v|(*v*1E12) as usize).zip(data.iter().copied()))
-            };
+        let a = if wl.iter().any(|v| *v > 1E-3) {
+            // nanometers
+            BTreeMap::from_iter(
+                wl.iter()
+                    .map(|v| (*v * 1E3) as usize)
+                    .zip(data.iter().copied()),
+            )
+        } else {
+            // meters
+            BTreeMap::from_iter(
+                wl.iter()
+                    .map(|v| (*v * 1E12) as usize)
+                    .zip(data.iter().copied()),
+            )
+        };
         let mut spd = [0f64; NS];
-        spd.iter_mut().enumerate().for_each(|(i,v)|{
+        spd.iter_mut().enumerate().for_each(|(i, v)| {
             let k = (i + 380) * 1000;
             let p = a.range(..k).next_back(); // find values < k
             let n = a.range(k..).next(); // find values >= k
-            match (p,n) {
+            match (p, n) {
                 (Some((&i, &l)), Some((&j, &r))) => {
-                    if j == k { *v = r}
-                    else {
-                        let f = (k - i) as f64 / (j-i) as f64;
+                    if j == k {
+                        *v = r
+                    } else {
+                        let f = (k - i) as f64 / (j - i) as f64;
                         *v = l * (1.0 - f) + r * f
                     }
                 }
-                (None, Some((&_j, &r))) => *v = r, // no previous: target wavelength left from lowest value in input dataset, extrapolate 
+                (None, Some((&_j, &r))) => *v = r, // no previous: target wavelength left from lowest value in input dataset, extrapolate
                 (Some((&_i, &l)), None) => *v = l, // no next: target wavelength right from highest value in input dataset, extrapolate
-                (None, None) => *v = f64::NAN // this should never happen
+                (None, None) => *v = f64::NAN,     // this should never happen
             }
         });
         Ok(spd)
-        
     }
 }
 
 /// Sprague interpolation over a dataset over an equidistant wavelength domain
-fn sprinterp(mut wl: [f64;2], data: &[f64]) -> Result<[f64;NS], CmtError> {
-    let imax = data.len()-1;
-    if imax <6 { return Err(CmtError::ProvideAtLeastNValues(imax))};
+fn sprinterp(mut wl: [f64; 2], data: &[f64]) -> Result<[f64; NS], CmtError> {
+    let imax = data.len() - 1;
+    if imax < 6 {
+        return Err(CmtError::ProvideAtLeastNValues(imax));
+    };
     let f64_imax = imax as f64;
 
     // function to deal with extrapolation
-    let di = |i:i32| -> f64 {
-        if i>=0 && i<=imax as i32 { data[i as usize] }
-        else if i<0 { data[0] } 
-        else { data[imax] }
+    let di = |i: i32| -> f64 {
+        if i >= 0 && i <= imax as i32 {
+            data[i as usize]
+        } else if i < 0 {
+            data[0]
+        } else {
+            data[imax]
+        }
     };
 
-    wl.sort_by(|a, b| a.partial_cmp(b).unwrap()); 
+    wl.sort_by(|a, b| a.partial_cmp(b).unwrap());
     let [wl, wh] = wavelengths(wl);
 
     let mut spd = [0f64; NS];
-    spd.iter_mut().enumerate().for_each(|(i,v)|{
+    spd.iter_mut().enumerate().for_each(|(i, v)| {
         let l = (i + 380) as f64 * 1E-9; // wavelength in meters
-        let t = (l-wl)/(wh - wl); // length parameter
+        let t = (l - wl) / (wh - wl); // length parameter
         let th = (t * f64_imax).clamp(0.0, f64_imax);
         let h = th.fract();
         let j = th.trunc() as i32;
-        *v = sprague(h, &[di(j-2), di(j-1), di(j), di(j+1), di(j+2), di(j+3)]);
+        *v = sprague(
+            h,
+            &[di(j - 2), di(j - 1), di(j), di(j + 1), di(j + 2), di(j + 3)],
+        );
     });
     Ok(spd)
 }
@@ -577,7 +604,8 @@ fn sprague(h: f64, v: &[f64]) -> f64 {
         (v[0] - 8.0 * v[1] + 8.0 * v[3] - v[4]) / 12.0,
         (-v[0] + 16.0 * v[1] - 30.0 * v[2] + 16.0 * v[3] - v[4]) / 24.0,
         (-9.0 * v[0] + 39.0 * v[1] - 70.0 * v[2] + 66.0 * v[3] - 33.0 * v[4] + 7.0 * v[5]) / 24.0,
-        (13.0 * v[0] - 64.0 * v[1] + 126.0 * v[2] - 124.0 * v[3] + 61.0 * v[4] - 12.0 * v[5]) / 24.0,
+        (13.0 * v[0] - 64.0 * v[1] + 126.0 * v[2] - 124.0 * v[3] + 61.0 * v[4] - 12.0 * v[5])
+            / 24.0,
         (-5.0 * v[0] + 25.0 * v[1] - 50.0 * v[2] + 50.0 * v[3] - 25.0 * v[4] + 5.0 * v[5]) / 24.0,
     ];
     // horner's rule
@@ -592,22 +620,33 @@ mod tests {
     use std::f64::consts::PI;
 
     #[test]
-    fn test_spectrum_from_rgb(){
+    fn test_spectrum_from_rgb() {
         let white: Stimulus = RGB::new(1.0, 1.0, 1.0, None, None).into();
-        approx::assert_ulps_eq!(CIE1931.xyz_from_spectrum(&white, None), CIE1931.xyz_d65().set_illuminance(100.0), epsilon = 1E-6);
+        approx::assert_ulps_eq!(
+            CIE1931.xyz_from_spectrum(&white, None),
+            CIE1931.xyz_d65().set_illuminance(100.0),
+            epsilon = 1E-6
+        );
         let red = Stimulus::srgb(255, 0, 0);
-        assert_ulps_eq!(CIE1931.xyz_from_spectrum(&red, None).chromaticity().as_ref(), &[0.64, 0.33].as_ref(), epsilon = 1E-5);
+        assert_ulps_eq!(
+            CIE1931
+                .xyz_from_spectrum(&red, None)
+                .chromaticity()
+                .as_ref(),
+            &[0.64, 0.33].as_ref(),
+            epsilon = 1E-5
+        );
     }
 
     #[test]
-    fn test_led(){
+    fn test_led() {
         use approx::assert_ulps_eq;
         let ls = Illuminant::led(550.0, 25.0);
         assert_ulps_eq!(ls.irradiance(), 1.0, epsilon = 1E-9);
     }
 
     #[test]
-    fn test_chromaticity(){
+    fn test_chromaticity() {
         let xyz0 = CIE1931.xyz_from_spectrum(&D65, None);
         let [x0, y0] = xyz0.chromaticity();
 
@@ -615,13 +654,13 @@ mod tests {
         let d65 = D65.clone().set_illuminance(&CIE1931, 100.0);
         let xyz = CIE1931.xyz_from_spectrum(&d65, None);
         let [x, y] = xyz.chromaticity();
-    
+
         assert_ulps_eq!(x0, x);
         assert_ulps_eq!(y0, y);
     }
 
     #[test]
-    fn index_test(){
+    fn index_test() {
         let mut s = *Colorant::white().spectrum();
 
         // Set a spectral value
@@ -645,21 +684,25 @@ mod tests {
         v2 = wavelengths(v2);
         assert_ulps_eq!(v2[0], 380E-9);
         assert_ulps_eq!(v2[1], 780E-9);
-
     }
 
     #[test]
     fn ee() {
-        let [x, y ] = CIE1931.xyz_from_spectrum(
-            &Illuminant::equal_energy().set_illuminance(&CIE1931, 100.0), None).chromaticity();
+        let [x, y] = CIE1931
+            .xyz_from_spectrum(
+                &Illuminant::equal_energy().set_illuminance(&CIE1931, 100.0),
+                None,
+            )
+            .chromaticity();
         assert_ulps_eq!(x, 0.333_3, epsilon = 5E-5);
         assert_ulps_eq!(y, 0.333_3, epsilon = 5E-5);
     }
 
     #[test]
     fn d65() {
-        let [x, y ] = CIE1931.xyz_from_spectrum(
-            &Illuminant::d65().set_illuminance(&CIE1931, 100.0), None).chromaticity();
+        let [x, y] = CIE1931
+            .xyz_from_spectrum(&Illuminant::d65().set_illuminance(&CIE1931, 100.0), None)
+            .chromaticity();
         // See table T3 CIE15:2004 (calculated with 5nm intervals, instead of 1nm, as used here)
         assert_ulps_eq!(x, 0.312_72, epsilon = 5E-5);
         assert_ulps_eq!(y, 0.329_03, epsilon = 5E-5);
@@ -667,23 +710,25 @@ mod tests {
 
     #[test]
     fn d50() {
-        let [x, y ] = CIE1931.xyz_from_spectrum(&Illuminant::d50().set_illuminance(&CIE1931, 100.0), None).chromaticity();
+        let [x, y] = CIE1931
+            .xyz_from_spectrum(&Illuminant::d50().set_illuminance(&CIE1931, 100.0), None)
+            .chromaticity();
         // See table T3 CIE15:2004 (calculated with 5nm intervals, instead of 1nm, as used here)
         assert_ulps_eq!(x, 0.345_67, epsilon = 5E-5);
         assert_ulps_eq!(y, 0.358_51, epsilon = 5E-5);
     }
 
-    #[cfg_attr(test, cfg(feature="cie-illuminants"))]
+    #[cfg_attr(test, cfg(feature = "cie-illuminants"))]
     fn a() {
         let a: Illuminant = StdIlluminant::A.into();
-        let [x, y ] = CIE1931.xyz_from_spectrum(&a, None).chromaticity();
+        let [x, y] = CIE1931.xyz_from_spectrum(&a, None).chromaticity();
         // See table T3 CIE15:2004 (calculated with 5nm intervals, instead of 1nm, as used here)
         assert_ulps_eq!(x, 0.447_58, epsilon = 5E-5);
         assert_ulps_eq!(y, 0.407_45, epsilon = 5E-5);
     }
 
     #[test]
-    fn add_spectra(){
+    fn add_spectra() {
         use approx::assert_ulps_eq;
         let mut g1 = *Colorant::gray(0.5).spectrum();
         let g2 = *Colorant::gray(0.5).spectrum();
@@ -702,30 +747,28 @@ mod tests {
         for i in 380..780 {
             assert_ulps_eq!(v[i], 0.0);
         }
-
     }
     #[test]
-    fn mul_spectra_test(){
+    fn mul_spectra_test() {
         use approx::assert_ulps_eq;
         let g = *Colorant::gray(0.5).spectrum();
-    
+
         let w = 2.0 * g.clone();
         for i in 380..780 {
             assert_ulps_eq!(w[i], 1.0);
         }
-    
+
         let v = g * 2.0;
         for i in 380..780 {
             assert_ulps_eq!(v[i], 1.0);
         }
-    
     }
 
     #[test]
-    fn test_linterp(){
+    fn test_linterp() {
         use approx::assert_ulps_eq;
 
-        let data = [0.0, 1.0,  0.0];
+        let data = [0.0, 1.0, 0.0];
         let wl = [380.0, 780.0];
         let spd = linterp(wl, &data).unwrap();
         assert_ulps_eq!(spd[0], 0.);
@@ -746,7 +789,7 @@ mod tests {
         let data2 = [0.0, 1.0];
         let wl2 = [480.0, 580.0];
         let spd2 = linterp(wl2, &data2).unwrap();
-    // print!("{:?}", spd2);
+        // print!("{:?}", spd2);
         assert_ulps_eq!(spd2[0], 0.0);
         assert_ulps_eq!(spd2[100], 0.0);
         assert_ulps_eq!(spd2[150], 0.5, epsilon = 1E-10);
@@ -757,7 +800,7 @@ mod tests {
         let data3 = [0.0, 1.0];
         let wl3 = [0.0, 1000.0];
         let spd3 = linterp(wl3, &data3).unwrap();
-    // print!("{:?}", spd2);
+        // print!("{:?}", spd2);
         assert_ulps_eq!(spd3[0], 0.38);
         assert_ulps_eq!(spd3[100], 0.48);
         assert_ulps_eq!(spd3[200], 0.58);
@@ -773,14 +816,16 @@ mod tests {
 
         let sigma = sigma_from_fwhm(5.0);
         let w = Colorant::gaussian(550.0, sigma);
-        let scale = sigma * (PI*2.0).sqrt(); // integral of a gaussian
-        s.0.iter().zip(w.0.0.iter()).enumerate().for_each(|(i, (s,w))|{
-            let j = i + 380;
-            let w = w / scale; // change the reference gaussian colorant to have an integral of 1.0
-            //println!("{j} {s:.6} {w:.6}");
-            approx::assert_abs_diff_eq!(s,&w, epsilon=1E-8);
-        });
-
+        let scale = sigma * (PI * 2.0).sqrt(); // integral of a gaussian
+        s.0.iter()
+            .zip(w.0 .0.iter())
+            .enumerate()
+            .for_each(|(i, (s, w))| {
+                let j = i + 380;
+                let w = w / scale; // change the reference gaussian colorant to have an integral of 1.0
+                                   //println!("{j} {s:.6} {w:.6}");
+                approx::assert_abs_diff_eq!(s, &w, epsilon = 1E-8);
+            });
     }
 
     #[test]
@@ -788,7 +833,9 @@ mod tests {
         let wl = [380.0, 780.0];
         let data = &[1.0; 81];
         let tinterpolate = sprinterp(wl, data).unwrap();
-        tinterpolate.iter().for_each(|v|approx::assert_ulps_eq!(*v, 1.0));
+        tinterpolate
+            .iter()
+            .for_each(|v| approx::assert_ulps_eq!(*v, 1.0));
     }
 
     #[test]
@@ -798,45 +845,59 @@ mod tests {
         const NF: i32 = 20;
         const NT: i32 = NF * 10;
         let wl = [380.0, 780.0];
-        let data: Vec<f64> = (-NF..=NF).map(|i|((i as f64/(NF as f64))*1.5*PI).tanh()).collect();
-        let data_want: Vec<f64> = (-NT..=NT).map(|i|((i as f64/(NT as f64))*1.5*PI).tanh()).collect();
+        let data: Vec<f64> = (-NF..=NF)
+            .map(|i| ((i as f64 / (NF as f64)) * 1.5 * PI).tanh())
+            .collect();
+        let data_want: Vec<f64> = (-NT..=NT)
+            .map(|i| ((i as f64 / (NT as f64)) * 1.5 * PI).tanh())
+            .collect();
         let tinterpolate = sprinterp(wl, &data).unwrap();
-        tinterpolate.iter().zip(data_want.iter()).for_each(|(&v, w)|approx::assert_ulps_eq!(v, w, epsilon=1E-4));
+        tinterpolate
+            .iter()
+            .zip(data_want.iter())
+            .for_each(|(&v, w)| approx::assert_ulps_eq!(v, w, epsilon = 1E-4));
     }
 
     #[test]
     fn sprague_sin() {
         let wl = [380.0, 780.0];
-        let data: Vec<f64> = (0..=80).map(|i|{
-            let x = i as f64/80.0;
-            (x*PI).sin()
-        }).collect();
+        let data: Vec<f64> = (0..=80)
+            .map(|i| {
+                let x = i as f64 / 80.0;
+                (x * PI).sin()
+            })
+            .collect();
         let tinterpolate = sprinterp(wl, &data).unwrap();
-        tinterpolate.iter().enumerate().for_each(|(i, &v)|{
-            let x = i as f64/400.0;
-            let y = (x*PI).sin();
-            let d = (y-v).abs();
-          //  println!("{i} {y:.4} {v:.4} {d:.6}");
-            approx::assert_ulps_eq!(y,v, epsilon=4E-3)
+        tinterpolate.iter().enumerate().for_each(|(i, &v)| {
+            let x = i as f64 / 400.0;
+            let y = (x * PI).sin();
+            let d = (y - v).abs();
+            //  println!("{i} {y:.4} {v:.4} {d:.6}");
+            approx::assert_ulps_eq!(y, v, epsilon = 4E-3)
         });
         // non boundary points have very high accuracy
-        tinterpolate.iter().enumerate().skip(10).take(380).for_each(|(i, &v)|{
-            let x = i as f64/400.0;
-            let y = (x*PI).sin();
-            let d = (y-v).abs();
-            println!("{i} {y:.4} {v:.4} {d:.6e}");
-            approx::assert_ulps_eq!(y,v, epsilon=5E-10)
-        });
+        tinterpolate
+            .iter()
+            .enumerate()
+            .skip(10)
+            .take(380)
+            .for_each(|(i, &v)| {
+                let x = i as f64 / 400.0;
+                let y = (x * PI).sin();
+                let d = (y - v).abs();
+                println!("{i} {y:.4} {v:.4} {d:.6e}");
+                approx::assert_ulps_eq!(y, v, epsilon = 5E-10)
+            });
     }
 
     #[test]
-    fn test_linterp_irr(){
+    fn test_linterp_irr() {
         use approx::assert_ulps_eq;
 
         let mut data = vec![0.0, 1.0, 0.0];
-        let mut wl = vec![380.0, 480.0,  780.0];
+        let mut wl = vec![380.0, 480.0, 780.0];
         let mut spd = linterp_irr(&wl, &data).unwrap();
-    // println!("{:?}", spd);
+        // println!("{:?}", spd);
         assert_ulps_eq!(spd[0], 0.);
         assert_ulps_eq!(spd[50], 0.5);
         assert_ulps_eq!(spd[100], 1.0);
@@ -847,7 +908,7 @@ mod tests {
         data = vec![0.0, 1.0, 1.0, 0.0];
         wl = vec![480.0, 490.0, 570.0, 580.0];
         spd = linterp_irr(&wl, &data).unwrap();
-    // println!("{:?}", spd);
+        // println!("{:?}", spd);
         assert_ulps_eq!(spd[0], 0.0);
         assert_ulps_eq!(spd[100], 0.0);
         assert_ulps_eq!(spd[110], 1.0);
@@ -855,7 +916,5 @@ mod tests {
         assert_ulps_eq!(spd[200], 0.0);
         assert_ulps_eq!(spd[300], 0.0);
         assert_ulps_eq!(spd[400], 0.0);
-
     }
-
 }
