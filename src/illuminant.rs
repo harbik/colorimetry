@@ -331,7 +331,7 @@ fn test_d_illuminant_range_error() {
 #[test]
 fn test_xyz() {
     use crate::prelude::*;
-    let s = Illuminant::d_illuminant(6504.0).unwrap().values().clone();
+    let s = *Illuminant::d_illuminant(6504.0).unwrap().values();
     let illuminant = Illuminant(Spectrum::from(s));
     let xyz = illuminant.xyz(None).set_illuminance(100.0);
     approx::assert_ulps_eq!(xyz, CIE1931.xyz_d65(), epsilon = 2E-2);
