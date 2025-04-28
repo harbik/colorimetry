@@ -23,6 +23,25 @@ use crate::cri::CRI;
 
 #[derive(Clone, Default)]
 #[wasm_bindgen]
+/// # Illuminant
+///
+/// An illuminant is a spectral power distribution that represents the spectral power density of a
+/// light source, or a combination of light sources, such as the sun, a light bulb, or an LED, as
+/// expressed in Watts per square meter per nanometer (W/m²/nm), as measured at the input of
+/// a spectrometer. In this library, spectral values span a wavelength range from 380 to 780
+/// nanometers, including the end points, with a step size of 1 nanometer, resulting in 401 spectral
+/// values.
+
+/// Creating a new illuminant can be done by using the `Illuminant::new` method, which takes a
+/// `Spectrum` as input. Alternatively, you can use the provided static methods to create common
+/// illuminants, such as `Illuminant::d65()` for the D65 standard illuminant, or `Illuminant::planckian(3000.0)`
+/// for a Planckian illuminant at 3000 Kelvin.
+
+/// The `Illuminant` struct provides methods to manipulate the spectral values, such as
+/// `set_irradiance` to set the total irradiance of the illuminant, and `set_illuminance` to set the
+/// illuminance in lux. It also provides methods to calculate irradiance, illuminance, and the
+/// Color Rendering Index (CRI) values if the `cri` feature is enabled. These methods are only meaningful
+/// for illuminants, and not for other spectral data types like `Colorant`.
 pub struct Illuminant(pub(crate) Spectrum);
 
 impl Deref for Illuminant {
@@ -109,26 +128,30 @@ impl Illuminant {
         Self(Spectrum(data))
     }
 
-    // Sets irradiance, tyically expressed in units of Watt per square meter.
-    // Also overwrite spectrum type to Illuminant
+    /// For an illuminant spectrum, the spectral values are scaled to have the specified
+    /// irradiance, which is expressed in Watts per square meter.
+    /// Typically, this is used to set the irradiance of an illuminant spectrum to 1.0 W/m².
     pub fn set_irradiance(mut self, irradiance: f64) -> Self {
         let s = irradiance / self.0 .0.sum();
         self.0 .0.iter_mut().for_each(|v| *v *= s);
         self
     }
 
-    // Calculate a spectrum's irradiance if it is an illuminant.
-    // Produces a "Not A Number" value, if not an illuminant.
+    /// Calculate the irradiance of the illuminant spectrum, which is expressed in watts per square meter.
     pub fn irradiance(&self) -> f64 {
         self.0 .0.sum()
     }
 
+    /// Sets the illuminance of the illuminant spectrum, which is expressed lumen per square meter,
+    /// also referred to as lux.
     pub fn set_illuminance(mut self, obs: &ObserverData, illuminance: f64) -> Self {
         let l = illuminance / (obs.data.row(1) * self.0 .0 * obs.lumconst).x;
         self.0 .0.iter_mut().for_each(|v| *v *= l);
         self
     }
 
+    /// Calculates the illuminance of the illuminant spectrum, which is expressed in lumen per square meter,
+    /// also referred to as lux.
     pub fn illuminance(&self, obs: &ObserverData) -> f64 {
         (obs.data.row(1) * self.0 .0 * obs.lumconst).x
     }
@@ -145,6 +168,9 @@ impl Illuminant {
         self.try_into()
     }
 
+    /// Creates a CIE D Illuminant with a correlated color temperature (CCT) in Kelvin.
+    /// # Errors
+    /// - CmtError::OutOfRange when the cct argument is below 4000 or above 25000 Kelvin.
     pub fn d_illuminant(cct: f64) -> Result<Illuminant, CmtError> {
         if !(4000.0..=25000.0).contains(&cct) {
             Err(CmtError::OutOfRange {
@@ -173,8 +199,10 @@ impl Illuminant {
     }
 
     /// Returns the XYZ tristimulus values for the illuminant.
+    /// The values are calculated for the specified observer, or the default CIE 1931 observer if
+    /// none is provided.
     pub fn xyz(&self, obs_opt: Option<Observer>) -> XYZ {
-        let obs = obs_opt.unwrap_or(Observer::Std1931);
+        let obs = obs_opt.unwrap_or_default();
         obs.data().xyz_from_spectrum(&self.0, None)
     }
 }
@@ -289,6 +317,15 @@ fn test_d_illuminant() {
     let s = Illuminant::d_illuminant(6504.0).unwrap();
     let xyz = CIE1931.xyz_from_spectrum(&s, None).set_illuminance(100.0);
     approx::assert_ulps_eq!(xyz, CIE1931.xyz_d65(), epsilon = 2E-2);
+}
+
+#[test]
+fn test_d_illuminant_range_error() {
+    use crate::prelude::*;
+    let s = Illuminant::d_illuminant(3999.0);
+    assert!(s.is_err());
+    let s = Illuminant::d_illuminant(25001.0);
+    assert!(s.is_err());
 }
 
 #[test]
