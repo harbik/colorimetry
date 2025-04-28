@@ -16,8 +16,17 @@ use crate::{
     traits::{Filter, Light},
 };
 
-/// A Colorant represents color filters and color patches. These are spectrums
-/// with spectral values between 0.0 and 1.0.
+/// # Colorant
+///
+/// A Colorant represents color filters and color patches, with spectral values between between 0.0
+/// and 1.0, where 0.0 means all the light of a particular wavelength is absorbed, and 1.0 means no
+/// light with that wavelength is absorbed, but reflected or transmitted instead.
+///
+/// Spectral values are represented as a vector of 401 values, covering the
+/// wavelength range from 380 to 780 nanometer, including the end points, with a step size of 1
+/// nanometer.  A spectral value in this vector has a unit of per nanometer. For example, a value of
+/// 0.10 for a wavelength of 550 nanometer means that 10% of the light with that wavelength, a
+/// greenish color, is not absorbed, but reflected or transmitted.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Colorant(pub(crate) Spectrum);
 
@@ -26,7 +35,7 @@ impl Colorant {
     ///
     /// # Errors
     ///
-    /// Returns an error if the spectrum contains values outside the range 0.0 to 1.0.
+    /// - CmtError::OutOfRange when the spectrum contains values outside the range 0.0 to 1.0.
     pub fn new(spectrum: Spectrum) -> Result<Self, CmtError> {
         if spectrum.values().iter().any(|v| !(0.0..=1.0).contains(v)) {
             Err(CmtError::OutOfRange {
