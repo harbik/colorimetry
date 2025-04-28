@@ -73,7 +73,7 @@ impl Sum for Stimulus {
 /// not only the CIE 1931 standard observer.
 impl From<RGB> for Stimulus {
     fn from(rgb: RGB) -> Self {
-        let prim = &rgb.space.data().0.primaries;
+        let prim = &rgb.space.data().primaries;
         let yrgb = rgb.observer.data().rgb2xyz(&rgb.space).row(1);
         rgb.rgb
             .iter()

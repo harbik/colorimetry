@@ -73,7 +73,7 @@ impl RGB {
         let space = space.unwrap_or_default();
         let [r, g, b] = [r_u8, g_u8, b_u8]
             .map(|v| (v as f64 / 255.0).clamp(0.0, 1.0))
-            .map(|v| space.data().0.gamma.decode(v));
+            .map(|v| space.data().gamma.decode(v));
         RGB::new(r, g, b, observer, Some(space))
     }
 
@@ -91,7 +91,7 @@ impl RGB {
         let space = space.unwrap_or_default();
         let [r, g, b] = [r_u16, g_u16, b_u16]
             .map(|v| (v as f64 / 65_535.0).clamp(0.0, 1.0))
-            .map(|v| space.data().0.gamma.decode(v));
+            .map(|v| space.data().gamma.decode(v));
         RGB::new(r, g, b, observer, Some(space))
     }
 
@@ -120,7 +120,7 @@ impl RGB {
         let xyzn = self
             .observer
             .data()
-            .xyz(&self.space.data().0.white, None)
+            .xyz(&self.space.data().white, None)
             .set_illuminance(100.0)
             .xyzn;
         let xyz = self.observer.data().rgb2xyz(&self.space) * self.rgb;
@@ -190,7 +190,7 @@ mod rgb_tests {
 
 impl Light for RGB {
     fn spectrum(&self) -> Cow<Spectrum> {
-        let prim = &self.space.data().0.primaries;
+        let prim = &self.space.data().primaries;
         let yrgb = self.observer.data().rgb2xyz(&self.space).row(1);
         //        self.rgb.iter().zip(yrgb.iter()).zip(prim.iter()).map(|((v,w),s)|*v * *w * &s.0).sum()
         let s = self
@@ -221,7 +221,7 @@ impl Filter for RGB {
         ```
     */
     fn spectrum(&self) -> Cow<Spectrum> {
-        let prim = self.space.data().0.primaries_as_colorants();
+        let prim = self.space.data().primaries_as_colorants();
         let yrgb = self.observer.data().rgb2xyz(&self.space).row(1);
         let s = self
             .rgb
@@ -243,7 +243,7 @@ impl AsRef<Vector3<f64>> for RGB {
 impl From<RGB> for [u8; 3] {
     fn from(rgb: RGB) -> Self {
         let data: &[f64; 3] = rgb.rgb.as_ref();
-        data.map(|v| (rgb.space.data().0.gamma.encode(v.clamp(0.0, 1.0)) * 255.0).round() as u8)
+        data.map(|v| (rgb.space.data().gamma.encode(v.clamp(0.0, 1.0)) * 255.0).round() as u8)
     }
 }
 

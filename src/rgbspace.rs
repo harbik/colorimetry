@@ -18,36 +18,6 @@ const D: f64 = 0.0005620; // Desaturation ratio
 const D65X: f64 = 0.312_738;
 const D65Y: f64 = 0.329_052;
 
-/// These are the Chromaticities of the various RGB colorspaces, using the CIE 1931 standaard observer.
-/// This uses `LazyLock` to create a global static varibale, which gets intialized when first referenced.
-pub static XY_PRIMARIES: LazyLock<HashMap<&str, ([[f64; 2]; 3], StdIlluminant)>> =
-    LazyLock::new(|| {
-        HashMap::from([
-            (
-                "sRGB",
-                ([[0.64, 0.33], [0.3, 0.6], [0.15, 0.06]], StdIlluminant::D65),
-            ),
-            (
-                "Adobe RGB",
-                (
-                    [[0.64, 0.33], [0.21, 0.71], [0.15, 0.06]],
-                    StdIlluminant::D65,
-                ),
-            ),
-            (
-                "Display P3",
-                (
-                    [
-                        [(1.0 - D) * 0.68 + D * D65X, (1.0 - D) * 0.32 + D * D65Y],
-                        [0.265, 0.69],
-                        [0.15, 0.06],
-                    ],
-                    StdIlluminant::D65,
-                ),
-            ),
-        ])
-    });
-
 #[derive(Debug, Clone, Copy, Default, EnumIter, PartialEq)]
 #[wasm_bindgen]
 /**
@@ -62,18 +32,48 @@ pub enum RgbSpace {
 }
 
 impl RgbSpace {
-    /**
-    Obtain reference to the RgbSpace data, and a color space name string.
-
-    An `RgbSpace` contains the primary and white spectra, and the gamma
-    curve function used for encoding and decoding RGB values into a data
-    stream or image pixel.
-    */
-    pub fn data(&self) -> (&RgbSpaceData, &str) {
+    /// Returns the name of the RGB color space.
+    pub fn name(&self) -> &'static str {
         match self {
-            Self::SRGB => (RgbSpaceData::srgb(), "sRGB"),
-            Self::ADOBE => (RgbSpaceData::adobe_rgb(), "Adobe RGB"),
-            Self::DisplayP3 => (RgbSpaceData::display_p3(), "Display P3"),
+            Self::SRGB => "sRGB",
+            Self::ADOBE => "Adobe RGB",
+            Self::DisplayP3 => "Display P3",
+        }
+    }
+
+    /// Obtain reference to the RgbSpace data.
+    ///
+    /// An `RgbSpace` contains the primary and white spectra, and the gamma
+    /// curve function used for encoding and decoding RGB values into a data
+    /// stream or image pixel.
+    pub fn data(&self) -> &RgbSpaceData {
+        match self {
+            Self::SRGB => RgbSpaceData::srgb(),
+            Self::ADOBE => RgbSpaceData::adobe_rgb(),
+            Self::DisplayP3 => RgbSpaceData::display_p3(),
+        }
+    }
+
+    /// Returns the chromaticity coordinates for the primaries (red, green and blue) of the
+    /// RGB colorspace, using the CIE 1931 standard observer.
+    pub fn primaries_chromaticity(&self) -> [[f64; 2]; 3] {
+        match self {
+            Self::SRGB => [[0.64, 0.33], [0.3, 0.6], [0.15, 0.06]],
+            Self::ADOBE => [[0.64, 0.33], [0.21, 0.71], [0.15, 0.06]],
+            Self::DisplayP3 => [
+                [(1.0 - D) * 0.68 + D * D65X, (1.0 - D) * 0.32 + D * D65Y],
+                [0.265, 0.69],
+                [0.15, 0.06],
+            ],
+        }
+    }
+
+    /// Returns the reference white point illuminant for this color space.
+    pub fn white(&self) -> StdIlluminant {
+        match self {
+            Self::SRGB => StdIlluminant::D65,
+            Self::ADOBE => StdIlluminant::D65,
+            Self::DisplayP3 => StdIlluminant::D65,
         }
     }
 }
@@ -242,22 +242,21 @@ impl RgbSpaceData {
 
 #[cfg(test)]
 mod rgbspace_tests {
-    //use crate::{RgbSpaceData, RgbSpace, CIE1931, XY_PRIMARIES, Spectrum, D65};
     use crate::prelude::*;
     use approx::assert_ulps_eq;
     use strum::IntoEnumIterator;
 
     #[test]
     /// Check color points of the primaries, as calculated from the space's
-    /// spectra, to the targets in `XY_PRIMARIES`.
+    /// spectra, to the targets returned by the `RgbSpace::primaries_chromaticity()` method.
     fn srgb_test() {
         for space in RgbSpace::iter() {
-            let (rgbspace, rgbstr) = space.data();
+            let rgbspace = space.data();
             for i in 0..3 {
                 let xy = CIE1931
                     .xyz_from_spectrum(&rgbspace.primaries[i], None)
                     .chromaticity();
-                let xywant = XY_PRIMARIES[rgbstr].0[i];
+                let xywant = space.primaries_chromaticity()[i];
                 assert_ulps_eq!(xy.as_ref(), xywant.as_ref(), epsilon = 1E-5);
             }
         }

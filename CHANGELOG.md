@@ -38,6 +38,8 @@ Line wrap the file at 100 chars.                                              Th
 ### Changed
 - Take fixed size arrays instead of slices in `XYZ::new`. Makes the function signature clearer,
   and removes a possible panic case.
+- Replace the public global static `XY_PRIMARIES` with the methods `name`,
+  `primaries_chromaticity` and `white` on the `RgbSpace` type.
 
 ### Removed
 - Remove the `paste` and `url` dependencies, since they were unused. And move the

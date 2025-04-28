@@ -433,7 +433,7 @@ impl ObserverData {
             [const { OnceLock::new() }; RGB2XYZ_AR_LEN];
 
         RGB2XYZ_AR[*rgbspace as usize].get_or_init(|| {
-            let (space, _) = rgbspace.data();
+            let space = rgbspace.data();
             let mut rgb2xyz = Matrix3::from_iterator(space.primaries.iter().flat_map(|s| {
                 self.xyz_from_spectrum(s, None)
                     .set_illuminance(1.0)
