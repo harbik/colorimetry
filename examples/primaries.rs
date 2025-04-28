@@ -4,6 +4,7 @@ use argmin::{
 };
 use colored::Colorize;
 use colorimetry::prelude::*;
+use strum::IntoEnumIterator as _;
 
 #[allow(dead_code)]
 struct Gauss {
@@ -69,10 +70,10 @@ impl CostFunction for GaussWithAnchor {
     }
 }
 
-fn gauss(s: &str, i: usize) -> Result<Vec<f64>, String> {
-    let [x, y] = XY_PRIMARIES[s].0[i];
+fn gauss(space: RgbSpace, i: usize) -> Result<Vec<f64>, String> {
+    let [x, y] = space.primaries_chromaticity()[i];
     let xyz = XYZ::try_from_chromaticity(x, y, None, None).unwrap();
-    let d = XY_PRIMARIES[s].1;
+    let d = space.white();
     let problem = Gauss::new(xyz, d);
 
     let l = xyz.dominant_wavelength(CIE1931.xyz_d65()).unwrap();
@@ -96,12 +97,12 @@ fn gauss(s: &str, i: usize) -> Result<Vec<f64>, String> {
     }
 }
 
-fn gauss_with_anchor(s: &str, i: usize, j: usize) -> Result<Vec<f64>, String> {
-    let [x, y] = XY_PRIMARIES[s].0[i];
+fn gauss_with_anchor(space: RgbSpace, i: usize, j: usize) -> Result<Vec<f64>, String> {
+    let [x, y] = space.primaries_chromaticity()[i];
     let xyz = XYZ::try_from_chromaticity(x, y, None, None).unwrap();
-    let [xb, yb] = XY_PRIMARIES[s].0[j];
+    let [xb, yb] = space.primaries_chromaticity()[j];
     let xyzb = XYZ::try_from_chromaticity(xb, yb, None, None).unwrap();
-    let d = XY_PRIMARIES[s].1;
+    let d = space.white();
     let problem = GaussWithAnchor::new(xyz, xyzb, d);
 
     // start parameters
@@ -140,15 +141,14 @@ fn report(desc: &str, r: [f64; 3], g: [f64; 2], b: [f64; 2]) {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    for &s in XY_PRIMARIES.keys() {
+    for rgbspace in RgbSpace::iter() {
         report(
-            s,
-            gauss_with_anchor(s, 0, 2)?.try_into().unwrap(),
-            gauss(s, 1)?.try_into().unwrap(),
-            gauss(s, 2)?.try_into().unwrap(),
+            rgbspace.name(),
+            gauss_with_anchor(rgbspace, 0, 2)?.try_into().unwrap(),
+            gauss(rgbspace, 1)?.try_into().unwrap(),
+            gauss(rgbspace, 2)?.try_into().unwrap(),
         );
     }
-    //    println!("{XY_PRIMARIES:?}");
 
     Ok(())
 }
