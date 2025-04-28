@@ -102,6 +102,17 @@ impl Filter for MunsellMatt {
     }
 }
 
+pub static MM_KEY_MAP: LazyLock<BTreeMap<&str, usize>> = LazyLock::new(|| {
+    let mut map = BTreeMap::new();
+    MUNSELL_MATT_KEYS
+        .iter()
+        .enumerate()
+        .for_each(|(value, &key)| {
+            map.insert(key, value);
+        });
+    map
+});
+
 #[cfg(test)]
 mod test_munsell_matt {
     use crate::prelude::*;
@@ -119,14 +130,3 @@ mod test_munsell_matt {
         assert_eq!(mm.0, "10RP4/12".to_string());
     }
 }
-
-pub static MM_KEY_MAP: LazyLock<BTreeMap<&str, usize>> = LazyLock::new(|| {
-    let mut map = BTreeMap::new();
-    MUNSELL_MATT_KEYS
-        .iter()
-        .enumerate()
-        .for_each(|(value, &key)| {
-            map.insert(key, value);
-        });
-    map
-});

@@ -165,29 +165,6 @@ impl RGB {
      */
 }
 
-#[cfg(test)]
-mod rgb_tests {
-    use crate::prelude::*;
-
-    #[test]
-    fn get_values_f64() {
-        let rgb = RGB::new(0.1, 0.2, 0.3, None, None);
-        let [r, g, b] = <[f64; 3]>::from(rgb);
-        assert_eq!(r, 0.1);
-        assert_eq!(g, 0.2);
-        assert_eq!(b, 0.3);
-    }
-
-    #[test]
-    fn get_values_u8() {
-        let rgb = RGB::new(0.1, 0.2, 0.3, None, None);
-        let [r, g, b] = <[u8; 3]>::from(rgb);
-        assert_eq!(r, 89);
-        assert_eq!(g, 124);
-        assert_eq!(b, 149);
-    }
-}
-
 impl Light for RGB {
     fn spectrum(&self) -> Cow<Spectrum> {
         let prim = &self.space.data().primaries;
@@ -298,4 +275,27 @@ pub fn gaussian_filtered_primaries(
         Stimulus(&*Colorant::gaussian(gc, gw).spectrum() * white).set_luminance(&CIE1931, 100.0),
         Stimulus(&*Colorant::gaussian(bc, bw).spectrum() * white).set_luminance(&CIE1931, 100.0),
     ]
+}
+
+#[cfg(test)]
+mod rgb_tests {
+    use crate::prelude::*;
+
+    #[test]
+    fn get_values_f64() {
+        let rgb = RGB::new(0.1, 0.2, 0.3, None, None);
+        let [r, g, b] = <[f64; 3]>::from(rgb);
+        assert_eq!(r, 0.1);
+        assert_eq!(g, 0.2);
+        assert_eq!(b, 0.3);
+    }
+
+    #[test]
+    fn get_values_u8() {
+        let rgb = RGB::new(0.1, 0.2, 0.3, None, None);
+        let [r, g, b] = <[u8; 3]>::from(rgb);
+        assert_eq!(r, 89);
+        assert_eq!(g, 124);
+        assert_eq!(b, 149);
+    }
 }
