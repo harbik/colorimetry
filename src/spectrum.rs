@@ -732,7 +732,7 @@ mod tests {
         use approx::assert_ulps_eq;
         let mut g1 = *Colorant::gray(0.5).spectrum();
         let g2 = *Colorant::gray(0.5).spectrum();
-        let g = g1.clone() + g2.clone();
+        let g = g1 + g2;
         for i in 380..780 {
             assert_ulps_eq!(g[i], 1.0);
         }
@@ -753,7 +753,7 @@ mod tests {
         use approx::assert_ulps_eq;
         let g = *Colorant::gray(0.5).spectrum();
 
-        let w = 2.0 * g.clone();
+        let w = 2.0 * g;
         for i in 380..780 {
             assert_ulps_eq!(w[i], 1.0);
         }

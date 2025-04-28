@@ -154,60 +154,6 @@ impl AsRef<[f64]> for CRI {
 #[wasm_bindgen]
 impl CRI {}
 
-#[cfg(test)]
-mod cri_test {
-    use crate::prelude::*;
-
-    #[test]
-    fn cri_d50() {
-        // should be all 100.0
-        let cri0: CRI = (&D50).try_into().unwrap();
-        // println!("{cri0:?}");
-        approx::assert_ulps_eq!(
-            cri0.as_ref(),
-            [100.0; crate::cri::N_TCS].as_ref(),
-            epsilon = 0.03
-        );
-    }
-
-    #[test]
-    #[cfg(feature = "cie-illuminants")]
-    fn cri_f1() {
-        // should be all 100.0
-        let cri0: CRI = StdIlluminant::F1.illuminant().try_into().unwrap();
-        println!("{cri0:?}");
-        // approx::assert_ulps_eq!(cri0.as_ref(), [100.0;crate::cri::N_TCS].as_ref(), epsilon = 0.05);
-    }
-
-    #[test]
-    #[cfg(feature = "cie-illuminants")]
-    fn cri_f3_1() {
-        // 2932K, check with values as given in CIE15:2004 Table T.8.2
-        let cri0: CRI = StdIlluminant::F3_1.illuminant().try_into().unwrap();
-        approx::assert_ulps_eq!(
-            cri0.as_ref(),
-            [42, 69, 89, 39, 41, 52, 66, 13, -109, 29, 19, 21, 47, 93]
-                .map(|v| v as f64)
-                .as_ref(),
-            epsilon = 1.0
-        );
-    }
-
-    #[test]
-    #[cfg(feature = "cie-illuminants")]
-    fn cri_f3_11() {
-        // 5854K, check with values as given in CIE15:2004 Table T.8.2
-        let cri0: CRI = StdIlluminant::F3_11.illuminant().try_into().unwrap();
-        approx::assert_ulps_eq!(
-            cri0.as_ref(),
-            [90, 86, 49, 82, 81, 70, 85, 79, 24, 34, 64, 50, 90, 67]
-                .map(|v| v as f64)
-                .as_ref(),
-            epsilon = 1.0
-        );
-    }
-}
-
 fn cd(uv60: [f64; 2]) -> [f64; 2] {
     let [u, v] = uv60;
     [
@@ -362,3 +308,57 @@ static TCS5: SMatrix<f64, 81, N_TCS> = SMatrix::from_array_storage(ArrayStorage(
         0.379, 0.39, 0.399,
     ],
 ]));
+
+#[cfg(test)]
+mod cri_test {
+    use crate::prelude::*;
+
+    #[test]
+    fn cri_d50() {
+        // should be all 100.0
+        let cri0: CRI = (&D50).try_into().unwrap();
+        // println!("{cri0:?}");
+        approx::assert_ulps_eq!(
+            cri0.as_ref(),
+            [100.0; crate::cri::N_TCS].as_ref(),
+            epsilon = 0.03
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "cie-illuminants")]
+    fn cri_f1() {
+        // should be all 100.0
+        let cri0: CRI = StdIlluminant::F1.illuminant().try_into().unwrap();
+        println!("{cri0:?}");
+        // approx::assert_ulps_eq!(cri0.as_ref(), [100.0;crate::cri::N_TCS].as_ref(), epsilon = 0.05);
+    }
+
+    #[test]
+    #[cfg(feature = "cie-illuminants")]
+    fn cri_f3_1() {
+        // 2932K, check with values as given in CIE15:2004 Table T.8.2
+        let cri0: CRI = StdIlluminant::F3_1.illuminant().try_into().unwrap();
+        approx::assert_ulps_eq!(
+            cri0.as_ref(),
+            [42, 69, 89, 39, 41, 52, 66, 13, -109, 29, 19, 21, 47, 93]
+                .map(|v| v as f64)
+                .as_ref(),
+            epsilon = 1.0
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "cie-illuminants")]
+    fn cri_f3_11() {
+        // 5854K, check with values as given in CIE15:2004 Table T.8.2
+        let cri0: CRI = StdIlluminant::F3_11.illuminant().try_into().unwrap();
+        approx::assert_ulps_eq!(
+            cri0.as_ref(),
+            [90, 86, 49, 82, 81, 70, 85, 79, 24, 34, 64, 50, 90, 67]
+                .map(|v| v as f64)
+                .as_ref(),
+            epsilon = 1.0
+        );
+    }
+}
