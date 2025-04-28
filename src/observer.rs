@@ -201,13 +201,11 @@ impl ObserverData {
         value is provided, in case they are.
     */
     pub fn xyz_cie_table(&self, std_illuminant: &StdIlluminant, illuminance: Option<f64>) -> XYZ {
-        const EMPTY: OnceLock<XYZ> = OnceLock::new();
         const XYZ_STD_ILLUMINANTS_LEN: usize = 64;
-        static XYZ_STD_ILLUMINANTS: OnceLock<[OnceLock<XYZ>; XYZ_STD_ILLUMINANTS_LEN]> =
-            OnceLock::new();
-        let xyz_std_illuminants =
-            XYZ_STD_ILLUMINANTS.get_or_init(|| [EMPTY; XYZ_STD_ILLUMINANTS_LEN]);
-        let xyz = *xyz_std_illuminants[*std_illuminant as usize]
+        static XYZ_STD_ILLUMINANTS: [OnceLock<XYZ>; XYZ_STD_ILLUMINANTS_LEN] =
+            [const { OnceLock::new() }; XYZ_STD_ILLUMINANTS_LEN];
+
+        let xyz = *XYZ_STD_ILLUMINANTS[*std_illuminant as usize]
             .get_or_init(|| self.xyz_from_spectrum(std_illuminant.illuminant(), None));
         if let Some(l) = illuminance {
             xyz.set_illuminance(l)
@@ -430,11 +428,11 @@ impl ObserverData {
     /// Calculates the RGB to XYZ matrix, for a particular color space.
     /// The matrices are buffered.
     pub fn rgb2xyz(&self, rgbspace: &RgbSpace) -> &'static Matrix3<f64> {
-        const EMPTY: OnceLock<Matrix3<f64>> = OnceLock::new();
         const RGB2XYZ_AR_LEN: usize = 16;
-        static RGB2XYZ_AR: OnceLock<[OnceLock<Matrix3<f64>>; RGB2XYZ_AR_LEN]> = OnceLock::new();
-        let rgb2xyz_ar = RGB2XYZ_AR.get_or_init(|| [EMPTY; RGB2XYZ_AR_LEN]);
-        rgb2xyz_ar[*rgbspace as usize].get_or_init(|| {
+        static RGB2XYZ_AR: [OnceLock<Matrix3<f64>>; RGB2XYZ_AR_LEN] =
+            [const { OnceLock::new() }; RGB2XYZ_AR_LEN];
+
+        RGB2XYZ_AR[*rgbspace as usize].get_or_init(|| {
             let (space, _) = rgbspace.data();
             let mut rgb2xyz = Matrix3::from_iterator(space.primaries.iter().flat_map(|s| {
                 self.xyz_from_spectrum(s, None)
@@ -456,11 +454,10 @@ impl ObserverData {
     /// Calculates the RGB to XYZ matrix, for a particular color space.
     /// The matrices are buffered.
     pub fn xyz2rgb(&self, rgbspace: RgbSpace) -> &'static Matrix3<f64> {
-        const EMPTY: OnceLock<Matrix3<f64>> = OnceLock::new();
         const XYZ2RGB_AR_LEN: usize = 16;
-        static XYZ2RGB_AR: OnceLock<[OnceLock<Matrix3<f64>>; XYZ2RGB_AR_LEN]> = OnceLock::new();
-        let xyz2rgb = XYZ2RGB_AR.get_or_init(|| [EMPTY; XYZ2RGB_AR_LEN]);
-        xyz2rgb[rgbspace as usize].get_or_init(|| {
+        static XYZ2RGB: [OnceLock<Matrix3<f64>>; XYZ2RGB_AR_LEN] =
+            [const { OnceLock::new() }; XYZ2RGB_AR_LEN];
+        XYZ2RGB[rgbspace as usize].get_or_init(|| {
             // unwrap: only used with library color spaces
             self.rgb2xyz(&rgbspace).try_inverse().unwrap()
         })

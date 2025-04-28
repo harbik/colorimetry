@@ -259,14 +259,10 @@ fn iso_temp_line(t: f64) -> [f64; 3] {
 /// For more information, see `The Improved Robertson Method for Calculating
 /// Correlated Color Temperature` by Gerard Harbers.
 pub fn robertson_table(im: usize) -> &'static [f64; 3] {
-    static ROBERTSON_TABLE: OnceLock<[OnceLock<[f64; 3]>; N_STEPS]> = OnceLock::new();
-
-    // Get reference to table, or initialize it when not done yet.
-    const UVM_EMPTY: OnceLock<[f64; 3]> = OnceLock::new();
-    let robertson_table = ROBERTSON_TABLE.get_or_init(|| [UVM_EMPTY; N_STEPS]);
+    static ROBERTSON_TABLE: [OnceLock<[f64; 3]>; N_STEPS] = [const { OnceLock::new() }; N_STEPS];
 
     // Get table row, or calculate when not done yet.
-    robertson_table[im].get_or_init(|| {
+    ROBERTSON_TABLE[im].get_or_init(|| {
         let cct = im2t(im);
         iso_temp_line(cct)
     })
