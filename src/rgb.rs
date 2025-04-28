@@ -131,28 +131,28 @@ impl RGB {
         }
     }
 
-    /// Creates a callback of closure function, which takes a set or RGB values, within a color
-    /// space and viewed as one observer, and returns a new set of RGB values, represeting the
-    /// stimulus in another color space, and using another observer.
-    ///
-    /// This conversion uses the spectral represenations of the primaries through the color space
-    /// `Spectra` function, to create a  transformation matrix.
-    pub fn convert(
-        obs_from: Observer,
-        space_from: RgbSpace,
-        obs: Observer,
-        space: RgbSpace,
-    ) -> Box<dyn Fn(&Vector3<f64>) -> Vector3<f64>> {
-        todo!()
-    }
+    // /// Creates a callback of closure function, which takes a set or RGB values, within a color
+    // /// space and viewed as one observer, and returns a new set of RGB values, represeting the
+    // /// stimulus in another color space, and using another observer.
+    // ///
+    // /// This conversion uses the spectral represenations of the primaries through the color space
+    // /// `Spectra` function, to create a  transformation matrix.
+    // pub fn convert(
+    //     obs_from: Observer,
+    //     space_from: RgbSpace,
+    //     obs: Observer,
+    //     space: RgbSpace,
+    // ) -> Box<dyn Fn(&Vector3<f64>) -> Vector3<f64>> {
+    //     todo!()
+    // }
 
-    /// Transform a set of RGB values, defining a stimulus for one standard observer, into a set of
-    /// RGB values representing the same stimulus for different standard observer or special
-    /// observer.  On initial use this function calculates a transformation matrix based on the
-    /// colorimetric tristimulus values of the respective primaries.
-    pub fn transform(&self, obs_from: &Observer) -> Self {
-        todo!()
-    }
+    // /// Transform a set of RGB values, defining a stimulus for one standard observer, into a set of
+    // /// RGB values representing the same stimulus for different standard observer or special
+    // /// observer.  On initial use this function calculates a transformation matrix based on the
+    // /// colorimetric tristimulus values of the respective primaries.
+    // pub fn transform(&self, obs_from: &Observer) -> Self {
+    //     todo!()
+    // }
 
     /*
     /// Creates a [Spectrum] from an [RGB] value, using the spectral primaries of its color space.
