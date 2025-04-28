@@ -49,6 +49,7 @@ Line wrap the file at 100 chars.                                              Th
 - Remove `TryFrom<&[f64]> for Illuminant`. Instead use `Illuminant::new(Spectrum::try_from(slice))`
   or the infallible `From<Spectrum> for Illuminant` if you already have a spectrum.
 - Remove `TryFrom<&[f64]> for Colorant`
+- Remove all error variants in `CmtError` that were unused.
 
 ### Fixed
 - Ensure the spectral values of a `Colorant` stays within the range 0.0 - 1.0. It was previously
