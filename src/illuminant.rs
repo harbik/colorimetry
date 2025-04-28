@@ -31,12 +31,12 @@ use crate::cri::CRI;
 /// a spectrometer. In this library, spectral values span a wavelength range from 380 to 780
 /// nanometers, including the end points, with a step size of 1 nanometer, resulting in 401 spectral
 /// values.
-
+///
 /// Creating a new illuminant can be done by using the `Illuminant::new` method, which takes a
 /// `Spectrum` as input. Alternatively, you can use the provided static methods to create common
 /// illuminants, such as `Illuminant::d65()` for the D65 standard illuminant, or `Illuminant::planckian(3000.0)`
 /// for a Planckian illuminant at 3000 Kelvin.
-
+///
 /// The `Illuminant` struct provides methods to manipulate the spectral values, such as
 /// `set_irradiance` to set the total irradiance of the illuminant, and `set_illuminance` to set the
 /// illuminance in lux. It also provides methods to calculate irradiance, illuminance, and the
