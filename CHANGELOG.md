@@ -20,8 +20,16 @@ Line wrap the file at 100 chars.                                              Th
 * **Fixed**: for any bug fixes.
 * **Security**: in case of vulnerabilities.
 
-
 ## [Unreleased]
+
+### Added
+
+### Changed
+
+### Removed
+
+
+## [0.0.4] - 2025-05-01
 ### Added
 - Add `RGB::values()` method for easy access to the raw red, green and blue values.
 - Enable all features when building documentation for docs.rs.

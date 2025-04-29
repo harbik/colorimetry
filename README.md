@@ -20,7 +20,7 @@ To use this library in a Rust application, run the command:
 ```
 or add this line to the dependencies in your Cargo.toml file:
 ```toml
-    colorimetry = "0.0.3"
+    colorimetry = "0.0.4"
 ```
 The easiest way to use the objects and functions library is through its prelude.
 This example calculates the chromaticity values of the CIE D65 illuminant.
@@ -46,7 +46,7 @@ or
 
 This can also be set manually, in your cargo.toml file, using
 ```toml
-    colorimetry = {version = "0.0.3", features = ["cri"]}
+    colorimetry = {version = "0.0.4", features = ["cri"]}
 ```
 The online documentation includes all the features.
 
