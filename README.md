@@ -1,16 +1,14 @@
 
 # Overview
-A Colorimetry Library for color modelling in illumination and engineering projects.
-Besides being a Rust library, it also provides JavaScript/WebAssembly interfaces, although still rudimentary at this stage.
-The algorithms are implemented according to recommendations of the International Commission on Illumination (CIE),
-the International Color Consortium (ICC), and the Illumination Engineering Society (IES).
 
-It is a spectral library, using spectral representations of color, allowing to use more advanced
-colorimetric observers besides the outdated and flawed CIE 1931 standard observer.
-It uses spectral representations of illuminants, filters, and color patches defined over
-a wavelength domain from 380 to 780 nanometers, with 1 nanometer steps.
-Many spectral representations of illuminants and colorants are included in the library, either by default, or by using feature flags.
-You can also include use your own data, and if your dataset is defined on a different domain linear, Sprague, and Spline interpolation methods are available to remap.
+A Rust library for color modeling in illumination and engineering projects, with early JavaScript/WebAssembly support.  
+Algorithms follow standards from the CIE, ICC, and IES.
+
+This **spectral** library represents colors, illuminants, filters, and patches across 380–780 nm at 1 nm intervals, with support for importing data defined over different or irregular domains.  
+It supports advanced colorimetric observers beyond the outdated CIE 1931 standard.
+
+The library includes a broad range of spectral data by default or via feature flags.  
+Custom datasets are supported, with linear, Sprague, and spline interpolation available for domain remapping.
 
 # Installation
 
@@ -30,53 +28,77 @@ This example calculates the chromaticity values of the CIE D65 illuminant.
     approx::assert_abs_diff_eq!(xy.as_ref(), [0.3127, 0.3291].as_ref(), epsilon=5E-5);
 ```
 
-## Features 
+## Features
 
-The library includes many data collections, of which only a minimal set is included by default.
-A feature is enabled by including using the flag `-F`.
+This library includes a range of spectral data collections, with only a minimal set enabled by default.  
+Additional functionality can be activated using Cargo feature flags.
 
-For example, to include "cri" Color Rendering Index module illuminants, use:
+<details>
+<summary><strong>How to Enable Features</strong></summary>
+
+To enable a feature when adding the library:
+
 ```bash
-    cargo add colorimetry -F cri
+cargo add colorimetry -F cri
 ```
 or
 ```bash
-    cargo add colorimetry --features cri
+cargo add colorimetry --features cri
 ```
 
-This can also be set manually, in your cargo.toml file, using
+Alternatively, configure features manually in your `Cargo.toml`:
+
 ```toml
-    colorimetry = {version = "0.0.4", features = ["cri"]}
+colorimetry = { version = "0.0.4", features = ["cri"] }
 ```
-The online documentation includes all the features.
 
-The current features in this library are:
+</details>
 
-- **cie-illuminants** _default_
-    Include a large collection of standard illuminants such as the Fluorescent and LED series.
-    Included by default.
-    To exclude use the `--no-default-features` flag: `cargo add --no-default-features`.
-- **supplemental-observers** _default_
-    The CIE 1931 Standard Observer is always included, but with feature several other standard and experimental
-    colorimetric observers are included as well.
-    Included by default.
-- **munsell**
-    Include reflection spectra for the Munsell colors.
-    This will increase the size of your executable quite a bit, and is not included by default.
-- **charts**
-    Include reflection spectra for various test charts.
-- **cri** 
-    Include the color rendering index module, which calculates the Ra and R1 to R14 values for illuminants.
-    This loads an additional 14 test color sample spectra.
-- **cct**
-    Calculate correlated color temperature for illuminants.
-    Builds a 4096 length lookup table, with each row consisting of 3*f64 values.
-    The table rows are only calculated when required, but table space is reserved in the executable.
-    This module is also included with the "cri" feature.
-- **color-fidelity**
-    Calculates CIE 224:2017 Color Fidelity Index, and associated values.
-    Contains 99 test color samples.
+The complete list of available features is described below.  
+For full documentation, refer to the online documentation.
 
+<details>
+<summary><strong>Default Features</strong></summary>
+
+- **`cie-illuminants`**  
+  Includes a large collection of standard illuminants (e.g., Fluorescent and LED series).  
+  Enabled by default. To disable, use:
+
+  ```bash
+  cargo add colorimetry --no-default-features
+  ```
+
+- **`supplemental-observers`**  
+  Adds several standard and experimental colorimetric observers beyond the CIE 1931 Standard Observer, which is always included.  
+  Enabled by default.
+
+</details>
+
+<details>
+<summary><strong>Optional Features</strong></summary>
+
+- **`munsell`**  
+  Includes reflection spectra for Munsell colors.  
+  _Note: significantly increases executable size._
+
+- **`charts`**  
+  Adds reflection spectra for various standard test charts.
+
+- **`cri`**  
+  Enables Color Rendering Index (CRI) calculations, providing Ra and R1–R14 values for illuminants.  
+  Loads an additional 14 test color sample spectra.
+
+- **`cct`**  
+  Calculates correlated color temperatures (CCT) for illuminants.  
+  Generates a 4096-entry lookup table (each entry containing three `f64` values).  
+  Memory is reserved at compile time but computed on demand.  
+  _Included automatically when the `cri` feature is enabled._
+
+- **`color-fidelity`**  
+  Calculates the CIE 224:2017 Color Fidelity Index and related metrics.  
+  Includes 99 test color sample spectra.
+
+</details>
 
 ## Spectral Distributions
 All spectral calculations in this library use the [`Spectrum`](crate::spectrum::Spectrum) class as a base, which contains the spectral data.
