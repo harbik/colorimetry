@@ -142,10 +142,10 @@ fn test_colorant_cielab() {
     use crate::prelude::*;
     use approx::assert_abs_diff_eq;
     let colorant = Colorant::white();
-    let lab = colorant.cielab(None, None);
-    assert_abs_diff_eq!(lab.lab[0], 100.0, epsilon = 1E-4); // L* should be 100 for white
-    assert_abs_diff_eq!(lab.lab[1], 0.0, epsilon = 1E-4); // a* should be 0 for white
-    assert_abs_diff_eq!(lab.lab[2], 0.0, epsilon = 1E-4); // b* should be 0 for white
+    let [l, a, b] = colorant.cielab(None, None).values();
+    assert_abs_diff_eq!(l, 100.0, epsilon = 1E-4); // L* should be 100 for white
+    assert_abs_diff_eq!(a, 0.0, epsilon = 1E-4); // a* should be 0 for white
+    assert_abs_diff_eq!(b, 0.0, epsilon = 1E-4); // b* should be 0 for white
 }
 
 impl TryFrom<Spectrum> for Colorant {
