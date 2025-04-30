@@ -35,7 +35,7 @@ And here we calculate the CIELAB values of a Gaussian filter, with center wavele
 ```rust
     use colorimetry::prelude::*;
     // using D65 lluminant and CIE 1931 standard observer as defaults:
-    let &[l, a, b] = Colorant::gaussian(550.0, 25.0).cielab(None, None).as_ref();
+    let [l, a, b] = Colorant::gaussian(550.0, 25.0).cielab(None, None).values();
     approx::assert_abs_diff_eq!(l, 77.26, epsilon=5E-3);
     approx::assert_abs_diff_eq!(a, -72.93, epsilon=5E-3);
     approx::assert_abs_diff_eq!(b, 104.58, epsilon=5E-3);
