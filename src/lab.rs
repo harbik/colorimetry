@@ -46,6 +46,11 @@ impl CieLab {
             Err(CmtError::RequiresSameIlluminant)
         }
     }
+
+    // Returns the CIE L*a*b* values as an array.
+    pub fn values(&self) -> [f64; 3] {
+        *self.lab.as_ref()
+    }
 }
 
 impl AsRef<[f64; 3]> for CieLab {

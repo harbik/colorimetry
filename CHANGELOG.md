@@ -31,6 +31,7 @@ Line wrap the file at 100 chars.                                              Th
 
 ## [0.0.4] - 2025-05-01
 ### Added
+- Add `CieLab::values()` method for easy access to the CIELAB L*, a*, and b* values.
 - Add `RGB::values()` method for easy access to the raw red, green and blue values.
 - Enable all features when building documentation for docs.rs.
 - Add `Spectrum::values() -> &[f64; 401]` for direct access to the underlying spectral data.
