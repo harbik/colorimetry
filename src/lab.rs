@@ -49,7 +49,7 @@ impl CieLab {
 
     // Returns the CIE L*a*b* values as an array.
     pub fn values(&self) -> [f64; 3] {
-        self.lab.as_ref().clone()
+        *self.lab.as_ref()
     }
 }
 
