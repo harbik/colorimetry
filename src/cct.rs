@@ -126,6 +126,10 @@ impl CCT {
     pub fn tint(&self) -> f64 {
         1000.0 * self.1
     }
+
+    pub fn values(&self) -> [f64; 2] {
+        [self.0, self.1]
+    }
 }
 
 /// Get cct and duv values as an array.

@@ -48,7 +48,7 @@ This library includes a range of spectral data collections, with only a minimal 
 Additional functionality can be activated using Cargo feature flags.
 
 <details>
-<summary><strong>How to Enable Features</strong></summary>
+<summary><strong>Enable Features</strong></summary>
 
 To enable a feature when adding the library:
 
@@ -63,7 +63,8 @@ cargo add colorimetry --features cri
 Alternatively, configure features manually in your `Cargo.toml`:
 
 ```toml
-colorimetry = { version = "0.0.4", features = ["cri"] }
+// add `cri` and `color-fidelity` features
+colorimetry = { version = "0.0.4", features = ["cri", "color-fidelity"] }
 ```
 
 </details>
@@ -156,13 +157,17 @@ Alternatively, the library includes the CIE standard illuminants.
 To get an `Illuminant` from your spectral data, first create a `Spectrum`, for example by using one of the interpolation methods, or directly using an array.
 
 ```rust
-    // create spectrum from array, consisting of spectral values of 1.0.
     use colorimetry::prelude::*;
+
+    // create equal energy spectrum from an array, with values of 1.0.
     let spectrum = Spectrum::new([1.0; 401]);
     let illuminant = Illuminant::new(spectrum);
-    let xy = illuminant.xyz(None).chromaticity();
-    approx::assert_abs_diff_eq!(xy.as_ref(), [0.3333, 0.3333].as_ref(), epsilon=1E-4)
+    // Use None for default CIE 1931 2º standard observer
+    let [x, y] = illuminant.xyz(None).chromaticity();
+    approx::assert_abs_diff_eq!(x, 0.3333, epsilon=1E-4);
+    approx::assert_abs_diff_eq!(y, 0.3333, epsilon=1E-4);
 ```
+
 </details>
 
 <details>
@@ -173,10 +178,12 @@ To get an `Illuminant` from your spectral data, first create a `Spectrum`, for e
   ```rust
       use crate::colorimetry::prelude::*;
 
+      // Plankian illuminant with a temperature of 3000 Kelvin
       let p3000 = Illuminant::planckian(3000.0);
-      let xy = CIE1931.xyz(&p3000, None).chromaticity();
+      let [x, y] = CIE1931.xyz(&p3000, None).chromaticity();
 
-      approx::assert_abs_diff_eq!( xy.as_ref(), [0.436_935,0.404_083].as_ref(), epsilon = 1E-6);
+      approx::assert_abs_diff_eq!( x, 0.436_935, epsilon = 1E-6);
+      approx::assert_abs_diff_eq!( y, 0.404_083, epsilon = 1E-6);
   ```
 
 - Generic Daylight **CIE D-illuminant,** generating a daylight spectrum with a characteristic
@@ -189,48 +196,93 @@ To get an `Illuminant` from your spectral data, first create a `Spectrum`, for e
 </details>
 
 <details>
-<summary><strong>CIE Standard Illuminants</strong></summary>
-The CIE has defined a set of standard illuminants, in form of spectral data values.
-They represent various light sources, and are included in this library using 
-[`StdIlluminant](crate::std_illuminants::StdIlluminant), which is a `enum` type.
+<summary><strong>CIE Standard Illuminants </strong></summary>
+<i>Daylight Illuminants</i>
 
-They are all included by default, and can be 
-To use the others, use the `
-
-<details>
-<summary><i>Daylight Illuminants</i></summary>
-
-- [`D65`](crate::std_illuminants::StdIlluminant::D65)
-- [`D50`](crate::std_illuminants::StdIlluminant::D65)
-
+[`D65`](crate::std_illuminants::StdIlluminant::D65), 
+[`D50`](crate::std_illuminants::StdIlluminant::D65)
 </details>
 
 <details>
-<summary><i>Standard Fluorescent Lamps</i></summary>
+<summary><strong>Additional CIE Standard Illuminants (use `cie-illuminants` feature) </strong></summary>
+<i>Standard Incandescent Lamp</i>
 
-- **F1**
-- **F2**
-- **F3**
-- **F4**
-- **F5**
-- **F6**
-- **F7**
-- **F8**
-- **F9**
-- **F10**
-- **F11**
-- **F12**
+[`A`](crate::std_illuminants::StdIlluminant::A),
+
+<i>Fluorescent Lamps, Standard Series</i>
+
+[`F1`](crate::std_illuminants::StdIlluminant::F1),
+[`F2`](crate::std_illuminants::StdIlluminant::F2),
+[`F3`](crate::std_illuminants::StdIlluminant::F3),
+[`F4`](crate::std_illuminants::StdIlluminant::F4),
+[`F5`](crate::std_illuminants::StdIlluminant::F5),
+[`F6`](crate::std_illuminants::StdIlluminant::F6),
+[`F7`](crate::std_illuminants::StdIlluminant::F7),
+[`F8`](crate::std_illuminants::StdIlluminant::F8),
+[`F9`](crate::std_illuminants::StdIlluminant::F9),
+[`F10`](crate::std_illuminants::StdIlluminant::F10),
+[`F11`](crate::std_illuminants::StdIlluminant::F11),
+[`F12`](crate::std_illuminants::StdIlluminant::F12)
+
+<i>Fluorescent Lamps, F3 Series</i>
+
+[`F3_1`](crate::std_illuminants::StdIlluminant::F3_1),
+[`F3_2`](crate::std_illuminants::StdIlluminant::F3_2),
+[`F3_3`](crate::std_illuminants::StdIlluminant::F3_3),
+[`F3_4`](crate::std_illuminants::StdIlluminant::F3_4),
+[`F3_5`](crate::std_illuminants::StdIlluminant::F3_5),
+[`F3_6`](crate::std_illuminants::StdIlluminant::F3_6),
+[`F3_7`](crate::std_illuminants::StdIlluminant::F3_7),
+[`F3_8`](crate::std_illuminants::StdIlluminant::F3_8),
+[`F3_9`](crate::std_illuminants::StdIlluminant::F3_9),
+[`F3_10`](crate::std_illuminants::StdIlluminant::F3_10),
+[`F3_11`](crate::std_illuminants::StdIlluminant::F3_11),
+[`F3_12`](crate::std_illuminants::StdIlluminant::F3_12),
+[`F3_13`](crate::std_illuminants::StdIlluminant::F3_13),
+[`F3_14`](crate::std_illuminants::StdIlluminant::F3_14),
+[`F3_15`](crate::std_illuminants::StdIlluminant::F3_15),
+
+<i>LED Illuminants</i>
+
+[`LED_B1`](crate::std_illuminants::StdIlluminant::LED_B1),
+[`LED_B2`](crate::std_illuminants::StdIlluminant::LED_B2),
+[`LED_B3`](crate::std_illuminants::StdIlluminant::LED_B3),
+[`LED_B4`](crate::std_illuminants::StdIlluminant::LED_B4),
+[`LED_B5`](crate::std_illuminants::StdIlluminant::LED_B5),
+[`LED_BH1`](crate::std_illuminants::StdIlluminant::LED_BH1),
+[`LED_RGB1`](crate::std_illuminants::StdIlluminant::LED_RGB1),
+[`LED_V1`](crate::std_illuminants::StdIlluminant::LED_V1),
 
 </details>
 
+<details>
+<summary><strong>Correlated Color Temperature (CCT)</strong></summary>
 
+Illuminants are typically characterized by a correlated color temperature, in Kelvin,
+and a Tint, representing the deviation to the Planckian curve.
 
+Here we us Plank's law, to create an illuminant spectrum, and check its temperature and tint.
+  ```rust
+      use crate::colorimetry::prelude::*;
+
+      // Plankian illuminant with a temperature of 3000 Kelvin
+      let p3000 = Illuminant::planckian(3000.0);
+      // unwrap as we know values should be 3000.0, and 0.0
+      let [cct, duv] = p3000.try_cct().unwrap().values();
+
+      approx::assert_abs_diff_eq!( cct, 3000.0, epsilon = 1E-4);
+      approx::assert_abs_diff_eq!( duv, 0.0, epsilon = 1E-6);
+  ```
 
 
 </details>
 
+<details>
+<summary><strong>Correlated Color Rendering Index (CRI)</strong></summary>
 
-`Illuminant` and `StdIlluminant` both implement the [`Light`](crate::traits::Light) trait, which is used as generic input for color models.
+</details>
+
+## Colorants
 
 ## Stimuli
 Other interesting constructors are the [`Stimulus::srgb`](crate::stimulus::Stimulus::srgb), and [`Stimulus::rgb`](crate::stimulus::Stimulus::rgb), which create a spectrum of a set of RGB pixel values.
@@ -262,9 +314,6 @@ With the default **supplemental-observers** feature also other observers are inc
 The primary function of a [`Observer`](crate::observer::Observer), such as the [`CIE1931`](crate::data::observers::CIE1931) colorimetric standard observer, is the [`CIE1931.xyz`] method, which takes a spectral distribution as a single argument, and produces a [`XYZ`](crate::xyz::XYZ) object, encapsulating the CIE 1931 X, Y, and Z tristimulus values.
 These tristimulus values are used by more advanced color models, such as the CIELAB and CIECAM, to describe the sensations of color in our minds.
 
-## Paints, Dyes, and Inks
-These are represented by a [`Colorant`](crate::colorant::Colorant) object, which encapsulates a reflection or transmission spectrum, defined over a domain from 380 to 780 nanometers with 1 nanometer steps, and values within a range from 0.0 to 1.0.
-They implement the [`Filter`](crate::traits::Filter) trait, which is used as input for many of the color models.
 
 ## XYZ Tristimulus Values
 These tristimulus values are a representation of the response of each of the three cones, and an inproduct of the spectrum and the color matching functions.
@@ -282,17 +331,6 @@ Likewise, the `lab_d65` and `lab_d50` methods can be used to get CIELAB coordina
 ## [`RGB`](crate::rgb::RGB) Color Values, and [`RgbSpace`](crate::rgbspace::RgbSpace) Color Spaces.
 
 
-## Correlated Color Temperature
-
-## Color Rendering Metrics
-
-
-
-# Use with Deno/TypeScript
-
-
-
-# Use in Web Applications
 
 # License
 All content &copy;2025 Harbers Bik LLC, and licensed under either of
