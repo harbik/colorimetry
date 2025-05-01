@@ -128,8 +128,7 @@ impl TryFrom<&Illuminant> for CRI {
                 let cdti = cd(xyz.uv60());
                 let uv_vk = uv_kries(cdt, cdr, cdti);
                 let xyz_vk =
-                    XYZ::try_from_luv60(uv_vk[0], uv_vk[1], Some(xyz.xyz.unwrap().y), None)
-                        .unwrap();
+                    XYZ::from_luv60(uv_vk[0], uv_vk[1], Some(xyz.xyz.unwrap().y), None).unwrap();
                 let uvw = xyz_vk.uvw64(xyz_ref);
                 let uvwr = xyzr.uvw64(xyz_ref);
                 100.0

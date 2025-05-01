@@ -373,11 +373,10 @@ impl ObserverData {
         *MIN.get_or_init(|| {
             const START: usize = 100;
             let mut lp =
-                LineAB::try_new(self.spectral_locus_by_index(START), [0.33333, 0.33333]).unwrap();
+                LineAB::new(self.spectral_locus_by_index(START), [0.33333, 0.33333]).unwrap();
             let mut m = START - 1;
             loop {
-                let l =
-                    LineAB::try_new(self.spectral_locus_by_index(m), [0.33333, 0.33333]).unwrap();
+                let l = LineAB::new(self.spectral_locus_by_index(m), [0.33333, 0.33333]).unwrap();
                 match (m, l.angle_diff(lp)) {
                     (0, d) if d > -f64::EPSILON => break m + 1,
                     (0, _) => break 0,
@@ -403,11 +402,10 @@ impl ObserverData {
         *MAX.get_or_init(|| {
             const START: usize = 300;
             let mut lp =
-                LineAB::try_new(self.spectral_locus_by_index(START), [0.33333, 0.33333]).unwrap();
+                LineAB::new(self.spectral_locus_by_index(START), [0.33333, 0.33333]).unwrap();
             let mut m = START + 1;
             loop {
-                let l =
-                    LineAB::try_new(self.spectral_locus_by_index(m), [0.33333, 0.33333]).unwrap();
+                let l = LineAB::new(self.spectral_locus_by_index(m), [0.33333, 0.33333]).unwrap();
                 match (m, l.angle_diff(lp)) {
                     (400, d) if d < f64::EPSILON => break m - 1,
                     (400, _) => break 400,

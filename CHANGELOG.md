@@ -31,9 +31,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   illuminant and an observer.
 
 ### Changed
-- Changed CCT::try_from_xyz to CCT::from_xyz
-- Changed CCT::try_new_with_tint to CCT::new_with_tint
-- Changed CCT::try_new to CCT::new
+- Changed `XYZ::try_from_luv60` to `XYZ::from_luv60`
+- Changed `XYZ::try_from_chromaticity` to `XYZ::from_chromaticity`
+- Changed `Triangle::try_new` to `Triangle::new`
+- Changed `LineAB::try_new` to `LineAB::new`
+- Changed `CCT::try_from_xyz` to `CCT::from_xyz`
+- Changed `CCT::try_new_with_tint` to `CCT::new_with_tint`
+- Changed `CCT::try_new` to `CCT::new`
 - Take fixed size arrays instead of slices in `XYZ::new`. Makes the function signature clearer,
   and removes a possible panic case.
 - Replace the public global static `XY_PRIMARIES` with the methods `name`,

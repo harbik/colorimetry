@@ -257,7 +257,7 @@ impl TryFrom<CCT> for XYZ {
         let [u0, v0, m] = iso_temp_line(t);
         let du = m.signum() * d / (m * m + 1.0).sqrt();
         let dv = m * du;
-        XYZ::try_from_luv60(u0 + du, v0 + dv, None, None)
+        XYZ::from_luv60(u0 + du, v0 + dv, None, None)
     }
 }
 

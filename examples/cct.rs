@@ -21,7 +21,7 @@ struct Args {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
-    let xyz: XYZ = XYZ::try_from_chromaticity(args.x, args.y, None, None)?;
+    let xyz: XYZ = XYZ::from_chromaticity(args.x, args.y, None, None)?;
     let cct: CCT = xyz.try_into()?;
     let [t, d] = cct.into();
     let tint = d * 1000.0;
