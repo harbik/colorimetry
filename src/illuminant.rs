@@ -7,7 +7,15 @@ use wasm_bindgen::prelude::*;
 use nalgebra::{ArrayStorage, SMatrix, SVector};
 
 use crate::{
-    data::illuminants::{D50, D65}, error::CmtError, illuminant, observer::{Observer, ObserverData}, physics::{gaussian_peak_one, led_ohno, planck, stefan_boltzmann, wavelength}, spectrum::{wavelengths, Spectrum, NS}, std_illuminants::StdIlluminant, traits::Light, xyz::XYZ
+    data::illuminants::{D50, D65},
+    error::CmtError,
+    illuminant,
+    observer::{Observer, ObserverData},
+    physics::{gaussian_peak_one, led_ohno, planck, stefan_boltzmann, wavelength},
+    spectrum::{wavelengths, Spectrum, NS},
+    std_illuminants::StdIlluminant,
+    traits::Light,
+    xyz::XYZ,
 };
 
 #[cfg(feature = "cri")]
@@ -188,8 +196,6 @@ impl Illuminant {
             let s = Spectrum::linear_interpolate(&[380.0, 780.0], &v).unwrap();
             Ok(Illuminant(s).set_irradiance(1.0))
         }
-        
-
     }
 
     /// Returns the XYZ tristimulus values for the illuminant.
@@ -201,13 +207,12 @@ impl Illuminant {
     }
 
     /// Calculate the correlated color temperature (CCT) of the illuminant.
-    /// 
+    ///
     /// # Errors
     /// - CmtError::OutOfRange when the the distance to the Planckian locus is larger than 0.05 DUV,
     ///   or when the CCT is outside the range of 1000 to 25000 Kelvin.
     #[cfg(feature = "cct")]
     pub fn try_cct(&self) -> Result<crate::cct::CCT, CmtError> {
-        
         // CIE requires using the CIE1931 observer for calculating the CCT.
         let xyz = self.xyz(Some(Observer::Std1931));
         crate::cct::CCT::try_from_xyz(xyz)

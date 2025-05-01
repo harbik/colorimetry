@@ -2,6 +2,7 @@
 
 ## [0.0.4] - 2025-05-01
 ### Added
+- Add `Illuminant::try_cct()` method to calculate correlated color temperature and Planckian distance.
 - Add `CieLab::values()` method for easy access to the CIELAB L*, a*, and b* values.
 - Add `RGB::values()` method for easy access to the raw red, green and blue values.
 - Enable all features when building documentation for docs.rs.
