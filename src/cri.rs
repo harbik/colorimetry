@@ -67,12 +67,16 @@ fn tcs_test() {
 pub struct CRI([f64; N_TCS]);
 
 impl CRI {
-    pub fn try_new(s: &Illuminant) -> Result<Self, CmtError> {
-        s.try_into()
+    pub fn new(s: impl AsRef<Illuminant>) -> Result<Self, CmtError> {
+        s.as_ref().try_into()
     }
 
     pub fn ra(&self) -> f64 {
         self.0.iter().take(8).sum::<f64>() / 8.0
+    }
+
+    pub fn values(&self) -> [f64; N_TCS] {
+        self.0
     }
 }
 
@@ -352,12 +356,18 @@ mod cri_test {
     #[cfg(feature = "cie-illuminants")]
     fn cri_f3_11() {
         // 5854K, check with values as given in CIE15:2004 Table T.8.2
-        let cri0: CRI = StdIlluminant::F3_11.illuminant().try_into().unwrap();
-        approx::assert_ulps_eq!(
-            cri0.as_ref(),
-            [90, 86, 49, 82, 81, 70, 85, 79, 24, 34, 64, 50, 90, 67]
-                .map(|v| v as f64)
-                .as_ref(),
+        let cri0: CRI = CRI::new(StdIlluminant::F3_11).unwrap();
+
+        let expected_ra = 78.0;
+        approx::assert_abs_diff_eq!(cri0.ra(), expected_ra, epsilon = 1.0);
+
+        let expected_values = [
+            90.0, 86.0, 49.0, 82.0, 81.0, 70.0, 85.0, 79.0, 24.0, 34.0, 64.0, 50.0, 90.0, 67.0,
+        ];
+
+        approx::assert_abs_diff_eq!(
+            cri0.values().as_ref(),
+            expected_values.as_ref(),
             epsilon = 1.0
         );
     }

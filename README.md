@@ -258,19 +258,30 @@ To get an `Illuminant` from your spectral data, first create a `Spectrum`, for e
 <details>
 <summary><strong>Correlated Color Temperature (CCT)</strong></summary>
 
-Illuminants are typically characterized by a correlated color temperature, in Kelvin,
-and a Tint, representing the deviation to the Planckian curve.
+Illuminants are typically characterized by their **correlated color temperature (CCT)**, expressed in Kelvin (K), and by their **tint**, which describes the chromaticity deviation from the Planckian (blackbody) locus.
+
+The **CCT** is defined as the temperature of the Planckian (ideal blackbody) radiator whose perceived color most closely matches that of the test light source, when viewed under identical conditions. Because many real-world light sources (e.g., fluorescent or LED lamps) do not emit light that exactly matches any blackbody radiator, their color temperature is termed *correlated* rather than exact.
+
+CCT is not derived directly from spectral data, but is calculated using the chromaticity coordinates (typically in the CIE 1931 (x, y) color space) by finding the closest point on the Planckian locus—usually by minimizing the Euclidean or perceptual distance in color space.
+
+In this library, an advanced, high accuracy, iterative Robertson's method is used to calculate both values.
+
+**Reference**
+
+Commission Internationale de l'Éclairage. (2004). *CIE 015:2004: Colorimetry* (3rd ed.). Vienna: CIE.
 
 Here we us Plank's law, to create an illuminant spectrum, and check its temperature and tint.
   ```rust
       # #[cfg(feature = "cct")]{
-
+      // this example requires `cct` feature enabled
       use crate::colorimetry::prelude::*;
 
       // Plankian illuminant with a temperature of 3000 Kelvin
       let p3000 = Illuminant::planckian(3000.0);
-      // unwrap as we know values should be 3000.0, and 0.0
-      let [cct, duv] = p3000.try_cct().unwrap().values();
+
+      // calculate CCT and Duv for this illuminant
+      // unwrap OK as we know values should be approximately 3000.0, and 0.0
+      let [cct, duv] = p3000.cct().unwrap().values();
 
       approx::assert_abs_diff_eq!( cct, 3000.0, epsilon = 1E-4);
       approx::assert_abs_diff_eq!( duv, 0.0, epsilon = 1E-6);
@@ -282,6 +293,34 @@ Here we us Plank's law, to create an illuminant spectrum, and check its temperat
 
 <details>
 <summary><strong>Correlated Color Rendering Index (CRI)</strong></summary>
+
+The CIE Color Rendering Index (CRI), including the general color rendering index (Rₐ) and the individual special color rendering indices (R₁ through R₁₅), can be calculated using the `cri` method, which follows the procedure specified in *CIE 13.3-1995: Method of Measuring and Specifying Colour Rendering Properties of Light Sources* (Commission Internationale de l'Éclairage, 1995).
+
+
+  ```rust
+    # #[cfg(all(feature = "cri", feature = "cie-illuminants"))]{
+    // this example requires `cri` and `cie-illuminants` features enabled
+
+    use crate::colorimetry::prelude::*;
+
+    let f3_11 = StdIlluminant::F3_11.illuminant();
+    let cri = f3_11.cri().unwrap();
+
+    let expected_ra = 78.0;
+    approx::assert_abs_diff_eq!(cri.ra(), expected_ra, epsilon = 1.0);
+
+    let expected_values = [
+        90.0, 86.0, 49.0, 82.0, 81.0, 70.0, 85.0, 79.0, 24.0, 34.0, 64.0, 50.0, 90.0, 67.0,
+    ];
+
+    approx::assert_abs_diff_eq!(
+        cri.values().as_ref(),
+        expected_values.as_ref(),
+        epsilon = 1.0
+    );
+
+    # }
+  ```
 
 </details>
 

@@ -16,7 +16,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [0.0.4] - 2025-05-01
 
 ### Added
-- Add `Illuminant::try_cct()` method to calculate correlated color temperature and Planckian distance.
+- Add `Illuminant::cct()` method to calculate correlated color temperature and Planckian distance.
 - Add `CieLab::values()` method for easy access to the CIELAB L*, a*, and b* values.
 - Add `RGB::values()` method for easy access to the raw red, green and blue values.
 - Enable all features when building documentation for docs.rs.
@@ -31,6 +31,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   illuminant and an observer.
 
 ### Changed
+- Changed CCT::try_from_xyz to CCT::from_xyz
+- Changed CCT::try_new_with_tint to CCT::new_with_tint
+- Changed CCT::try_new to CCT::new
 - Take fixed size arrays instead of slices in `XYZ::new`. Makes the function signature clearer,
   and removes a possible panic case.
 - Replace the public global static `XY_PRIMARIES` with the methods `name`,
