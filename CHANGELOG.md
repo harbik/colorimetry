@@ -1,6 +1,20 @@
 # Changelog
 
+The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
+
+### Categories each change fall into
+
+* **Added**: for new features.
+* **Changed**: for changes in existing functionality.
+* **Deprecated**: for soon-to-be removed features.
+* **Removed**: for now removed features.
+* **Fixed**: for any bug fixes.
+* **Security**: in case of vulnerabilities.
+
+## Unreleased
+
 ## [0.0.4] - 2025-05-01
+
 ### Added
 - Add `Illuminant::try_cct()` method to calculate correlated color temperature and Planckian distance.
 - Add `CieLab::values()` method for easy access to the CIELAB L*, a*, and b* values.
@@ -52,4 +66,3 @@
 
 
 
-The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
