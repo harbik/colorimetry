@@ -263,6 +263,8 @@ and a Tint, representing the deviation to the Planckian curve.
 
 Here we us Plank's law, to create an illuminant spectrum, and check its temperature and tint.
   ```rust
+      # #[cfg(feature = "cct")]{
+
       use crate::colorimetry::prelude::*;
 
       // Plankian illuminant with a temperature of 3000 Kelvin
@@ -272,6 +274,7 @@ Here we us Plank's law, to create an illuminant spectrum, and check its temperat
 
       approx::assert_abs_diff_eq!( cct, 3000.0, epsilon = 1E-4);
       approx::assert_abs_diff_eq!( duv, 0.0, epsilon = 1E-6);
+    # }
   ```
 
 
