@@ -348,9 +348,10 @@ The library defines different model based constructors.
 Here are a couple of examples.
 
 ```rust
+use crate::colorimetry::prelude::*;
 
 // Create a perfect white color patch.
-let white = Colorant::white()); 
+let white = Colorant::white(); 
 
 // Create a gray neutral colorant with 30% reflectance at all wavelengths
 let gray = Colorant::gray(0.3); 
