@@ -401,7 +401,7 @@ With the **`supplemental-observers`** feature enabled, the library also includes
 - `CIE1964_10`: the CIE 1964 10º standard observer for larger visual fields,
 - `CIE2015_2` and `CIE2015_10`: cone fundamentals–based observers defined over 390–830 nm (CIE 170-2:2015).
 
-The core method [`Observer::xyz`](crate::observer::Observer::xyz) maps a spectral distribution to a [`XYZ`](crate::xyz::XYZ) tristimulus value. These serve as the basis for advanced color appearance models such as **CIELAB** and **CIECAM**, which incorporate adaptation state, luminance level, and surround context.
+The core method [`ObserverData::xyz`](crate::observer::ObserverData::xyz) maps a spectral distribution to a [`XYZ`](crate::xyz::XYZ) tristimulus value. These serve as the basis for advanced color appearance models such as **CIELAB** and **CIECAM**, which incorporate adaptation state, luminance level, and surround context.
 
 
 
