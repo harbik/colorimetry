@@ -1,5 +1,6 @@
 
-# Overview
+Colorimetry
+===========
 
 A Rust library for color modeling in illumination and engineering projects, with early JavaScript/WebAssembly support.  
 Algorithms follow standards from the CIE, ICC, and IES.
@@ -10,7 +11,7 @@ It supports advanced colorimetric observers beyond the outdated CIE 1931 standar
 The library includes a broad range of spectral data by default or via feature flags.  
 Custom datasets are supported, with linear, Sprague, and spline interpolation available for domain remapping.
 
-# Installation
+## Installation
 
 To use this library in a Rust application, run the command:
  ```bash
@@ -21,25 +22,6 @@ or add this line to the dependencies in your Cargo.toml file:
     colorimetry = "0.0.4"
 ```
 The easiest way to use the objects and functions library is through its prelude.
-
-This example calculates the chromaticity values of the CIE D65 illuminant.
-```rust
-    use colorimetry::prelude::*;
-    // use CIE 1931 standard observer as defaul
-    let [x, y] = D65.xyz(None).chromaticity();
-    approx::assert_abs_diff_eq!(x, 0.3127, epsilon=5E-5);
-    approx::assert_abs_diff_eq!(y, 0.3291, epsilon=5E-5);
-```
-
-And here we calculate the CIELAB values of a Gaussian filter, with center wavelength of 550 nanometers, and with a _FWHM_ (Full Width Half Maximum) of 25 nanometers:
-```rust
-    use colorimetry::prelude::*;
-    // using D65 lluminant and CIE 1931 standard observer as defaults:
-    let [l, a, b] = Colorant::gaussian(550.0, 25.0).cielab(None, None).values();
-    approx::assert_abs_diff_eq!(l, 77.26, epsilon=5E-3);
-    approx::assert_abs_diff_eq!(a, -72.93, epsilon=5E-3);
-    approx::assert_abs_diff_eq!(b, 104.58, epsilon=5E-3);
-```
 
 
 ## Features
@@ -116,9 +98,23 @@ colorimetry = { version = "0.0.4", features = ["cri", "color-fidelity"] }
 
 </details>
 
+## Concepts and Examples
+
+- While the core data structure of the library is `Spectrum`, all colorimetric models operate on higher-level abstractions: `Illuminant`, `Colorant`, or `Stimulus`, each encapsulating spectral data in a way that aligns with standard colorimetric principles.
+- Depending on the spectral type, the library provides specialized methods—for example:
+  - Correlated color temperature **CCT** and color rendering index **CRI** calculations for `Illuminant`s.
+  - **CIELAB** and **CIECAM** color appearance model computations for `Colorant`s.
+  - **RGB** conversions and colorimetric projections for `Stimulus` data.
+- The library includes multiple CIE standard observers as `Observer` instances, including the CIE 1931 2º, CIE 1964 10º, and the cone fundamentals–based CIE 2015 2º and 10º observers.
+
+As a first step in almost any colorimetric model, an `Observer` is used to compute the tristimulus values `XYZ`, which indirectly represent the responses of the eye's cone receptors.
+
+- Advanced color models such as **CIELAB** and **CIECAM** build on these tristimulus values to describe our color perceptions—how we see color—taking into account the state of visual adaptation and viewing conditions.
+- These models also enable the estimation of perceived color differences between stimuli, making it possible to compare how colors appear across displays, printed materials, and real-world objects.
+
 ## Spectral Distributions
 
-The [`Spectrum`](crate::spectrum::Spectrum) struct underpins all spectral calculations in this library. It stores data in a `nalgebra::Vector<f64>` of length 401, representing wavelengths from **380 nm to 780 nm** in **1 nm** steps.
+The [`Spectrum`](crate::spectrum::Spectrum) struct underpins all spectral calculations in this library. It stores data in a `nalgebra::SVector<f64, NS>` with length `NS = 401`, representing wavelengths from **380 nm to 780 nm** in **1 nm** steps.
 
 To perform colorimetric calculations, use either [`Illuminant`](crate::illuminant::Illuminant) for light source spectra, or [`Colorant`](crate::colorant::Colorant) for modeling surface colors, such as paints and printed inks.
 A [`Stimulus`](crate::stimulus::Stimulus) is used to model pixels in displays, where a combination of red, green, and blue sub-pixels are controlled to create sensations of color, directly viewed by looking at them.
@@ -326,9 +322,98 @@ The CIE Color Rendering Index (CRI), including the general color rendering index
 
 ## Colorants
 
+A `Colorant` represents a color filter or surface (such as a color patch) defined by spectral values  
+ranging from `0.0` to `1.0`. Each value corresponds to the proportion of light at a given wavelength  
+that is **not absorbed**:
+
+- `0.0` → Full absorption (no transmission or reflection)
+- `1.0` → Full transmission or reflection (no absorption)
+
+This model is commonly used in color science to describe the spectral behavior of materials and follows  
+conventions used in CIE colorimetry.
+
+In color models, a `Colorant` spectrum in not used directly, but is always associated with an illuminant;
+without an illuminant, objects appear black.
+
+<details>
+<summary><strong>Create from spectral data</strong></summary>
+A `Colorant` can be created from a [`Spectrum`](crate::spectrum::Spectrum)` which, besides using a
+direct array, include various interpolation constructors and smoothing methods.
+
+</details>
+
+<details>
+<summary><strong>Colorant Models</strong></summary>
+The library defines different model based constructors.
+Here are a couple of examples.
+
+```rust
+
+// Create a perfect white color patch.
+let white = Colorant::white()); 
+
+// Create a gray neutral colorant with 30% reflectance at all wavelengths
+let gray = Colorant::gray(0.3); 
+
+// A perfect absorber (black)
+let black = Colorant::black();
+
+
+
+```
+
+</details>
+
+
 ## Stimuli
-Other interesting constructors are the [`Stimulus::srgb`](crate::stimulus::Stimulus::srgb), and [`Stimulus::rgb`](crate::stimulus::Stimulus::rgb), which create a spectrum of a set of RGB pixel values.
+
+A `Stimulus` represents the spectral power distribution (SPD) of light reaching the eye —  
+the physical input that gives rise to color perception.
+
+It encapsulates a [`Spectrum`](crate::spectrum::Spectrum), which contains the  
+spectral data (e.g., from a light source, reflected surface, or transmitted medium)  
+as a function of wavelength.
+
+In colorimetric terms, the `Stimulus` models the energy that interacts with the  
+human visual system. When evaluated using a standard [`Observer`](crate::observer::Observer),  
+it yields CIE XYZ tristimulus values that quantify the perceived color.
+
+For example, a `Stimulus` might represent:
+- Emitted light from a display pixel  
+- Reflected light from a surface under an illuminant  
+- Transmitted light through a colored filter
+
+<details>
+<summary><strong>Constructors</strong></summary>
+</details>
+
+
+## Standard Observers
+
+In colorimetry, color perception is modeled as the response of the human visual system to spectral stimuli. Human vision is trichromatic, based on the relative excitations of three cone types (L, M, and S) in the retina. These physiological responses are abstracted in the CIE XYZ color space as X, Y, and Z tristimulus values.
+
+Tristimulus values are computed by integrating a spectral power distribution with a set of three **color matching functions** (CMFs), which represent the average spectral sensitivity of the human eye. A set of CMFs defines a **standard observer**.
+
+The primary observer used in most applications is the **CIE 1931 2º Standard Observer**, derived from color matching experiments with foveal (central) vision. This observer is represented in this library by a static [`Observer`](crate::observer::Observer) instance: [`CIE1931`](crate::data::observers::CIE1931).
+
+With the **`supplemental-observers`** feature enabled, the library also includes:
+- `CIE1964_10`: the CIE 1964 10º standard observer for larger visual fields,
+- `CIE2015_2` and `CIE2015_10`: cone fundamentals–based observers defined over 390–830 nm (CIE 170-2:2015).
+
+The core method [`Observer::xyz`](crate::observer::Observer::xyz) maps a spectral distribution to a [`XYZ`](crate::xyz::XYZ) tristimulus value. These serve as the basis for advanced color appearance models such as **CIELAB** and **CIECAM**, which incorporate adaptation state, luminance level, and surround context.
+
+
+
+
+## Advanced Colorimetry
+Here are some examples of advanced colorimetry task, facilitated by this library (_Under Development_).
+
+<details>
+<summary><strong>Color Perception Differences Between Different Observers</strong></summary>
+
+[`Stimulus::srgb`](crate::stimulus::Stimulus::srgb), and [`Stimulus::rgb`](crate::stimulus::Stimulus::rgb), which create a `Stimulus` of a set of RGB pixel values.
 The first takes three `u8` arguments, while the second uses a [`RGB`](crate::rgb::RGB) object as argument.
+This function allows calculating the perceived color difference between different observers, from the perspective of a single observer.
 
 ```rust
     use colorimetry::prelude::*;
@@ -341,40 +426,11 @@ The first takes three `u8` arguments, while the second uses a [`RGB`](crate::rgb
 ```
 
 
-## The CIE Standard Colorimetric Observer
-What we perceive as color are sensations in the virtual cortex located in the back of our brain.
-These sensations are triggered by stimuli from the photosensitive layer in the back of our eyes, called retina.
-Human vision is trichromatic, which means that light, when entering our eyes, is classified by three stimuli.
-In colorimetry, at the physiological level, these stimuli are represented by the X, Y, and Z tristimulus values, using the CIE XYZ color model, and using three types of color sensitivity functions, called color matching functions, for an average or standard observer.
-Color matching functions are indirect representations of the spectral sensitivities of the _L_, _M_, and _S_ cones in our retinas, as function of spectral stimuli entering our eyes.
-
-The first and currently still almost exclusively used standard observer is the CIE 1931 Colorimetric Standard Observer.
-The definition of this observer by the CIE launched the field of colorimetry.
-In this library it is represented by a static instance of the [`Observer`](crate::observer::Observer) class called `CIE1931` and is always available.
-With the default **supplemental-observers** feature also other observers are included, such as the CIE 1976 10º, s, the CIE 2015 2º and CIE 2015 10º observers.
-
-The primary function of a [`Observer`](crate::observer::Observer), such as the [`CIE1931`](crate::data::observers::CIE1931) colorimetric standard observer, is the [`CIE1931.xyz`] method, which takes a spectral distribution as a single argument, and produces a [`XYZ`](crate::xyz::XYZ) object, encapsulating the CIE 1931 X, Y, and Z tristimulus values.
-These tristimulus values are used by more advanced color models, such as the CIELAB and CIECAM, to describe the sensations of color in our minds.
-
-
-## XYZ Tristimulus Values
-These tristimulus values are a representation of the response of each of the three cones, and an inproduct of the spectrum and the color matching functions.
-All color models are using the tristimulus values of a stimulus, essentially a light ray being detected by a set of cones, as a basis.
-
-Although they can be initiated in this library directly using the [`XYZ::new`](crate::xyz::XYZ::new) constructor, they are typical produced by using the [`Observer::xyz`](crate::observer::Observer.xyz) function, which takes a generic `Light` and an optional `Filter` argument.
-Examples of object which implement the `Light` trait are `StdIlluminant` and `Illuminant`.
-
-
-## CieLab Color Model
-Likewise, the `lab_d65` and `lab_d50` methods can be used to get CIELAB coordinates for a spectrum measured from a color sample, as an instance of the [`CieLab`](crate::lab::CieLab) class.
-
-## Color
-
-## [`RGB`](crate::rgb::RGB) Color Values, and [`RgbSpace`](crate::rgbspace::RgbSpace) Color Spaces.
+</details>
 
 
 
-# License
+## License
 All content &copy;2025 Harbers Bik LLC, and licensed under either of
 
  * Apache License, Version 2.0
