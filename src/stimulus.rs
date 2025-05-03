@@ -25,7 +25,6 @@ impl Stimulus {
         Self(spectrum)
     }
 
-
     /// Sets the luminance of the stimulus based on the observer data and a luminance value.
     pub fn set_luminance(mut self, obs: &ObserverData, luminance: f64) -> Self {
         let l = luminance / (obs.data.row(1) * self.0 .0 * obs.lumconst).x;
