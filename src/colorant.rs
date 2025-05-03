@@ -108,7 +108,7 @@ impl Colorant {
     }
 
     /// A Gaussian Filter, specified by a central wavelength, and a
-    /// full-width-half-maximum value, both in units of meter, or nanometer.
+    /// standard deviation `sigma` value, both in units of meter, or nanometer.
     ///
     /// The filter has a peak value of 1.0
     pub fn gaussian(center: f64, sigma: f64) -> Self {

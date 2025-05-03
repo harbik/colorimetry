@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [0.0.4] - 2025-05-01
 
 ### Added
+- Add `Stimulus::new(Spectrum)` to create a stimulus from spectral values
 - Add `Illuminant::cct()` method to calculate correlated color temperature and Planckian distance.
 - Add `CieLab::values()` method for easy access to the CIELAB L*, a*, and b* values.
 - Add `RGB::values()` method for easy access to the raw red, green and blue values.
@@ -31,6 +32,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   illuminant and an observer.
 
 ### Changed
+- Changed `Stimulus::srgb` to `Stimulus::from_srgb`
+- Changed `Stimulus::rgb` to `Stimulus::from_rgb`
 - Changed `XYZ::try_from_luv60` to `XYZ::from_luv60`
 - Changed `XYZ::try_from_chromaticity` to `XYZ::from_chromaticity`
 - Changed `Triangle::try_new` to `Triangle::new`

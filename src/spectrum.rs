@@ -627,7 +627,7 @@ mod tests {
             CIE1931.xyz_d65().set_illuminance(100.0),
             epsilon = 1E-6
         );
-        let red = Stimulus::srgb(255, 0, 0);
+        let red = Stimulus::from_srgb(255, 0, 0);
         assert_ulps_eq!(
             CIE1931
                 .xyz_from_spectrum(&red, None)
@@ -706,6 +706,14 @@ mod tests {
         // See table T3 CIE15:2004 (calculated with 5nm intervals, instead of 1nm, as used here)
         assert_ulps_eq!(x, 0.312_72, epsilon = 5E-5);
         assert_ulps_eq!(y, 0.329_03, epsilon = 5E-5);
+    }
+
+    #[test]
+    fn d65_test() {
+        let [x, y, z] = D65.xyz(None).values();
+        assert_ulps_eq!(x, 95.04, epsilon = 5E-3);
+        assert_ulps_eq!(y, 100.0, epsilon = 5E-3);
+        assert_ulps_eq!(z, 108.86, epsilon = 5E-3);
     }
 
     #[test]
