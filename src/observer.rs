@@ -24,7 +24,7 @@
   - Additional variation comes from the **optical media of the eye** (lens, cornea, macula), which
     filter incoming light and change with age and health.
 - Cone responses form the physiological basis of **tristimulus values (X, Y, Z)**, first defined by the **CIE**
-    in 1931.
+  in 1931.
   - Color matching experiments using **bipartite fields** and narrow-band **RGB primaries** were used
     to measure how observers match colors across the visible spectrum.
   - Data from **Wright** and **Guild**, using a total of 17 male observers, were combined to define
