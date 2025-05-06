@@ -10,30 +10,37 @@ Algorithms follow standards from the CIE, ICC, and IES.
 It intends to provide a comprehensive framework for spectral colorimetry:
 
 - **Standard `Spectrum` representation**  
-  - All spectra—whether illuminants, filters, surface reflectance, or stimuli—are represented over a wavelength interval ranging from _380 nm_ to _780 nm_,  at _1 nm steps_, usin a total of 401 spectral data values.
-  - Uses Rust [`nalgebra`]s linear algebra library for mathematical operations on spectral data, for fast processing, and a rich set of mathematical algorithms.
-  - Import measurements defined on arbitrary or irregular wavelength grids by resampling using linear or Sprague–Karup interpolation.
+  - All spectra—illuminants, filters, surface reflectance, or stimuli—are defined on a **fixed internal grid** of **401 samples** spanning **380 nm to 780 nm** in **1 nm** increments, using the [`Spectrum`] object.  
+  - Leverages the [`nalgebra`] **linear-algebra library** for efficient vector and matrix operations on spectral data, providing high-performance processing and access to advanced mathematical routines.  
+  - Imports measurements from **arbitrary or irregular** wavelength grids by resampling onto the internal grid using configurable interpolation methods (linear or Sprague–Karup), with optional **smoothing** for oversampled datasets.  
 
 - **Built-in spectral datasets**  
-  Includes measured high-resolution spectral data of Munsell color book and ColorChecker®[^1] chart samples, and many other standard color charts.
+  - **Munsell** color book (Munsell feature)
+  - **CRI TCS** (Test Color Samples, with cri feature)
 
-- **Synthetic spectrum generation**  
-  Generate spectral distributions from analytical models:
+- **Generate spectral distributions** from analytical models
   - **Planck’s law** for blackbody radiators  
   - **Gaussian functions** for custom filter shapes  
   - **RGB channel mixtures** to approximate display pixel spectra
 
-- **Multiple CIE standard observers**  
-  Compute tristimulus values using any supported observer:
-  - **CIE 1931** 2° Standard Observer  
-  - **CIE 1964** 10° Standard Observer  
-  - **CIE 2015** Cone Fundamental based Standard Observers (2° & 10°)
+- **CIE standard [Colorimetric Observers]** each represented in the [`Observer`] instance.
+  Calculate associated tristimulus values [`XYZ`] for spectral entities.
+  - **CIE 1931 2º**,
+  - **CIE 1964 10º**,
+  - **CIE 2015 2º**,
+  - **CIE 2015 10º**,
 
-- **Color appearance and uniform color spaces**  
-  Convert spectral data into perceptually uniform models and appearance spaces such as **CIELAB**, **CIELUV**, **CIECAM02**, and **CAM16**, with support for many ΔE color-difference metrics.
 
-- **Advanced colorimetry support**  
-  With physiological cone fundamentals–based observers and modern interpolation methods, this library overcomes the limitations of the original CIE 1931 model and is suitable for high-precision LED, display, and imaging applications.
+- **Spectrally based RGB Color Spaces** with transformation matrices between [`RGB`] and [`XYZ`] values for all color spaces and observers
+  - **sRGB**
+  - **Adobe RGB**
+  - **DisplayP3**
+
+
+- **Advanced color models**
+  -  **[CIELAB]**
+  -  **[CIECAM16]**
+
 
 ## Installation
 
@@ -74,7 +81,8 @@ cargo add colorimetry --no-default-features
 ```
 
 - **`cie-illuminants`**  
-  Includes a large collection of standard illuminants (e.g., Fluorescent and LED series).  
+  Adds a large collection of standard illuminants (e.g., Fluorescent and LED series) beyond the **D50** and **D65**, which are always included.
+    
 
 - **`supplemental-observers`**  
   Adds the following CIE standard colorimetric observers beyond the **CIE 1931** 2º Standard Observer:
@@ -86,72 +94,57 @@ cargo add colorimetry --no-default-features
 <details>
 <summary><strong>Optional Features</strong></summary>
 
-- **`cie-illuminants`**
-  Only **D50** and **D65** are included in the library by default.
-  Use this feature to include the **A**, **F_x**, **F3_x** and **LED_x** illuminants.
-
 - **`munsell`**  
-  Includes reflection spectra for Munsell colors.  
-  _Note: significantly increases executable size._
-
-- **`charts`**  
-  Adds reflection spectra for various standard test charts.
-
-- **`cri`**  
-  Enables Color Rendering Index (CRI) calculations, providing Ra and R1–R14 values for illuminants.  
-  Loads an additional 14 test color sample spectra.
+  Include reflection spectra for Munsell colors.
 
 - **`cct`**  
-  _Included automatically when the `cri` feature is enabled._
+  _Included automatically if the `cri` feature is enabled._
   Calculates correlated color temperatures (CCT) for illuminants.
   Generates a 4096-entry lookup table (each entry containing three `f64` values).
   Memory is reserved at compile time but computed on demand.
 
-- **`color-fidelity`**  
-  To calculate the CIE 224:2017 Color Fidelity Index and related metrics.  
-  Includes 99 test color sample spectra.
+- **`cri`**  
+  Enables Color Rendering Index (CRI) calculations, providing Ra and R1–R14 values for illuminants.  
+  Loads an additional 14 test color sample spectra.
 
 </details>
 
 <details>
 <summary><strong>Enable Features</strong></summary>
 
-To enable a feature when adding the library:
+To enable a feature, such as `cri` and `munsell`, use 
 
 ```bash
-cargo add colorimetry -F cri
+cargo add colorimetry -F cri,munsell
 ```
 or
 ```bash
-cargo add colorimetry --features cri
+cargo add colorimetry --features cri,munsell
 ```
 
 Alternatively, configure features manually in your `Cargo.toml`:
 
 ```toml
-// add `cri` and `color-fidelity` features
-colorimetry = { version = "0.0.4", features = ["cri", "color-fidelity"] }
+colorimetry = { version = "0.0.4", features = ["cri", "munsell"] }
 ```
 
 </details>
 
 ## Concepts and Examples
 
-- While the core data structure of the library is [`Spectrum`], all colorimetric models operate on higher-level abstractions: [`Illuminant`], [`Colorant`], or [`Stimulus`], each encapsulating spectral data in a way that aligns with standard colorimetric principles.
+- While the core data structure of the library is [`Spectrum`], all colorimetric models operate on higher-level abstractions such as [`Illuminant`], [`Colorant`], and [`Stimulus`], each encapsulating spectral data in a way that aligns with standard colorimetric principles.
 - Depending on the spectral type, the library provides specialized methods—for example:
   - Correlated color temperature **CCT** and color rendering index **CRI** calculations for `Illuminant`s.
   - **CIELAB** and **CIECAM** color appearance model computations for `Colorant`s.
   - **RGB** conversions and colorimetric projections for [`Stimulus`] data.
-- The library includes multiple CIE standard observers as [`Observer`] instances, including the CIE 1931 2º, CIE 1964 10º, and the cone fundamentals–based CIE 2015 2º and 10º observers.
-
-As a first step in almost any colorimetric model, an [`Observer`] is used to compute the tristimulus values `XYZ`, which indirectly represent the responses of the eye's cone receptors.
-
+- As a first step in almost any colorimetric model, [Colorimetric Observers] are used to compute the tristimulus values (X, Y, Z), which indirectly represent the responses of the eye's cone receptors to external optical stimuli.
+The library includes multiple CIE standard observers as [`Observer`] instances.
 - Advanced color models such as **CIELAB** and **CIECAM** build on these tristimulus values to describe our color perceptions—how we see color—taking into account the state of visual adaptation and viewing conditions.
 - These models also enable the estimation of perceived color differences between stimuli, making it possible to compare how colors appear across displays, printed materials, and real-world objects.
 
 ## Spectral Distributions
 
-The [`Spectrum`] struct underpins all spectral calculations in this library. It stores data in a `nalgebra::SVector<f64, NS>` with length `NS = 401`, representing wavelengths from **380 nm to 780 nm** in **1 nm** steps.
+The [`Spectrum`] struct underpins all spectral calculations in this library. It stores spectral data in a `nalgebra::SVector<f64, NS>` vector, with length `NS = 401`, over a wavelength domain ranging from **380 nm to 780 nm** in **1 nm** steps.
 
 To perform colorimetric calculations, use either [`Illuminant`] for light source spectra, or [`Colorant`] for modeling surface colors, such as paints and printed inks.
 A [`Stimulus`] is used to model pixels in displays, where a combination of red, green, and blue sub-pixels are controlled to create sensations of color, directly viewed by looking at them.
@@ -174,7 +167,7 @@ A [`Stimulus`] is used to model pixels in displays, where a combination of red, 
 <details>
 <summary><strong>Using data with other wavelength domains</strong></summary>
 
-If you have spectral data defined over a different wavelength domain, two interpolation methods are available for converting your data into a `Spectrum`:
+If you have spectral data defined over a wavelength domain different from the _380-780-1 nanometers_ as used in this library, you can use two interpolation methods converting your data into a `Spectrum`:
 
 - **Linear interpolation**  
   The [`Spectrum::linear_interpolate`] constructor takes a slice of wavelengths and a corresponding slice of spectral values. It returns a `Spectrum` if both slices are of equal length and the wavelengths are ordered.
@@ -212,8 +205,12 @@ To get an `Illuminant` from your spectral data, first create a `Spectrum`, for e
     // create equal energy spectrum from an array, with values of 1.0.
     let spectrum = Spectrum::new([1.0; 401]);
     let illuminant = Illuminant::new(spectrum);
-    // Use None for default CIE 1931 2º standard observer
+    
+    // calculate chromaticity coordinates as used in the CIE 1931 chromaticity diagram
+    // use `None` as argument to used the default CIE 1931 2º standard observer
     let [x, y] = illuminant.xyz(None).chromaticity();
+    
+    // check the values
     approx::assert_abs_diff_eq!(x, 0.3333, epsilon=1E-4);
     approx::assert_abs_diff_eq!(y, 0.3333, epsilon=1E-4);
 ```
@@ -245,30 +242,20 @@ To get an `Illuminant` from your spectral data, first create a `Spectrum`, for e
 - **Equal Energy Illuminant**, with a uniform spectral distribution with an irradiance of 1 watt per square meter.
 </details>
 
-<details>
-<summary><strong>CIE Standard Illuminants </strong></summary>
-<i>Daylight Illuminants</i>
+<details><summary><strong>CIE Standard Illuminants </strong></summary>
 
-[`D65`], [`D50`]
-</details>
+The following standard illuminants are available in the library using the _cie-illuminants_ feature, which is enabled by default.
 
-<details>
-<summary><strong>Additional CIE Standard Illuminants (use `cie-illuminants` feature) </strong></summary>
-<i>Standard Incandescent Lamp</i>
-
-[`A`]
-
-<i>Fluorescent Lamps, Standard Series</i>
-
-[`F1`], [`F2`], [`F3`], [`F4`], [`F5`], [`F6`], [`F7`], [`F8`], [`F9`], [`F10`], [`F11`], [`F12`]
-
-<i>Fluorescent Lamps, F3 Series</i>
-
-[`F3_1`], [`F3_2`], [`F3_3`], [`F3_4`], [`F3_5`], [`F3_6`], [`F3_7`], [`F3_8`], [`F3_9`], [`F3_10`], [`F3_11`], [`F3_12`], [`F3_13`], [`F3_14`], [`F3_15`]
-
-<i>LED Illuminants</i>
-
-[`LED_B1`], [`LED_B2`], [`LED_B3`], [`LED_B4`], [`LED_B5`], [`LED_BH1`], [`LED_RGB1`], [`LED_V1`]
+- **Daylight** (_always included_):  
+  [`D65`], [`D50`]
+- **Incandescent Lamps** (_cie-illuminants_):  
+  [`A`]
+- **Fluorescent Lamps** (_cie-illuminants_):  
+  [`F1`], [`F2`], [`F3`], [`F4`], [`F5`], [`F6`], [`F7`], [`F8`], [`F9`], [`F10`], [`F11`], [`F12`]
+- **Fluorescent Lamps, F3 Series** (_cie_illuminants_):  
+  [`F3_1`], [`F3_2`], [`F3_3`], [`F3_4`], [`F3_5`], [`F3_6`], [`F3_7`], [`F3_8`], [`F3_9`], [`F3_10`], [`F3_11`], [`F3_12`], [`F3_13`], [`F3_14`], [`F3_15`]
+- **LED Lamps** (_cie_illuminants_):   
+  [`LED_B1`], [`LED_B2`], [`LED_B3`], [`LED_B4`], [`LED_B5`], [`LED_BH1`], [`LED_RGB1`], [`LED_V1`]
 
 </details>
 
@@ -279,13 +266,9 @@ Illuminants are typically characterized by their **correlated color temperature 
 
 The **CCT** is defined as the temperature of the Planckian (ideal blackbody) radiator whose perceived color most closely matches that of the test light source, when viewed under identical conditions. Because many real-world light sources (e.g., fluorescent or LED lamps) do not emit light that exactly matches any blackbody radiator, their color temperature is termed *correlated* rather than exact.
 
-CCT is not derived directly from spectral data, but is calculated using the chromaticity coordinates (typically in the CIE 1931 (x, y) color space) by finding the closest point on the Planckian locus—usually by minimizing the Euclidean or perceptual distance in color space.
+CCT is not derived directly from spectral data, but is calculated using the chromaticity coordinates by finding the closest point on the Planckian locus—usually by minimizing the Euclidean or perceptual distance in color space[^3].
 
 In this library, an advanced, high accuracy, iterative Robertson's method is used to calculate both values.
-
-**Reference**
-
-Commission Internationale de l'Éclairage. (2004). *CIE 015:2004: Colorimetry* (3rd ed.). Vienna: CIE.
 
 Here we us Plank's law, to create an illuminant spectrum, and check its temperature and tint.
   ```rust
@@ -305,13 +288,12 @@ Here we us Plank's law, to create an illuminant spectrum, and check its temperat
     # }
   ```
 
-
 </details>
 
 <details>
 <summary><strong>Correlated Color Rendering Index (CRI)</strong></summary>
 
-The CIE Color Rendering Index (CRI), including the general color rendering index (Rₐ) and the individual special color rendering indices (R₁ through R₁₅), can be calculated using the `cri` method, which follows the procedure specified in *CIE 13.3-1995: Method of Measuring and Specifying Colour Rendering Properties of Light Sources* (Commission Internationale de l'Éclairage, 1995).
+The CIE Color Rendering Index (CRI), including the general color rendering index (Rₐ) and the individual special color rendering indices (R₁ through R₁₅), can be calculated using the `cri` method, which follows the procedure specified by the CIE[^2].
 
 
   ```rust
@@ -366,7 +348,7 @@ If any value falls outside this range, the constructor returns an error.
 <details>
 <summary><strong>Factory Functions</strong></summary>
 
-The library defines different model based constructors.
+The library defines different model based factory functions.
 Here are a couple of examples.
 
 ```rust
@@ -405,20 +387,45 @@ let red = Colorant::gaussian(610.0, 5.0);
 
 </details>
 
+<details>
+<summary><strong>CIELAB</strong></summary>
+The [`Colorant::cielab`] method calculates a colorant's CIELAB values.
+Here is an example calculating the CIELAB coordinates for a perfect white colorant:
+
+```rust
+  use crate::colorimetry::prelude::*;
+
+  let colorant = Colorant::white();
+
+  // use default (None) D65 illuminant  and default CIE 1931 standard observer (second None)
+  let [l, a, b] = colorant.cielab(None, None).values();
+
+  approx::assert_abs_diff_eq!(l, 100.0, epsilon = 1E-4); // L* should be 100 for white
+  approx::assert_abs_diff_eq!(a, 0.0, epsilon = 1E-4); // a* should be 0 for white
+  approx::assert_abs_diff_eq!(b, 0.0, epsilon = 1E-4); // b* should be 0 for white
+```
+
+</details>
 
 
 ## Stimuli
 
-A `Stimulus` represents the spectral power distribution (SPD) of light reaching the eye — the physical input that gives rise to color perception.
+A [`Stimulus`] wraps a [`Spectrum`] representing the spectral power distribution of light as it arrives at an observer or sensor. This could be a pixel in a camera sensor, or a set of photoreceptors in the human eye. The spectral data is expressed in physical radiometric terms, with units corresponding to **luminance**: _candelas per square meter_ (cd/m²), integrated over the visible range.
 
-It encapsulates a [`Spectrum`], which contains the spectral data (e.g., from a light source, reflected surface, or transmitted medium) as a function of wavelength.
+A [`Stimulus`] may describe:
+- Emitted light from a self-luminous source, such as a display pixel  
+- Reflected light from an object surface element illuminated by a known source  
+- Transmitted light after passing through a wavelength-selective medium, such as a colored filter element
 
-In colorimetric terms, the `Stimulus` models the energy that interacts with the human visual system. When evaluated using a standard [`Observer`], it yields CIE XYZ tristimulus values that quantify the perceived color.
+In all cases, the stimulus encapsulates the final spectral signal available for visual or digital perception, after any combination of emission, reflection, or transmission events.
 
-For example, a [`Stimulus`] might represent:
-- Emitted light from a display pixel  
-- Reflected light from a surface under an illuminant  
-- Transmitted light through a colored filter
+<details>
+<summary><strong>Initialize from Spectrum</strong></summary>
+
+A [`Stimulus`] is a wrapper around Spectrum and can be created using its new method, which accepts a Spectrum and ensures that all values lie within the range 0.0 to 1.0.
+If any value falls outside this range, the constructor returns an error.
+
+</details>
 
 <details>
 <summary><strong>Factory functions</strong></summary>
@@ -451,21 +458,6 @@ With the **`supplemental-observers`** feature enabled, the library also includes
 - [`CIE1964`] and the [`CIE1964`] standard observer for larger visual fields,
 - [`CIE2015`] and [`CIE2015_10`] cone fundamentals–based observers (CIE 170-2:2015).
 
-The core method [`ObserverData.xyz`] maps a spectral distribution to a [`XYZ`] tristimulus value. These serve as the basis for advanced color appearance models such as **CIELAB** and **CIECAM**, which incorporate adaptation state, luminance level, and surround context.
-
-
-
-
-## Advanced Colorimetry
-Here are some examples of advanced colorimetry task, facilitated by this library (_Under Development_).
-
-<details>
-<summary><strong>Color Perception Differences Between Different Observers</strong></summary>
-
-
-
-</details>
-
 
 ## License
 All content &copy;2025 Harbers Bik LLC, and licensed under either of
@@ -493,13 +485,21 @@ dual licensed as above, without any additional terms or conditions.
 [`Stimulus`]: https://docs.rs/colorimetry/latest/colorimetry/stimulus/struct.Stimulus.html
 [`Stimulus::from_srgb`]: https://docs.rs/colorimetry/latest/colorimetry/stimulus/struct.Stimulus.html#method.from_srgb
 [`Stimulus::from_rgb`]: https://docs.rs/colorimetry/latest/colorimetry/stimulus/struct.Stimulus.html#method.from_rgb
+[Colorimetric Observers]: https://docs.rs/colorimetry/latest/colorimetry/observer/index.html
 [`Observer`]: https://docs.rs/colorimetry/latest/colorimetry/observer/struct.Observer.html
+[`ObserverData`]:https://docs.rs/colorimetry/latest/colorimetry/observer/enum.ObserverData.html 
 [`Observer.xyz`]: https://docs.rs/colorimetry/latest/colorimetry/observer/struct.ObserverData.html#method.xyz
 [`CIE1931`]: https://docs.rs/colorimetry/latest/colorimetry/data/observers/static.CIE1931.html
 [`CIE1964`]: https://docs.rs/colorimetry/latest/colorimetry/data/observers/static.CIE1964.html
 [`CIE2015`]: https://docs.rs/colorimetry/latest/colorimetry/data/observers/static.CIE2015.html
 [`CIE2015_10`]: https://docs.rs/colorimetry/latest/colorimetry/data/observers/static.CIE2015_10.html
 [`XYZ`]: https://docs.rs/colorimetry/latest/colorimetry/xyz/struct.XYZ.html
+[`RGB`]: https://docs.rs/colorimetry/latest/colorimetry/rgb/struct.RGB.html
+[CIECAM16]: https://docs.rs/colorimetry/latest/colorimetry/cam/struct.CieCam16.html
+[CIELAB]: https://docs.rs/colorimetry/latest/colorimetry/lab/struct.CieLab.html
+[`RgbSpace`]: https://docs.rs/colorimetry/latest/colorimetry/rgbspace/enum.RgbSpace.html
+[`RgbSpaceData`]: https://docs.rs/colorimetry/latest/colorimetry/rgbspace/struct.RgbSpaceData.html
+
 [`D50`]: https://docs.rs/colorimetry/latest/colorimetry/data/illuminants/static.D50.html 
 [`D65`]: https://docs.rs/colorimetry/latest/colorimetry/data/illuminants/static.D65.html 
 [`A`]: https://docs.rs/colorimetry/latest/colorimetry/data/illuminants/static.A.html 
@@ -540,3 +540,5 @@ dual licensed as above, without any additional terms or conditions.
 [`LED_V1`]: https://docs.rs/colorimetry/latest/colorimetry/data/illuminants/static.LED_V1.html 
 
 [^1]: “ColorChecker” is a registered trademark of X-Rite, Incorporated
+[^2]: CIE 13.3-1995: Method of Measuring and Specifying Colour Rendering Properties of Light Sources* (Commission Internationale de l'Éclairage, 1995).
+[^3]: Commission Internationale de l'Éclairage. (2004). *CIE 015:2004: Colorimetry* (3rd ed.). Vienna: CIE.
