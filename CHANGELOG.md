@@ -13,7 +13,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## Unreleased
 
-## [0.0.4] - 2025-05-01
+## [0.0.4] - 2025-05-06
 
 ### Added
 - Add `Stimulus::new(Spectrum)` to create a stimulus from spectral values
