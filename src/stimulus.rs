@@ -20,6 +20,12 @@ impl Deref for Stimulus {
 }
 
 impl Stimulus {
+    /// Creates a new Stimulus from a spectrum.
+    pub fn new(spectrum: Spectrum) -> Self {
+        Self(spectrum)
+    }
+
+    /// Sets the luminance of the stimulus based on the observer data and a luminance value.
     pub fn set_luminance(mut self, obs: &ObserverData, luminance: f64) -> Self {
         let l = luminance / (obs.data.row(1) * self.0 .0 * obs.lumconst).x;
         self.0 .0.iter_mut().for_each(|v| *v *= l);
@@ -29,7 +35,7 @@ impl Stimulus {
     /// A spectral composition of a display pixel, set to three sRGB color values.  The spectrum is
     /// a linear combination of the spectral primaries, which are Gaudssian filtered components in
     /// this library.
-    pub fn srgb(r_u8: u8, g_u8: u8, b_u8: u8) -> Self {
+    pub fn from_srgb(r_u8: u8, g_u8: u8, b_u8: u8) -> Self {
         let rgb = RGB::from_u8(
             r_u8,
             g_u8,
@@ -43,7 +49,7 @@ impl Stimulus {
     /// A spectral composition of a display pixel, set to three sRGB color values.  The spectrum is
     /// a linear combination of the spectral primaries, which are Gaudssian filtered components in
     /// this library.
-    pub fn rgb(rgb: RGB) -> Self {
+    pub fn from_rgb(rgb: RGB) -> Self {
         rgb.into()
     }
 }

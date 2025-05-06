@@ -67,7 +67,7 @@ impl XYZ {
     /// optional white reference value yw.
     ///
     /// This produces a illuminant XYZ value, with xyz value set as xyzn.
-    pub fn try_from_chromaticity(
+    pub fn from_chromaticity(
         x: f64,
         y: f64,
         l: Option<f64>,
@@ -84,7 +84,7 @@ impl XYZ {
         }
     }
 
-    pub fn try_from_luv60(
+    pub fn from_luv60(
         u: f64,
         v: f64,
         l: Option<f64>,
@@ -93,7 +93,7 @@ impl XYZ {
         let den = 2.0 * u - 8.0 * v + 4.0;
         let x = (3.0 * u) / den;
         let y = (2.0 * v) / den;
-        XYZ::try_from_chromaticity(x, y, l, observer)
+        XYZ::from_chromaticity(x, y, l, observer)
     }
 
     /// Try to add two tristimulus values.
@@ -239,7 +239,7 @@ impl XYZ {
             let [mut x, mut y] = self.chromaticity();
             let [xw, yw] = white.chromaticity();
             // if color point is in the purple rotate it around the white point by 180º, and give wavelength a negative value
-            let blue_edge = LineAB::try_new(
+            let blue_edge = LineAB::new(
                 [xw, yw],
                 self.observer
                     .data()
@@ -248,7 +248,7 @@ impl XYZ {
                     .chromaticity(),
             )
             .unwrap();
-            let red_edge = LineAB::try_new(
+            let red_edge = LineAB::new(
                 [xw, yw],
                 self.observer
                     .data()
@@ -270,7 +270,7 @@ impl XYZ {
             }
             // start bisectional search
             while high - low > 1 {
-                let bisect = LineAB::try_new(
+                let bisect = LineAB::new(
                     [xw, yw],
                     self.observer
                         .data()
@@ -293,7 +293,7 @@ impl XYZ {
             if low == high {
                 Ok(sign * low as f64)
             } else {
-                let low_ab = LineAB::try_new(
+                let low_ab = LineAB::new(
                     white.chromaticity(),
                     self.observer
                         .data()
@@ -303,7 +303,7 @@ impl XYZ {
                 )
                 .unwrap();
                 let dlow = low_ab.distance_with_sign(x, y);
-                let high_ab = LineAB::try_new(
+                let high_ab = LineAB::new(
                     white.chromaticity(),
                     self.observer
                         .data()
@@ -619,11 +619,11 @@ mod xyz_test {
         let [xb, yb] = xyzb.chromaticity();
         let xyzr = CIE1931.spectral_locus_by_nm(699).unwrap();
         let [xr, yr] = xyzr.chromaticity();
-        let line_t = LineAB::try_new([xb, yb], [xr, yr]).unwrap();
+        let line_t = LineAB::new([xb, yb], [xr, yr]).unwrap();
         for wl in 380..=699usize {
             let sl = CIE1931.spectral_locus_by_nm(wl).unwrap();
             let [x, y] = sl.chromaticity();
-            let line_u = LineAB::try_new([x, y], [xw, yw]).unwrap();
+            let line_u = LineAB::new([x, y], [xw, yw]).unwrap();
             let ([xi, yi], t, _) = line_t.intersect(&line_u).unwrap();
             if t > 0.0 && t < 1.0 {
                 // see https://en.wikipedia.org/wiki/CIE_1931_color_space#Mixing_colors_specified_with_the_CIE_xy_chromaticity_diagram

@@ -34,7 +34,7 @@ pub enum Orientation {
 }
 
 impl LineAB {
-    pub fn try_new(a: [f64; 2], b: [f64; 2]) -> Result<Self, CmtError> {
+    pub fn new(a: [f64; 2], b: [f64; 2]) -> Result<Self, CmtError> {
         let [[xa, ya], [xb, yb]] = [a, b];
         let l = (xb - xa).hypot(yb - ya);
         let angle = (yb - ya).atan2(xb - xa);
@@ -121,7 +121,7 @@ impl LineAB {
 fn lineab() {
     use approx::assert_ulps_eq;
     // line pointing North
-    let abup = LineAB::try_new([0.0, 0.0], [0.0, 1.0]).unwrap();
+    let abup = LineAB::new([0.0, 0.0], [0.0, 1.0]).unwrap();
     assert_eq!(abup.len(), 1.0);
     let orientation = abup.orientation(-0.5, 10.0);
     assert_eq!(orientation, Orientation::Left);
@@ -135,7 +135,7 @@ fn lineab() {
     assert_ulps_eq!(abup.angle().to_degrees(), 90.0);
 
     //line point South
-    let abdown = LineAB::try_new([0.0, 1.0], [0.0, 0.0]).unwrap();
+    let abdown = LineAB::new([0.0, 1.0], [0.0, 0.0]).unwrap();
     let orientation = abdown.orientation(-0.5, 0.5);
     assert_eq!(orientation, Orientation::Right);
     let orientation = abdown.orientation(0.5, 0.5);
@@ -145,7 +145,7 @@ fn lineab() {
     assert_ulps_eq!(abdown.angle().to_degrees(), -90.0);
 
     //line point East
-    let abeast = LineAB::try_new([0.0, 0.0], [1.0, 0.0]).unwrap();
+    let abeast = LineAB::new([0.0, 0.0], [1.0, 0.0]).unwrap();
     let orientation = abeast.orientation(0.0, 0.5);
     assert_eq!(orientation, Orientation::Left);
     let orientation = abeast.orientation(0.0, -0.5);
@@ -155,7 +155,7 @@ fn lineab() {
     assert_ulps_eq!(abeast.angle().to_degrees(), 0.0);
 
     //line point North West
-    let abnw = LineAB::try_new([0.0, 0.0], [-1.0, 1.0]).unwrap();
+    let abnw = LineAB::new([0.0, 0.0], [-1.0, 1.0]).unwrap();
     assert_eq!(abnw.len(), 2f64.sqrt());
     let orientation = abnw.orientation(-0.5, 0.0);
     assert_eq!(orientation, Orientation::Left);
@@ -166,7 +166,7 @@ fn lineab() {
     assert_ulps_eq!(abnw.angle().to_degrees(), 135.0);
 
     //line point South West
-    let absw = LineAB::try_new([0.0, 0.0], [-1.0, -1.0]).unwrap();
+    let absw = LineAB::new([0.0, 0.0], [-1.0, -1.0]).unwrap();
     let orientation = absw.orientation(-0.5, -1.0);
     assert_eq!(orientation, Orientation::Left);
     let orientation = absw.orientation(0.0, 1.0);
@@ -180,15 +180,15 @@ fn lineab() {
 fn lineab_intersect_test() {
     use approx::assert_ulps_eq;
     // line pointing North
-    let v = LineAB::try_new([0.0, 0.0], [0.0, 1.0]).unwrap();
-    let h = LineAB::try_new([-1.0, 0.0], [1.0, 0.0]).unwrap();
+    let v = LineAB::new([0.0, 0.0], [0.0, 1.0]).unwrap();
+    let h = LineAB::new([-1.0, 0.0], [1.0, 0.0]).unwrap();
     let ([x, y], t, u) = v.intersect(&h).unwrap();
     assert_ulps_eq!(x, 0.0);
     assert_ulps_eq!(y, 0.0);
     assert_ulps_eq!(t, 0.0);
     assert_ulps_eq!(u, 0.5);
 
-    let v2 = LineAB::try_new([0.5, 0.5], [1.0, 1.0]).unwrap();
+    let v2 = LineAB::new([0.5, 0.5], [1.0, 1.0]).unwrap();
     let ([x, y], t, u) = v2.intersect(&h).unwrap();
     assert_ulps_eq!(x, 0.0);
     assert_ulps_eq!(y, 0.0);
@@ -207,7 +207,7 @@ pub struct Triangle {
     nom: f64,
 }
 impl Triangle {
-    pub fn try_new(a: [f64; 2], b: [f64; 2], c: [f64; 2]) -> Result<Self, CmtError> {
+    pub fn new(a: [f64; 2], b: [f64; 2], c: [f64; 2]) -> Result<Self, CmtError> {
         let [[xa, ya], [xb, yb], [xc, yc]] = [a, b, c];
         let la = (xc - xb).hypot(yc - yb);
         let lb = (xc - xa).hypot(yc - ya);
@@ -254,7 +254,7 @@ impl Triangle {
 fn triangle_test() {
     use approx::assert_ulps_eq;
 
-    let t1 = Triangle::try_new([0.0, 0.0], [0.0, 1.0], [1.0, 0.0]).unwrap();
+    let t1 = Triangle::new([0.0, 0.0], [0.0, 1.0], [1.0, 0.0]).unwrap();
     assert_ulps_eq!(t1.area(), 0.5);
 
     let [a, b, c] = t1.barycentric_coordinates(0.0, 0.0);
@@ -273,7 +273,7 @@ fn triangle_test() {
     assert_ulps_eq!(c, 1.0);
 
     let h = 3f64.sqrt() / 2.0; // height equilateral rectangle with side length of 1
-    let t2 = Triangle::try_new([0.0, h], [-0.5, 0.0], [0.5, 0.0]).unwrap();
+    let t2 = Triangle::new([0.0, h], [-0.5, 0.0], [0.5, 0.0]).unwrap();
     assert_ulps_eq!(t2.area(), h / 2.0); // https://en.wikipedia.org/wiki/Equilateral_triangle
     let [a, b, c] = t2.barycentric_coordinates(0.0, h / 3.0); // Apothem is h/3
     println!("{a:.4} {b:.4} {c:.4}");

@@ -1,8 +1,9 @@
 #![allow(dead_code, unused_variables, unused_imports)]
 #![doc = include_str!("../README.md")]
-// This library contains lots and lots of float constants for colorimetry.
-// If clippy finds a constant that is close to one of the well known standard library
-// constanst, it will complain by default. This yields a lot of false positives.
+// This library defines many floating-point constants for colorimetry.
+// Clippy's `approx_constant` lint would otherwise generate numerous false positives
+// by flagging constants close to standard values.
+// To suppress these, `#![allow(clippy::approx_constant)]` is applied.
 #![allow(clippy::approx_constant)]
 
 pub mod cam;
@@ -30,9 +31,3 @@ pub mod stimulus;
 pub mod traits;
 pub mod viewconditions;
 pub mod xyz;
-
-// Set "rust-analyzer.check.features": "all" or ["cri", ...] to limit processing time
-// `cargo build --all-features`
-// `wasm-pack build --target web --release --all-features`
-// or `cargo build --no-default-features`: 193K wasm-file
-// `wasm-pack build --target web --release --no-default-features`

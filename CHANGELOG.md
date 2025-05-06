@@ -1,15 +1,6 @@
 # Changelog
 
-All noteworthy changes to the library should be noted here.
-
-### Format
-
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
-
-Entries should have the imperative form, just like commit messages. Start each entry with words like
-add, fix, increase, force etc.. Not added, fixed, increased, forced etc.
-
-Line wrap the file at 100 chars.                                              That is over here -> |
 
 ### Categories each change fall into
 
@@ -20,9 +11,13 @@ Line wrap the file at 100 chars.                                              Th
 * **Fixed**: for any bug fixes.
 * **Security**: in case of vulnerabilities.
 
+## Unreleased
 
-## [Unreleased]
+## [0.0.4] - 2025-05-06
+
 ### Added
+- Add `Stimulus::new(Spectrum)` to create a stimulus from spectral values
+- Add `Illuminant::cct()` method to calculate correlated color temperature and Planckian distance.
 - Add `CieLab::values()` method for easy access to the CIELAB L*, a*, and b* values.
 - Add `RGB::values()` method for easy access to the raw red, green and blue values.
 - Enable all features when building documentation for docs.rs.
@@ -37,6 +32,15 @@ Line wrap the file at 100 chars.                                              Th
   illuminant and an observer.
 
 ### Changed
+- Changed `Stimulus::srgb` to `Stimulus::from_srgb`
+- Changed `Stimulus::rgb` to `Stimulus::from_rgb`
+- Changed `XYZ::try_from_luv60` to `XYZ::from_luv60`
+- Changed `XYZ::try_from_chromaticity` to `XYZ::from_chromaticity`
+- Changed `Triangle::try_new` to `Triangle::new`
+- Changed `LineAB::try_new` to `LineAB::new`
+- Changed `CCT::try_from_xyz` to `CCT::from_xyz`
+- Changed `CCT::try_new_with_tint` to `CCT::new_with_tint`
+- Changed `CCT::try_new` to `CCT::new`
 - Take fixed size arrays instead of slices in `XYZ::new`. Makes the function signature clearer,
   and removes a possible panic case.
 - Replace the public global static `XY_PRIMARIES` with the methods `name`,
@@ -69,3 +73,6 @@ Line wrap the file at 100 chars.                                              Th
 
 
 ## [0.0.1] - 2024-08-09
+
+
+

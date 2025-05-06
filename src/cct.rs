@@ -96,7 +96,14 @@ impl UlpsEq for CCT {
 impl CCT {
     /// Create from a Correlated Color Temperature and a Planckian Locus Distance.
     /// Both parameters are range restricted: 1000<cct<1_000_000, -0.05<duv<0.05
-    pub fn try_new(cct: f64, duv: f64) -> Result<Self, CmtError> {
+    ///
+    /// # Errors
+    ///
+    /// - `CCTTemperatureTooHigh`: if `cct` is above 1_000_000 Kelvin.
+    /// - `CCTTemperatureTooLow`: if `cct` is below 1000 Kelvin.
+    /// - `CCTDuvHighError`: if `duv` is above 0.05.
+    /// - `CCTDuvLowError`: if `duv` is below -0.05.
+    pub fn new(cct: f64, duv: f64) -> Result<Self, CmtError> {
         match (cct, duv) {
             (_, d) if d > 0.05 => Err(CmtError::CCTDuvHighError),
             (_, d) if d < -0.05 => Err(CmtError::CCTDuvLowError),
@@ -108,11 +115,29 @@ impl CCT {
     }
 
     /// Create from a Correlated Color Temperature and a Tint value.
-    pub fn try_new_with_tint(cct: f64, tint: f64) -> Result<Self, CmtError> {
-        Self::try_new(cct, tint / 1000.0)
+    ///
+    /// # Errors
+    ///
+    /// - `CCTTemperatureTooHigh`: if `cct` is above 1_000_000 Kelvin.
+    /// - `CCTTemperatureTooLow`: if `cct` is below 1000 Kelvin.
+    /// - `CCTDuvHighError`: if `tint` is above 50.
+    /// - `CCTDuvLowError`: if `tint` is below -50.
+    pub fn new_with_tint(cct: f64, tint: f64) -> Result<Self, CmtError> {
+        Self::new(cct, tint / 1000.0)
     }
 
-    pub fn try_from_xyz(xyz: XYZ) -> Result<Self, CmtError> {
+    /// Create a new CCT from an XYZ color point.
+    /// This is a convenience method that uses the `TryFrom` trait to convert
+    /// the XYZ color point to a CCT.
+    ///
+    /// # Errors
+    ///
+    /// - `RequiresCIE1931XYZ`: if the XYZ color point is not in the CIE 1931 observer space.
+    /// - `CCTTemperatureTooHigh`: if the calculated CCT is above 1_000_000 Kelvin.
+    /// - `CCTTemperatureTooLow`: if the calculated CCT is below 1000 Kelvin.
+    /// - `CCTDuvHighError`: if the calculated Duv is above 0.05.
+    /// - `CCTDuvLowError`: if the calculated Duv is below -0.05.
+    pub fn from_xyz(xyz: XYZ) -> Result<Self, CmtError> {
         CCT::try_from(xyz)
     }
 
@@ -123,8 +148,17 @@ impl CCT {
         self.1
     }
 
+    /// Get the Tint value, which is the distance to the Planckian curve in the CIE 1960 (u,v) space
+    /// multiplied by 1000.
+    /// This is a convenience method to get the Tint value in the range of -50 to 50.
     pub fn tint(&self) -> f64 {
         1000.0 * self.1
+    }
+
+    /// Get the CCT as an array of two values: the CCT in Kelvin and the Duv value as
+    /// distance to the Planckian Curve in CIE 1960 (u,v) space.
+    pub fn values(&self) -> [f64; 2] {
+        [self.0, self.1]
     }
 }
 
@@ -210,7 +244,7 @@ impl TryFrom<XYZ> for CCT {
 
         let t = robertson_interpolate(im2t(imlow), dlow, im2t(imhigh), dhigh);
         let d = duv_interpolate(u, v, imlow, imhigh, dlow, dhigh);
-        CCT::try_new(t, d)
+        CCT::new(t, d)
     }
 }
 
@@ -223,7 +257,7 @@ impl TryFrom<CCT> for XYZ {
         let [u0, v0, m] = iso_temp_line(t);
         let du = m.signum() * d / (m * m + 1.0).sqrt();
         let dv = m * du;
-        XYZ::try_from_luv60(u0 + du, v0 + dv, None, None)
+        XYZ::from_luv60(u0 + du, v0 + dv, None, None)
     }
 }
 
@@ -310,25 +344,25 @@ fn duv_interpolate(u: f64, v: f64, imp: usize, imn: usize, dp: f64, dh: f64) -> 
 #[test]
 fn test_ends() {
     // Temperature  at the low end, should pass...
-    let cct0 = CCT::try_new(1000.0, 0.0).unwrap();
+    let cct0 = CCT::new(1000.0, 0.0).unwrap();
     let xyz: XYZ = cct0.try_into().unwrap();
     let cct: CCT = xyz.try_into().unwrap();
     assert_ulps_eq!(cct, cct0);
 
     // Temperature  at the low end, should pass...
-    let cct0 = CCT::try_new(1E6, 0.0).unwrap();
+    let cct0 = CCT::new(1E6, 0.0).unwrap();
     let xyz: XYZ = cct0.try_into().unwrap();
     let cct: CCT = xyz.try_into().unwrap();
     assert_ulps_eq!(cct, cct0);
 
     // Temperature  at the low end, should pass...
-    let cct0 = CCT::try_new(1005.0, 0.0).unwrap();
+    let cct0 = CCT::new(1005.0, 0.0).unwrap();
     let xyz: XYZ = cct0.try_into().unwrap();
     let cct: CCT = xyz.try_into().unwrap();
     assert_ulps_eq!(cct, cct0, epsilon = 1E-5);
 
     // Temperature  at the low end, should pass...
-    let cct0 = CCT::try_new(1E6 - 100.0, 0.0).unwrap();
+    let cct0 = CCT::new(1E6 - 100.0, 0.0).unwrap();
     let xyz: XYZ = cct0.try_into().unwrap();
     let cct: CCT = xyz.try_into().unwrap();
     approx::assert_abs_diff_eq!(cct, cct0, epsilon = 0.2);
@@ -363,10 +397,10 @@ fn compute_d_uv(mired: f64, d: f64) -> Option<f64> {
     let t = 1E6 / mired;
 
     // Get a CCT to test. Unwrap OK as range restricted above.
-    let cct0 = CCT::try_new(t, d).unwrap();
+    let cct0 = CCT::new(t, d).unwrap();
 
     // calculate XYZ0, skip value if not a valid point
-    let Ok(xyz0): Result<XYZ, _> = CCT::try_new(t, d).unwrap().try_into() else {
+    let Ok(xyz0): Result<XYZ, _> = CCT::new(t, d).unwrap().try_into() else {
         return None;
     };
 

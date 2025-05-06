@@ -158,9 +158,9 @@ impl Illuminant {
 
     /// Calculates the Color Rendering Index values for illuminant spectrum.
     ///
-    /// To use this function, first use `CRI::init().await`, which downloads the
-    /// Test Color Samples required for the calculation.  These are downloaded
-    /// seperately to limit the size of the main web assembly library.
+    /// # Errors
+    /// - CmtError::OutOfRange when the illuminant's distance to the Planckian locus is larger than 0.05 DUV,
+    ///   or when the CCT is outside the range of 1000 to 25000 Kelvin.
     #[cfg(feature = "cri")]
     pub fn cri(&self) -> Result<CRI, CmtError> {
         use crate::cri::CRI;
@@ -204,6 +204,18 @@ impl Illuminant {
     pub fn xyz(&self, obs_opt: Option<Observer>) -> XYZ {
         let obs = obs_opt.unwrap_or_default();
         obs.data().xyz_from_spectrum(&self.0, None)
+    }
+
+    /// Calculate the correlated color temperature (CCT) of the illuminant.
+    ///
+    /// # Errors
+    /// - CmtError::OutOfRange when the the distance to the Planckian locus is larger than 0.05 DUV,
+    ///   or when the CCT is outside the range of 1000 to 25000 Kelvin.
+    #[cfg(feature = "cct")]
+    pub fn cct(&self) -> Result<crate::cct::CCT, CmtError> {
+        // CIE requires using the CIE1931 observer for calculating the CCT.
+        let xyz = self.xyz(Some(Observer::Std1931));
+        crate::cct::CCT::from_xyz(xyz)
     }
 }
 
