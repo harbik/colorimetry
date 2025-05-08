@@ -124,22 +124,22 @@ impl RgbSpaceData {
     /**
      Get primaries as colorants.
 
-     Buffered - calculated on first use by division with the referene white illuminant.
-     Reference white spectra should not have 0.0 values.
+     This is the primaries stimulus divided by the reference white.
+
+     # Panics
+
+     If the RGB space reference white has 0.0 values in it, then this cause a division by zero.
     */
-    pub fn primaries_as_colorants(&self) -> &[Colorant; 3] {
-        static PRIMARY_FILTERS: OnceLock<[Colorant; 3]> = OnceLock::new();
-        PRIMARY_FILTERS.get_or_init(|| {
-            let white = self
-                .white
-                .illuminant()
-                .clone()
-                .set_illuminance(&CIE1931, 100.0)
-                .0;
-            // RGB primaries defined with reference to CIE1931, and 100 cd/m2.
-            let sa = self.primaries.each_ref().map(|v| &v.0 / &white);
-            sa.map(Colorant)
-        })
+    pub fn primaries_as_colorants(&self) -> [Colorant; 3] {
+        let white = self
+            .white
+            .illuminant()
+            .clone()
+            .set_illuminance(&CIE1931, 100.0)
+            .0;
+        // RGB primaries defined with reference to CIE1931, and 100 cd/m2.
+        let sa = self.primaries.each_ref().map(|v| &v.0 / &white);
+        sa.map(Colorant)
     }
 
     /**
