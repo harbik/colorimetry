@@ -337,17 +337,20 @@ impl XYZ {
     ///
     /// This method scales the XYZ values relative to the luminous value of the reference white point,
     /// which does not have to be **100.0**. The scaling is necessary to ensure that the XYZ values
-    /// are normalized to the range **0.0 to 1.0**, allowing the resulting RGB values to remain
-    /// within the gamut of the target RGB space.
+    /// are normalized to the range **0.0 to 1.0**.
     ///
-    /// For non-emissive, non-fluorescent colors, the luminance (`Y`) value should generally be
-    /// **less than or equal to the reference white** to create correct RGB values.
+    /// For non-emissive, non-fluorescent colors, luminance (`Y`) values should be **less than or
+    /// equal to the reference white** to create correct RGB values.  Values greater than luminance of the
+    /// reference white will result in RGB values which can not be rendered, and have to be clipped
+    /// or remapped depanding on the colorimetric intent of an application.
+    /// For example, these would create negative RGB values or values larger than 255 in the sRGB
+    /// space when converting the values from floating point to integer values.
     ///
     /// # Arguments
     ///
     /// - `self`: The XYZ color values to be converted.
-    /// - `rgb_space`: The target RGB space identifier (e.g., `sRGB`, `Adobe RGB`).
-    /// - `white`: The luminous value of the reference white point used for scaling.
+    /// - `rgb_space`: The target RGB space identifier (e.g., `sRGB`, `Adobe RGB`), uses the default
+    ///   sRGB space if `None`` is supplied.
     ///
     /// # Returns
     ///
