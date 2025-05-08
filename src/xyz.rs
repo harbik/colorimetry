@@ -333,22 +333,25 @@ impl XYZ {
     pub fn cct(self) -> Result<crate::cct::CCT, CmtError> {
         self.try_into()
     }
-
-    /// Converts a set of **XYZ tristimulus values** to **RGB values** using the specified RGB space.
+    /// Converts a set of **XYZ tristimulus values** to **RGB values** within the specified RGB space.
     ///
-    /// This method scales the XYZ values to the luminous value of the reference white, so it doesn't have to 100.0.
-    /// The scaling is necessary as the XYZ to RGB matrix requires the tristimulus values to be in the range of
-    /// 0.0 to 1.0, for the RGB values to be winthing the gamut of the RGB space.
+    /// This method scales the XYZ values relative to the luminous value of the reference white point, 
+    /// which does not have to be **100.0**. The scaling is necessary to ensure that the XYZ values 
+    /// are normalized to the range **0.0 to 1.0**, allowing the resulting RGB values to remain 
+    /// within the gamut of the target RGB space.
+    ///
+    /// For non-emissive, non-fluorescent colors, the luminance (`Y`) value should generally be 
+    /// **less than or equal to the reference white** to create correct RGB values.
     ///
     /// # Arguments
     ///
     /// - `self`: The XYZ color values to be converted.
-    /// - `rgb_space`: The RGB space identifier (e.g., sRGB, Adobe RGB).
-    /// - `white`: The luminous value of the reference white point.
+    /// - `rgb_space`: The target RGB space identifier (e.g., `sRGB`, `Adobe RGB`).
+    /// - `white`: The luminous value of the reference white point used for scaling.
     ///
     /// # Returns
     ///
-    /// - A set of normalized **RGB values** corresponding to the specified RGB space.
+    /// A set of normalized **RGB values**, adjusted to the specified RGB space.
     pub fn rgb(&self, space: Option<RgbSpace>) -> RGB {
         let space = space.unwrap_or_default();
         let xyz = self.xyz.unwrap_or(self.xyzn);
