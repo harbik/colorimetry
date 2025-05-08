@@ -334,9 +334,22 @@ impl XYZ {
         self.try_into()
     }
 
-    /// Convert a set of XYZ tristimulus values to RGB values, using the given RGB space identifier.
-    /// This method requires the luminous value of the reference white, which is typically set to 100.0,
-    /// or, less common, 1.0, but any other value can be used as well.
+
+    /// Converts a set of **XYZ tristimulus values** to **RGB values** using the specified RGB space.
+    ///
+    /// This method scales the XYZ values to the luminous value of the reference white, so it doesn't have to 100.0.
+    /// The scaling is necessary as the XYZ to RGB matrix requires the tristimulus values to be in the range of 
+    /// 0.0 to 1.0, for the RGB values to be winthing the gamut of the RGB space.
+    ///
+    /// # Arguments
+    ///
+    /// - `self`: The XYZ color values to be converted.
+    /// - `rgb_space`: The RGB space identifier (e.g., sRGB, Adobe RGB).
+    /// - `white`: The luminous value of the reference white point.
+    ///
+    /// # Returns
+    ///
+    /// - A set of normalized **RGB values** corresponding to the specified RGB space.
     pub fn rgb(&self, space: Option<RgbSpace>) -> RGB {
         let space = space.unwrap_or_default();
         let xyz = self.xyz.unwrap_or(self.xyzn);
