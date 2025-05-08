@@ -335,12 +335,12 @@ impl XYZ {
     }
     /// Converts a set of **XYZ tristimulus values** to **RGB values** within the specified RGB space.
     ///
-    /// This method scales the XYZ values relative to the luminous value of the reference white point, 
-    /// which does not have to be **100.0**. The scaling is necessary to ensure that the XYZ values 
-    /// are normalized to the range **0.0 to 1.0**, allowing the resulting RGB values to remain 
+    /// This method scales the XYZ values relative to the luminous value of the reference white point,
+    /// which does not have to be **100.0**. The scaling is necessary to ensure that the XYZ values
+    /// are normalized to the range **0.0 to 1.0**, allowing the resulting RGB values to remain
     /// within the gamut of the target RGB space.
     ///
-    /// For non-emissive, non-fluorescent colors, the luminance (`Y`) value should generally be 
+    /// For non-emissive, non-fluorescent colors, the luminance (`Y`) value should generally be
     /// **less than or equal to the reference white** to create correct RGB values.
     ///
     /// # Arguments
