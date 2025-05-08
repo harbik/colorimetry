@@ -95,13 +95,6 @@ impl RGB {
         RGB::new(r, g, b, observer, Some(space))
     }
 
-    pub fn from_xyz(xyz: XYZ, space: RgbSpace) -> Self {
-        let xyz2rgb = xyz.observer.data().xyz2rgb(space);
-        let xyz0 = xyz.xyz.unwrap_or(xyz.xyzn);
-        let &[r, g, b] = (xyz2rgb * xyz0).as_ref();
-        RGB::new(r, g, b, Some(xyz.observer), Some(space))
-    }
-
     /// Returns the RGB values as an array with the red, green, and blue values respectively
     ///
     /// ```rust

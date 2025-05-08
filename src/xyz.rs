@@ -334,11 +334,10 @@ impl XYZ {
         self.try_into()
     }
 
-
     /// Converts a set of **XYZ tristimulus values** to **RGB values** using the specified RGB space.
     ///
     /// This method scales the XYZ values to the luminous value of the reference white, so it doesn't have to 100.0.
-    /// The scaling is necessary as the XYZ to RGB matrix requires the tristimulus values to be in the range of 
+    /// The scaling is necessary as the XYZ to RGB matrix requires the tristimulus values to be in the range of
     /// 0.0 to 1.0, for the RGB values to be winthing the gamut of the RGB space.
     ///
     /// # Arguments
