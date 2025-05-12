@@ -453,11 +453,13 @@ mod obs_test {
     use super::Observer;
     use crate::prelude::{StdIlluminant, CIE1931};
     use crate::rgbspace::RgbSpace;
+    use crate::spectrum::SPECTRUM_WAVELENGTH_RANGE;
+    use crate::xyz::XYZ;
     use approx::assert_ulps_eq;
     use strum::IntoEnumIterator as _;
 
     #[test]
-    fn test_spectral_locus() {
+    fn test_cie1931_spectral_locus_min_max() {
         let [x, y] = CIE1931
             .spectral_locus_by_nm(CIE1931.spectral_locus_nm_min())
             .unwrap()
@@ -473,12 +475,30 @@ mod obs_test {
         assert_ulps_eq!(y, 0.26531, epsilon = 1E-5);
     }
 
+    /// Ensure all observers have sane spectral locus values
     #[test]
-    fn test_spectral_locus_min_max() {
-        let min = CIE1931.spectral_locus_index_min();
-        println!("{min}");
-        let max = CIE1931.spectral_locus_index_max();
-        println!("{max}");
+    fn test_spectral_locus_full() {
+        for observer in Observer::iter() {
+            let nm_min = observer.data().spectral_locus_nm_min();
+            let nm_max = observer.data().spectral_locus_nm_max();
+
+            // Basic sanity checking of the min/max values
+            assert!(nm_min >= *SPECTRUM_WAVELENGTH_RANGE.start());
+            assert!(nm_max <= *SPECTRUM_WAVELENGTH_RANGE.end());
+            assert!(nm_min < nm_max);
+
+            // Check that spectral_locus_by_nm returns sane values in the allowed range
+            for nm in nm_min..=nm_max {
+                let xyz = observer.data().spectral_locus_by_nm(nm).unwrap();
+                let [x, y] = xyz.chromaticity();
+                assert!((0.0..=1.0).contains(&x));
+                assert!((0.0..=1.0).contains(&y));
+
+                // Check that all chromaticity coordinates on the spectral locus can be converted
+                // to XYZ.
+                let _xyz2 = XYZ::from_chromaticity(x, y, None, Some(observer)).unwrap();
+            }
+        }
     }
 
     #[test]
