@@ -15,12 +15,18 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Added
 - Implement strums `EnumIter` on `Observer`. Allows easy iteration over all available observers.
 
+### Changed
+- Change the return type of `Observer::spectral_locus_by_index` from `[f64; 2]` to
+  `Option<[f64; 2]>`. Allows returning `None` for invalid indices.
+
 ### Fixed
 - Fix caching bug in `Observer::spectral_locus_index_min` and
   `Observer::spectral_locus_index_max`. Previously only the values for the first
   observer it was called on was returned for all subsequent calls.
 - Fix caching bug in `RgbSpaceData::primaries_as_colorants`. Previously only the values
   for the first colorspace it was called on was returned for all subsequent calls.
+- Fix `Observer::spectral_locus_index_min` and `Observer::spectral_locus_index_max` to
+  not panic for the `Std2015` observer.
 - Fix caching bug in `Observer::rgb2xyz` and `Observer::xyz2rgb`. If multiple observers are used,
   only the computed matrixes for the first one to call into these methods would be returned in
   subsequent invocations.

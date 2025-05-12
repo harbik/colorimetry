@@ -343,10 +343,17 @@ impl ObserverData {
 
     /// Unrestricted, direct, access to the spectal locus data.
     /// To get unique values only please use the `spectral_locus_by_nm` function.
-    pub fn spectral_locus_by_index(&self, i: usize) -> [f64; 2] {
+    ///
+    /// This method returns `None` for indices that don't have a valid spectral locus
+    /// position.
+    pub fn spectral_locus_by_index(&self, i: usize) -> Option<[f64; 2]> {
         let &[x, y, z] = self.data.column(i).as_ref();
         let s = x + y + z;
-        [x / s, y / s]
+        if s != 0.0 {
+            Some([x / s, y / s])
+        } else {
+            None
+        }
     }
 
     /// The index value of the blue spectral locus edge.
@@ -354,10 +361,14 @@ impl ObserverData {
     /// Any further spectral locus points will hover around this edge, and will not have a unique wavelength.
     pub fn spectral_locus_index_min(&self) -> usize {
         const START: usize = 100;
-        let mut lp = LineAB::new(self.spectral_locus_by_index(START), [0.33333, 0.33333]).unwrap();
+        let spectral_locus_pos_start = self.spectral_locus_by_index(START).unwrap();
+        let mut lp = LineAB::new(spectral_locus_pos_start, [0.33333, 0.33333]).unwrap();
         let mut m = START - 1;
         loop {
-            let l = LineAB::new(self.spectral_locus_by_index(m), [0.33333, 0.33333]).unwrap();
+            let Some(spectral_locus_pos_m) = self.spectral_locus_by_index(m) else {
+                break m + 1;
+            };
+            let l = LineAB::new(spectral_locus_pos_m, [0.33333, 0.33333]).unwrap();
             match (m, l.angle_diff(lp)) {
                 (0, d) if d > -f64::EPSILON => break m + 1,
                 (0, _) => break 0,
@@ -379,10 +390,14 @@ impl ObserverData {
     /// Any further spectral locus points will hover around this edge.
     pub fn spectral_locus_index_max(&self) -> usize {
         const START: usize = 300;
-        let mut lp = LineAB::new(self.spectral_locus_by_index(START), [0.33333, 0.33333]).unwrap();
+        let spectral_locus_pos_start = self.spectral_locus_by_index(START).unwrap();
+        let mut lp = LineAB::new(spectral_locus_pos_start, [0.33333, 0.33333]).unwrap();
         let mut m = START + 1;
         loop {
-            let l = LineAB::new(self.spectral_locus_by_index(m), [0.33333, 0.33333]).unwrap();
+            let Some(spectral_locus_pos_m) = self.spectral_locus_by_index(m) else {
+                break m + 1;
+            };
+            let l = LineAB::new(spectral_locus_pos_m, [0.33333, 0.33333]).unwrap();
             match (m, l.angle_diff(lp)) {
                 (400, d) if d < f64::EPSILON => break m - 1,
                 (400, _) => break 400,
