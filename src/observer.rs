@@ -65,6 +65,7 @@ use std::{
     borrow::{Borrow, Cow},
     sync::OnceLock,
 };
+use strum_macros::EnumIter;
 use wasm_bindgen::{convert::IntoWasmAbi, prelude::wasm_bindgen};
 
 /**
@@ -76,7 +77,7 @@ use wasm_bindgen::{convert::IntoWasmAbi, prelude::wasm_bindgen};
 */
 #[cfg(not(feature = "supplemental-observers"))]
 #[wasm_bindgen]
-#[derive(Clone, Copy, Default, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, Default, PartialEq, Eq, Debug, EnumIter)]
 pub enum Observer {
     #[default]
     Std1931,
@@ -84,7 +85,7 @@ pub enum Observer {
 
 #[cfg(feature = "supplemental-observers")]
 #[wasm_bindgen]
-#[derive(Clone, Copy, Default, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, Default, PartialEq, Eq, Debug, EnumIter)]
 pub enum Observer {
     #[default]
     Std1931,
