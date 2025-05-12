@@ -67,6 +67,10 @@ impl XYZ {
     /// optional white reference value yw.
     ///
     /// This produces a illuminant XYZ value, with xyz value set as xyzn.
+    ///
+    /// # Errors
+    ///
+    /// Returns `CmtError::InvalidChromaticityValues` if the sum of x and y is greater than 1.0.
     pub fn from_chromaticity(
         x: f64,
         y: f64,
@@ -75,7 +79,7 @@ impl XYZ {
     ) -> Result<XYZ, CmtError> {
         let l = l.unwrap_or(100.0);
         let observer = observer.unwrap_or_default();
-        if (x + y) > 1.0 {
+        if (x + y) > 1.0 + f64::EPSILON {
             Err(CmtError::InvalidChromaticityValues)
         } else {
             let s = l / y;

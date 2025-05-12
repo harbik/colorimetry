@@ -27,6 +27,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   for the first colorspace it was called on was returned for all subsequent calls.
 - Fix `Observer::spectral_locus_index_min` and `Observer::spectral_locus_index_max` to
   not panic for the `Std2015` observer.
+- Slightly relax constraints on x-y values in `XYZ::from_chromaticity`. This allows converting
+  the spectral locus positions of all included observers to chromaticity coordinates and back
+  to XYZ values again.
 - Fix caching bug in `Observer::rgb2xyz` and `Observer::xyz2rgb`. If multiple observers are used,
   only the computed matrixes for the first one to call into these methods would be returned in
   subsequent invocations.
