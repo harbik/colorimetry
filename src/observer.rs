@@ -178,18 +178,12 @@ impl ObserverData {
     }
 
     /**
-        Tristimulus Values for the Standard Illuminants in this library.
+        Tristimulus values for the Standard Illuminants in this library.
 
-        Values are calculated on first use, and are not normalized by default, unless an illuminous
-        value is provided, in case they are.
+        Values are not normalized by default, unless an illuminance value is provided.
     */
     pub fn xyz_cie_table(&self, std_illuminant: &StdIlluminant, illuminance: Option<f64>) -> XYZ {
-        const XYZ_STD_ILLUMINANTS_LEN: usize = 64;
-        static XYZ_STD_ILLUMINANTS: [OnceLock<XYZ>; XYZ_STD_ILLUMINANTS_LEN] =
-            [const { OnceLock::new() }; XYZ_STD_ILLUMINANTS_LEN];
-
-        let xyz = *XYZ_STD_ILLUMINANTS[*std_illuminant as usize]
-            .get_or_init(|| self.xyz_from_spectrum(std_illuminant.illuminant(), None));
+        let xyz = self.xyz_from_spectrum(std_illuminant.illuminant(), None);
         if let Some(l) = illuminance {
             xyz.set_illuminance(l)
         } else {
