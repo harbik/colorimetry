@@ -168,7 +168,8 @@ impl RGB {
 impl Light for RGB {
     fn spectrum(&self) -> Cow<Spectrum> {
         let prim = &self.space.data().primaries;
-        let yrgb = self.observer.data().rgb2xyz(&self.space).row(1);
+        let rgb2xyz = self.observer.data().rgb2xyz(&self.space);
+        let yrgb = rgb2xyz.row(1);
         //        self.rgb.iter().zip(yrgb.iter()).zip(prim.iter()).map(|((v,w),s)|*v * *w * &s.0).sum()
         let s = self
             .rgb
@@ -199,7 +200,8 @@ impl Filter for RGB {
     */
     fn spectrum(&self) -> Cow<Spectrum> {
         let prim = self.space.data().primaries_as_colorants();
-        let yrgb = self.observer.data().rgb2xyz(&self.space).row(1);
+        let rgb2xyz = self.observer.data().rgb2xyz(&self.space);
+        let yrgb = rgb2xyz.row(1);
         let s = self
             .rgb
             .iter()

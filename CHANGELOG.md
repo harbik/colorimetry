@@ -13,6 +13,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## Unreleased
 
+### Fixed
+- Fix caching bug in `Observer::rgb2xyz` and `Observer::xyz2rgb`. If multiple observers are used,
+  only the computed matrixes for the first one to call into these methods would be returned in
+  subsequent invocations.
+
+
 ## [0.0.4] - 2025-05-06
 
 ### Added

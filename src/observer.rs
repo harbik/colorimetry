@@ -408,40 +408,29 @@ impl ObserverData {
 
     /// Calculates the RGB to XYZ matrix, for a particular color space.
     /// The matrices are buffered.
-    pub fn rgb2xyz(&self, rgbspace: &RgbSpace) -> &'static Matrix3<f64> {
-        const RGB2XYZ_AR_LEN: usize = 16;
-        static RGB2XYZ_AR: [OnceLock<Matrix3<f64>>; RGB2XYZ_AR_LEN] =
-            [const { OnceLock::new() }; RGB2XYZ_AR_LEN];
-
-        RGB2XYZ_AR[*rgbspace as usize].get_or_init(|| {
-            let space = rgbspace.data();
-            let mut rgb2xyz = Matrix3::from_iterator(space.primaries.iter().flat_map(|s| {
-                self.xyz_from_spectrum(s, None)
-                    .set_illuminance(1.0)
-                    .values()
-            }));
-            // let xyzw = self.xyz_raw(&space.white, None).set_illuminance(1.0);
-            let xyzw = self.xyz(&space.white, None).set_illuminance(1.0);
-            let decomp = rgb2xyz.lu();
-            // unwrap: only used with library color spaces
-            let rgbw = decomp.solve(&xyzw.xyzn).unwrap();
-            for (i, mut col) in rgb2xyz.column_iter_mut().enumerate() {
-                col *= rgbw[i];
-            }
-            rgb2xyz
-        })
+    pub fn rgb2xyz(&self, rgbspace: &RgbSpace) -> Matrix3<f64> {
+        let space = rgbspace.data();
+        let mut rgb2xyz = Matrix3::from_iterator(space.primaries.iter().flat_map(|s| {
+            self.xyz_from_spectrum(s, None)
+                .set_illuminance(1.0)
+                .values()
+        }));
+        // let xyzw = self.xyz_raw(&space.white, None).set_illuminance(1.0);
+        let xyzw = self.xyz(&space.white, None).set_illuminance(1.0);
+        let decomp = rgb2xyz.lu();
+        // unwrap: only used with library color spaces
+        let rgbw = decomp.solve(&xyzw.xyzn).unwrap();
+        for (i, mut col) in rgb2xyz.column_iter_mut().enumerate() {
+            col *= rgbw[i];
+        }
+        rgb2xyz
     }
 
     /// Calculates the RGB to XYZ matrix, for a particular color space.
     /// The matrices are buffered.
-    pub fn xyz2rgb(&self, rgbspace: RgbSpace) -> &'static Matrix3<f64> {
-        const XYZ2RGB_AR_LEN: usize = 16;
-        static XYZ2RGB: [OnceLock<Matrix3<f64>>; XYZ2RGB_AR_LEN] =
-            [const { OnceLock::new() }; XYZ2RGB_AR_LEN];
-        XYZ2RGB[rgbspace as usize].get_or_init(|| {
-            // unwrap: only used with library color spaces
-            self.rgb2xyz(&rgbspace).try_inverse().unwrap()
-        })
+    pub fn xyz2rgb(&self, rgbspace: RgbSpace) -> Matrix3<f64> {
+        // unwrap: only used with library color spaces
+        self.rgb2xyz(&rgbspace).try_inverse().unwrap()
     }
 }
 
@@ -453,8 +442,11 @@ impl ObserverData {}
 #[cfg(test)]
 mod obs_test {
 
+    use super::Observer;
     use crate::prelude::{StdIlluminant, CIE1931};
+    use crate::rgbspace::RgbSpace;
     use approx::assert_ulps_eq;
+    use strum::IntoEnumIterator as _;
 
     #[test]
     fn test_spectral_locus() {
@@ -479,6 +471,23 @@ mod obs_test {
         println!("{min}");
         let max = CIE1931.spectral_locus_index_max();
         println!("{max}");
+    }
+
+    #[test]
+    fn test_spectral_locus_to_rgb() {
+        // FIXME: Once Observer implements `EnumIter`, make this test perform the conversion
+        // for all observers.
+        let observer = Observer::Std1931;
+        let nm_min = observer.data().spectral_locus_nm_min();
+        let nm_max = observer.data().spectral_locus_nm_max();
+
+        for nm in nm_min..=nm_max {
+            let xyz = observer.data().spectral_locus_by_nm(nm).unwrap();
+
+            for rgbspace in RgbSpace::iter() {
+                let rgb = xyz.rgb(Some(rgbspace));
+            }
+        }
     }
 
     #[test]

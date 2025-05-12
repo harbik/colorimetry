@@ -80,7 +80,8 @@ impl Sum for Stimulus {
 impl From<RGB> for Stimulus {
     fn from(rgb: RGB) -> Self {
         let prim = &rgb.space.data().primaries;
-        let yrgb = rgb.observer.data().rgb2xyz(&rgb.space).row(1);
+        let rgb2xyz = rgb.observer.data().rgb2xyz(&rgb.space);
+        let yrgb = rgb2xyz.row(1);
         rgb.rgb
             .iter()
             .zip(yrgb.iter())
