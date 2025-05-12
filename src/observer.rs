@@ -353,25 +353,21 @@ impl ObserverData {
     ///
     /// Any further spectral locus points will hover around this edge, and will not have a unique wavelength.
     pub fn spectral_locus_index_min(&self) -> usize {
-        static MIN: OnceLock<usize> = OnceLock::new();
-        *MIN.get_or_init(|| {
-            const START: usize = 100;
-            let mut lp =
-                LineAB::new(self.spectral_locus_by_index(START), [0.33333, 0.33333]).unwrap();
-            let mut m = START - 1;
-            loop {
-                let l = LineAB::new(self.spectral_locus_by_index(m), [0.33333, 0.33333]).unwrap();
-                match (m, l.angle_diff(lp)) {
-                    (0, d) if d > -f64::EPSILON => break m + 1,
-                    (0, _) => break 0,
-                    (1.., d) if d > -f64::EPSILON => break m,
-                    _ => {
-                        m -= 1;
-                        lp = l;
-                    }
+        const START: usize = 100;
+        let mut lp = LineAB::new(self.spectral_locus_by_index(START), [0.33333, 0.33333]).unwrap();
+        let mut m = START - 1;
+        loop {
+            let l = LineAB::new(self.spectral_locus_by_index(m), [0.33333, 0.33333]).unwrap();
+            match (m, l.angle_diff(lp)) {
+                (0, d) if d > -f64::EPSILON => break m + 1,
+                (0, _) => break 0,
+                (1.., d) if d > -f64::EPSILON => break m,
+                _ => {
+                    m -= 1;
+                    lp = l;
                 }
             }
-        })
+        }
     }
 
     pub fn spectral_locus_nm_min(&self) -> usize {
@@ -382,25 +378,21 @@ impl ObserverData {
     ///
     /// Any further spectral locus points will hover around this edge.
     pub fn spectral_locus_index_max(&self) -> usize {
-        static MAX: OnceLock<usize> = OnceLock::new();
-        *MAX.get_or_init(|| {
-            const START: usize = 300;
-            let mut lp =
-                LineAB::new(self.spectral_locus_by_index(START), [0.33333, 0.33333]).unwrap();
-            let mut m = START + 1;
-            loop {
-                let l = LineAB::new(self.spectral_locus_by_index(m), [0.33333, 0.33333]).unwrap();
-                match (m, l.angle_diff(lp)) {
-                    (400, d) if d < f64::EPSILON => break m - 1,
-                    (400, _) => break 400,
-                    (..400, d) if d < f64::EPSILON => break m - 1,
-                    _ => {
-                        m += 1;
-                        lp = l;
-                    }
+        const START: usize = 300;
+        let mut lp = LineAB::new(self.spectral_locus_by_index(START), [0.33333, 0.33333]).unwrap();
+        let mut m = START + 1;
+        loop {
+            let l = LineAB::new(self.spectral_locus_by_index(m), [0.33333, 0.33333]).unwrap();
+            match (m, l.angle_diff(lp)) {
+                (400, d) if d < f64::EPSILON => break m - 1,
+                (400, _) => break 400,
+                (..400, d) if d < f64::EPSILON => break m - 1,
+                _ => {
+                    m += 1;
+                    lp = l;
                 }
             }
-        })
+        }
     }
 
     pub fn spectral_locus_nm_max(&self) -> usize {
