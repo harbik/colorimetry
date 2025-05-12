@@ -160,7 +160,7 @@ impl ObserverData {
 
     /**
         Calculates Tristimulus valus, in form of an [XYZ] object of a general spectrum.
-        If a reference white is given (rhs), it will copy its  tristimulus value, and the spectrum
+        If a reference white is given (rhs), it will copy its tristimulus value, and the spectrum
         is interpreted as a stimulus, being a combination of an illuminant with a colorant.
         If no reference white is given, the spectrum is interpreted as an illuminant.
         This method produces the raw XYZ data, not normalized to 100.0
@@ -407,7 +407,6 @@ impl ObserverData {
     }
 
     /// Calculates the RGB to XYZ matrix, for a particular color space.
-    /// The matrices are buffered.
     pub fn rgb2xyz(&self, rgbspace: &RgbSpace) -> Matrix3<f64> {
         let space = rgbspace.data();
         let mut rgb2xyz = Matrix3::from_iterator(space.primaries.iter().flat_map(|s| {
@@ -427,7 +426,6 @@ impl ObserverData {
     }
 
     /// Calculates the RGB to XYZ matrix, for a particular color space.
-    /// The matrices are buffered.
     pub fn xyz2rgb(&self, rgbspace: RgbSpace) -> Matrix3<f64> {
         // unwrap: only used with library color spaces
         self.rgb2xyz(&rgbspace).try_inverse().unwrap()
