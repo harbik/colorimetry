@@ -7,10 +7,7 @@
  */
 
 use nalgebra::{ArrayStorage, SMatrix};
-use std::{
-    ops::Index,
-    sync::{LazyLock, OnceLock},
-};
+use std::{ops::Index, sync::LazyLock};
 use wasm_bindgen::prelude::*;
 
 use crate::{

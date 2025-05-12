@@ -1,7 +1,4 @@
-use std::{
-    collections::HashMap,
-    sync::{LazyLock, OnceLock},
-};
+use std::{collections::HashMap, sync::OnceLock};
 
 use crate::{
     colorant::Colorant, data::illuminants::D65, data::observers::CIE1931, gamma::GammaCurve,
