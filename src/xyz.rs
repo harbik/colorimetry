@@ -121,7 +121,7 @@ impl XYZ {
     /// use approx::assert_ulps_eq;
     ///
     /// let d65_xyz = CIE1931.xyz(&StdIlluminant::D65, None).set_illuminance(100.0);
-    /// let [x, y, z] = d65_xyz.into();
+    /// let [x, y, z] = d65_xyz.values();
     /// // Calculated Spreadsheet Values from CIE Datasets, over a range from 380 to 780nm
     /// assert_ulps_eq!(x, 95.042_267, epsilon = 1E-6);
     /// assert_ulps_eq!(y, 100.0);
