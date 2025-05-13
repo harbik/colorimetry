@@ -161,10 +161,7 @@ impl XYZ {
     /// assert_ulps_eq!(z, 108.861_036, epsilon = 1E-6);
     /// ```
     pub fn values(&self) -> [f64; 3] {
-        let xyz_matrix = self.xyz.unwrap_or(self.xyzn);
-        let s = 100.0 / self.xyzn.y;
-        let xyz_array: [f64; 3] = *xyz_matrix.as_ref();
-        xyz_array.map(|v| v * s)
+        *self.xyz.unwrap_or(self.xyzn).as_ref()
     }
 
     /// Set the illuminance of an illuminant, either for an illuminant directly,

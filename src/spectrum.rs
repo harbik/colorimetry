@@ -710,7 +710,7 @@ mod tests {
 
     #[test]
     fn d65_test() {
-        let [x, y, z] = D65.xyz(None).values();
+        let [x, y, z] = D65.xyz(None).set_illuminance(100.0).values();
         assert_ulps_eq!(x, 95.04, epsilon = 5E-3);
         assert_ulps_eq!(y, 100.0, epsilon = 5E-3);
         assert_ulps_eq!(z, 108.86, epsilon = 5E-3);

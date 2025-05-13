@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Changed
 - Change the return type of `Observer::spectral_locus_by_index` from `[f64; 2]` to
   `Option<[f64; 2]>`. Allows returning `None` for invalid indices.
+- Stop normalizing XYZ values to illuminance = 100 in `XYZ::values()`.
 
 ### Fixed
 - Fix caching bug in `Observer::spectral_locus_index_min` and
