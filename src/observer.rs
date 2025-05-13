@@ -335,13 +335,15 @@ impl ObserverData {
         }
     }
 
-    /// Unrestricted, direct, access to the spectal locus data.
+    /// Unrestricted, direct, access to the spectal locus data, in the form of
+    /// chromaticity coordinates.
+    ///
     /// To get unique values only please use the `spectral_locus_by_nm` function.
     ///
-    /// This method returns `None` for indices that don't have a valid spectral locus
-    /// position.
+    /// This method returns `None` for indices outside the valid range returned by
+    /// [`Self::spectral_locus_index_min`] and [`Self::spectral_locus_index_max`].
     pub fn spectral_locus_by_index(&self, i: usize) -> Option<[f64; 2]> {
-        let &[x, y, z] = self.data.column(i).as_ref();
+        let &[x, y, z] = self.data.get((.., i))?.as_ref();
         let s = x + y + z;
         if s != 0.0 {
             Some([x / s, y / s])
