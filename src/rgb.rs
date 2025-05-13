@@ -219,9 +219,7 @@ impl Rgb {
     }
 }
 
-
 impl Light for Rgb {
-
     /// Implements the `Light` trait for the `Rgb` struct, allowing an `Rgb` color to be interpreted
     /// as a spectral power distribution (`Spectrum`).
     ///
@@ -261,21 +259,21 @@ impl Light for Rgb {
 impl Filter for Rgb {
     /// Implements the `Filter` trait for the `Rgb` struct, treating an RGB color as a spectral filter function.
     ///
-    /// The `spectrum` method interprets the RGB values as a filter, excluding the reference illuminant. 
-    /// The filter function is then used in combination with a reference illuminant to simulate the resulting 
+    /// The `spectrum` method interprets the RGB values as a filter, excluding the reference illuminant.
+    /// The filter function is then used in combination with a reference illuminant to simulate the resulting
     /// stimulus within the defined RGB color space.
     ///
     /// # Method: `spectrum()`
-    /// - This method calculates the spectral power distribution of the `Rgb` instance by treating each RGB 
+    /// - This method calculates the spectral power distribution of the `Rgb` instance by treating each RGB
     ///   component as a filter over its respective primary spectrum.
-    /// - The resulting spectrum represents the relative transmittance of each primary, scaled by its respective 
+    /// - The resulting spectrum represents the relative transmittance of each primary, scaled by its respective
     ///   luminance weight (`yrgb`), without applying any reference illuminant.
     ///
     /// # Example
     /// ```rust
     /// use colorimetry::prelude::*;
     /// use approx::assert_ulps_eq;
-    /// 
+    ///
     /// // Define an sRGB white color using the CIE 1931 observer
     /// let rgb = Rgb::from_u8(255, 255, 255, None, None);
     ///
@@ -288,16 +286,16 @@ impl Filter for Rgb {
     /// ```
     ///
     /// # Implementation Details
-    /// - The method iterates over the RGB components and their respective primary spectra, treating each 
+    /// - The method iterates over the RGB components and their respective primary spectra, treating each
     ///   component as a filter function.
-    /// - Each component is scaled by its luminance factor (`yrgb`) to accurately reflect the relative 
+    /// - Each component is scaled by its luminance factor (`yrgb`) to accurately reflect the relative
     ///   contribution of each primary to the resulting spectrum.
     /// - The resulting spectrum is returned as an owned `Cow<Spectrum>`.
     ///
     /// # Notes
-    /// - The spectral representation is device-dependent, relying on the primary spectra defined in the 
+    /// - The spectral representation is device-dependent, relying on the primary spectra defined in the
     ///   associated `RgbSpace`.
-    /// - This implementation excludes the reference illuminant, making it suitable for use as a relative filter 
+    /// - This implementation excludes the reference illuminant, making it suitable for use as a relative filter
     ///   that can be combined with any illuminant to produce a specific stimulus.
     fn spectrum(&self) -> Cow<Spectrum> {
         let prim = self.space.data().primaries_as_colorants();
