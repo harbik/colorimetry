@@ -416,7 +416,6 @@ impl ObserverData {
                 .set_illuminance(1.0)
                 .values()
         }));
-        // let xyzw = self.xyz_raw(&space.white, None).set_illuminance(1.0);
         let xyzw = self.xyz(&space.white, None).set_illuminance(1.0);
         let decomp = rgb2xyz.lu();
         // unwrap: only used with library color spaces
