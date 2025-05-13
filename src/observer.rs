@@ -493,19 +493,20 @@ mod obs_test {
         }
     }
 
+    /// Ensure XYZ values around all supported observer spectral locuses' can be converted to RGB
     #[test]
     fn test_spectral_locus_to_rgb() {
-        // FIXME: Once Observer implements `EnumIter`, make this test perform the conversion
-        // for all observers.
-        let observer = Observer::Std1931;
-        let nm_min = observer.data().spectral_locus_nm_min();
-        let nm_max = observer.data().spectral_locus_nm_max();
+        for observer in Observer::iter() {
+            eprintln!("Testing observer {:?}", observer);
+            let nm_min = observer.data().spectral_locus_nm_min();
+            let nm_max = observer.data().spectral_locus_nm_max();
 
-        for nm in nm_min..=nm_max {
-            let xyz = observer.data().spectral_locus_by_nm(nm).unwrap();
+            for nm in nm_min..=nm_max {
+                let xyz = observer.data().spectral_locus_by_nm(nm).unwrap();
 
-            for rgbspace in RgbSpace::iter() {
-                let rgb = xyz.rgb(Some(rgbspace));
+                for rgbspace in RgbSpace::iter() {
+                    let rgb = xyz.rgb(Some(rgbspace));
+                }
             }
         }
     }
