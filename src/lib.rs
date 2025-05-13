@@ -30,4 +30,5 @@ pub mod std_illuminants;
 pub mod stimulus;
 pub mod traits;
 pub mod viewconditions;
+pub mod widergb;
 pub mod xyz;

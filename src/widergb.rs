@@ -1,0 +1,273 @@
+//! # WideRgb Module
+//!
+//! This module provides the `WideRgb` struct, a representation of a color stimulus using unconstrained
+//! Red, Green, and Blue (RGB) floating-point values within a specified RGB color space. Unlike typical
+//! RGB values that are limited to the range `[0.0, 1.0]`, `WideRgb` allows values to extend beyond this
+//! range, accommodating out-of-gamut colors that cannot be accurately rendered by most devices.
+//!
+//! ## Key Features
+//! - **Unconstrained RGB Values:** The `WideRgb` struct stores RGB values that can extend beyond the
+//!   standard range, allowing for high-dynamic-range (HDR) and out-of-gamut colors.
+//! - **Color Space Support:** Supports various RGB color spaces, including sRGB, Adobe RGB, and custom
+//!   spaces, specified through the `RgbSpace` type.
+//! - **Observer Customization:** Allows the use of different colorimetric observers (e.g., CIE 1931,
+//!   CIE 2015), enhancing accuracy in color conversions and comparisons.
+//! - **Conversion Methods:** Provides methods to clamp, compress, and convert `WideRgb` values to
+//!   standard `Rgb` values within the `[0.0, 1.0]` range.
+//! - **Compatibility:** Includes conversions to `XYZ` tristimulus values, standard `Rgb`, and
+//!   `u8` arrays for 8-bit encoded RGB values.
+//!
+//! ## Example Usage
+//!
+//! ```rust
+//! use colorimetry::widergb::WideRgb;
+//!
+//! let wide_rgb = WideRgb::new(1.5, -0.2, 0.8, None, None);
+//! let compressed_rgb = wide_rgb.compress();
+//! let clamped_rgb = wide_rgb.clamp();
+//!
+//! println!("Compressed: {:?}", compressed_rgb.values());
+//! println!("Clamped: {:?}", clamped_rgb.values());
+//! ```
+//!
+//! ## Notes
+//! - The `compress` method applies chroma reduction and luminance scaling to ensure values fit within
+//!   the `[0.0, 1.0]` range, resulting in a lossy conversion.
+//! - The `clamp` method simply restricts values to the valid range without chroma adjustment, potentially
+//!   altering perceived color balance.
+//!
+//! ## Testing
+//! Unit tests are provided to verify the accuracy of conversions, clamping, and compression operations.
+
+use crate::{
+    colorant::Colorant,
+    data::observers::CIE1931,
+    illuminant::Illuminant,
+    observer::Observer,
+    rgb::{self, Rgb},
+    rgbspace::RgbSpace,
+    spectrum::Spectrum,
+    stimulus::Stimulus,
+    traits::{Filter, Light},
+    xyz::XYZ,
+};
+use approx::AbsDiffEq;
+use nalgebra::{Matrix3, Vector3};
+use std::{borrow::Cow, sync::OnceLock};
+use wasm_bindgen::prelude::wasm_bindgen;
+
+#[wasm_bindgen]
+#[derive(Debug, Clone, Copy, PartialEq)]
+/// Represents a color stimulus using unconstrained Red, Green, and Blue (RGB) floating-point values
+/// within a device's RGB color space. The values can extend beyond the typical 0.0 to 1.0 range,
+/// allowing for out-of-gamut colors that cannot be accurately represented by the device.
+///
+/// # Fields
+/// - `space`: The RGB color space the color values are using. Often this is the _sRGB_ color space, which is rather small.
+/// - `observer`: Reference to the colorimetric observer being used. This is almost always the CIE 1931 standard observer,
+///   but other standard observers can be used to improve color management quality.
+/// - `rgb`: The RGB values as a 3-element vector.
+pub struct WideRgb {
+    /// The RGB color space the color values are using. Often this is the _sRGB_
+    /// color space, which is rather small.
+    pub(crate) space: RgbSpace,
+
+    /// Reference to the colorimetric observer being used. This is almost always
+    /// the CIE 1931 standard observer, which has been known to represent the
+    /// deep blue region of humen vision sensitivity incorrectly. Here we allow
+    /// other standard observers, such as the CIE 2015 cone fundamentals based
+    /// observer, to improve color management quality.
+    pub(crate) observer: Observer,
+    pub(crate) rgb: Vector3<f64>,
+}
+
+impl WideRgb {
+    /// Creates a new `WideRgb` instance with the specified red, green, and blue values.
+    /// # Parameters
+    /// - `r`: Red component, any f64 value
+    /// - `g`: Green component, any f64 value
+    /// - `b`: Blue component, any f64 value
+    /// - `observer`: Optional observer, defaults to `Observer::Std1931`
+    /// - `space`: Optional RGB color space, defaults to `RgbSpace::SRGB`
+    /// # Returns
+    /// A new `WideRgb` instance with the specified RGB values and color space.
+    pub fn new(
+        r: f64,
+        g: f64,
+        b: f64,
+        observer: Option<Observer>,
+        space: Option<RgbSpace>,
+    ) -> Self {
+        let observer = observer.unwrap_or_default();
+        let space = space.unwrap_or_default();
+        WideRgb {
+            rgb: Vector3::new(r, g, b),
+            observer,
+            space,
+        }
+    }
+
+    /// Returns the RGB values as an array with the red, green, and blue values respectively
+    ///
+    /// ```rust
+    /// # use colorimetry::widergb::WideRgb;
+    /// let rgb = WideRgb::new(0.1, 0.2, 0.3, None, None);
+    /// let [r, g, b] = rgb.values();
+    /// assert_eq!([r, g, b], [0.1, 0.2, 0.3]);
+    /// ```
+    pub fn values(&self) -> [f64; 3] {
+        *self.rgb.as_ref()
+    }
+
+    /// Converts the RGB value to a tri-stimulus XYZ value
+    pub fn xyz(&self) -> XYZ {
+        const YW: f64 = 100.0;
+        let xyzn = self
+            .observer
+            .data()
+            .xyz(&self.space.data().white, None)
+            .set_illuminance(100.0)
+            .xyzn;
+        let xyz = self.observer.data().rgb2xyz(&self.space) * self.rgb;
+        XYZ {
+            observer: self.observer,
+            xyz: Some(xyz.map(|v| v * YW)),
+            xyzn,
+        }
+    }
+
+    /// Converts a `WideRgb` value to a valid `Rgb` value by clamping red, green, and blue values to the range [0, 1].
+    ///
+    /// # Parameters
+    /// - `self`: The `WideRgb` instance to be compressed.
+    ///
+    /// # Returns
+    /// A new `Rgb` instance with the adjusted RGB values, ensuring they are within the allowable range.
+    pub fn clamp(&self) -> Rgb {
+        let rgb = self.rgb.map(|v| v.clamp(0.0, 1.0));
+
+        Rgb {
+            rgb,
+            observer: self.observer,
+            space: self.space,
+        }
+    }
+
+    /// Converts a `WideRgb` value to a valid `Rgb` value by compressing out-of-gamut colors, if necessary.
+    /// This method adjusts out-of-gamut colors to fit within the RGB color space by reducing chroma (adding white)
+    /// and scaling luminance to the device’s maximum allowable value.
+    ///
+    /// # Parameters
+    /// - `self`: The `WideRgb` instance to be processed. If the values are already within the RGB gamut,
+    ///   they will be returned unchanged. Otherwise, the values will be compressed to fit within the valid range.
+    ///
+    /// # Returns
+    /// A new `Rgb` instance with out-of-gamut colors compressed to fit within the RGB color space, ensuring
+    /// that all colors can be accurately rendered by the device.
+    ///
+    /// # Example
+    /// ```rust
+    /// # use colorimetry::widergb::WideRgb;
+    /// # use colorimetry::rgb::Rgb;
+    /// # use approx::assert_abs_diff_eq;
+    ///
+    /// // A `WideRgb` value with out-of-gamut components.
+    /// let wide_rgb = WideRgb::new(1.2, -0.5, 0.8, None, None);
+    ///
+    /// // Compresses the values to the [0.0, 1.0] range.
+    /// let compressed_rgb = wide_rgb.compress();
+    ///
+    /// assert_abs_diff_eq!(compressed_rgb.values().as_ref(), [1.0, 0.0, 0.7647].as_ref(), epsilon = 0.0001);
+    /// ```
+    ///
+    /// # Notes
+    /// This is a lossy operation. Out-of-gamut colors are modified by changing chroma and luminance values,
+    /// resulting in a color that differs from the original.
+    pub fn compress(&self) -> Rgb {
+        let rgb_min = self.rgb.min();
+        let rgb_max = self.rgb.max();
+
+        // Handle the edge case to prevent division by zero
+        let rgb = if approx::abs_diff_eq!(rgb_min, rgb_max, epsilon = 1E-4) {
+            // Division by zero check
+            // All values are equal, representing a neutral white/gray/black color
+            let gray_value = rgb_min.clamp(0.0, 1.0);
+            nalgebra::Vector3::repeat(gray_value)
+        } else if rgb_min < 0.0 || rgb_max > 1.0 {
+            self.rgb.map(|v| (v - rgb_min) / (rgb_max - rgb_min))
+        } else {
+            self.rgb
+        };
+
+        Rgb {
+            rgb,
+            observer: self.observer,
+            space: self.space,
+        }
+    }
+}
+
+impl AsRef<Vector3<f64>> for WideRgb {
+    fn as_ref(&self) -> &Vector3<f64> {
+        &self.rgb
+    }
+}
+
+/// Clamped RGB values as a u8 array. Uses gamma function.
+impl From<WideRgb> for [u8; 3] {
+    fn from(rgb: WideRgb) -> Self {
+        let data: &[f64; 3] = rgb.rgb.as_ref();
+        data.map(|v| (rgb.space.data().gamma.encode(v.clamp(0.0, 1.0)) * 255.0).round() as u8)
+    }
+}
+
+impl From<WideRgb> for [f64; 3] {
+    fn from(rgb: WideRgb) -> Self {
+        rgb.values()
+    }
+}
+
+impl AbsDiffEq for WideRgb {
+    type Epsilon = f64;
+
+    fn default_epsilon() -> Self::Epsilon {
+        f64::default_epsilon()
+    }
+
+    fn abs_diff_eq(&self, other: &Self, epsilon: Self::Epsilon) -> bool {
+        self.observer == other.observer && self.rgb.abs_diff_eq(&other.rgb, epsilon)
+    }
+}
+
+impl approx::UlpsEq for WideRgb {
+    fn default_max_ulps() -> u32 {
+        f64::default_max_ulps()
+    }
+
+    fn ulps_eq(&self, other: &Self, epsilon: Self::Epsilon, max_ulps: u32) -> bool {
+        self.observer == other.observer && self.rgb.ulps_eq(&other.rgb, epsilon, max_ulps)
+    }
+}
+
+#[cfg(test)]
+mod rgb_tests {
+    use crate::prelude::*;
+
+    #[test]
+    fn get_values_f64() {
+        let rgb = WideRgb::new(0.1, 0.2, 0.3, None, None);
+        let [r, g, b] = <[f64; 3]>::from(rgb);
+        assert_eq!(r, 0.1);
+        assert_eq!(g, 0.2);
+        assert_eq!(b, 0.3);
+    }
+
+    #[test]
+    fn get_values_u8() {
+        let rgb = WideRgb::new(0.1, 0.2, 0.3, None, None);
+        let [r, g, b] = <[u8; 3]>::from(rgb);
+        assert_eq!(r, 89);
+        assert_eq!(g, 124);
+        assert_eq!(b, 149);
+    }
+}

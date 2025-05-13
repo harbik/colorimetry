@@ -42,6 +42,8 @@ pub enum CmtError {
     SpectrumNotFound(String),
     #[error("Provide at least {0} values")]
     ProvideAtLeastNValues(usize),
+    #[error("Invalid RGB value")]
+    InvalidRgbValue,
 }
 
 impl From<&str> for CmtError {

@@ -5,7 +5,8 @@ use std::{
 };
 
 use crate::{
-    illuminant::Illuminant, observer::ObserverData, rgb::RGB, spectrum::Spectrum, traits::Light,
+    illuminant::Illuminant, observer::ObserverData, rgb::Rgb, spectrum::Spectrum, traits::Light,
+    widergb::WideRgb,
 };
 
 #[derive(Clone)]
@@ -36,7 +37,7 @@ impl Stimulus {
     /// a linear combination of the spectral primaries, which are Gaudssian filtered components in
     /// this library.
     pub fn from_srgb(r_u8: u8, g_u8: u8, b_u8: u8) -> Self {
-        let rgb = RGB::from_u8(
+        let rgb = Rgb::from_u8(
             r_u8,
             g_u8,
             b_u8,
@@ -49,7 +50,7 @@ impl Stimulus {
     /// A spectral composition of a display pixel, set to three sRGB color values.  The spectrum is
     /// a linear combination of the spectral primaries, which are Gaudssian filtered components in
     /// this library.
-    pub fn from_rgb(rgb: RGB) -> Self {
+    pub fn from_rgb(rgb: Rgb) -> Self {
         rgb.into()
     }
 }
@@ -68,7 +69,7 @@ impl Sum for Stimulus {
     }
 }
 
-/// Spectral representation the color of a display pixel, described by a [RGB]
+/// Spectral representation the color of a display pixel, described by a [`Rgb`]
 /// instance.
 ///
 /// It uses a linear combination of the spectral primaries as defined for a particular
@@ -77,8 +78,8 @@ impl Sum for Stimulus {
 /// but you can also use your own color space based on primaries measured by a spectrometer.
 /// Spectral representations of pixels allow color matching for arbitrary observers,
 /// not only the CIE 1931 standard observer.
-impl From<RGB> for Stimulus {
-    fn from(rgb: RGB) -> Self {
+impl From<Rgb> for Stimulus {
+    fn from(rgb: Rgb) -> Self {
         let prim = &rgb.space.data().primaries;
         let rgb2xyz = rgb.observer.data().rgb2xyz(&rgb.space);
         let yrgb = rgb2xyz.row(1);

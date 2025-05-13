@@ -33,8 +33,8 @@ use crate::{
     observer::ObserverData,
     physics::C,
     physics::{gaussian_peak_one, led_ohno, planck, sigma_from_fwhm, stefan_boltzmann, wavelength},
-    rgb::RGB,
     std_illuminants::StdIlluminant,
+    widergb::WideRgb,
 };
 
 /// The wavelength range of the spectrums supported by this library.
@@ -621,7 +621,7 @@ mod tests {
 
     #[test]
     fn test_spectrum_from_rgb() {
-        let white: Stimulus = RGB::new(1.0, 1.0, 1.0, None, None).into();
+        let white: Stimulus = Rgb::new(1.0, 1.0, 1.0, None, None).unwrap().into();
         approx::assert_ulps_eq!(
             CIE1931.xyz_from_spectrum(&white, None),
             CIE1931.xyz_d65().set_illuminance(100.0),

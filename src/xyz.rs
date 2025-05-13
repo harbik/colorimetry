@@ -6,9 +6,9 @@ use crate::{
     geometry::{LineAB, Orientation},
     illuminant::Illuminant,
     observer::{self, Observer},
-    rgb::RGB,
     rgbspace::RgbSpace,
     spectrum::Spectrum,
+    widergb::WideRgb,
 };
 use approx::{ulps_eq, AbsDiffEq};
 use nalgebra::{ArrayStorage, Vector3};
@@ -333,18 +333,7 @@ impl XYZ {
     pub fn cct(self) -> Result<crate::cct::CCT, CmtError> {
         self.try_into()
     }
-    /// Converts a set of **XYZ tristimulus values** to **RGB values** within the specified RGB space.
-    ///
-    /// This method scales the XYZ values relative to the luminous value of the reference white point,
-    /// which does not have to be **100.0**. The scaling is necessary to ensure that the XYZ values
-    /// are normalized to the range **0.0 to 1.0**.
-    ///
-    /// For non-emissive, non-fluorescent colors, luminance (`Y`) values should be **less than or
-    /// equal to the reference white** to create correct RGB values.  Values greater than luminance of the
-    /// reference white will result in RGB values which can not be rendered, and have to be clipped
-    /// or remapped depanding on the colorimetric intent of an application.
-    /// For example, these would create negative RGB values or values larger than 255 in the sRGB
-    /// space when converting the values from floating point to integer values.
+    /// Converts a set of **XYZ tristimulus values** to **WideRgb values** using the specified RGB space.
     ///
     /// # Arguments
     ///
@@ -354,14 +343,20 @@ impl XYZ {
     ///
     /// # Returns
     ///
-    /// A set of normalized **RGB values**, adjusted to the specified RGB space.
-    pub fn rgb(&self, space: Option<RgbSpace>) -> RGB {
+    /// A set of  **WideRgb values**, which can be out of gamut for the specified RGB space.
+    /// Use any of the following methods to transform a WideRgb value to a valid RGB value
+    ///
+    /// - `WideRgb::clamp()`
+    /// - `WideRgb::compress()`
+    ///
+    /// These methods will change the color which will be less saturated, and less bright as the orignial color.
+    pub fn rgb(&self, space: Option<RgbSpace>) -> WideRgb {
         let space = space.unwrap_or_default();
         let xyz = self.xyz.unwrap_or(self.xyzn);
         let ywhite = self.xyzn.y;
         let d = xyz.map(|v| v / ywhite); // normalize to 1.0
         let data = self.observer.data().xyz2rgb(space) * d;
-        RGB {
+        WideRgb {
             space,
             observer: self.observer,
             rgb: data,
@@ -660,7 +655,7 @@ mod xyz_test {
 
     #[test]
     fn test_rgb_roundtrip() {
-        let rgb_blue = RGB::new(0.0, 0.0, 1.0, Some(Observer::Std1931), Some(RgbSpace::SRGB));
+        let rgb_blue = WideRgb::new(0.0, 0.0, 1.0, Some(Observer::Std1931), Some(RgbSpace::SRGB));
         let xyz_blue = rgb_blue.xyz();
         let xy_blue = xyz_blue.chromaticity();
         assert_ulps_eq!(xy_blue.as_ref(), [0.15, 0.06].as_ref(), epsilon = 1E-5);
