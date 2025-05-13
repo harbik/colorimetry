@@ -427,7 +427,7 @@ impl ObserverData {
         rgb2xyz
     }
 
-    /// Calculates the RGB to XYZ matrix, for a particular color space.
+    /// Calculates the XYZ to RGB matrix, for a particular color space.
     pub fn xyz2rgb(&self, rgbspace: RgbSpace) -> Matrix3<f64> {
         // unwrap: only used with library color spaces
         self.rgb2xyz(&rgbspace).try_inverse().unwrap()
