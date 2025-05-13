@@ -264,8 +264,9 @@ impl XYZ {
     ///
     pub fn dominant_wavelength(&self, white: XYZ) -> Result<f64, CmtError> {
         let mut sign = 1.0;
-        let mut low = self.observer.data().spectral_locus_nm_min();
-        let mut high = self.observer.data().spectral_locus_nm_max();
+        let wavelength_range = self.observer.data().spectral_locus_wavelength_range();
+        let mut low = *wavelength_range.start();
+        let mut high = *wavelength_range.end();
         let mut mid = 540usize; // 200 fails, as its tail overlaps into the blue region
         if white.observer != self.observer {
             Err(CmtError::RequireSameObserver)
@@ -277,7 +278,7 @@ impl XYZ {
                 [xw, yw],
                 self.observer
                     .data()
-                    .spectral_locus_by_nm(low)
+                    .xyz_at_wavelength(low)
                     .unwrap()
                     .chromaticity(),
             )
@@ -286,7 +287,7 @@ impl XYZ {
                 [xw, yw],
                 self.observer
                     .data()
-                    .spectral_locus_by_nm(high)
+                    .xyz_at_wavelength(high)
                     .unwrap()
                     .chromaticity(),
             )
@@ -308,7 +309,7 @@ impl XYZ {
                     [xw, yw],
                     self.observer
                         .data()
-                        .spectral_locus_by_nm(mid)
+                        .xyz_at_wavelength(mid)
                         .unwrap()
                         .chromaticity(),
                 )
@@ -331,7 +332,7 @@ impl XYZ {
                     white.chromaticity(),
                     self.observer
                         .data()
-                        .spectral_locus_by_nm(low)
+                        .xyz_at_wavelength(low)
                         .unwrap()
                         .chromaticity(),
                 )
@@ -341,7 +342,7 @@ impl XYZ {
                     white.chromaticity(),
                     self.observer
                         .data()
-                        .spectral_locus_by_nm(high)
+                        .xyz_at_wavelength(high)
                         .unwrap()
                         .chromaticity(),
                 )
@@ -640,7 +641,7 @@ mod xyz_test {
 
         // 550 nm
         let sl = CIE1931
-            .spectral_locus_by_nm(550)
+            .xyz_at_wavelength(550)
             .unwrap()
             .set_illuminance(50.0);
         let t = d65.try_add(sl).unwrap();
@@ -648,7 +649,7 @@ mod xyz_test {
         assert_ulps_eq!(dl, 550.0);
 
         for wl in 380..=699usize {
-            let sl2 = CIE1931.spectral_locus_by_nm(wl).unwrap();
+            let sl2 = CIE1931.xyz_at_wavelength(wl).unwrap();
             //let [slx, sly] = sl2.chromaticity();
             //println!("sl xy: {slx} {sly}");
             let dl = sl2.dominant_wavelength(d65).unwrap();
@@ -662,13 +663,13 @@ mod xyz_test {
         let [xw, yw] = d65.chromaticity();
 
         // get purple line
-        let xyzb = CIE1931.spectral_locus_by_nm(380).unwrap();
+        let xyzb = CIE1931.xyz_at_wavelength(380).unwrap();
         let [xb, yb] = xyzb.chromaticity();
-        let xyzr = CIE1931.spectral_locus_by_nm(699).unwrap();
+        let xyzr = CIE1931.xyz_at_wavelength(699).unwrap();
         let [xr, yr] = xyzr.chromaticity();
         let line_t = LineAB::new([xb, yb], [xr, yr]).unwrap();
         for wl in 380..=699usize {
-            let sl = CIE1931.spectral_locus_by_nm(wl).unwrap();
+            let sl = CIE1931.xyz_at_wavelength(wl).unwrap();
             let [x, y] = sl.chromaticity();
             let line_u = LineAB::new([x, y], [xw, yw]).unwrap();
             let ([xi, yi], t, _) = line_t.intersect(&line_u).unwrap();

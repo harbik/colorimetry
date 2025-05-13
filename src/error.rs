@@ -28,8 +28,6 @@ pub enum CmtError {
     NoIntersection,
     #[error("Wavelength out of range")]
     WavelengthOutOfRange,
-    #[error("Allowed wavelength range for this function is {0} to {1} nanometer")]
-    NoUniqueSpectralLocus(usize, usize),
     #[error("Invalid Chromaticity Values")]
     InvalidChromaticityValues,
     #[error("This Method Requires CIE 1931-based XYZ values")]
