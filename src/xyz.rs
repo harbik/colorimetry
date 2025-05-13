@@ -115,6 +115,39 @@ impl XYZ {
         }
     }
 
+    /// Returns the X value.
+    /// ```
+    /// use colorimetry::{xyz::XYZ, observer::Observer};
+    ///
+    /// let xyz = XYZ::new([95.1, 95.0, 27.0], None, Observer::Std1931);
+    /// assert_eq!(xyz.x(), 95.1);
+    /// ```
+    pub fn x(&self) -> f64 {
+        self.values()[0]
+    }
+
+    /// Returns the Y value.
+    /// ```
+    /// use colorimetry::{xyz::XYZ, observer::Observer};
+    ///
+    /// let xyz = XYZ::new([95.1, 95.0, 27.0], None, Observer::Std1931);
+    /// assert_eq!(xyz.y(), 95.0);
+    /// ```
+    pub fn y(&self) -> f64 {
+        self.values()[1]
+    }
+
+    /// Returns the Z value.
+    /// ```
+    /// use colorimetry::{xyz::XYZ, observer::Observer};
+    ///
+    /// let xyz = XYZ::new([95.1, 95.0, 27.0], None, Observer::Std1931);
+    /// assert_eq!(xyz.z(), 27.0);
+    /// ```
+    pub fn z(&self) -> f64 {
+        self.values()[2]
+    }
+
     /// XYZ Tristimulus values in an an array: [X, Y, Z]
     /// ```
     /// use colorimetry::prelude::*;
