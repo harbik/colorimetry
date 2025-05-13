@@ -138,7 +138,7 @@ impl Rgb {
         opt_observer: Option<Observer>,
         opt_rgbspace: Option<RgbSpace>,
     ) -> Result<Self, CmtError> {
-        if r >= 0.0 && r <= 1.0 && g >= 0.0 && g <= 1.0 && b >= 0.0 && b <= 1.0 {
+        if (0.0..=1.0).contains(&r) && (0.0..=1.0).contains(&g) && (0.0..=1.0).contains(&b) {
             let observer = opt_observer.unwrap_or_default();
             let space = opt_rgbspace.unwrap_or_default();
             Ok(Rgb {
