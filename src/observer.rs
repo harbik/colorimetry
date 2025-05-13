@@ -65,6 +65,7 @@ use std::{
     borrow::{Borrow, Cow},
     sync::OnceLock,
 };
+use strum_macros::EnumIter;
 use wasm_bindgen::{convert::IntoWasmAbi, prelude::wasm_bindgen};
 
 /**
@@ -76,7 +77,7 @@ use wasm_bindgen::{convert::IntoWasmAbi, prelude::wasm_bindgen};
 */
 #[cfg(not(feature = "supplemental-observers"))]
 #[wasm_bindgen]
-#[derive(Clone, Copy, Default, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, Default, PartialEq, Eq, Debug, EnumIter)]
 pub enum Observer {
     #[default]
     Std1931,
@@ -84,7 +85,7 @@ pub enum Observer {
 
 #[cfg(feature = "supplemental-observers")]
 #[wasm_bindgen]
-#[derive(Clone, Copy, Default, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, Default, PartialEq, Eq, Debug, EnumIter)]
 pub enum Observer {
     #[default]
     Std1931,
@@ -342,35 +343,42 @@ impl ObserverData {
 
     /// Unrestricted, direct, access to the spectal locus data.
     /// To get unique values only please use the `spectral_locus_by_nm` function.
-    pub fn spectral_locus_by_index(&self, i: usize) -> [f64; 2] {
+    ///
+    /// This method returns `None` for indices that don't have a valid spectral locus
+    /// position.
+    pub fn spectral_locus_by_index(&self, i: usize) -> Option<[f64; 2]> {
         let &[x, y, z] = self.data.column(i).as_ref();
         let s = x + y + z;
-        [x / s, y / s]
+        if s != 0.0 {
+            Some([x / s, y / s])
+        } else {
+            None
+        }
     }
 
     /// The index value of the blue spectral locus edge.
     ///
     /// Any further spectral locus points will hover around this edge, and will not have a unique wavelength.
     pub fn spectral_locus_index_min(&self) -> usize {
-        static MIN: OnceLock<usize> = OnceLock::new();
-        *MIN.get_or_init(|| {
-            const START: usize = 100;
-            let mut lp =
-                LineAB::new(self.spectral_locus_by_index(START), [0.33333, 0.33333]).unwrap();
-            let mut m = START - 1;
-            loop {
-                let l = LineAB::new(self.spectral_locus_by_index(m), [0.33333, 0.33333]).unwrap();
-                match (m, l.angle_diff(lp)) {
-                    (0, d) if d > -f64::EPSILON => break m + 1,
-                    (0, _) => break 0,
-                    (1.., d) if d > -f64::EPSILON => break m,
-                    _ => {
-                        m -= 1;
-                        lp = l;
-                    }
+        const START: usize = 100;
+        let spectral_locus_pos_start = self.spectral_locus_by_index(START).unwrap();
+        let mut lp = LineAB::new(spectral_locus_pos_start, [0.33333, 0.33333]).unwrap();
+        let mut m = START - 1;
+        loop {
+            let Some(spectral_locus_pos_m) = self.spectral_locus_by_index(m) else {
+                break m + 1;
+            };
+            let l = LineAB::new(spectral_locus_pos_m, [0.33333, 0.33333]).unwrap();
+            match (m, l.angle_diff(lp)) {
+                (0, d) if d > -f64::EPSILON => break m + 1,
+                (0, _) => break 0,
+                (1.., d) if d > -f64::EPSILON => break m,
+                _ => {
+                    m -= 1;
+                    lp = l;
                 }
             }
-        })
+        }
     }
 
     pub fn spectral_locus_nm_min(&self) -> usize {
@@ -381,25 +389,25 @@ impl ObserverData {
     ///
     /// Any further spectral locus points will hover around this edge.
     pub fn spectral_locus_index_max(&self) -> usize {
-        static MAX: OnceLock<usize> = OnceLock::new();
-        *MAX.get_or_init(|| {
-            const START: usize = 300;
-            let mut lp =
-                LineAB::new(self.spectral_locus_by_index(START), [0.33333, 0.33333]).unwrap();
-            let mut m = START + 1;
-            loop {
-                let l = LineAB::new(self.spectral_locus_by_index(m), [0.33333, 0.33333]).unwrap();
-                match (m, l.angle_diff(lp)) {
-                    (400, d) if d < f64::EPSILON => break m - 1,
-                    (400, _) => break 400,
-                    (..400, d) if d < f64::EPSILON => break m - 1,
-                    _ => {
-                        m += 1;
-                        lp = l;
-                    }
+        const START: usize = 300;
+        let spectral_locus_pos_start = self.spectral_locus_by_index(START).unwrap();
+        let mut lp = LineAB::new(spectral_locus_pos_start, [0.33333, 0.33333]).unwrap();
+        let mut m = START + 1;
+        loop {
+            let Some(spectral_locus_pos_m) = self.spectral_locus_by_index(m) else {
+                break m + 1;
+            };
+            let l = LineAB::new(spectral_locus_pos_m, [0.33333, 0.33333]).unwrap();
+            match (m, l.angle_diff(lp)) {
+                (400, d) if d < f64::EPSILON => break m - 1,
+                (400, _) => break 400,
+                (..400, d) if d < f64::EPSILON => break m - 1,
+                _ => {
+                    m += 1;
+                    lp = l;
                 }
             }
-        })
+        }
     }
 
     pub fn spectral_locus_nm_max(&self) -> usize {
@@ -445,11 +453,13 @@ mod obs_test {
     use super::Observer;
     use crate::prelude::{StdIlluminant, CIE1931};
     use crate::rgbspace::RgbSpace;
+    use crate::spectrum::SPECTRUM_WAVELENGTH_RANGE;
+    use crate::xyz::XYZ;
     use approx::assert_ulps_eq;
     use strum::IntoEnumIterator as _;
 
     #[test]
-    fn test_spectral_locus() {
+    fn test_cie1931_spectral_locus_min_max() {
         let [x, y] = CIE1931
             .spectral_locus_by_nm(CIE1931.spectral_locus_nm_min())
             .unwrap()
@@ -465,12 +475,30 @@ mod obs_test {
         assert_ulps_eq!(y, 0.26531, epsilon = 1E-5);
     }
 
+    /// Ensure all observers have sane spectral locus values
     #[test]
-    fn test_spectral_locus_min_max() {
-        let min = CIE1931.spectral_locus_index_min();
-        println!("{min}");
-        let max = CIE1931.spectral_locus_index_max();
-        println!("{max}");
+    fn test_spectral_locus_full() {
+        for observer in Observer::iter() {
+            let nm_min = observer.data().spectral_locus_nm_min();
+            let nm_max = observer.data().spectral_locus_nm_max();
+
+            // Basic sanity checking of the min/max values
+            assert!(nm_min >= *SPECTRUM_WAVELENGTH_RANGE.start());
+            assert!(nm_max <= *SPECTRUM_WAVELENGTH_RANGE.end());
+            assert!(nm_min < nm_max);
+
+            // Check that spectral_locus_by_nm returns sane values in the allowed range
+            for nm in nm_min..=nm_max {
+                let xyz = observer.data().spectral_locus_by_nm(nm).unwrap();
+                let [x, y] = xyz.chromaticity();
+                assert!((0.0..=1.0).contains(&x));
+                assert!((0.0..=1.0).contains(&y));
+
+                // Check that all chromaticity coordinates on the spectral locus can be converted
+                // to XYZ.
+                let _xyz2 = XYZ::from_chromaticity(x, y, None, Some(observer)).unwrap();
+            }
+        }
     }
 
     #[test]
