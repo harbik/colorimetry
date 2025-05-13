@@ -13,9 +13,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## Unreleased
 ### Added
+- `WideRgb::clamp` and `WideRgb::compress` methods to create `Rgb` from `WideRgb` values, to pull
+   out-of-gamut values within the colorspace,
+- `WideRgb` type allowing unconstrained, out-of-gamut RGB values
 - Implement strums `EnumIter` on `Observer`. Allows easy iteration over all available observers.
 
 ### Changed
+- Constrained `Rgb` type to in-gamut values only, i.e. all R,G, and B values are required to be the
+  range of [0..=1.0].
+- Renamed `RGB` type to `Rgb`
 - Change the return type of `Observer::spectral_locus_by_index` from `[f64; 2]` to
   `Option<[f64; 2]>`. Allows returning `None` for invalid indices.
 
