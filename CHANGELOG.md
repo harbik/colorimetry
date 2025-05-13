@@ -21,12 +21,19 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Add `x()`, `y()` and `z()` methods to `XYZ` for easy access to each channel value.
 
 ### Changed
-- Constrained `Rgb` type to in-gamut values only, i.e. all R,G, and B values are required to be the
+- Constrain `Rgb` type to in-gamut values only, i.e. all R, G, and B values are required to be the
   range of [0..=1.0].
 - Renamed `RGB` type to `Rgb`
-- Change the return type of `Observer::spectral_locus_by_index` from `[f64; 2]` to
-  `Option<[f64; 2]>`. Allows returning `None` for invalid indices.
 - Stop normalizing XYZ values to illuminance = 100 in `XYZ::values()`.
+- Replace `spectral_locus_nm_min` and `spectral_locus_nm_max` with a single
+  `spectral_locus_wavelength_range` method that return both values as a typed range.
+- Rename `Observer::spectral_locus_by_nm` to `xyz_at_wavelength` and relax the constraints on
+  the allowed wavelength range. This method can now sample the color matching functions in the
+  full range from 380 - 780 nm.
+
+### Removed
+- Make `spectral_locus_index_min`, `spectral_locus_index_max` and `spectral_locus_by_index`
+  private.
 
 ### Fixed
 - Fix `CIE2015_10` data error (X and Y CMF's were identical)
@@ -47,10 +54,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Removed
   - Remove `RGB::from_xyz` method, which requires XYZ values to be in the range from 0.0 to 1.0;
     use `XYZ::rgb` instead, as that uses the reference illuminance for scaling.
-
-### Fixed
-  - Fix bug in RgbSpaceData::primaries_as_colorants by removing caching
-
 
 
 ## [0.0.4] - 2025-05-06
