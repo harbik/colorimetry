@@ -58,7 +58,7 @@ The easiest way to use the objects and functions in this library is through its 
     use colorimetry::prelude::*;
 
     // D65 Tristimulus values, using the CIE1931 standard observer by default
-    let [x, y, z] = D65.xyz(None).values();
+    let [x, y, z] = D65.xyz(None).set_illuminance(100.0).values();
 
     approx::assert_ulps_eq!(x, 95.04, epsilon = 5E-3);
     approx::assert_ulps_eq!(y, 100.0, epsilon = 5E-3);

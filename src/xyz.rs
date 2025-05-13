@@ -115,23 +115,53 @@ impl XYZ {
         }
     }
 
+    /// Returns the X value.
+    /// ```
+    /// use colorimetry::{xyz::XYZ, observer::Observer};
+    ///
+    /// let xyz = XYZ::new([95.1, 95.0, 27.0], None, Observer::Std1931);
+    /// assert_eq!(xyz.x(), 95.1);
+    /// ```
+    pub fn x(&self) -> f64 {
+        self.values()[0]
+    }
+
+    /// Returns the Y value.
+    /// ```
+    /// use colorimetry::{xyz::XYZ, observer::Observer};
+    ///
+    /// let xyz = XYZ::new([95.1, 95.0, 27.0], None, Observer::Std1931);
+    /// assert_eq!(xyz.y(), 95.0);
+    /// ```
+    pub fn y(&self) -> f64 {
+        self.values()[1]
+    }
+
+    /// Returns the Z value.
+    /// ```
+    /// use colorimetry::{xyz::XYZ, observer::Observer};
+    ///
+    /// let xyz = XYZ::new([95.1, 95.0, 27.0], None, Observer::Std1931);
+    /// assert_eq!(xyz.z(), 27.0);
+    /// ```
+    pub fn z(&self) -> f64 {
+        self.values()[2]
+    }
+
     /// XYZ Tristimulus values in an an array: [X, Y, Z]
     /// ```
     /// use colorimetry::prelude::*;
     /// use approx::assert_ulps_eq;
     ///
     /// let d65_xyz = CIE1931.xyz(&StdIlluminant::D65, None).set_illuminance(100.0);
-    /// let [x, y, z] = d65_xyz.into();
+    /// let [x, y, z] = d65_xyz.values();
     /// // Calculated Spreadsheet Values from CIE Datasets, over a range from 380 to 780nm
     /// assert_ulps_eq!(x, 95.042_267, epsilon = 1E-6);
     /// assert_ulps_eq!(y, 100.0);
     /// assert_ulps_eq!(z, 108.861_036, epsilon = 1E-6);
     /// ```
     pub fn values(&self) -> [f64; 3] {
-        let xyz_matrix = self.xyz.unwrap_or(self.xyzn);
-        let s = 100.0 / self.xyzn.y;
-        let xyz_array: [f64; 3] = *xyz_matrix.as_ref();
-        xyz_array.map(|v| v * s)
+        *self.xyz.unwrap_or(self.xyzn).as_ref()
     }
 
     /// Set the illuminance of an illuminant, either for an illuminant directly,
