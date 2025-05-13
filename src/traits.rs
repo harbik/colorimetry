@@ -7,9 +7,10 @@ use crate::{
 /**
 Spectral representation of Lights, typically in form of (standard) Illuminants.
 
-Also allows to use lookup tristimulus values, such as the very common [`D65`](crate::std_illuminants::StdIlluminant::D65) illuminant (see [`StdIlluminant`](crate::std_illuminants::StdIlluminant) implemention).
-Calculating them from a spectrum is the default implementation.  For standard illuminants,
-especially D65, which are used so frequently, their values are obtained from buffered entries.
+Also allows to use lookup tristimulus values, such as the very common
+[`D65`](crate::std_illuminants::StdIlluminant::D65) illuminant
+(see [`StdIlluminant`](crate::std_illuminants::StdIlluminant) implemention).
+Calculating them from a spectrum is the default implementation.
 */
 pub trait Light {
     /// Calculates the tristimulus values of the light source, using the

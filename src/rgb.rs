@@ -11,7 +11,7 @@ use crate::{
 };
 use approx::AbsDiffEq;
 use nalgebra::{Matrix3, Vector3};
-use std::{borrow::Cow, sync::OnceLock};
+use std::borrow::Cow;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 /// Representation of a color stimulus in a set of Red, Green, and Blue (RGB) values,
