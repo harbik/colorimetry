@@ -102,6 +102,21 @@ impl RGB {
         RGB::new(r, g, b, Some(xyz.observer), Some(space))
     }
 
+    /// Returns the value of the red channel.
+    pub fn r(&self) -> f64 {
+        self.rgb.x
+    }
+
+    /// Returns the value of the green channel.
+    pub fn g(&self) -> f64 {
+        self.rgb.y
+    }
+
+    /// Returns the value of the blue channel.
+    pub fn b(&self) -> f64 {
+        self.rgb.z
+    }
+
     /// Returns the RGB values as an array with the red, green, and blue values respectively
     ///
     /// ```rust

@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## Unreleased
 ### Added
 - Implement strums `EnumIter` on `Observer`. Allows easy iteration over all available observers.
+- Add `r()`, `g()` and `b()` methods to `RGB` for easy access to each channel value.
 
 ### Changed
 - Change the return type of `Observer::spectral_locus_by_index` from `[f64; 2]` to
