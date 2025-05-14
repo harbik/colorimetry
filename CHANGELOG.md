@@ -12,6 +12,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 * **Security**: in case of vulnerabilities.
 
 ## Unreleased
+
+## [0.0.5] - 2025-05-14
+
 ### Added
 - `WideRgb::clamp` and `WideRgb::compress` methods to create `Rgb` from `WideRgb` values, to pull
    out-of-gamut values within the colorspace,

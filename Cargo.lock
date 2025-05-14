@@ -185,7 +185,7 @@ dependencies = [
 
 [[package]]
 name = "colorimetry"
-version = "0.0.4"
+version = "0.0.5"
 dependencies = [
  "approx",
  "argmin",
