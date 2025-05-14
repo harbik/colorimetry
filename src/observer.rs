@@ -416,7 +416,6 @@ impl ObserverData {
                 .set_illuminance(1.0)
                 .values()
         }));
-        // let xyzw = self.xyz_raw(&space.white, None).set_illuminance(1.0);
         let xyzw = self.xyz(&space.white, None).set_illuminance(1.0);
         let decomp = rgb2xyz.lu();
         // unwrap: only used with library color spaces
@@ -427,7 +426,7 @@ impl ObserverData {
         rgb2xyz
     }
 
-    /// Calculates the RGB to XYZ matrix, for a particular color space.
+    /// Calculates the XYZ to RGB matrix, for a particular color space.
     pub fn xyz2rgb(&self, rgbspace: RgbSpace) -> Matrix3<f64> {
         // unwrap: only used with library color spaces
         self.rgb2xyz(&rgbspace).try_inverse().unwrap()
@@ -493,19 +492,20 @@ mod obs_test {
         }
     }
 
+    /// Ensure XYZ values around all supported observer spectral locuses' can be converted to RGB
     #[test]
     fn test_spectral_locus_to_rgb() {
-        // FIXME: Once Observer implements `EnumIter`, make this test perform the conversion
-        // for all observers.
-        let observer = Observer::Std1931;
-        let nm_min = observer.data().spectral_locus_nm_min();
-        let nm_max = observer.data().spectral_locus_nm_max();
+        for observer in Observer::iter() {
+            eprintln!("Testing observer {:?}", observer);
+            let nm_min = observer.data().spectral_locus_nm_min();
+            let nm_max = observer.data().spectral_locus_nm_max();
 
-        for nm in nm_min..=nm_max {
-            let xyz = observer.data().spectral_locus_by_nm(nm).unwrap();
+            for nm in nm_min..=nm_max {
+                let xyz = observer.data().spectral_locus_by_nm(nm).unwrap();
 
-            for rgbspace in RgbSpace::iter() {
-                let rgb = xyz.rgb(Some(rgbspace));
+                for rgbspace in RgbSpace::iter() {
+                    let rgb = xyz.rgb(Some(rgbspace));
+                }
             }
         }
     }
