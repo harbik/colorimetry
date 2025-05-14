@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   `Option<[f64; 2]>`. Allows returning `None` for invalid indices.
 
 ### Fixed
+- Fix `CIE2015_10` data error (X and Y CMF's were identical)
 - Fix caching bug in `Observer::spectral_locus_index_min` and
   `Observer::spectral_locus_index_max`. Previously only the values for the first
   observer it was called on was returned for all subsequent calls.
