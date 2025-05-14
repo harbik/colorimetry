@@ -1,4 +1,4 @@
-//! # WideRgb Module
+//! # WideRgb: Color Representation allowing out-of-gamut colors for a given RGB color space.
 //!
 //! This module provides the `WideRgb` struct, a representation of a color stimulus using unconstrained
 //! Red, Green, and Blue (RGB) floating-point values within a specified RGB color space. Unlike typical
@@ -61,12 +61,6 @@ use wasm_bindgen::prelude::wasm_bindgen;
 /// Represents a color stimulus using unconstrained Red, Green, and Blue (RGB) floating-point values
 /// within a device's RGB color space. The values can extend beyond the typical 0.0 to 1.0 range,
 /// allowing for out-of-gamut colors that cannot be accurately represented by the device.
-///
-/// # Fields
-/// - `space`: The RGB color space the color values are using. Often this is the _sRGB_ color space, which is rather small.
-/// - `observer`: Reference to the colorimetric observer being used. This is almost always the CIE 1931 standard observer,
-///   but other standard observers can be used to improve color management quality.
-/// - `rgb`: The RGB values as a 3-element vector.
 pub struct WideRgb {
     /// The RGB color space the color values are using. Often this is the _sRGB_
     /// color space, which is rather small.

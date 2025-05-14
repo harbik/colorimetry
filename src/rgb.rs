@@ -76,12 +76,6 @@ use wasm_bindgen::prelude::wasm_bindgen;
 /// based on a specific color space. These primaries typically form a triangular area within a CIE (x,y) chromaticity
 /// diagram, representing the gamut of colors the device can reproduce.
 ///
-/// # Fields
-/// - `space`: The RGB color space defining the specific primaries and white point. Common spaces include sRGB, Adobe RGB, and custom-defined spaces.
-/// - `observer`: The colorimetric observer that defines how the color is perceived. Default is the CIE 1931 standard observer,
-///   but more recent observers, such as the CIE 2015 cone fundamentals, can be specified for improved accuracy.
-/// - `rgb`: A 3-element vector representing the red, green, and blue components as floating-point values in the range `[0.0, 1.0]`.
-///
 /// # Usage
 /// The `Rgb` struct is used to encapsulate color information in a device-independent manner, allowing for accurate color
 /// representation, conversion, and manipulation within defined RGB spaces. It is particularly useful for applications

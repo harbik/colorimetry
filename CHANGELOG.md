@@ -40,21 +40,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   only the computed matrixes for the first one to call into these methods would be returned in
   subsequent invocations.
 
-
-* **Added**:
-
-* **Changed**:
-
-* **Deprecated**:
-
-* **Removed**:
+### Removed
   - Remove `RGB::from_xyz` method, which requires XYZ values to be in the range from 0.0 to 1.0;
     use `XYZ::rgb` instead, as that uses the reference illuminance for scaling.
 
-e **Fixed**:
+### Fixed
   - Fix bug in RgbSpaceData::primaries_as_colorants by removing caching
 
-* **Security**:
 
 
 ## [0.0.4] - 2025-05-06
