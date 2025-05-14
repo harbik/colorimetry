@@ -63,6 +63,7 @@ use crate::{
 use nalgebra::{Matrix3, SMatrix, Vector3};
 use std::{
     borrow::{Borrow, Cow},
+    ops::{Index, RangeInclusive},
     sync::OnceLock,
 };
 use strum_macros::EnumIter;
@@ -135,9 +136,27 @@ pub struct ObserverData {
     pub(crate) data: SMatrix<f64, 3, NS>,
     pub(crate) lumconst: f64,
     pub(crate) tag: Observer,
+
+    /// The range of indices for which the spectral locus of this observer returns unique
+    /// chromaticity coordinates. See documentation for the
+    /// [`ObserverData::spectral_locus_wavelength_range`] method for details.
+    spectral_locus_range: OnceLock<RangeInclusive<usize>>,
 }
 
 impl ObserverData {
+    /// Creates a new `ObserverData` object, with the given color matching functions.
+    ///
+    /// Only visible to the crate itself since it cannot be used nicely from the outside
+    /// (since the `tag` is not something anyone else can create new varians of).
+    pub(crate) const fn new(tag: Observer, lumconst: f64, data: SMatrix<f64, 3, NS>) -> Self {
+        Self {
+            data,
+            lumconst,
+            tag,
+            spectral_locus_range: OnceLock::new(),
+        }
+    }
+
     /// Calulates Tristimulus values for an object implementing the [Light] trait, and an optional [Filter],
     /// filtering the light.
     ///
@@ -176,6 +195,24 @@ impl ObserverData {
             // illuminant only
             XYZ::from_vecs(xyz, None, self.tag)
         }
+    }
+
+    /// Returns the observer's color matching function (CMF) data as an [XYZ] tristimulus
+    /// value for the given wavelength.
+    ///
+    /// This allows access to the underlying data for the entire range of wavelengths, 380-780nm.
+    /// However, please read the documentation for the
+    /// [`spectral_locus_wavelength_range`](Self::spectral_locus_wavelength_range) method on
+    /// situations where you might not want to sample the full range.
+    pub fn xyz_at_wavelength(&self, wavelength: usize) -> Result<XYZ, CmtError> {
+        if !SPECTRUM_WAVELENGTH_RANGE.contains(&wavelength) {
+            return Err(CmtError::WavelengthOutOfRange);
+        };
+        let &[x, y, z] = self
+            .data
+            .column(wavelength - SPECTRUM_WAVELENGTH_RANGE.start())
+            .as_ref();
+        Ok(XYZ::from_vecs(Vector3::new(x, y, z), None, self.tag))
     }
 
     /**
@@ -307,105 +344,35 @@ impl ObserverData {
         xyz0.try_into().unwrap()
     }
 
-    /// Calculate the Spectral Locus, or (x,y) coordinates of the _horse shoe_,
-    /// the boundary of area of all physical colors in a chromiticity diagram,
-    /// as XYZ tristimulus values.  Tristimulus values are returned here,
-    /// instead of chromaticity xy coordinates, to make use of the available XYZ
-    /// transforms.
+    /// Returns the wavelength range (in nanometer) for the _horse shoe_,
+    /// the boundary of the area of all physical colors in a chromiticity diagram,
+    /// for this observer.
     ///
-    /// This function limits the input values to produce unique chromaticity
-    /// values only.  Spectral locus points tend to freeze, or even fold back to
-    /// lower wavelength values at the blue and red perimeter ends.  This can be
-    /// quite anoying, for example when trying to calculate dominant wavelength,
-    /// or when creating plots.  To get the allowed range, use the
-    /// `spectral_wavelength_min` and `spectral_wavelength_max` methods.
-    ///
+    /// Spectral locus points tend to freeze, or even fold back to lower wavelength
+    /// values at the blue and red perimeter ends. This can be quite anoying, for
+    /// example when trying to calculate dominant wavelength, or when creating
+    /// plots.
     /// See Wikipedia's [CIE 1931 Color Space](https://en.wikipedia.org/wiki/CIE_1931_color_space).
-    pub fn spectral_locus_by_nm(&self, l: usize) -> Result<XYZ, CmtError> {
-        let min = self.spectral_locus_nm_min();
-        let max = self.spectral_locus_nm_max();
-        if !SPECTRUM_WAVELENGTH_RANGE.contains(&l) {
-            return Err(CmtError::WavelengthOutOfRange);
-        };
-        if l < min || l > max {
-            Err(CmtError::NoUniqueSpectralLocus(min, max))
-        } else {
-            let &[x, y, z] = self.data.column(l - 380).as_ref();
-            Ok(XYZ::from_vecs(Vector3::new(x, y, z), None, self.tag))
-        }
-    }
-
-    /// Unrestricted, direct, access to the spectal locus data.
-    /// To get unique values only please use the `spectral_locus_by_nm` function.
     ///
-    /// This method returns `None` for indices that don't have a valid spectral locus
-    /// position.
-    pub fn spectral_locus_by_index(&self, i: usize) -> Option<[f64; 2]> {
-        let &[x, y, z] = self.data.column(i).as_ref();
-        let s = x + y + z;
-        if s != 0.0 {
-            Some([x / s, y / s])
-        } else {
-            None
-        }
-    }
-
-    /// The index value of the blue spectral locus edge.
+    /// To help with the above problem, this method returns the wavelength range
+    /// for which the spectral locus points are unique, meaning
+    /// each wavelength has a chromaticity coordinate different from the wavelength
+    /// below or above it.
     ///
-    /// Any further spectral locus points will hover around this edge, and will not have a unique wavelength.
-    pub fn spectral_locus_index_min(&self) -> usize {
-        const START: usize = 100;
-        let spectral_locus_pos_start = self.spectral_locus_by_index(START).unwrap();
-        let mut lp = LineAB::new(spectral_locus_pos_start, [0.33333, 0.33333]).unwrap();
-        let mut m = START - 1;
-        loop {
-            let Some(spectral_locus_pos_m) = self.spectral_locus_by_index(m) else {
-                break m + 1;
-            };
-            let l = LineAB::new(spectral_locus_pos_m, [0.33333, 0.33333]).unwrap();
-            match (m, l.angle_diff(lp)) {
-                (0, d) if d > -f64::EPSILON => break m + 1,
-                (0, _) => break 0,
-                (1.., d) if d > -f64::EPSILON => break m,
-                _ => {
-                    m -= 1;
-                    lp = l;
-                }
-            }
-        }
-    }
-
-    pub fn spectral_locus_nm_min(&self) -> usize {
-        self.spectral_locus_index_min() + 380
-    }
-
-    /// The index value of the red spectral locus edge.
+    /// To get the tristimulus values of the spectral locus, use
+    /// [`xyz_at_wavelength`](Self::xyz_at_wavelength).
     ///
-    /// Any further spectral locus points will hover around this edge.
-    pub fn spectral_locus_index_max(&self) -> usize {
-        const START: usize = 300;
-        let spectral_locus_pos_start = self.spectral_locus_by_index(START).unwrap();
-        let mut lp = LineAB::new(spectral_locus_pos_start, [0.33333, 0.33333]).unwrap();
-        let mut m = START + 1;
-        loop {
-            let Some(spectral_locus_pos_m) = self.spectral_locus_by_index(m) else {
-                break m + 1;
-            };
-            let l = LineAB::new(spectral_locus_pos_m, [0.33333, 0.33333]).unwrap();
-            match (m, l.angle_diff(lp)) {
-                (400, d) if d < f64::EPSILON => break m - 1,
-                (400, _) => break 400,
-                (..400, d) if d < f64::EPSILON => break m - 1,
-                _ => {
-                    m += 1;
-                    lp = l;
-                }
-            }
-        }
-    }
-
-    pub fn spectral_locus_nm_max(&self) -> usize {
-        self.spectral_locus_index_max() + 380
+    /// This range is computed on first access and then buffered for quick future access.
+    pub fn spectral_locus_wavelength_range(&self) -> RangeInclusive<usize> {
+        self.spectral_locus_range
+            .get_or_init(|| {
+                let min = self.spectral_locus_index_min() + *SPECTRUM_WAVELENGTH_RANGE.start();
+                let max = self.spectral_locus_index_max() + *SPECTRUM_WAVELENGTH_RANGE.start();
+                debug_assert!(min >= *SPECTRUM_WAVELENGTH_RANGE.start());
+                debug_assert!(max <= *SPECTRUM_WAVELENGTH_RANGE.end());
+                min..=max
+            })
+            .clone()
     }
 
     /// Calculates the RGB to XYZ matrix, for a particular color space.
@@ -431,6 +398,68 @@ impl ObserverData {
         // unwrap: only used with library color spaces
         self.rgb2xyz(&rgbspace).try_inverse().unwrap()
     }
+
+    /// The index value of the blue spectral locus edge.
+    ///
+    /// Any further spectral locus points will hover around this edge, and will not have a unique wavelength.
+    fn spectral_locus_index_min(&self) -> usize {
+        const START: usize = 100;
+        let spectral_locus_pos_start = self.spectral_locus_by_index(START).unwrap();
+        let mut lp = LineAB::new(spectral_locus_pos_start, [0.33333, 0.33333]).unwrap();
+        let mut m = START - 1;
+        loop {
+            let Some(spectral_locus_pos_m) = self.spectral_locus_by_index(m) else {
+                break m + 1;
+            };
+            let l = LineAB::new(spectral_locus_pos_m, [0.33333, 0.33333]).unwrap();
+            match (m, l.angle_diff(lp)) {
+                (0, d) if d > -f64::EPSILON => break m + 1,
+                (0, _) => break 0,
+                (1.., d) if d > -f64::EPSILON => break m,
+                _ => {
+                    m -= 1;
+                    lp = l;
+                }
+            }
+        }
+    }
+
+    /// The index value of the red spectral locus edge.
+    ///
+    /// Any further spectral locus points will hover around this edge.
+    fn spectral_locus_index_max(&self) -> usize {
+        const START: usize = 300;
+        let spectral_locus_pos_start = self.spectral_locus_by_index(START).unwrap();
+        let mut lp = LineAB::new(spectral_locus_pos_start, [0.33333, 0.33333]).unwrap();
+        let mut m = START + 1;
+        loop {
+            let Some(spectral_locus_pos_m) = self.spectral_locus_by_index(m) else {
+                break m + 1;
+            };
+            let l = LineAB::new(spectral_locus_pos_m, [0.33333, 0.33333]).unwrap();
+            match (m, l.angle_diff(lp)) {
+                (400, d) if d < f64::EPSILON => break m - 1,
+                (400, _) => break 400,
+                (..400, d) if d < f64::EPSILON => break m - 1,
+                _ => {
+                    m += 1;
+                    lp = l;
+                }
+            }
+        }
+    }
+
+    /// Unrestricted, direct, access to the spectal locus data, in the form of
+    /// chromaticity coordinates.
+    fn spectral_locus_by_index(&self, i: usize) -> Option<[f64; 2]> {
+        let &[x, y, z] = self.data.get((.., i))?.as_ref();
+        let s = x + y + z;
+        if s != 0.0 {
+            Some([x / s, y / s])
+        } else {
+            None
+        }
+    }
 }
 
 // JS-WASM Interface code
@@ -451,15 +480,16 @@ mod obs_test {
 
     #[test]
     fn test_cie1931_spectral_locus_min_max() {
+        let wavelength_lange = CIE1931.spectral_locus_wavelength_range();
         let [x, y] = CIE1931
-            .spectral_locus_by_nm(CIE1931.spectral_locus_nm_min())
+            .xyz_at_wavelength(*wavelength_lange.start())
             .unwrap()
             .chromaticity();
         assert_ulps_eq!(x, 0.17411, epsilon = 1E-5);
         assert_ulps_eq!(y, 0.00496, epsilon = 1E-5);
 
         let [x, y] = CIE1931
-            .spectral_locus_by_nm(CIE1931.spectral_locus_nm_max())
+            .xyz_at_wavelength(*wavelength_lange.end())
             .unwrap()
             .chromaticity();
         assert_ulps_eq!(x, 0.73469, epsilon = 1E-5);
@@ -470,17 +500,16 @@ mod obs_test {
     #[test]
     fn test_spectral_locus_full() {
         for observer in Observer::iter() {
-            let nm_min = observer.data().spectral_locus_nm_min();
-            let nm_max = observer.data().spectral_locus_nm_max();
+            let wavelength_range = observer.data().spectral_locus_wavelength_range();
 
-            // Basic sanity checking of the min/max values
-            assert!(nm_min >= *SPECTRUM_WAVELENGTH_RANGE.start());
-            assert!(nm_max <= *SPECTRUM_WAVELENGTH_RANGE.end());
-            assert!(nm_min < nm_max);
+            // Basic sanity checking of the spectral locus wavelength range values
+            assert!(wavelength_range.start() >= SPECTRUM_WAVELENGTH_RANGE.start());
+            assert!(wavelength_range.end() <= SPECTRUM_WAVELENGTH_RANGE.end());
+            assert!(wavelength_range.start() < wavelength_range.end());
 
-            // Check that spectral_locus_by_nm returns sane values in the allowed range
-            for nm in nm_min..=nm_max {
-                let xyz = observer.data().spectral_locus_by_nm(nm).unwrap();
+            // Check that xyz_at_wavelength returns sane values in the allowed range
+            for wavelength in wavelength_range {
+                let xyz = observer.data().xyz_at_wavelength(wavelength).unwrap();
                 let [x, y] = xyz.chromaticity();
                 assert!((0.0..=1.0).contains(&x));
                 assert!((0.0..=1.0).contains(&y));
@@ -497,12 +526,8 @@ mod obs_test {
     fn test_spectral_locus_to_rgb() {
         for observer in Observer::iter() {
             eprintln!("Testing observer {:?}", observer);
-            let nm_min = observer.data().spectral_locus_nm_min();
-            let nm_max = observer.data().spectral_locus_nm_max();
-
-            for nm in nm_min..=nm_max {
-                let xyz = observer.data().spectral_locus_by_nm(nm).unwrap();
-
+            for wavelength in observer.data().spectral_locus_wavelength_range() {
+                let xyz = observer.data().xyz_at_wavelength(wavelength).unwrap();
                 for rgbspace in RgbSpace::iter() {
                     let rgb = xyz.rgb(Some(rgbspace));
                 }

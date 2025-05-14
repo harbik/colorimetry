@@ -6,10 +6,10 @@ use crate::{
     spectrum::{Spectrum, NS},
 };
 
-pub static CIE1931: ObserverData = ObserverData {
-    tag: Observer::Std1931,
-    lumconst: 683.0,
-    data: SMatrix::<f64, 3, NS>::from_array_storage(ArrayStorage([
+pub static CIE1931: ObserverData = ObserverData::new(
+    Observer::Std1931,
+    683.0,
+    SMatrix::<f64, 3, NS>::from_array_storage(ArrayStorage([
         [0.001368, 0.000039, 0.006450001],
         [0.00150205, 0.0000428264, 0.007083216],
         [0.001642328, 0.0000469146, 0.007745488],
@@ -412,13 +412,13 @@ pub static CIE1931: ObserverData = ObserverData {
         [0.00004448567, 0.00001606459, 0.0],
         [0.00004150994, 0.00001499, 0.0],
     ])),
-};
+);
 
 #[cfg(feature = "supplemental-observers")]
-pub static CIE1964: ObserverData = ObserverData {
-    tag: Observer::Std1964,
-    lumconst: 683.0,
-    data: SMatrix::<f64, 3, NS>::from_array_storage(ArrayStorage([
+pub static CIE1964: ObserverData = ObserverData::new(
+    Observer::Std1964,
+    683.0,
+    SMatrix::<f64, 3, NS>::from_array_storage(ArrayStorage([
         [0.000159952, 0.000017364, 0.000704776],
         [0.00021508, 0.000023327, 0.00094823],
         [0.00028749, 0.00003115, 0.0012682],
@@ -821,13 +821,13 @@ pub static CIE1964: ObserverData = ObserverData {
         [0.000035657, 0.0000141336, 0.0],
         [0.0000334117, 0.000013249, 0.0],
     ])),
-};
+);
 
 #[cfg(feature = "supplemental-observers")]
-pub static CIE2015: ObserverData = ObserverData {
-    tag: Observer::Std2015,
-    lumconst: 683.0,
-    data: SMatrix::<f64, 3, NS>::from_array_storage(ArrayStorage([
+pub static CIE2015: ObserverData = ObserverData::new(
+    Observer::Std2015,
+    683.0,
+    SMatrix::<f64, 3, NS>::from_array_storage(ArrayStorage([
         [0.0, 0.0, 0.0],
         [0.0, 0.0, 0.0],
         [0.0, 0.0, 0.0],
@@ -1230,7 +1230,7 @@ pub static CIE2015: ObserverData = ObserverData {
         [0.00004058715, 0.00001585309, 0.0],
         [0.00003806114, 0.00001487243, 0.0],
     ])),
-};
+);
 
 #[cfg(feature = "supplemental-observers")]
 /// CIE 2015 10° Observer Data
@@ -1256,10 +1256,10 @@ pub static CIE2015: ObserverData = ObserverData {
 /// This dataset is intended for spectral color calculations involving wider visual fields and is especially
 /// relevant for applications in display technology, lighting design, and colorimetry where larger visual fields
 /// are encountered.
-pub static CIE2015_10: ObserverData = ObserverData {
-    tag: Observer::Std2015_10,
-    lumconst: 683.0,
-    data: SMatrix::<f64, 3, NS>::from_array_storage(ArrayStorage([
+pub static CIE2015_10: ObserverData = ObserverData::new(
+    Observer::Std2015_10,
+    683.0,
+    SMatrix::<f64, 3, NS>::from_array_storage(ArrayStorage([
         [0.000000E+00, 0.000000E+00, 0.000000E+00],
         [0.000000E+00, 0.000000E+00, 0.000000E+00],
         [0.000000E+00, 0.000000E+00, 0.000000E+00],
@@ -1662,4 +1662,4 @@ pub static CIE2015_10: ObserverData = ObserverData {
         [3.633762E-05, 1.426169E-05, 0.000000E+00],
         [3.407653E-05, 1.337946E-05, 0.000000E+00],
     ])),
-};
+);
