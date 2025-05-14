@@ -6,9 +6,9 @@ use crate::{
     geometry::{LineAB, Orientation},
     illuminant::Illuminant,
     observer::{self, Observer},
-    rgb::RGB,
     rgbspace::RgbSpace,
     spectrum::Spectrum,
+    widergb::WideRgb,
 };
 use approx::{ulps_eq, AbsDiffEq};
 use nalgebra::{ArrayStorage, Vector3};
@@ -363,17 +363,30 @@ impl XYZ {
     pub fn cct(self) -> Result<crate::cct::CCT, CmtError> {
         self.try_into()
     }
-
-    /// Convert a set of XYZ tristimulus values to RGB values, using the given RGB space identifier.
-    /// This method requires the luminous value of the reference white, which is typically set to 100.0,
-    /// or, less common, 1.0, but any other value can be used as well.
-    pub fn rgb(&self, space: Option<RgbSpace>) -> RGB {
+    /// Converts a set of **XYZ tristimulus values** to **WideRgb values** using the specified RGB space.
+    ///
+    /// # Arguments
+    ///
+    /// - `self`: The XYZ color values to be converted.
+    /// - `rgb_space`: The target RGB space identifier (e.g., `sRGB`, `Adobe RGB`), uses the default
+    ///   sRGB space if `None`` is supplied.
+    ///
+    /// # Returns
+    ///
+    /// A set of  **WideRgb values**, which can be out of gamut for the specified RGB space.
+    /// Use any of the following methods to transform a WideRgb value to a valid RGB value
+    ///
+    /// - `WideRgb::clamp()`
+    /// - `WideRgb::compress()`
+    ///
+    /// These methods will change the color which will be less saturated, and less bright as the orignial color.
+    pub fn rgb(&self, space: Option<RgbSpace>) -> WideRgb {
         let space = space.unwrap_or_default();
         let xyz = self.xyz.unwrap_or(self.xyzn);
         let ywhite = self.xyzn.y;
         let d = xyz.map(|v| v / ywhite); // normalize to 1.0
         let data = self.observer.data().xyz2rgb(space) * d;
-        RGB {
+        WideRgb {
             space,
             observer: self.observer,
             rgb: data,
@@ -672,7 +685,7 @@ mod xyz_test {
 
     #[test]
     fn test_rgb_roundtrip() {
-        let rgb_blue = RGB::new(0.0, 0.0, 1.0, Some(Observer::Std1931), Some(RgbSpace::SRGB));
+        let rgb_blue = WideRgb::new(0.0, 0.0, 1.0, Some(Observer::Std1931), Some(RgbSpace::SRGB));
         let xyz_blue = rgb_blue.xyz();
         let xy_blue = xyz_blue.chromaticity();
         assert_ulps_eq!(xy_blue.as_ref(), [0.15, 0.06].as_ref(), epsilon = 1E-5);

@@ -1,9 +1,5 @@
 
-Colorimetry
-===========
 ![Build Status](https://github.com/harbik/colorimetry/actions/workflows/build-and-test.yml/badge.svg)
-
-# Colorimetry
 
 A Rust library for color modeling in illumination and engineering projects, with early JavaScript/WebAssembly support.
 Algorithms follow standards from the CIE, ICC, and IES.
@@ -31,7 +27,7 @@ It intends to provide a comprehensive framework for spectral colorimetry:
   - **CIE 2015 10º**,
 
 
-- **Spectrally based RGB Color Spaces** with transformation matrices between [`RGB`] and [`XYZ`] values for all color spaces and observers
+- **Spectrally based RGB Color Spaces** with transformation matrices between [`Rgb`] and [`XYZ`] values for all color spaces and observers
   - **sRGB**
   - **Adobe RGB**
   - **DisplayP3**
@@ -431,7 +427,7 @@ If any value falls outside this range, the constructor returns an error.
 <summary><strong>Factory functions</strong></summary>
 
 - [`Stimulus::from_srgb`], and [`Stimulus::from_rgb`], create a `Stimulus` of a set of RGB pixel values.
-  The first takes three `u8` arguments, while the second uses a [`RGB`](crate::rgb::RGB) object as argument.
+  The first takes three `u8` arguments, while the second uses a [`Rgb`] object as argument.
   This function allows calculating the perceived color difference between different observers, from the perspective of a single observer.
 
   ```rust
@@ -486,7 +482,7 @@ dual licensed as above, without any additional terms or conditions.
 [`Stimulus::from_srgb`]: https://docs.rs/colorimetry/latest/colorimetry/stimulus/struct.Stimulus.html#method.from_srgb
 [`Stimulus::from_rgb`]: https://docs.rs/colorimetry/latest/colorimetry/stimulus/struct.Stimulus.html#method.from_rgb
 [Colorimetric Observers]: https://docs.rs/colorimetry/latest/colorimetry/observer/index.html
-[`Observer`]: https://docs.rs/colorimetry/latest/colorimetry/observer/struct.Observer.html
+[`Observer`]: https://docs.rs/colorimetry/latest/colorimetry/observer/enum.Observer.html
 [`ObserverData`]:https://docs.rs/colorimetry/latest/colorimetry/observer/enum.ObserverData.html 
 [`Observer.xyz`]: https://docs.rs/colorimetry/latest/colorimetry/observer/struct.ObserverData.html#method.xyz
 [`CIE1931`]: https://docs.rs/colorimetry/latest/colorimetry/data/observers/static.CIE1931.html
@@ -494,7 +490,8 @@ dual licensed as above, without any additional terms or conditions.
 [`CIE2015`]: https://docs.rs/colorimetry/latest/colorimetry/data/observers/static.CIE2015.html
 [`CIE2015_10`]: https://docs.rs/colorimetry/latest/colorimetry/data/observers/static.CIE2015_10.html
 [`XYZ`]: https://docs.rs/colorimetry/latest/colorimetry/xyz/struct.XYZ.html
-[`RGB`]: https://docs.rs/colorimetry/latest/colorimetry/rgb/struct.RGB.html
+[`Rgb`]: https://docs.rs/colorimetry/latest/colorimetry/rgb/struct.RGB.html
+[`WideRgb`]: https://docs.rs/colorimetry/latest/colorimetry/widergb/struct.WideRgb.html
 [CIECAM16]: https://docs.rs/colorimetry/latest/colorimetry/cam/struct.CieCam16.html
 [CIELAB]: https://docs.rs/colorimetry/latest/colorimetry/lab/struct.CieLab.html
 [`RgbSpace`]: https://docs.rs/colorimetry/latest/colorimetry/rgbspace/enum.RgbSpace.html
