@@ -13,6 +13,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## Unreleased
 
+### Removed
+- Remove undocumented `XYZ::srgb` method that both clamped out-of-gamut values and converted
+  directly to a gamma encoded `[u8; 3]`. Obtain the same result with the more explicit
+  `xyz.rgb(Some(RgbSpace::SRGB)).clamp().values()`.
+
+
 ## [0.0.5] - 2025-05-14
 
 ### Added
