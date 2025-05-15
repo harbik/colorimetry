@@ -483,7 +483,7 @@ pub fn wavelengths<T: ToPrimitive, const N: usize>(v: [T; N]) -> [f64; N] {
     v.map(|x| wavelength(x))
 }
 
-/// Linear interpolatino over a dataset over an equidistant wavelength domain
+/// Linear interpolation over a dataset over an equidistant wavelength domain
 fn linterp(mut wl: [f64; 2], data: &[f64]) -> Result<[f64; NS], CmtError> {
     wl.sort_by(|a, b| a.partial_cmp(b).unwrap());
     let [wl, wh] = wavelengths(wl);
@@ -491,7 +491,7 @@ fn linterp(mut wl: [f64; 2], data: &[f64]) -> Result<[f64; NS], CmtError> {
 
     let mut spd = [0f64; NS];
     spd.iter_mut().enumerate().for_each(|(i, v)| {
-        let l = (i + 380) as f64 * 1E-9; // wavelength in meters
+        let l = (i + SPECTRUM_WAVELENGTH_RANGE.start()) as f64 * 1E-9; // wavelength in meters
         let t = ((l - wl) / (wh - wl)).clamp(0.0, 1.0); // length parameter
         let tf = t * dlm1 as f64;
         let j = tf.trunc() as usize;
@@ -536,7 +536,7 @@ fn linterp_irr(wl: &[f64], data: &[f64]) -> Result<[f64; NS], CmtError> {
         };
         let mut spd = [0f64; NS];
         spd.iter_mut().enumerate().for_each(|(i, v)| {
-            let k = (i + 380) * 1000;
+            let k = (i + SPECTRUM_WAVELENGTH_RANGE.start()) * 1000;
             let p = a.range(..k).next_back(); // find values < k
             let n = a.range(k..).next(); // find values >= k
             match (p, n) {
@@ -581,7 +581,7 @@ fn sprinterp(mut wl: [f64; 2], data: &[f64]) -> Result<[f64; NS], CmtError> {
 
     let mut spd = [0f64; NS];
     spd.iter_mut().enumerate().for_each(|(i, v)| {
-        let l = (i + 380) as f64 * 1E-9; // wavelength in meters
+        let l = (i + SPECTRUM_WAVELENGTH_RANGE.start()) as f64 * 1E-9; // wavelength in meters
         let t = (l - wl) / (wh - wl); // length parameter
         let th = (t * f64_imax).clamp(0.0, f64_imax);
         let h = th.fract();

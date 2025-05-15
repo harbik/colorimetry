@@ -1,3 +1,4 @@
+use crate::spectrum::SPECTRUM_WAVELENGTH_RANGE;
 use num_traits::ToPrimitive;
 use wasm_bindgen::prelude::wasm_bindgen;
 
@@ -161,5 +162,6 @@ pub fn to_wavelength<T: ToPrimitive>(x: T, xmin: T, xmax: T) -> f64 {
     let xmax = xmax.to_f64().unwrap_or(f64::NAN);
     let x = x.to_f64().unwrap_or(f64::NAN);
     let f = (x - xmin) / (xmax - xmin);
-    380E-9 * (1.0 - f) + 780E-9 * f
+    wavelength(*SPECTRUM_WAVELENGTH_RANGE.start()) * (1.0 - f)
+        + wavelength(*SPECTRUM_WAVELENGTH_RANGE.end()) * f
 }

@@ -12,7 +12,7 @@ use crate::{
     illuminant,
     observer::{Observer, ObserverData},
     physics::{gaussian_peak_one, led_ohno, planck, stefan_boltzmann, wavelength},
-    spectrum::{wavelengths, Spectrum, NS},
+    spectrum::{wavelengths, Spectrum, NS, SPECTRUM_WAVELENGTH_RANGE},
     std_illuminants::StdIlluminant,
     traits::Light,
     xyz::XYZ,
@@ -108,7 +108,9 @@ impl Illuminant {
     /// ```
     pub fn planckian(cct: f64) -> Self {
         let s = 1E-9 / stefan_boltzmann(cct); // 1W/m2 total irradiance
-        let data = SVector::<f64, NS>::from_fn(|i, _j| s * planck((i + 380) as f64 * 1e-9, cct));
+        let data = SVector::<f64, NS>::from_fn(|i, _j| {
+            s * planck((i + SPECTRUM_WAVELENGTH_RANGE.start()) as f64 * 1e-9, cct)
+        });
         Self(Spectrum(data))
     }
 
@@ -124,7 +126,7 @@ impl Illuminant {
         let [center_m, width_m] = wavelengths([center, width]);
         let data = SVector::<f64, NS>::from_fn(|i,_j|
             // j = 0, first column
-            led_ohno(wavelength(i+380), center_m, width_m) * 1E-9);
+            led_ohno(wavelength(i + SPECTRUM_WAVELENGTH_RANGE.start()), center_m, width_m) * 1E-9);
         Self(Spectrum(data))
     }
 
@@ -193,7 +195,14 @@ impl Illuminant {
             v.iter_mut().enumerate().for_each(|(i, x)| {
                 *x = CIE_D_S[(i, 0)] + m1 * CIE_D_S[(i, 1)] + m2 * CIE_D_S[(i, 2)]
             });
-            let s = Spectrum::linear_interpolate(&[380.0, 780.0], &v).unwrap();
+            let s = Spectrum::linear_interpolate(
+                &[
+                    *SPECTRUM_WAVELENGTH_RANGE.start() as f64,
+                    *SPECTRUM_WAVELENGTH_RANGE.end() as f64,
+                ],
+                &v,
+            )
+            .unwrap();
             Ok(Illuminant(s).set_irradiance(1.0))
         }
     }
