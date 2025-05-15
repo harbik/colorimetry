@@ -13,6 +13,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## Unreleased
 
+### Changed
+- Make indexing into a `Spectrum` with out of bounds wavelengths cause a panic, instead
+  of returning `NaN`s or modifying the first or last values.
+
+
 ## [0.0.5] - 2025-05-14
 
 ### Added
