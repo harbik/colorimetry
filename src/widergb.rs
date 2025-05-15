@@ -14,8 +14,7 @@
 //!   CIE 2015), enhancing accuracy in color conversions and comparisons.
 //! - **Conversion Methods:** Provides methods to clamp, compress, and convert `WideRgb` values to
 //!   standard `Rgb` values within the `[0.0, 1.0]` range.
-//! - **Compatibility:** Includes conversions to `XYZ` tristimulus values, standard `Rgb`, and
-//!   `u8` arrays for 8-bit encoded RGB values.
+//! - **Compatibility:** Includes conversions to `XYZ` tristimulus values and standard `Rgb`.
 //!
 //! ## Example Usage
 //!
@@ -219,14 +218,6 @@ impl AsRef<Vector3<f64>> for WideRgb {
     }
 }
 
-/// Clamped RGB values as a u8 array. Uses gamma function.
-impl From<WideRgb> for [u8; 3] {
-    fn from(rgb: WideRgb) -> Self {
-        let data: &[f64; 3] = rgb.rgb.as_ref();
-        data.map(|v| (rgb.space.data().gamma.encode(v.clamp(0.0, 1.0)) * 255.0).round() as u8)
-    }
-}
-
 impl From<WideRgb> for [f64; 3] {
     fn from(rgb: WideRgb) -> Self {
         rgb.values()
@@ -260,7 +251,7 @@ mod rgb_tests {
     use crate::prelude::*;
 
     #[test]
-    fn get_values_f64() {
+    fn get_values() {
         let rgb = WideRgb::new(0.1, 0.2, 0.3, None, None);
         let [r, g, b] = <[f64; 3]>::from(rgb);
         assert_eq!(r, 0.1);
@@ -269,11 +260,11 @@ mod rgb_tests {
     }
 
     #[test]
-    fn get_values_u8() {
-        let rgb = WideRgb::new(0.1, 0.2, 0.3, None, None);
-        let [r, g, b] = <[u8; 3]>::from(rgb);
-        assert_eq!(r, 89);
-        assert_eq!(g, 124);
-        assert_eq!(b, 149);
+    fn out_of_gamut_values() {
+        let rgb = WideRgb::new(-0.8, 2.7, 0.8, None, None);
+        let [r, g, b] = rgb.values();
+        assert_eq!(r, -0.8);
+        assert_eq!(g, 2.7);
+        assert_eq!(b, 0.8);
     }
 }
