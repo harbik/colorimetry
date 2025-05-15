@@ -114,7 +114,7 @@ impl Colorant {
         let [center_m, width_m] = wavelengths([center, sigma]);
         let data = SVector::<f64, NS>::from_fn(|i, _j| {
             gaussian_peak_one(
-                (i + SPECTRUM_WAVELENGTH_RANGE.start()) as f64 * 1E-9,
+                wavelength(i + SPECTRUM_WAVELENGTH_RANGE.start()),
                 center_m,
                 width_m,
             )

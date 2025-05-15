@@ -162,6 +162,6 @@ pub fn to_wavelength<T: ToPrimitive>(x: T, xmin: T, xmax: T) -> f64 {
     let xmax = xmax.to_f64().unwrap_or(f64::NAN);
     let x = x.to_f64().unwrap_or(f64::NAN);
     let f = (x - xmin) / (xmax - xmin);
-    *SPECTRUM_WAVELENGTH_RANGE.start() as f64 * 1E-9 * (1.0 - f)
-        + *SPECTRUM_WAVELENGTH_RANGE.end() as f64 * 1E-9 * f
+    wavelength(*SPECTRUM_WAVELENGTH_RANGE.start()) * (1.0 - f)
+        + wavelength(*SPECTRUM_WAVELENGTH_RANGE.end()) * f
 }
