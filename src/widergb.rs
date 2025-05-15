@@ -204,25 +204,17 @@ impl WideRgb {
     /// This is a lossy operation. Out-of-gamut colors are modified by changing chroma and luminance values,
     /// resulting in a color that differs from the original.
     pub fn compress(&self) -> Rgb {
-        let rgb_min = self.rgb.min();
-        let rgb_max = self.rgb.max();
+        // Amount to add to get all channels positive
+        let translate = -self.rgb.min().min(0.0);
 
-        // Handle the edge case to prevent division by zero
-        let rgb = if approx::abs_diff_eq!(rgb_min, rgb_max, epsilon = 1E-4) {
-            // Division by zero check
-            // All values are equal, representing a neutral white/gray/black color
-            let gray_value = rgb_min.clamp(0.0, 1.0);
-            nalgebra::Vector3::repeat(gray_value)
-        } else if rgb_min < 0.0 || rgb_max > 1.0 {
-            let translate = rgb_min.min(0.0);
-            let scale = (rgb_max - translate).max(1.0);
-            self.rgb.map(|v| (v - translate) / scale)
-        } else {
-            self.rgb
-        };
+        let non_negative_rgb = self.rgb.add_scalar(translate);
 
+        // The scaling needed to get all channels below 1.0
+        let scale = non_negative_rgb.max().max(1.0);
+
+        let in_gamut_rgb = non_negative_rgb / scale;
         Rgb {
-            rgb,
+            rgb: in_gamut_rgb,
             observer: self.observer,
             space: self.space,
         }
