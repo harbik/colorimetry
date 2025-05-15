@@ -37,6 +37,7 @@ argmin = "0.10.0"
 argmin-math = "0.4.0"
 clap = { version = "4.5.18", features = ["derive"] }
 colored = "2.2.0"
+criterion = "0.6.0"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
@@ -48,6 +49,10 @@ required-features = ["cct"]
 [[example]]
 name = "cri"
 required-features = ["cri"]
+
+[[bench]]
+name = "widergb"
+harness = false
 
 [package.metadata.docs.rs]
 all-features = true
