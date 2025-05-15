@@ -450,30 +450,26 @@ impl MulAssign<f64> for Spectrum {
 /// Read a spectrum value by an integer wavelength value in the range from 380..=780
 /// nanometer.
 ///
-/// Invalid indices will result in a f64::NAN value.
+/// # Panics
+///
+/// Panic if the index is less than 380 or greater than 780.
 impl Index<usize> for Spectrum {
     type Output = f64;
 
     fn index(&self, i: usize) -> &Self::Output {
-        if !SPECTRUM_WAVELENGTH_RANGE.contains(&i) {
-            &f64::NAN
-        } else {
-            &self.0[(i - SPECTRUM_WAVELENGTH_RANGE.start(), 0)]
-        }
+        &self.0[(i - SPECTRUM_WAVELENGTH_RANGE.start(), 0)]
     }
 }
 
 /// Mutable Access a spectrum value by an integer wavelength value in the range from 380..=780
 /// nanometer.
 ///
-/// Out of range indices will set the edge values.
+/// # Panics
+///
+/// Panic if the index is less than 380 or greater than 780.
 impl IndexMut<usize> for Spectrum {
     fn index_mut(&mut self, i: usize) -> &mut Self::Output {
-        match i {
-            380..=780 => &mut self.0[(i - SPECTRUM_WAVELENGTH_RANGE.start(), 0)],
-            ..380 => &mut self.0[(0, 0)],
-            781.. => &mut self.0[(400, 0)],
-        }
+        &mut self.0[(i - SPECTRUM_WAVELENGTH_RANGE.start(), 0)]
     }
 }
 
@@ -663,13 +659,31 @@ mod tests {
     fn index_test() {
         let mut s = *Colorant::white().spectrum();
 
+        assert_ulps_eq!(s[500], 1.0);
+
         // Set a spectral value
         s[500] = 0.5;
         assert_ulps_eq!(s[500], 0.5);
 
-        // A read from an index out of the 380..=780 range with given f64::NAN.
-        s[300] = 0.5;
-        assert!(s[300].is_nan());
+        // Check that neigbhboring values are not changed
+        assert_ulps_eq!(s[499], 1.0);
+        assert_ulps_eq!(s[501], 1.0);
+    }
+
+    #[test]
+    #[should_panic]
+    fn index_out_of_bounds() {
+        let s = *Colorant::white().spectrum();
+
+        let _ = s[300];
+    }
+
+    #[test]
+    #[should_panic]
+    fn index_mut_out_of_bounds() {
+        let mut s = *Colorant::white().spectrum();
+
+        s[800] = 0.5;
     }
 
     #[test]
