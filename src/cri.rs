@@ -11,8 +11,14 @@ use std::{ops::Index, sync::LazyLock};
 use wasm_bindgen::prelude::*;
 
 use crate::{
-    colorant::Colorant, data::observers::CIE1931, error::CmtError, illuminant::Illuminant,
-    rgbspace::RgbSpace, spectrum::Spectrum, traits::Light, xyz::XYZ,
+    colorant::Colorant,
+    data::observers::CIE1931,
+    error::CmtError,
+    illuminant::Illuminant,
+    rgbspace::RgbSpace,
+    spectrum::{Spectrum, SPECTRUM_WAVELENGTH_RANGE},
+    traits::Light,
+    xyz::XYZ,
 };
 
 /// Nummer of Test Color Sample Spectra
@@ -26,7 +32,18 @@ const N_TCS: usize = 14;
 pub static TCS: LazyLock<[Colorant; N_TCS]> = LazyLock::new(|| {
     let s_vec: Vec<Colorant> = TCS5
         .column_iter()
-        .map(|s| Colorant(Spectrum::linear_interpolate(&[380.0, 780.0], s.as_slice()).unwrap()))
+        .map(|s| {
+            Colorant(
+                Spectrum::linear_interpolate(
+                    &[
+                        *SPECTRUM_WAVELENGTH_RANGE.start() as f64,
+                        *SPECTRUM_WAVELENGTH_RANGE.end() as f64,
+                    ],
+                    s.as_slice(),
+                )
+                .unwrap(),
+            )
+        })
         .collect();
     s_vec.try_into().unwrap()
 });

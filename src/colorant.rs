@@ -10,7 +10,7 @@ use crate::{
     error::CmtError,
     lab::CieLab,
     physics::{gaussian_peak_one, wavelength},
-    prelude::{Illuminant, Observer, D65},
+    prelude::{Illuminant, Observer, D65, SPECTRUM_WAVELENGTH_RANGE},
     spectrum::{wavelengths, Spectrum, NS},
     std_illuminants,
     traits::{Filter, Light},
@@ -96,8 +96,7 @@ impl Colorant {
         let left = center_m - width_m / 2.0;
         let right = center_m + width_m / 2.0;
         let data = SVector::<f64, NS>::from_fn(|i, _j| {
-            //  let w = (i+380) as f64 * 1E-9;
-            let w = wavelength(i + 380);
+            let w = wavelength(i + SPECTRUM_WAVELENGTH_RANGE.start());
             if w < left - f64::EPSILON || w > right + f64::EPSILON {
                 0.0
             } else {
@@ -114,7 +113,11 @@ impl Colorant {
     pub fn gaussian(center: f64, sigma: f64) -> Self {
         let [center_m, width_m] = wavelengths([center, sigma]);
         let data = SVector::<f64, NS>::from_fn(|i, _j| {
-            gaussian_peak_one((i + 380) as f64 * 1E-9, center_m, width_m)
+            gaussian_peak_one(
+                wavelength(i + SPECTRUM_WAVELENGTH_RANGE.start()),
+                center_m,
+                width_m,
+            )
         });
         Self(Spectrum(data))
     }

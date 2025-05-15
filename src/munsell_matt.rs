@@ -18,7 +18,7 @@ use wasm_bindgen::prelude::*;
 use crate::{
     data::munsell_matt::{MUNSELL_MATT_DATA, MUNSELL_MATT_KEYS},
     error::CmtError,
-    spectrum::Spectrum,
+    spectrum::{Spectrum, SPECTRUM_WAVELENGTH_RANGE},
     traits::Filter,
 };
 
@@ -41,7 +41,14 @@ impl MunsellMatt {
             .collect::<Vec<f64>>()
             .try_into()
             .unwrap();
-        let spectrum = Spectrum::linear_interpolate(&[380.0, 780.0], &data).unwrap();
+        let spectrum = Spectrum::linear_interpolate(
+            &[
+                *SPECTRUM_WAVELENGTH_RANGE.start() as f64,
+                *SPECTRUM_WAVELENGTH_RANGE.end() as f64,
+            ],
+            &data,
+        )
+        .unwrap();
         MunsellMatt(key.to_string(), spectrum)
     }
 
