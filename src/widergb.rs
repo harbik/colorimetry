@@ -214,7 +214,9 @@ impl WideRgb {
             let gray_value = rgb_min.clamp(0.0, 1.0);
             nalgebra::Vector3::repeat(gray_value)
         } else if rgb_min < 0.0 || rgb_max > 1.0 {
-            self.rgb.map(|v| (v - rgb_min) / (rgb_max - rgb_min))
+            let translate = rgb_min.min(0.0);
+            let scale = (rgb_max - translate).max(1.0);
+            self.rgb.map(|v| (v - translate) / scale)
         } else {
             self.rgb
         };
