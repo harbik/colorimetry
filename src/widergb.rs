@@ -206,13 +206,14 @@ impl WideRgb {
     pub fn compress(&self) -> Rgb {
         // Amount to add to get all channels positive
         let translate = -self.rgb.min().min(0.0);
-
-        let non_negative_rgb = self.rgb.add_scalar(translate);
-
         // The scaling needed to get all channels below 1.0
-        let scale = non_negative_rgb.max().max(1.0);
+        let scale = (self.rgb.max() + translate).max(1.0);
 
-        let in_gamut_rgb = non_negative_rgb / scale;
+        let in_gamut_rgb = if translate != 0.0 || scale != 1.0 {
+            self.rgb.add_scalar(translate) / scale
+        } else {
+            self.rgb
+        };
         Rgb {
             rgb: in_gamut_rgb,
             observer: self.observer,
