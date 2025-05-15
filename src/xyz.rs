@@ -393,10 +393,6 @@ impl XYZ {
             rgb: data,
         }
     }
-
-    pub fn srgb(&self) -> [u8; 3] {
-        self.rgb(None).into()
-    }
 }
 
 /*
