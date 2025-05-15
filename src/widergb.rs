@@ -132,8 +132,20 @@ impl WideRgb {
 
     /// Converts a `WideRgb` value to a valid `Rgb` value by clamping red, green, and blue values to the range [0, 1].
     ///
+    /// ```rust
+    /// # use colorimetry::widergb::WideRgb;
+    ///
+    /// // A `WideRgb` value with out-of-gamut components.
+    /// let wide_rgb = WideRgb::new(1.2, -0.5, 0.8, None, None);
+    ///
+    /// // Clamp the values to the [0.0, 1.0] range.
+    /// let clamped_rgb = wide_rgb.clamp();
+    ///
+    /// assert_eq!(clamped_rgb.values(), [1.0, 0.0, 0.8]);
+    /// ```
+    ///
     /// # Parameters
-    /// - `self`: The `WideRgb` instance to be compressed.
+    /// - `self`: The `WideRgb` instance to be clamped.
     ///
     /// # Returns
     /// A new `Rgb` instance with the adjusted RGB values, ensuring they are within the allowable range.
