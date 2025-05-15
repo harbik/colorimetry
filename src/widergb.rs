@@ -101,6 +101,21 @@ impl WideRgb {
         }
     }
 
+    /// Returns the value of the red channel.
+    pub fn r(&self) -> f64 {
+        self.rgb.x
+    }
+
+    /// Returns the value of the green channel.
+    pub fn g(&self) -> f64 {
+        self.rgb.y
+    }
+
+    /// Returns the value of the blue channel.
+    pub fn b(&self) -> f64 {
+        self.rgb.z
+    }
+
     /// Returns the RGB values as an array with the red, green, and blue values respectively
     ///
     /// ```rust
@@ -250,10 +265,16 @@ mod rgb_tests {
     #[test]
     fn get_values_f64() {
         let rgb = WideRgb::new(0.1, 0.2, 0.3, None, None);
-        let [r, g, b] = <[f64; 3]>::from(rgb);
+        let [r, g, b] = rgb.values();
         assert_eq!(r, 0.1);
         assert_eq!(g, 0.2);
         assert_eq!(b, 0.3);
+
+        assert_eq!(rgb.r(), 0.1);
+        assert_eq!(rgb.g(), 0.2);
+        assert_eq!(rgb.b(), 0.3);
+
+        assert_eq!(<[f64; 3]>::from(rgb), rgb.values());
     }
 
     #[test]

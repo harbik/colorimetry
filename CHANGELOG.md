@@ -12,6 +12,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 * **Security**: in case of vulnerabilities.
 
 ## Unreleased
+### Added
+- - Add `r()`, `g()` and `b()` methods to `WideRgb` for easy access to each channel value.
+
 
 ## [0.0.5] - 2025-05-14
 
