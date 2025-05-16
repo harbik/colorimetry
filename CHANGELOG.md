@@ -12,9 +12,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 * **Security**: in case of vulnerabilities.
 
 ## Unreleased
+
 ### Added
 - - Add `r()`, `g()` and `b()` methods to `WideRgb` for easy access to each channel value.
-
 
 ### Removed
 - Remove undocumented `XYZ::srgb` method that both clamped out-of-gamut values and converted
@@ -24,11 +24,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   more explicit by converting to the `Rgb` type in between with one of the provided conversion
   methods.
 
-
 ### Changed
 - Make indexing into a `Spectrum` with out of bounds wavelengths cause a panic, instead
   of returning `NaN`s or modifying the first or last values.
-
 
 ### Fixed
 - Fix bug in `WideRgb::compress`. Previously `WideRgb` instances with only positive channel values
