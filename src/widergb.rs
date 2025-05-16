@@ -204,23 +204,18 @@ impl WideRgb {
     /// This is a lossy operation. Out-of-gamut colors are modified by changing chroma and luminance values,
     /// resulting in a color that differs from the original.
     pub fn compress(&self) -> Rgb {
-        let rgb_min = self.rgb.min();
-        let rgb_max = self.rgb.max();
+        // Amount to add to get all channels positive
+        let translate = -self.rgb.min().min(0.0);
+        // The scaling needed to get all channels below 1.0
+        let scale = (self.rgb.max() + translate).max(1.0);
 
-        // Handle the edge case to prevent division by zero
-        let rgb = if approx::abs_diff_eq!(rgb_min, rgb_max, epsilon = 1E-4) {
-            // Division by zero check
-            // All values are equal, representing a neutral white/gray/black color
-            let gray_value = rgb_min.clamp(0.0, 1.0);
-            nalgebra::Vector3::repeat(gray_value)
-        } else if rgb_min < 0.0 || rgb_max > 1.0 {
-            self.rgb.map(|v| (v - rgb_min) / (rgb_max - rgb_min))
+        let in_gamut_rgb = if translate != 0.0 || scale != 1.0 {
+            self.rgb.add_scalar(translate) / scale
         } else {
             self.rgb
         };
-
         Rgb {
-            rgb,
+            rgb: in_gamut_rgb,
             observer: self.observer,
             space: self.space,
         }
@@ -287,5 +282,52 @@ mod rgb_tests {
         assert_eq!(r, -0.8);
         assert_eq!(g, 2.7);
         assert_eq!(b, 0.8);
+    }
+
+    #[test]
+    fn compress_in_gamut() {
+        let rgb = WideRgb::new(0.0, 0.0, 0.0, None, None).compress();
+        assert_eq!(rgb.values(), [0.0, 0.0, 0.0]);
+
+        let rgb = WideRgb::new(1.0, 1.0, 1.0, None, None).compress();
+        assert_eq!(rgb.values(), [1.0, 1.0, 1.0]);
+
+        let rgb = WideRgb::new(0.75, 0.75, 0.75, None, None).compress();
+        assert_eq!(rgb.values(), [0.75, 0.75, 0.75]);
+
+        let rgb = WideRgb::new(0.1, 0.3, 1.0, None, None).compress();
+        assert_eq!(rgb.values(), [0.1, 0.3, 1.0]);
+
+        let rgb = WideRgb::new(0.0, 0.3, 1.0, None, None).compress();
+        assert_eq!(rgb.values(), [0.0, 0.3, 1.0]);
+    }
+
+    #[test]
+    fn compress_out_of_gamut() {
+        // Same value above 1.0 are all scaled down to 1.0
+        let rgb = WideRgb::new(1.2, 1.2, 1.2, None, None).compress();
+        assert_eq!(rgb.values(), [1.0, 1.0, 1.0]);
+
+        // Same value below 0.0 are all scaled up to 0.0
+        let rgb = WideRgb::new(-0.5, -0.5, -0.5, None, None).compress();
+        assert_eq!(rgb.values(), [0.0, 0.0, 0.0]);
+
+        // Different positiv values are all scaled down with the max channel value
+        let rgb = WideRgb::new(1.0, 2.0, 3.0, None, None).compress();
+        assert_eq!(rgb.values(), [1.0 / 3.0, 2.0 / 3.0, 1.0]);
+
+        // Values outside the range both above and below are compressed correctly
+        let rgb = WideRgb::new(-0.1, 0.9, 1.1, None, None).compress();
+        assert_eq!(rgb.values(), [0.0, (0.9 + 0.1) / (1.1 + 0.1), 1.0]);
+
+        // Some negative channel, and some channel that becomes too large after
+        // adding the lowest channel to it.
+        let rgb = WideRgb::new(-0.5, 0.4, 0.6, None, None).compress();
+        assert_eq!(rgb.values(), [0.0, (0.4 + 0.5) / (0.6 + 0.5), 1.0]);
+
+        // One negative channel, and the rest stays within gamut even after adding
+        // the lowest channel to it.
+        let rgb = WideRgb::new(-0.5, 0.4, 0.4, None, None).compress();
+        assert_eq!(rgb.values(), [0.0, 0.9, 0.9]);
     }
 }
