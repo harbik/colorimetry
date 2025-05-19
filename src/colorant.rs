@@ -178,12 +178,12 @@ where
 
         // linear filter from 0.0 to 1.0.
         let tilt: Colorant = (|x:f64|x).into();
-        let xy = CIE1931.xyz(&D65, Some(&tilt)).chromaticity();
+        let xy = CIE1931.xyz(&D65, Some(&tilt)).chromaticity().to_array();
         approx::assert_abs_diff_eq!(xy.as_ref(), [0.4066, 0.4049].as_ref(), epsilon = 1E-4);
 
         // parabolic filter
         let parabolic: Colorant = (|x:f64|1.0 - 4.0 * (x - 0.5).powi(2)).into();
-        let xy = CIE1931.xyz(&D65, Some(&parabolic)).chromaticity();
+        let xy = CIE1931.xyz(&D65, Some(&parabolic)).chromaticity().to_array();
         approx::assert_abs_diff_eq!(xy.as_ref(), [0.3466, 0.3862].as_ref(), epsilon = 1E-4);
         ```
     */

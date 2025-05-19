@@ -1,5 +1,6 @@
 use std::{collections::HashMap, sync::OnceLock};
 
+use crate::xyz::Chromaticity;
 use crate::{
     colorant::Colorant, data::illuminants::D65, data::observers::CIE1931, gamma::GammaCurve,
     illuminant::Illuminant, rgb::gaussian_filtered_primaries, spectrum::Spectrum,
@@ -53,15 +54,26 @@ impl RgbSpace {
 
     /// Returns the chromaticity coordinates for the primaries (red, green and blue) of the
     /// RGB colorspace, using the CIE 1931 standard observer.
-    pub fn primaries_chromaticity(&self) -> [[f64; 2]; 3] {
+    pub const fn primaries_chromaticity(&self) -> [Chromaticity; 3] {
+        const SRGB_PRIMARIES: [Chromaticity; 3] = [
+            Chromaticity::new(0.64, 0.33),
+            Chromaticity::new(0.3, 0.6),
+            Chromaticity::new(0.15, 0.06),
+        ];
+        const ADOBE_PRIMARIES: [Chromaticity; 3] = [
+            Chromaticity::new(0.64, 0.33),
+            Chromaticity::new(0.21, 0.71),
+            Chromaticity::new(0.15, 0.06),
+        ];
+        const DISPLAY_P3_PRIMARIES: [Chromaticity; 3] = [
+            Chromaticity::new((1.0 - D) * 0.68 + D * D65X, (1.0 - D) * 0.32 + D * D65Y),
+            Chromaticity::new(0.265, 0.69),
+            Chromaticity::new(0.15, 0.06),
+        ];
         match self {
-            Self::SRGB => [[0.64, 0.33], [0.3, 0.6], [0.15, 0.06]],
-            Self::ADOBE => [[0.64, 0.33], [0.21, 0.71], [0.15, 0.06]],
-            Self::DisplayP3 => [
-                [(1.0 - D) * 0.68 + D * D65X, (1.0 - D) * 0.32 + D * D65Y],
-                [0.265, 0.69],
-                [0.15, 0.06],
-            ],
+            Self::SRGB => SRGB_PRIMARIES,
+            Self::ADOBE => ADOBE_PRIMARIES,
+            Self::DisplayP3 => DISPLAY_P3_PRIMARIES,
         }
     }
 
@@ -239,22 +251,29 @@ impl RgbSpaceData {
 
 #[cfg(test)]
 mod rgbspace_tests {
-    use crate::prelude::*;
+    use crate::{prelude::*, rgb};
     use approx::assert_ulps_eq;
     use strum::IntoEnumIterator;
 
     #[test]
     /// Check color points of the primaries, as calculated from the space's
     /// spectra, to the targets returned by the `RgbSpace::primaries_chromaticity()` method.
-    fn srgb_test() {
+    fn primaries_chromaticity_match_stimulus_spectrum() {
         for space in RgbSpace::iter() {
-            let rgbspace = space.data();
-            for i in 0..3 {
-                let xy = CIE1931
-                    .xyz_from_spectrum(&rgbspace.primaries[i], None)
+            let primaries_chromaticity = space.primaries_chromaticity();
+            let primaries_colorants = &space.data().primaries;
+            assert_eq!(primaries_chromaticity.len(), primaries_colorants.len());
+
+            let iter = primaries_chromaticity.into_iter().zip(primaries_colorants);
+            for (chromaticity, colorant) in iter {
+                let computed_chromaticity = CIE1931
+                    .xyz_from_spectrum(&colorant.spectrum(), None)
                     .chromaticity();
-                let xywant = space.primaries_chromaticity()[i];
-                assert_ulps_eq!(xy.as_ref(), xywant.as_ref(), epsilon = 1E-5);
+                assert_ulps_eq!(
+                    chromaticity.to_array().as_ref(),
+                    computed_chromaticity.to_array().as_ref(),
+                    epsilon = 1E-5
+                );
             }
         }
     }

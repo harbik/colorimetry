@@ -14,7 +14,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## Unreleased
 
 ### Added
-- - Add `r()`, `g()` and `b()` methods to `WideRgb` for easy access to each channel value.
+- Add `r()`, `g()` and `b()` methods to `WideRgb` for easy access to each channel value.
+- Add `Chromaticity` struct and use it instead of `[f64; 2]` to represent chromaticity coordinates.
 
 ### Removed
 - Remove undocumented `XYZ::srgb` method that both clamped out-of-gamut values and converted

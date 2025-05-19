@@ -474,26 +474,26 @@ mod obs_test {
     use crate::prelude::{StdIlluminant, CIE1931};
     use crate::rgbspace::RgbSpace;
     use crate::spectrum::SPECTRUM_WAVELENGTH_RANGE;
-    use crate::xyz::XYZ;
+    use crate::xyz::{Chromaticity, XYZ};
     use approx::assert_ulps_eq;
     use strum::IntoEnumIterator as _;
 
     #[test]
     fn test_cie1931_spectral_locus_min_max() {
         let wavelength_lange = CIE1931.spectral_locus_wavelength_range();
-        let [x, y] = CIE1931
+        let chromaticity = CIE1931
             .xyz_at_wavelength(*wavelength_lange.start())
             .unwrap()
             .chromaticity();
-        assert_ulps_eq!(x, 0.17411, epsilon = 1E-5);
-        assert_ulps_eq!(y, 0.00496, epsilon = 1E-5);
+        assert_ulps_eq!(chromaticity.x(), 0.17411, epsilon = 1E-5);
+        assert_ulps_eq!(chromaticity.y(), 0.00496, epsilon = 1E-5);
 
-        let [x, y] = CIE1931
+        let chromaticity = CIE1931
             .xyz_at_wavelength(*wavelength_lange.end())
             .unwrap()
             .chromaticity();
-        assert_ulps_eq!(x, 0.73469, epsilon = 1E-5);
-        assert_ulps_eq!(y, 0.26531, epsilon = 1E-5);
+        assert_ulps_eq!(chromaticity.x(), 0.73469, epsilon = 1E-5);
+        assert_ulps_eq!(chromaticity.y(), 0.26531, epsilon = 1E-5);
     }
 
     /// Ensure all observers have sane spectral locus values
@@ -510,13 +510,13 @@ mod obs_test {
             // Check that xyz_at_wavelength returns sane values in the allowed range
             for wavelength in wavelength_range {
                 let xyz = observer.data().xyz_at_wavelength(wavelength).unwrap();
-                let [x, y] = xyz.chromaticity();
-                assert!((0.0..=1.0).contains(&x));
-                assert!((0.0..=1.0).contains(&y));
+                let chromaticity = xyz.chromaticity();
+                assert!((0.0..=1.0).contains(&chromaticity.x()));
+                assert!((0.0..=1.0).contains(&chromaticity.y()));
 
                 // Check that all chromaticity coordinates on the spectral locus can be converted
                 // to XYZ.
-                let _xyz2 = XYZ::from_chromaticity(x, y, None, Some(observer)).unwrap();
+                let _xyz2 = XYZ::from_chromaticity(chromaticity, None, Some(observer)).unwrap();
             }
         }
     }
@@ -584,10 +584,16 @@ mod obs_test {
     fn test_planckian_locus() {
         // see https://www.waveformlighting.com/tech/calculate-cie-1931-xy-coordinates-from-cct
         // for test data (not clear what CMF domain they use)
-        let xy = CIE1931.xyz_planckian_locus(3000.0).chromaticity();
+        let xy = CIE1931
+            .xyz_planckian_locus(3000.0)
+            .chromaticity()
+            .to_array();
         approx::assert_abs_diff_eq!(&xy.as_ref(), &[0.43693, 0.40407].as_ref(), epsilon = 2E-5);
 
-        let xy = CIE1931.xyz_planckian_locus(6500.0).chromaticity();
+        let xy = CIE1931
+            .xyz_planckian_locus(6500.0)
+            .chromaticity()
+            .to_array();
         approx::assert_abs_diff_eq!(&xy.as_ref(), &[0.31352, 0.32363].as_ref(), epsilon = 6E-5);
     }
 

@@ -11,12 +11,49 @@ use crate::{
     widergb::WideRgb,
 };
 use approx::{ulps_eq, AbsDiffEq};
-use nalgebra::{ArrayStorage, Vector3};
+use nalgebra::{ArrayStorage, Vector2, Vector3};
 use wasm_bindgen::prelude::wasm_bindgen;
 
 const D65A: [f64; 3] = [95.04, 100.0, 108.86];
 pub const XYZ_D65: XYZ = XYZ::new(D65A, None, Observer::Std1931);
 pub const XYZ_D65WHITE: XYZ = XYZ::new(D65A, Some(D65A), Observer::Std1931);
+
+/// A chromaticity coordinate with x and y values.
+#[wasm_bindgen]
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Chromaticity {
+    xy: Vector2<f64>,
+}
+
+impl Chromaticity {
+    /// Returns a new `Chromaticity` object with the given x and y coordinates.
+    pub const fn new(x: f64, y: f64) -> Self {
+        let xy = Vector2::new(x, y);
+        Self { xy }
+    }
+
+    /// Returns the x coordinate.
+    pub fn x(self) -> f64 {
+        self.xy.x
+    }
+
+    /// Returns the y coordinate.
+    pub fn y(self) -> f64 {
+        self.xy.y
+    }
+
+    /// Returns the chromaticity coordinates as an array in the format [x, y].
+    ///
+    /// ```
+    /// # use colorimetry::xyz::Chromaticity;
+    /// let [x, y] = [0.3127, 0.3290];
+    /// let chromaticity = Chromaticity::new(x, y);
+    /// assert_eq!(chromaticity.to_array(), [x, y]);
+    /// ```
+    pub fn to_array(self) -> [f64; 2] {
+        *self.xy.as_ref()
+    }
+}
 
 #[wasm_bindgen]
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
@@ -72,11 +109,11 @@ impl XYZ {
     ///
     /// Returns `CmtError::InvalidChromaticityValues` if the sum of x and y is greater than 1.0.
     pub fn from_chromaticity(
-        x: f64,
-        y: f64,
+        chromaticity: Chromaticity,
         l: Option<f64>,
         observer: Option<Observer>,
     ) -> Result<XYZ, CmtError> {
+        let [x, y] = chromaticity.to_array();
         let l = l.unwrap_or(100.0);
         let observer = observer.unwrap_or_default();
         if (x + y) > 1.0 + f64::EPSILON {
@@ -97,7 +134,7 @@ impl XYZ {
         let den = 2.0 * u - 8.0 * v + 4.0;
         let x = (3.0 * u) / den;
         let y = (2.0 * v) / den;
-        XYZ::from_chromaticity(x, y, l, observer)
+        XYZ::from_chromaticity(Chromaticity::new(x, y), l, observer)
     }
 
     /// Try to add two tristimulus values.
@@ -188,19 +225,19 @@ impl XYZ {
         self
     }
 
-    /// The chromaticity coordinates as an array with an  x and y coordinate
+    /// Returns the chromaticity coordinates of this `XYZ` value.
     /// ```
     /// use colorimetry::prelude::*;
     /// use approx::assert_ulps_eq;
     ///
     /// let d65_xyz = CIE1931.xyz(&StdIlluminant::D65, None);
-    /// let xy = d65_xyz.chromaticity();
-    /// assert_ulps_eq!(xy.as_slice(), [0.312_738, 0.329_052].as_slice(), epsilon = 1E-6);
+    /// let chromaticity = d65_xyz.chromaticity();
+    /// assert_ulps_eq!(chromaticity.to_array().as_ref(), [0.312_738, 0.329_052].as_slice(), epsilon = 1E-6);
     /// ```
-    pub fn chromaticity(&self) -> [f64; 2] {
+    pub fn chromaticity(&self) -> Chromaticity {
         let [x, y, z] = self.values();
         let s = x + y + z;
-        [x / s, y / s]
+        Chromaticity::new(x / s, y / s)
     }
 
     /// Luminous value Y of the tristimulus values.
@@ -271,25 +308,28 @@ impl XYZ {
         if white.observer != self.observer {
             Err(CmtError::RequireSameObserver)
         } else {
-            let [mut x, mut y] = self.chromaticity();
-            let [xw, yw] = white.chromaticity();
+            let chromaticity = self.chromaticity();
+            let [mut x, mut y] = [chromaticity.x(), chromaticity.y()];
+            let white_chromaticity = white.chromaticity();
             // if color point is in the purple rotate it around the white point by 180º, and give wavelength a negative value
             let blue_edge = LineAB::new(
-                [xw, yw],
+                white_chromaticity.to_array(),
                 self.observer
                     .data()
                     .xyz_at_wavelength(low)
                     .unwrap()
-                    .chromaticity(),
+                    .chromaticity()
+                    .to_array(),
             )
             .unwrap();
             let red_edge = LineAB::new(
-                [xw, yw],
+                white_chromaticity.to_array(),
                 self.observer
                     .data()
                     .xyz_at_wavelength(high)
                     .unwrap()
-                    .chromaticity(),
+                    .chromaticity()
+                    .to_array(),
             )
             .unwrap();
             match (blue_edge.orientation(x, y), red_edge.orientation(x, y)) {
@@ -298,20 +338,21 @@ impl XYZ {
                 (Orientation::Left, Orientation::Right) => {
                     // mirror point into non-purple region
                     sign = -1.0;
-                    x = 2.0 * xw - x;
-                    y = 2.0 * yw - y;
+                    x = 2.0 * white_chromaticity.x() - x;
+                    y = 2.0 * white_chromaticity.y() - y;
                 }
                 _ => {} // do nothing
             }
             // start bisectional search
             while high - low > 1 {
                 let bisect = LineAB::new(
-                    [xw, yw],
+                    white_chromaticity.to_array(),
                     self.observer
                         .data()
                         .xyz_at_wavelength(mid)
                         .unwrap()
-                        .chromaticity(),
+                        .chromaticity()
+                        .to_array(),
                 )
                 .unwrap();
                 //   let a = bisect.angle_deg();
@@ -329,22 +370,24 @@ impl XYZ {
                 Ok(sign * low as f64)
             } else {
                 let low_ab = LineAB::new(
-                    white.chromaticity(),
+                    white.chromaticity().to_array(),
                     self.observer
                         .data()
                         .xyz_at_wavelength(low)
                         .unwrap()
-                        .chromaticity(),
+                        .chromaticity()
+                        .to_array(),
                 )
                 .unwrap();
                 let dlow = low_ab.distance_with_sign(x, y);
                 let high_ab = LineAB::new(
-                    white.chromaticity(),
+                    white.chromaticity().to_array(),
                     self.observer
                         .data()
                         .xyz_at_wavelength(high)
                         .unwrap()
-                        .chromaticity(),
+                        .chromaticity()
+                        .to_array(),
                 )
                 .unwrap();
                 let dhigh = high_ab.distance_with_sign(x, y);
@@ -656,18 +699,19 @@ mod xyz_test {
     #[test]
     fn dominant_wavelength_purple_test() {
         let d65 = CIE1931.xyz_d65();
-        let [xw, yw] = d65.chromaticity();
+        let white_chromaticity = d65.chromaticity();
 
         // get purple line
         let xyzb = CIE1931.xyz_at_wavelength(380).unwrap();
-        let [xb, yb] = xyzb.chromaticity();
+        let [xb, yb] = xyzb.chromaticity().to_array();
         let xyzr = CIE1931.xyz_at_wavelength(699).unwrap();
-        let [xr, yr] = xyzr.chromaticity();
+        let [xr, yr] = xyzr.chromaticity().to_array();
         let line_t = LineAB::new([xb, yb], [xr, yr]).unwrap();
         for wl in 380..=699usize {
             let sl = CIE1931.xyz_at_wavelength(wl).unwrap();
-            let [x, y] = sl.chromaticity();
-            let line_u = LineAB::new([x, y], [xw, yw]).unwrap();
+            let chromaticity = sl.chromaticity();
+            let line_u =
+                LineAB::new(chromaticity.to_array(), white_chromaticity.to_array()).unwrap();
             let ([xi, yi], t, _) = line_t.intersect(&line_u).unwrap();
             if t > 0.0 && t < 1.0 {
                 // see https://en.wikipedia.org/wiki/CIE_1931_color_space#Mixing_colors_specified_with_the_CIE_xy_chromaticity_diagram
@@ -684,7 +728,7 @@ mod xyz_test {
     fn test_rgb_roundtrip() {
         let rgb_blue = WideRgb::new(0.0, 0.0, 1.0, Some(Observer::Std1931), Some(RgbSpace::SRGB));
         let xyz_blue = rgb_blue.xyz();
-        let xy_blue = xyz_blue.chromaticity();
+        let xy_blue = xyz_blue.chromaticity().to_array();
         assert_ulps_eq!(xy_blue.as_ref(), [0.15, 0.06].as_ref(), epsilon = 1E-5);
         let rgbb = xyz_blue.rgb(None);
         assert_ulps_eq!(rgbb, rgb_blue);
