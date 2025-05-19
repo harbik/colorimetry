@@ -53,6 +53,11 @@ impl Chromaticity {
     pub fn to_array(self) -> [f64; 2] {
         *self.xy.as_ref()
     }
+
+    /// Returns the chromaticity coordinate as an `nalgebra` vector.
+    pub const fn to_vector(self) -> Vector2<f64> {
+        self.xy
+    }
 }
 
 #[wasm_bindgen]
