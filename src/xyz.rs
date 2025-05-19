@@ -148,7 +148,7 @@ impl XYZ {
         self.values()[2]
     }
 
-    /// XYZ Tristimulus values in an an array: [X, Y, Z]
+    /// Returns the XYZ Tristimulus values in an array on the format [X, Y, Z]
     /// ```
     /// use colorimetry::prelude::*;
     /// use approx::assert_ulps_eq;
@@ -395,18 +395,8 @@ impl XYZ {
     }
 }
 
-/*
-impl AsRef<[f64;3]> for XYZ {
-    fn as_ref(&self) -> &[f64;3] {
-        self.xyz.as_ref()
-    }
-}
- */
-
-/// Get normalized tristimulus values as an array. Normalized to the reference white luminance value yn
-/// if present, in case of stimulus values. Else, in case of illuminants only, normalized to
-/// a y value of 100.
 impl From<XYZ> for [f64; 3] {
+    /// Converts the tristimulus values to an array on the format [X, Y, Z]
     fn from(xyz: XYZ) -> Self {
         xyz.values()
     }
