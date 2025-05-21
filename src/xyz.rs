@@ -126,7 +126,12 @@ impl XYZ {
         self.values()[0]
     }
 
-    /// Returns the Y value.
+    /// Returns the luminous value Y of the tristimulus values.
+    ///
+    /// This value is associated with different types of photometric quantities -
+    /// see Wikipedia's article on [Luminous Intensity](https://en.wikipedia.org/wiki/Luminous_intensity).
+    /// As a stimuilus, this value has a unit of candela per square meters,
+    /// as an illuminant lux, or lumen per square meter.
     /// ```
     /// use colorimetry::{xyz::XYZ, observer::Observer};
     ///
@@ -203,17 +208,6 @@ impl XYZ {
         [x / s, y / s]
     }
 
-    /// Luminous value Y of the tristimulus values.
-    ///
-    /// This value is associated with different types of photometric quantities -
-    /// see Wikipedia's article on [Luminous Intensity](https://en.wikipedia.org/wiki/Luminous_intensity).
-    /// As a stimuilus, this value has a unit of candela per square meters,
-    /// as an illuminant lux, or lumen per square meter.
-    pub fn luminous_value(&self) -> f64 {
-        let &[_, y, _] = self.xyz.unwrap_or(self.xyzn).as_ref();
-        y
-    }
-
     /// CIE 1960 UCS Color Space uv coordinates *Deprecated* by the CIE, but
     /// still used for CCT calculation. Applied to illuminant xyzn values only.
     pub fn uv60(&self) -> [f64; 2] {
@@ -227,7 +221,7 @@ impl XYZ {
     /// Still used in Color Rendering Index Calculation.
     /// Uses xyz tristimulus values if present, else uses illuminant's values.
     pub fn uvw64(&self, xyz_ref: XYZ) -> [f64; 3] {
-        let yy = self.luminous_value();
+        let yy = self.y();
         let [ur, vr] = xyz_ref.uv60();
         let [u, v] = self.uv60();
         let ww = 25.0 * yy.powf(1.0 / 3.0) - 17.0;
