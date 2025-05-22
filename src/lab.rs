@@ -13,29 +13,24 @@ pub struct CieLab {
     pub(crate) xyzn: Vector3<f64>, // Reference white tristimulus value
 }
 
-impl TryFrom<XYZ> for CieLab {
-    type Error = CmtError;
-
-    fn try_from(xyz_val: XYZ) -> Result<Self, Self::Error> {
-        if let Some(xyz) = xyz_val.xyz {
-            let lab = lab(xyz, xyz_val.xyzn);
-            Ok(Self {
-                observer: xyz_val.observer,
-                lab,
-                xyzn: xyz_val.xyzn,
-            })
-        } else {
-            Err(CmtError::NoColorant)
-        }
-    }
-}
-
 impl CieLab {
-    /*
-    pub fn new(xyzn: Vector3<f64>, xyz: Vector3<f64>) -> CieLab {
-        CieLab {lab: lab(xyz, xyzn), xyzn}
+    /// Creates a new CieLab instance from the given XYZ and reference white values.
+    ///
+    /// # Errors
+    ///
+    /// Returns `CmtError::RequireSameObserver` if the observer of the given XYZ and reference
+    /// white values are not the same.
+    pub fn from_xyz(xyz: XYZ, white: XYZ) -> Result<Self, CmtError> {
+        if xyz.observer != white.observer {
+            return Err(CmtError::RequireSameObserver);
+        }
+        let xyzn = white.xyz;
+        Ok(Self {
+            lab: lab(xyz.xyz, xyzn),
+            xyzn,
+            observer: xyz.observer,
+        })
     }
-     */
 
     pub fn delta_e(&self, other: &Self) -> Result<f64, CmtError> {
         if ulps_eq!(self.xyzn, other.xyzn) {

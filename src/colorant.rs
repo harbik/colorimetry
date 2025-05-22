@@ -134,7 +134,11 @@ impl Colorant {
             .data()
             .xyz(illuminant, Some(self))
             .set_illuminance(100.0);
-        CieLab::try_from(xyz).unwrap()
+        let xyzn = obs
+            .data()
+            .xyz_from_spectrum(&illuminant.spectrum())
+            .set_illuminance(100.0);
+        CieLab::from_xyz(xyz, xyzn).unwrap()
     }
 }
 

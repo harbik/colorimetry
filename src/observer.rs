@@ -167,34 +167,22 @@ impl ObserverData {
     /// As a light, it is the light emitted from the pixel, as a filter it is the RGB-composite
     /// filter which is applied to the underlying standard illuminant of color space.
     pub fn xyz(&self, light: &dyn Light, filter: Option<&dyn Filter>) -> XYZ {
-        // let xyzn = self.xyz_cie_table(illuminant, None);
         let xyzn = light.xyzn(self.tag, None);
         let xyz = if let Some(flt) = filter {
             let s = *light.spectrum() * *flt.spectrum();
-            self.xyz_from_spectrum(&s, Some(xyzn))
+            self.xyz_from_spectrum(&s)
         } else {
             xyzn
         };
         xyz.set_illuminance(100.0)
     }
 
-    /**
-        Calculates Tristimulus valus, in form of an [XYZ] object of a general spectrum.
-        If a reference white is given (rhs), it will copy its tristimulus value, and the spectrum
-        is interpreted as a stimulus, being a combination of an illuminant with a colorant.
-        If no reference white is given, the spectrum is interpreted as an illuminant.
-        This method produces the raw XYZ data, not normalized to 100.0
-
-    */
-    pub fn xyz_from_spectrum(&self, spectrum: &Spectrum, rhs: Option<XYZ>) -> XYZ {
+    /// Calculates Tristimulus valus, in form of an [XYZ] object of a general spectrum.
+    ///
+    /// This method produces the raw XYZ data, not normalized to 100.0
+    pub fn xyz_from_spectrum(&self, spectrum: &Spectrum) -> XYZ {
         let xyz = self.data * spectrum.0 * self.lumconst;
-        if let Some(xyz0) = rhs {
-            // A illuminant/colorant
-            XYZ::from_vecs(xyz0.xyzn, Some(xyz), self.tag)
-        } else {
-            // illuminant only
-            XYZ::from_vecs(xyz, None, self.tag)
-        }
+        XYZ::from_vecs(xyz, self.tag)
     }
 
     /// Returns the observer's color matching function (CMF) data as an [XYZ] tristimulus
@@ -212,16 +200,14 @@ impl ObserverData {
             .data
             .column(wavelength - SPECTRUM_WAVELENGTH_RANGE.start())
             .as_ref();
-        Ok(XYZ::from_vecs(Vector3::new(x, y, z), None, self.tag))
+        Ok(XYZ::from_vecs(Vector3::new(x, y, z), self.tag))
     }
 
-    /**
-        Tristimulus values for the Standard Illuminants in this library.
-
-        Values are not normalized by default, unless an illuminance value is provided.
-    */
+    /// Tristimulus values for the Standard Illuminants in this library.
+    ///
+    /// Values are not normalized by default, unless an illuminance value is provided.
     pub fn xyz_cie_table(&self, std_illuminant: &StdIlluminant, illuminance: Option<f64>) -> XYZ {
-        let xyz = self.xyz_from_spectrum(std_illuminant.illuminant(), None);
+        let xyz = self.xyz_from_spectrum(std_illuminant.illuminant());
         if let Some(l) = illuminance {
             xyz.set_illuminance(l)
         } else {
@@ -273,7 +259,6 @@ impl ObserverData {
         f: impl Fn(f64) -> f64,
     ) -> XYZ {
         let s = illuminant.illuminant();
-        let xyzn = self.xyz_cie_table(illuminant, None).xyzn;
         let xyz =
             self.data.column_iter().zip(s.0 .0.iter()).enumerate().fold(
                 Vector3::zeros(),
@@ -282,8 +267,7 @@ impl ObserverData {
                 },
             );
         XYZ {
-            xyz: Some(xyz * self.lumconst),
-            xyzn,
+            xyz: xyz * self.lumconst,
             observer: self.tag,
         }
         .set_illuminance(100.0)
@@ -299,7 +283,7 @@ impl ObserverData {
         and yw is set to None.
     */
     pub fn xyz_fn_illuminant(&self, f: impl Fn(f64) -> f64) -> XYZ {
-        let xyzn = self
+        let xyz = self
             .data
             .column_iter()
             .enumerate()
@@ -307,8 +291,7 @@ impl ObserverData {
                 acc + cmf * f(i as f64 / (NS - 1) as f64)
             });
         XYZ {
-            xyz: None,
-            xyzn,
+            xyz,
             observer: self.tag,
         }
     }
@@ -329,19 +312,17 @@ impl ObserverData {
     }
 
     /// Calculates the L*a*b* CIELAB D65 values of a Colorant, using D65 as an illuminant.
-    /// Accepts a Colorant Spectrum only.
-    /// Returns f64::NAN's otherwise.
     pub fn lab_d65(&self, filter: &dyn Filter) -> CieLab {
-        let xyz0 = self.xyz(&StdIlluminant::D65, Some(filter));
-        xyz0.try_into().unwrap()
+        let xyz = self.xyz(&StdIlluminant::D65, Some(filter));
+        let xyzn = self.xyz_from_spectrum(&StdIlluminant::D65.spectrum());
+        CieLab::from_xyz(xyz, xyzn).unwrap()
     }
 
     /// Calculates the L*a*b* CIELAB D50 values of a Colorant, using D65 as an illuminant.
-    /// Accepts a Colorant Spectrum only.
-    /// Returns f64::NAN's otherwise.
     pub fn lab_d50(&self, filter: &dyn Filter) -> CieLab {
-        let xyz0 = self.xyz(&StdIlluminant::D50, Some(filter));
-        xyz0.try_into().unwrap()
+        let xyz = self.xyz(&StdIlluminant::D50, Some(filter));
+        let xyzn = self.xyz_from_spectrum(&StdIlluminant::D50.spectrum());
+        CieLab::from_xyz(xyz, xyzn).unwrap()
     }
 
     /// Returns the wavelength range (in nanometer) for the _horse shoe_,
@@ -378,15 +359,16 @@ impl ObserverData {
     /// Calculates the RGB to XYZ matrix, for a particular color space.
     pub fn rgb2xyz(&self, rgbspace: &RgbSpace) -> Matrix3<f64> {
         let space = rgbspace.data();
-        let mut rgb2xyz = Matrix3::from_iterator(space.primaries.iter().flat_map(|s| {
-            self.xyz_from_spectrum(s, None)
-                .set_illuminance(1.0)
-                .values()
-        }));
+        let mut rgb2xyz = Matrix3::from_iterator(
+            space
+                .primaries
+                .iter()
+                .flat_map(|s| self.xyz_from_spectrum(s).set_illuminance(1.0).values()),
+        );
         let xyzw = self.xyz(&space.white, None).set_illuminance(1.0);
         let decomp = rgb2xyz.lu();
         // unwrap: only used with library color spaces
-        let rgbw = decomp.solve(&xyzw.xyzn).unwrap();
+        let rgbw = decomp.solve(&xyzw.xyz).unwrap();
         for (i, mut col) in rgb2xyz.column_iter_mut().enumerate() {
             col *= rgbw[i];
         }
@@ -570,14 +552,10 @@ mod obs_test {
     #[test]
     fn test_xyz_std_illuminants() {
         use crate::xyz::XYZ;
-        use nalgebra as na;
-        let XYZ {
-            xyz,
-            xyzn,
-            observer,
-        } = CIE1931.xyz_cie_table(&StdIlluminant::D65, Some(100.0));
-        approx::assert_ulps_eq!(xyzn, na::Vector3::new(95.04, 100.0, 108.86), epsilon = 1E-2);
-        assert!(xyz.is_none());
+        use nalgebra::Vector3;
+
+        let XYZ { xyz, observer } = CIE1931.xyz_cie_table(&StdIlluminant::D65, Some(100.0));
+        approx::assert_ulps_eq!(xyz, Vector3::new(95.04, 100.0, 108.86), epsilon = 1E-2);
     }
 
     #[test]
@@ -599,11 +577,13 @@ mod obs_test {
 
     #[test]
     fn test_xyz_from_illuminant_x_fn() {
+        use crate::xyz::XYZ;
+
         let xyz = CIE1931.xyz_from_std_illuminant_x_fn(&StdIlluminant::D65, |_v| 1.0);
-        let d65xyz = CIE1931.xyz_d65().xyzn;
+        let d65xyz = CIE1931.xyz_d65().xyz;
         approx::assert_ulps_eq!(
             xyz,
-            crate::xyz::XYZ::from_vecs(d65xyz, Some(d65xyz), crate::observer::Observer::Std1931)
+            XYZ::from_vecs(d65xyz, crate::observer::Observer::Std1931)
         );
     }
 

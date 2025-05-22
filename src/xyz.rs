@@ -15,8 +15,7 @@ use nalgebra::{ArrayStorage, Vector2, Vector3};
 use wasm_bindgen::prelude::wasm_bindgen;
 
 const D65A: [f64; 3] = [95.04, 100.0, 108.86];
-pub const XYZ_D65: XYZ = XYZ::new(D65A, None, Observer::Std1931);
-pub const XYZ_D65WHITE: XYZ = XYZ::new(D65A, Some(D65A), Observer::Std1931);
+pub const XYZ_D65: XYZ = XYZ::new(D65A, Observer::Std1931);
 
 /// A chromaticity coordinate with x and y values.
 #[wasm_bindgen]
@@ -62,53 +61,30 @@ impl Chromaticity {
 
 #[wasm_bindgen]
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
-/// A set of two CIE XYZ Tristimulus values, for a Standard Observer.
+/// A CIE XYZ Tristimulus value.
 ///
-/// One is associated with an illuminant or a reference white value, denoted by the fieldname `xyzn`, and
-/// a second, optional value, a set of tristimulus values for a stimulus, or 'a color' value.
-/// XYZ values are not often used directly, but form the basis for many colorimetric models, such as
-/// CIELAB and CIECAM.
+/// In the CIE 1931 model, Y is the luminance, Z is quasi-equal to blue (of CIE RGB),
+/// and X is a mix of the three CIE RGB curves chosen to be nonnegative
 pub struct XYZ {
     pub(crate) observer: Observer,
-    pub(crate) xyzn: Vector3<f64>,        // illuminant values
-    pub(crate) xyz: Option<Vector3<f64>>, // stimulus values
+    pub(crate) xyz: Vector3<f64>,
 }
 
 impl XYZ {
-    /// Define a set of [XYZ]-values directly, using an identifier for its
-    /// associated observer, such as [Observer::Std1931] or [Observer::Std2015].
+    /// Define a set of [XYZ]-values, using an identifier for its
+    /// associated observer, such as [Observer::Std1931].
     ///
-    pub const fn new(xyzn: [f64; 3], xyz: Option<[f64; 3]>, observer: Observer) -> Self {
-        let xyzn = Vector3::<f64>::from_array_storage(ArrayStorage([xyzn]));
-        let xyz = if let Some(xyz) = xyz {
-            Some(Vector3::<f64>::from_array_storage(ArrayStorage([xyz])))
-        } else {
-            None
-        };
-        Self {
-            observer,
-            xyz,
-            xyzn,
-        }
+    pub const fn new(xyz: [f64; 3], observer: Observer) -> Self {
+        let xyz = Vector3::<f64>::from_array_storage(ArrayStorage([xyz]));
+        Self { observer, xyz }
     }
 
     /// Defines [XYZ] values from [nalgebra::Vector3] values directly.
-    pub const fn from_vecs(
-        xyzn: Vector3<f64>,
-        xyz: Option<Vector3<f64>>,
-        observer: Observer,
-    ) -> XYZ {
-        Self {
-            observer,
-            xyz,
-            xyzn,
-        }
+    pub const fn from_vecs(xyz: Vector3<f64>, observer: Observer) -> Self {
+        Self { observer, xyz }
     }
 
-    /// Create tristimulus values from a chromaticity value, with optional Luminous Value l, and
-    /// optional white reference value yw.
-    ///
-    /// This produces a illuminant XYZ value, with xyz value set as xyzn.
+    /// Create tristimulus values from a chromaticity value, with optional Luminous Value l.
     ///
     /// # Errors
     ///
@@ -126,7 +102,7 @@ impl XYZ {
         } else {
             let s = l / y;
             let xyz = Vector3::new(x * s, l, (1.0 - x - y) * s);
-            Ok(Self::from_vecs(xyz, None, observer))
+            Ok(Self::from_vecs(xyz, observer))
         }
     }
 
@@ -143,15 +119,13 @@ impl XYZ {
     }
 
     /// Try to add two tristimulus values.
-    /// Requires sharing the same observer, and no reference white set.
-    /// Used for adding illuminants.
-    pub fn try_add(&self, other: XYZ) -> Result<XYZ, CmtError> {
+    ///
+    /// # Errors
+    ///
+    /// Returns `CmtError::RequireSameObserver` if the two values are not from the same observer.
+    pub fn try_add(&self, other: Self) -> Result<Self, CmtError> {
         if self.observer == other.observer {
-            let data = self.xyzn + other.xyzn;
-            match (self.xyz, other.xyz) {
-                (None, None) => Ok(XYZ::from_vecs(data, None, self.observer)),
-                _ => Err(CmtError::NoReferenceWhiteAllowed),
-            }
+            Ok(Self::from_vecs(self.xyz + other.xyz, self.observer))
         } else {
             Err(CmtError::RequireSameObserver)
         }
@@ -165,7 +139,7 @@ impl XYZ {
     /// assert_eq!(xyz.x(), 95.1);
     /// ```
     pub fn x(&self) -> f64 {
-        self.values()[0]
+        self.xyz.x
     }
 
     /// Returns the luminous value Y of the tristimulus values.
@@ -181,7 +155,7 @@ impl XYZ {
     /// assert_eq!(xyz.y(), 95.0);
     /// ```
     pub fn y(&self) -> f64 {
-        self.values()[1]
+        self.xyz.y
     }
 
     /// Returns the Z value.
@@ -192,7 +166,7 @@ impl XYZ {
     /// assert_eq!(xyz.z(), 27.0);
     /// ```
     pub fn z(&self) -> f64 {
-        self.values()[2]
+        self.xyz.z
     }
 
     /// Returns the XYZ Tristimulus values in an array on the format [X, Y, Z]
@@ -208,11 +182,10 @@ impl XYZ {
     /// assert_ulps_eq!(z, 108.861_036, epsilon = 1E-6);
     /// ```
     pub fn values(&self) -> [f64; 3] {
-        *self.xyz.unwrap_or(self.xyzn).as_ref()
+        *self.xyz.as_ref()
     }
 
-    /// Set the illuminance of an illuminant, either for an illuminant directly,
-    /// or for the reference illuminant, in case a color sample XYZ.
+    /// Scales this `XYZ` value to the new illuminance level.
     /// ```
     /// use colorimetry::prelude::*;
     /// use approx::assert_ulps_eq;
@@ -225,13 +198,10 @@ impl XYZ {
     ///
     /// assert_ulps_eq!(d65_xyz_sample, XYZ::new(D65A, Some(D65A), Observer::Std1931), epsilon = 1E-2);
     /// ```
+    #[must_use]
     pub fn set_illuminance(mut self, illuminance: f64) -> Self {
-        let s = illuminance / self.xyzn.y;
-        self.xyzn.iter_mut().for_each(|v| *v *= s);
-        if let Some(xyz0) = &mut self.xyz {
-            // colorant with illuminant
-            xyz0.iter_mut().for_each(|v| *v *= s)
-        };
+        let s = illuminance / self.xyz.y;
+        self.xyz *= s;
         self
     }
 
@@ -251,9 +221,9 @@ impl XYZ {
     }
 
     /// CIE 1960 UCS Color Space uv coordinates *Deprecated* by the CIE, but
-    /// still used for CCT calculation. Applied to illuminant xyzn values only.
+    /// still used for CCT calculation.
     pub fn uv60(&self) -> [f64; 2] {
-        let &[x, y, z] = self.xyz.unwrap_or(self.xyzn).as_ref();
+        let [x, y, z] = self.values();
         let den = x + 15.0 * y + 3.0 * z;
         [4.0 * x / den, 6.0 * y / den]
     }
@@ -261,7 +231,6 @@ impl XYZ {
     /// The CIE 1964 (U*, V*, W*) color space, also known as CIEUVW, based on
     /// the CIE 1960 UCS.
     /// Still used in Color Rendering Index Calculation.
-    /// Uses xyz tristimulus values if present, else uses illuminant's values.
     pub fn uvw64(&self, xyz_ref: XYZ) -> [f64; 3] {
         let yy = self.y();
         let [ur, vr] = xyz_ref.uv60();
@@ -274,12 +243,11 @@ impl XYZ {
 
     /// CIE 1976 CIELUV space, with (u',v') coordinates, calculated for stimulus xyz if present, or else for illuminant.
     pub fn uvprime(&self) -> [f64; 2] {
-        let &[x, y, z] = self.xyz.unwrap_or(self.xyzn).as_ref();
+        let [x, y, z] = self.values();
         let den = x + 15.0 * y + 3.0 * z;
         [4.0 * x / den, 9.0 * y / den]
     }
 
-    //
     pub fn uv_prime_distance(&self, other: &Self) -> f64 {
         let [u1, v1] = self.uvprime();
         let [u2, v2] = other.uvprime();
@@ -298,21 +266,81 @@ impl XYZ {
     /// result, the maxium range of dominant wavelengths which can be obtained
     /// is from 380 to 699 nanometer;
     ///
+    /// # Errors
+    ///
+    /// Returns `CmtError::RequireSameObserver` if the two values are not from the same observer.
     pub fn dominant_wavelength(&self, white: XYZ) -> Result<f64, CmtError> {
+        if white.observer != self.observer {
+            return Err(CmtError::RequireSameObserver);
+        }
+
         let mut sign = 1.0;
         let wavelength_range = self.observer.data().spectral_locus_wavelength_range();
         let mut low = *wavelength_range.start();
         let mut high = *wavelength_range.end();
         let mut mid = 540usize; // 200 fails, as its tail overlaps into the blue region
-        if white.observer != self.observer {
-            Err(CmtError::RequireSameObserver)
-        } else {
-            let chromaticity = self.chromaticity();
-            let [mut x, mut y] = [chromaticity.x(), chromaticity.y()];
-            let white_chromaticity = white.chromaticity();
-            // if color point is in the purple rotate it around the white point by 180º, and give wavelength a negative value
-            let blue_edge = LineAB::new(
+        let [mut x, mut y] = self.chromaticity().to_array();
+        let white_chromaticity = white.chromaticity();
+        // if color point is in the purple rotate it around the white point by 180º, and give wavelength a negative value
+        let blue_edge = LineAB::new(
+            white_chromaticity.to_array(),
+            self.observer
+                .data()
+                .xyz_at_wavelength(low)
+                .unwrap()
+                .chromaticity()
+                .to_array(),
+        )
+        .unwrap();
+        let red_edge = LineAB::new(
+            white_chromaticity.to_array(),
+            self.observer
+                .data()
+                .xyz_at_wavelength(high)
+                .unwrap()
+                .chromaticity()
+                .to_array(),
+        )
+        .unwrap();
+        match (blue_edge.orientation(x, y), red_edge.orientation(x, y)) {
+            (Orientation::Colinear, _) => return Ok(380.0),
+            (_, Orientation::Colinear) => return Ok(699.0),
+            (Orientation::Left, Orientation::Right) => {
+                // mirror point into non-purple region
+                sign = -1.0;
+                x = 2.0 * white_chromaticity.x() - x;
+                y = 2.0 * white_chromaticity.y() - y;
+            }
+            _ => {} // do nothing
+        }
+        // start bisectional search
+        while high - low > 1 {
+            let bisect = LineAB::new(
                 white_chromaticity.to_array(),
+                self.observer
+                    .data()
+                    .xyz_at_wavelength(mid)
+                    .unwrap()
+                    .chromaticity()
+                    .to_array(),
+            )
+            .unwrap();
+            //   let a = bisect.angle_deg();
+            match bisect.orientation(x, y) {
+                Orientation::Left => high = mid,
+                Orientation::Right => low = mid,
+                Orientation::Colinear => {
+                    low = mid;
+                    high = mid;
+                }
+            }
+            mid = (low + high) / 2;
+        }
+        if low == high {
+            Ok(sign * low as f64)
+        } else {
+            let low_ab = LineAB::new(
+                white.chromaticity().to_array(),
                 self.observer
                     .data()
                     .xyz_at_wavelength(low)
@@ -321,8 +349,9 @@ impl XYZ {
                     .to_array(),
             )
             .unwrap();
-            let red_edge = LineAB::new(
-                white_chromaticity.to_array(),
+            let dlow = low_ab.distance_with_sign(x, y);
+            let high_ab = LineAB::new(
+                white.chromaticity().to_array(),
                 self.observer
                     .data()
                     .xyz_at_wavelength(high)
@@ -331,74 +360,17 @@ impl XYZ {
                     .to_array(),
             )
             .unwrap();
-            match (blue_edge.orientation(x, y), red_edge.orientation(x, y)) {
-                (Orientation::Colinear, _) => return Ok(380.0),
-                (_, Orientation::Colinear) => return Ok(699.0),
-                (Orientation::Left, Orientation::Right) => {
-                    // mirror point into non-purple region
-                    sign = -1.0;
-                    x = 2.0 * white_chromaticity.x() - x;
-                    y = 2.0 * white_chromaticity.y() - y;
-                }
-                _ => {} // do nothing
+            let dhigh = high_ab.distance_with_sign(x, y);
+            if dlow < 0.0 || dhigh > 0.0 {
+                // not ended up between two lines
+                let s = format!(
+                    "bisection error in dominant wavelength search:  {dlow} {low} {dhigh} {high}"
+                );
+                return Err(CmtError::ErrorString(s));
             }
-            // start bisectional search
-            while high - low > 1 {
-                let bisect = LineAB::new(
-                    white_chromaticity.to_array(),
-                    self.observer
-                        .data()
-                        .xyz_at_wavelength(mid)
-                        .unwrap()
-                        .chromaticity()
-                        .to_array(),
-                )
-                .unwrap();
-                //   let a = bisect.angle_deg();
-                match bisect.orientation(x, y) {
-                    Orientation::Left => high = mid,
-                    Orientation::Right => low = mid,
-                    Orientation::Colinear => {
-                        low = mid;
-                        high = mid;
-                    }
-                }
-                mid = (low + high) / 2;
-            }
-            if low == high {
-                Ok(sign * low as f64)
-            } else {
-                let low_ab = LineAB::new(
-                    white.chromaticity().to_array(),
-                    self.observer
-                        .data()
-                        .xyz_at_wavelength(low)
-                        .unwrap()
-                        .chromaticity()
-                        .to_array(),
-                )
-                .unwrap();
-                let dlow = low_ab.distance_with_sign(x, y);
-                let high_ab = LineAB::new(
-                    white.chromaticity().to_array(),
-                    self.observer
-                        .data()
-                        .xyz_at_wavelength(high)
-                        .unwrap()
-                        .chromaticity()
-                        .to_array(),
-                )
-                .unwrap();
-                let dhigh = high_ab.distance_with_sign(x, y);
-                if dlow < 0.0 || dhigh > 0.0 {
-                    // not ended up between two lines
-                    let s = format!("bisection error in dominant wavelength search:  {dlow} {low} {dhigh} {high}");
-                    return Err(CmtError::ErrorString(s));
-                }
-                let dl = (dlow.abs() * high as f64 + dhigh.abs() * low as f64)
-                    / (dlow.abs() + dhigh.abs());
-                Ok(sign * dl)
-            }
+            let dl =
+                (dlow.abs() * high as f64 + dhigh.abs() * low as f64) / (dlow.abs() + dhigh.abs());
+            Ok(sign * dl)
         }
     }
 
@@ -412,7 +384,7 @@ impl XYZ {
     ///
     /// - `self`: The XYZ color values to be converted.
     /// - `rgb_space`: The target RGB space identifier (e.g., `sRGB`, `Adobe RGB`), uses the default
-    ///   sRGB space if `None`` is supplied.
+    ///   sRGB space if `None` is supplied.
     ///
     /// # Returns
     ///
@@ -422,17 +394,16 @@ impl XYZ {
     /// - `WideRgb::clamp()`
     /// - `WideRgb::compress()`
     ///
-    /// These methods will change the color which will be less saturated, and less bright as the orignial color.
+    /// These methods will change the color which will be less saturated, and less bright than
+    /// the original color.
     pub fn rgb(&self, space: Option<RgbSpace>) -> WideRgb {
         let space = space.unwrap_or_default();
-        let xyz = self.xyz.unwrap_or(self.xyzn);
-        let ywhite = self.xyzn.y;
-        let d = xyz.map(|v| v / ywhite); // normalize to 1.0
-        let data = self.observer.data().xyz2rgb(space) * d;
+        let normalized_xyz = self.set_illuminance(1.0).xyz;
+        let rgb = self.observer.data().xyz2rgb(space) * normalized_xyz;
         WideRgb {
             space,
             observer: self.observer,
-            rgb: data,
+            rgb,
         }
     }
 }
@@ -452,12 +423,7 @@ impl AbsDiffEq for XYZ {
     }
 
     fn abs_diff_eq(&self, other: &Self, epsilon: Self::Epsilon) -> bool {
-        let xyz_test = match (self.xyz, other.xyz) {
-            (None, None) => true,
-            (Some(xyz0), Some(xyz1)) => xyz0.abs_diff_eq(&xyz1, epsilon),
-            _ => false,
-        };
-        self.observer == other.observer && self.xyzn.abs_diff_eq(&other.xyzn, epsilon) && xyz_test
+        self.observer == other.observer && self.xyz.abs_diff_eq(&other.xyz, epsilon)
     }
 }
 
@@ -467,26 +433,16 @@ impl approx::UlpsEq for XYZ {
     }
 
     fn ulps_eq(&self, other: &Self, epsilon: Self::Epsilon, max_ulps: u32) -> bool {
-        let xyz_test = match (self.xyz, other.xyz) {
-            (None, None) => true,
-            (Some(xyz0), Some(xyz1)) => xyz0.ulps_eq(&xyz1, epsilon, max_ulps),
-            _ => false,
-        };
-        self.observer == other.observer
-            && self.xyzn.ulps_eq(&other.xyzn, epsilon, max_ulps)
-            && xyz_test
+        self.observer == other.observer && self.xyz.ulps_eq(&other.xyz, epsilon, max_ulps)
     }
 }
 
 impl std::ops::Mul<f64> for XYZ {
-    type Output = XYZ;
+    type Output = Self;
 
     /// Multiplication with a right-handed float f64.
     fn mul(mut self, rhs: f64) -> Self::Output {
-        if let Some(mut xyz) = self.xyz {
-            xyz *= rhs;
-        }
-        self.xyzn *= rhs;
+        self.xyz *= rhs;
         self
     }
 }
@@ -497,10 +453,7 @@ impl std::ops::Mul<XYZ> for f64 {
     /// Multiplication of a [`XYZ`]` value on the right of "*" with a float on the left,
     /// resulting in a new [`XYZ`]`.
     fn mul(self, mut rhs: XYZ) -> Self::Output {
-        if let Some(mut xyz) = rhs.xyz {
-            xyz *= self;
-        }
-        rhs.xyzn *= self;
+        rhs.xyz *= self;
         rhs
     }
 }
@@ -510,31 +463,18 @@ impl std::ops::Add<XYZ> for XYZ {
 
     /// Add tristimulus values using the "+" operator.
     ///
-    /// Panics if not the same oberver is used.
-    /// If either XYZ's has only a xyzn-value, indicating it is an illuminant or a stimulus, the other's xyz-value is requalified
-    /// as a direct stimulus, overwriting it's xyz value.
+    /// # Panics
+    ///
+    /// Panics if the two values have different observers.
     fn add(mut self, rhs: XYZ) -> Self::Output {
         assert!(
             self.observer == rhs.observer,
             "Can not add two XYZ values for different observers"
         );
-        (self.xyz, self.xyzn) = match (rhs.xyz, self.xyz) {
-            (None, None) => (None, self.xyzn + rhs.xyzn),
-            (Some(xyz1), Some(xyz2)) => (Some(xyz1 + xyz2), self.xyzn + rhs.xyzn),
-            (Some(xyz), None) => (None, xyz + self.xyzn),
-            (None, Some(xyz)) => (None, xyz + rhs.xyzn),
-        };
+        self.xyz += rhs.xyz;
         self
     }
 }
-
-/*
-impl Default for XYZ {
-    fn default() -> Self {
-        Self { observer: Default::default(), xyz: Default::default(), xyzn: Default::default() }
-    }
-}
- */
 
 // JS-WASM Interface code
 #[cfg(target_arch = "wasm32")]
@@ -727,18 +667,13 @@ mod xyz_test {
     fn ulps_xyz_test() {
         use approx::assert_ulps_eq;
         use nalgebra::Vector3;
-        let xyz0 = XYZ::from_vecs(Vector3::zeros(), None, Observer::Std1931);
+        let xyz0 = XYZ::from_vecs(Vector3::zeros(), Observer::Std1931);
 
-        let xyz1 = XYZ::from_vecs(
-            Vector3::new(0.0, 0.0, f64::EPSILON),
-            None,
-            Observer::Std1931,
-        );
+        let xyz1 = XYZ::from_vecs(Vector3::new(0.0, 0.0, f64::EPSILON), Observer::Std1931);
         assert_ulps_eq!(xyz0, xyz1, epsilon = 1E-5);
 
         let xyz2 = XYZ::from_vecs(
             Vector3::new(0.0, 0.0, 2.0 * f64::EPSILON),
-            None,
             Observer::Std1931,
         );
         approx::assert_ulps_ne!(xyz0, xyz2);
