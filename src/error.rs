@@ -22,8 +22,6 @@ pub enum CmtError {
     RequiresDistinctPoints,
     #[error("Arguments require the identical Standard Observer")]
     RequireSameObserver,
-    #[error("No Reference White values allowed")]
-    NoReferenceWhiteAllowed,
     #[error("Lines do not intersect")]
     NoIntersection,
     #[error("Wavelength out of range")]

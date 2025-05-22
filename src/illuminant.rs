@@ -212,7 +212,7 @@ impl Illuminant {
     /// none is provided.
     pub fn xyz(&self, obs_opt: Option<Observer>) -> XYZ {
         let obs = obs_opt.unwrap_or_default();
-        obs.data().xyz_from_spectrum(&self.0, None)
+        obs.data().xyz_from_spectrum(&self.0)
     }
 
     /// Calculate the correlated color temperature (CCT) of the illuminant.
@@ -336,7 +336,7 @@ impl Illuminant {
 fn test_d_illuminant() {
     use crate::prelude::*;
     let s = Illuminant::d_illuminant(6504.0).unwrap();
-    let xyz = CIE1931.xyz_from_spectrum(&s, None).set_illuminance(100.0);
+    let xyz = CIE1931.xyz_from_spectrum(&s).set_illuminance(100.0);
     approx::assert_ulps_eq!(xyz, CIE1931.xyz_d65(), epsilon = 2E-2);
 }
 

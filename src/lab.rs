@@ -1,6 +1,7 @@
 use approx::ulps_eq;
 use nalgebra::{RowVector3, Vector3};
 
+use crate::xyz::XYZWithRefWhite;
 use crate::{error::CmtError, prelude::Observer, xyz::XYZ};
 use strum_macros::Display;
 use wasm_bindgen::prelude::wasm_bindgen;
@@ -13,29 +14,16 @@ pub struct CieLab {
     pub(crate) xyzn: Vector3<f64>, // Reference white tristimulus value
 }
 
-impl TryFrom<XYZ> for CieLab {
-    type Error = CmtError;
-
-    fn try_from(xyz_val: XYZ) -> Result<Self, Self::Error> {
-        if let Some(xyz) = xyz_val.xyz {
-            let lab = lab(xyz, xyz_val.xyzn);
-            Ok(Self {
-                observer: xyz_val.observer,
-                lab,
-                xyzn: xyz_val.xyzn,
-            })
-        } else {
-            Err(CmtError::NoColorant)
+impl CieLab {
+    /// Creates a new CieLab instance from the given XYZ tristimulus value with reference white.
+    pub fn from_xyz(xyz: XYZWithRefWhite) -> Self {
+        let xyzn = xyz.white();
+        Self {
+            lab: lab(xyz.xyz().xyz, xyzn),
+            xyzn,
+            observer: xyz.observer(),
         }
     }
-}
-
-impl CieLab {
-    /*
-    pub fn new(xyzn: Vector3<f64>, xyz: Vector3<f64>) -> CieLab {
-        CieLab {lab: lab(xyz, xyzn), xyzn}
-    }
-     */
 
     pub fn delta_e(&self, other: &Self) -> Result<f64, CmtError> {
         if ulps_eq!(self.xyzn, other.xyzn) {

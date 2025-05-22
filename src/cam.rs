@@ -37,9 +37,17 @@ pub struct CieCam16 {
 
 impl CieCam16 {
     /// CIECAM16 coordinates for a particular set of viewing conditions.
-    fn new(xyz: XYZ, vc: ViewConditions) -> Result<Self, CmtError> {
-        let xyz0 = xyz.xyz.ok_or(CmtError::NoColorant)?;
-        let xyzn0 = xyz.xyzn;
+    ///
+    /// # Errors
+    ///
+    /// Returns `CmtError::RequireSameObserver` if the observer of the given XYZ and reference
+    /// white values are not the same.
+    fn new(xyz: XYZ, xyzn: XYZ, vc: ViewConditions) -> Result<Self, CmtError> {
+        if xyz.observer != xyzn.observer {
+            return Err(CmtError::RequireSameObserver);
+        }
+        let xyz0 = xyz.xyz;
+        let xyzn0 = xyzn.xyz;
         let ReferenceValues {
             n,
             z,
