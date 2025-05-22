@@ -580,6 +580,31 @@ impl XYZ {
     }
 }
 
+/// A CIE XYZ Tristimulus value with a reference white point.
+pub struct XYZWithRefWhite {
+    xyz: XYZ,
+    white: Vector3<f64>,
+}
+
+impl XYZWithRefWhite {
+    /// Creates a new `XYZWithRefWhite` object with the given XYZ and reference white values.
+    pub fn new(xyz: XYZ, white: Vector3<f64>) -> Self {
+        Self { xyz, white }
+    }
+
+    pub fn observer(&self) -> Observer {
+        self.xyz.observer
+    }
+
+    pub fn xyz(&self) -> XYZ {
+        self.xyz
+    }
+
+    pub fn white(&self) -> Vector3<f64> {
+        self.white
+    }
+}
+
 #[cfg(test)]
 mod xyz_test {
     use crate::prelude::*;

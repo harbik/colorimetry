@@ -1,6 +1,7 @@
 use approx::ulps_eq;
 use nalgebra::{RowVector3, Vector3};
 
+use crate::xyz::XYZWithRefWhite;
 use crate::{error::CmtError, prelude::Observer, xyz::XYZ};
 use strum_macros::Display;
 use wasm_bindgen::prelude::wasm_bindgen;
@@ -14,22 +15,14 @@ pub struct CieLab {
 }
 
 impl CieLab {
-    /// Creates a new CieLab instance from the given XYZ and reference white values.
-    ///
-    /// # Errors
-    ///
-    /// Returns `CmtError::RequireSameObserver` if the observer of the given XYZ and reference
-    /// white values are not the same.
-    pub fn from_xyz(xyz: XYZ, white: XYZ) -> Result<Self, CmtError> {
-        if xyz.observer != white.observer {
-            return Err(CmtError::RequireSameObserver);
-        }
-        let xyzn = white.xyz;
-        Ok(Self {
-            lab: lab(xyz.xyz, xyzn),
+    /// Creates a new CieLab instance from the given XYZ tristimulus value with reference white.
+    pub fn from_xyz(xyz: XYZWithRefWhite) -> Self {
+        let xyzn = xyz.white();
+        Self {
+            lab: lab(xyz.xyz().xyz, xyzn),
             xyzn,
-            observer: xyz.observer,
-        })
+            observer: xyz.observer(),
+        }
     }
 
     pub fn delta_e(&self, other: &Self) -> Result<f64, CmtError> {

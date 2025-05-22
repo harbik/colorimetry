@@ -58,7 +58,7 @@ use crate::{
     spectrum::{Spectrum, NS, SPECTRUM_WAVELENGTH_RANGE},
     std_illuminants::StdIlluminant,
     traits::{Filter, Light},
-    xyz::XYZ,
+    xyz::{XYZWithRefWhite, XYZ},
 };
 use nalgebra::{Matrix3, SMatrix, Vector3};
 use std::{
@@ -315,14 +315,14 @@ impl ObserverData {
     pub fn lab_d65(&self, filter: &dyn Filter) -> CieLab {
         let xyz = self.xyz(&StdIlluminant::D65, Some(filter));
         let xyzn = self.xyz_from_spectrum(&StdIlluminant::D65.spectrum());
-        CieLab::from_xyz(xyz, xyzn).unwrap()
+        CieLab::from_xyz(XYZWithRefWhite::new(xyz, xyzn.xyz))
     }
 
     /// Calculates the L*a*b* CIELAB D50 values of a Colorant, using D65 as an illuminant.
     pub fn lab_d50(&self, filter: &dyn Filter) -> CieLab {
         let xyz = self.xyz(&StdIlluminant::D50, Some(filter));
         let xyzn = self.xyz_from_spectrum(&StdIlluminant::D50.spectrum());
-        CieLab::from_xyz(xyz, xyzn).unwrap()
+        CieLab::from_xyz(XYZWithRefWhite::new(xyz, xyzn.xyz))
     }
 
     /// Returns the wavelength range (in nanometer) for the _horse shoe_,

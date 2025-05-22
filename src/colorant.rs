@@ -4,7 +4,7 @@ use std::{
 };
 
 use approx::{assert_abs_diff_eq, AbsDiffEq};
-use nalgebra::SVector;
+use nalgebra::{coordinates::XYZW, SVector};
 
 use crate::{
     error::CmtError,
@@ -14,6 +14,7 @@ use crate::{
     spectrum::{wavelengths, Spectrum, NS},
     std_illuminants,
     traits::{Filter, Light},
+    xyz::XYZWithRefWhite,
 };
 
 /// # Colorant
@@ -134,11 +135,11 @@ impl Colorant {
             .data()
             .xyz(illuminant, Some(self))
             .set_illuminance(100.0);
-        let xyzn = obs
+        let white = obs
             .data()
             .xyz_from_spectrum(&illuminant.spectrum())
             .set_illuminance(100.0);
-        CieLab::from_xyz(xyz, xyzn).unwrap()
+        CieLab::from_xyz(XYZWithRefWhite::new(xyz, white.xyz))
     }
 }
 
