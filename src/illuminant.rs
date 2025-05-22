@@ -101,9 +101,9 @@ impl Illuminant {
     ///
     /// let p3000 = Illuminant::planckian(3000.0);
     /// let xyz = CIE1931.xyz(&p3000, None);
-    /// let [x,y] = xyz.chromaticity();
-    /// assert_ulps_eq!(x, 0.436_935, epsilon = 1E-6);
-    /// assert_ulps_eq!(y, 0.404_083, epsilon = 1E-6);
+    /// let chromaticity = xyz.chromaticity();
+    /// assert_ulps_eq!(chromaticity.x(), 0.436_935, epsilon = 1E-6);
+    /// assert_ulps_eq!(chromaticity.y(), 0.404_083, epsilon = 1E-6);
     ///
     /// ```
     pub fn planckian(cct: f64) -> Self {

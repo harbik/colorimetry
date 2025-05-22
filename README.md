@@ -204,11 +204,11 @@ To get an `Illuminant` from your spectral data, first create a `Spectrum`, for e
     
     // calculate chromaticity coordinates as used in the CIE 1931 chromaticity diagram
     // use `None` as argument to used the default CIE 1931 2º standard observer
-    let [x, y] = illuminant.xyz(None).chromaticity();
+    let chromaticity = illuminant.xyz(None).chromaticity();
     
     // check the values
-    approx::assert_abs_diff_eq!(x, 0.3333, epsilon=1E-4);
-    approx::assert_abs_diff_eq!(y, 0.3333, epsilon=1E-4);
+    approx::assert_abs_diff_eq!(chromaticity.x(), 0.3333, epsilon=1E-4);
+    approx::assert_abs_diff_eq!(chromaticity.y(), 0.3333, epsilon=1E-4);
 ```
 
 </details>
@@ -223,10 +223,10 @@ To get an `Illuminant` from your spectral data, first create a `Spectrum`, for e
 
       // Plankian illuminant with a temperature of 3000 Kelvin
       let p3000 = Illuminant::planckian(3000.0);
-      let [x, y] = CIE1931.xyz(&p3000, None).chromaticity();
+      let chromaticity = CIE1931.xyz(&p3000, None).chromaticity();
 
-      approx::assert_abs_diff_eq!( x, 0.436_935, epsilon = 1E-6);
-      approx::assert_abs_diff_eq!( y, 0.404_083, epsilon = 1E-6);
+      approx::assert_abs_diff_eq!( chromaticity.x(), 0.436_935, epsilon = 1E-6);
+      approx::assert_abs_diff_eq!( chromaticity.y(), 0.404_083, epsilon = 1E-6);
   ```
 
 - Generic Daylight **CIE D-illuminant,** generating a daylight spectrum with a characteristic
@@ -433,8 +433,9 @@ If any value falls outside this range, the constructor returns an error.
   ```rust
   use colorimetry::prelude::*;
   let red = Stimulus::from_srgb(255, 0, 0);
+  let red_chromaticity = CIE1931.xyz(&red, None).chromaticity();
   approx::assert_abs_diff_eq!(
-      CIE1931.xyz(&red, None).chromaticity().as_ref(),
+      red_chromaticity.to_array().as_ref(),
       &[0.64, 0.33].as_ref(),
       epsilon = 1E-5
   );

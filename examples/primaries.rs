@@ -8,15 +8,14 @@ use strum::IntoEnumIterator as _;
 
 #[allow(dead_code)]
 struct Gauss {
-    x: f64,
-    y: f64,
+    chromaticity: Chromaticity,
     d: StdIlluminant,
 }
 
 impl Gauss {
     fn new(xyz: XYZ, d: StdIlluminant) -> Self {
-        let [x, y] = xyz.chromaticity();
-        Self { x, y, d }
+        let chromaticity = xyz.chromaticity();
+        Self { chromaticity, d }
     }
 }
 
@@ -27,27 +26,27 @@ impl CostFunction for Gauss {
 
     fn cost(&self, param: &Self::Param) -> Result<Self::Output, argmin::core::Error> {
         let [l, w] = param.clone().try_into().unwrap();
-        let [xt, yt] = CIE1931
+        let param_chromaticity = CIE1931
             .xyz(&StdIlluminant::D65, Some(&Colorant::gaussian(l, w)))
             .chromaticity();
         //  println!("({l},{w}) cost: {xt:.4}, {yt:.4}");
-        Ok((xt - self.x).hypot(yt - self.y))
+        Ok((param_chromaticity.x() - self.chromaticity.x())
+            .hypot(param_chromaticity.y() - self.chromaticity.y()))
     }
 }
+
 #[allow(dead_code)]
 struct GaussWithAnchor {
-    x: f64,
-    y: f64,
+    chromaticity: Chromaticity,
     d: StdIlluminant,
     anchor: XYZ,
 }
 
 impl GaussWithAnchor {
     fn new(xyz: XYZ, anchor: XYZ, d: StdIlluminant) -> Self {
-        let [x, y] = xyz.chromaticity();
+        let chromaticity = xyz.chromaticity();
         Self {
-            x,
-            y,
+            chromaticity,
             anchor: anchor.set_illuminance(100.0),
             d,
         }
@@ -65,14 +64,15 @@ impl CostFunction for GaussWithAnchor {
             .xyz(&StdIlluminant::D65, Some(&Colorant::gaussian(l, w)))
             .set_illuminance(100.0);
         let t = c * self.anchor + (1.0 - c) * r;
-        let [xt, yt] = t.chromaticity();
-        Ok((xt - self.x).hypot(yt - self.y))
+        let t_chromaticity = t.chromaticity();
+        Ok((t_chromaticity.x() - self.chromaticity.x())
+            .hypot(t_chromaticity.y() - self.chromaticity.y()))
     }
 }
 
-fn gauss(space: RgbSpace, i: usize) -> Result<Vec<f64>, String> {
-    let [x, y] = space.primaries_chromaticity()[i];
-    let xyz = XYZ::from_chromaticity(x, y, None, None).unwrap();
+fn gauss(space: RgbSpace, rgb_channel_i: usize) -> Result<Vec<f64>, String> {
+    let chromaticity = space.primaries_chromaticity()[rgb_channel_i];
+    let xyz = XYZ::from_chromaticity(chromaticity, None, None).unwrap();
     let d = space.white();
     let problem = Gauss::new(xyz, d);
 
@@ -98,10 +98,10 @@ fn gauss(space: RgbSpace, i: usize) -> Result<Vec<f64>, String> {
 }
 
 fn gauss_with_anchor(space: RgbSpace, i: usize, j: usize) -> Result<Vec<f64>, String> {
-    let [x, y] = space.primaries_chromaticity()[i];
-    let xyz = XYZ::from_chromaticity(x, y, None, None).unwrap();
-    let [xb, yb] = space.primaries_chromaticity()[j];
-    let xyzb = XYZ::from_chromaticity(xb, yb, None, None).unwrap();
+    let chromaticity_i = space.primaries_chromaticity()[i];
+    let xyz = XYZ::from_chromaticity(chromaticity_i, None, None).unwrap();
+    let chromaticity_j = space.primaries_chromaticity()[j];
+    let xyzb = XYZ::from_chromaticity(chromaticity_j, None, None).unwrap();
     let d = space.white();
     let problem = GaussWithAnchor::new(xyz, xyzb, d);
 

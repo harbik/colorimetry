@@ -15,8 +15,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         for wavelength in wavelength_range {
             // unwrap OK because nm is in range
             let xyz = observer.data().xyz_at_wavelength(wavelength).unwrap();
-            let [x, y] = xyz.chromaticity();
-            println!("{wavelength}\t{x:.4}\t{y:.4}");
+            let chromaticity = xyz.chromaticity();
+            println!(
+                "{wavelength}\t{:.4}\t{:.4}",
+                chromaticity.x(),
+                chromaticity.y()
+            );
         }
         println!("==========================");
     }
