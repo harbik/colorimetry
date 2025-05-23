@@ -1,3 +1,37 @@
+//! Tristimulus Values
+//! ================== 
+//! 
+//! The `xyz` module provides core types and operations for working with CIE tristimulus values (X,
+//! Y, Z) and chromaticity in Rust.  
+//!  
+//! This module includes:  
+//!  
+//! - [`Chromaticity`]: a 2D coordinate type (x, y) representing chromaticity alone.  
+//! - [`XYZ`]: a tristimulus struct bundling an (X, Y, Z) vector with its associated [`Observer`].  
+//! - Constructors for `XYZ` from raw arrays, chromaticity values, and L\*u\*v coordinates.  
+//! - Conversion routines:  
+//!   - `XYZ::chromaticity()` to get a `Chromaticity` from an `XYZ` value.  
+//!   - `XYZ::rgb()` to convert tristimulus values into out-of-gamut [`WideRgb`] in any `RgbSpace`.  
+//!   - `XYZ::dominant_wavelength()` to locate the dominant wavelength relative to a white point.  
+//!   - CIE UCS (`uv60`, `uvw64`), CIELUV (`uvprime`, `uv_prime_distance`), and optional CCT.  
+//! - Arithmetic and comparison implementations (addition, multiplication, [`AbsDiffEq`](approx::AbsDiffEq), [`UlpsEq`](approx::UlpsEq)) for `XYZ`
+//!   that enforce matching observers besided numerical equality.
+//! - WASM bindings to expose constructors and accessors for JavaScript.  
+//! - A comprehensive test suite (`xyz_test`) covering D65 reference, round-trip conversions,  
+//!   gamut checks, and dominant wavelength behavior.  
+//!  
+//! **Key design points:**  
+//!  
+//! 1. **Observer-tagged values:** Every `XYZ` value carries an [`Observer`] to ensure  
+//!    correct color matching functions and prevent invalid transforms.  
+//! 2. **Explicit white reference:** Higher-level models (`CieLab`, `CieCam`, etc.) now  
+//!    take the white reference as a separate argument, removing hidden assumptions.  
+//! 3. **Out-of-gamut handling:** Conversions to `WideRgb` can produce values outside  
+//!    the display gamut; the user can then clamp or compress as needed.  
+//! 4. **Physical validity:** While `XYZ` can represent non-physical values, validation  
+//!    (e.g., non-negative, within spectral locus) may be added in future refinements.  
+//!  
+
 use core::f64;
 use std::ops::Add;
 
@@ -61,21 +95,27 @@ impl Chromaticity {
 
 #[wasm_bindgen]
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
-/// A set of two CIE XYZ Tristimulus values, for a Standard Observer.
+/// Represents a color by its tristimulus value XYZ color space.
 ///
-/// One is associated with an illuminant or a reference white value, denoted by the fieldname `xyzn`, and
-/// a second, optional value, a set of tristimulus values for a stimulus, or 'a color' value.
-/// XYZ values are not often used directly, but form the basis for many colorimetric models, such as
-/// CIELAB and CIECAM.
+/// The `XYZ` struct represents the tristimulus values (X, Y, Z) and the associated observer.
+/// The observer defines the color matching functions used for the conversion.
 pub struct XYZ {
     pub(crate) observer: Observer,
     pub(crate) xyz: Vector3<f64>, // tristimulus values
 }
 
 impl XYZ {
-    /// Define a set of [XYZ]-values directly, using an identifier for its
-    /// associated observer, such as [Observer::Std1931] or [Observer::Std2015].
+    /// Creates a new `XYZ` value from raw tristimulus components and an optional observer.
     ///
+    /// # Arguments
+    /// - `xyz` – A `[f64; 3]` array of tristimulus values `(X, Y, Z)`.  
+    ///   These are most often in the 0.0–100.0 range but may lie outside it when derived from
+    ///   spectral power distributions.
+    /// - `observer` – The color-matching standard observer to use.  
+    ///
+    /// # Notes
+    /// - The `Y` component represents luminous quantity (candela per square meter, lux, or lumen per square meter).
+    /// - Allowing values outside 0.0–100.0 lets you handle spectra that produce very bright or non-physical results.
     pub const fn new(xyz: [f64; 3], observer: Observer) -> Self {
         let xyz = Vector3::<f64>::from_array_storage(ArrayStorage([xyz]));
         Self { observer, xyz }
@@ -86,14 +126,19 @@ impl XYZ {
         Self { observer, xyz }
     }
 
-    /// Create tristimulus values from a chromaticity value, with optional Luminous Value l, and
-    /// optional white reference value yw.
+    // Creates a new `XYZ` value from chromaticity coordinates, an optional luminous value, and an optional observer.
     ///
-    /// This produces a illuminant XYZ value, with xyz value set as xyzn.
+    /// # Arguments
+    /// - `chromaticity` – A `Chromaticity` struct containing the x and y coordinates.  
+    /// - `l` – Optional luminous value (Y). Defaults to `100.0` if `None`, and is used to scale X and Z.  
+    /// - `observer` – Optional color-matching standard observer. Defaults to `Observer::Std1931` if `None`.
     ///
     /// # Errors
+    /// - Returns `CmtError::InvalidChromaticityValues` if `x + y > 1.0 + ε`, since that cannot represent a valid chromaticity.
     ///
-    /// Returns `CmtError::InvalidChromaticityValues` if the sum of x and y is greater than 1.0.
+    /// # Notes
+    /// - The Y component represents luminous quantity (candela / m², lux, or lumen / m²).  
+    /// - Chromaticity-derived XYZ values may lie outside the 0.0–100.0 range when generated from high-intensity or non-physical spectra.
     pub fn from_chromaticity(
         chromaticity: Chromaticity,
         l: Option<f64>,
@@ -102,11 +147,12 @@ impl XYZ {
         let [x, y] = chromaticity.to_array();
         let l = l.unwrap_or(100.0);
         let observer = observer.unwrap_or_default();
-        if (x + y) > 1.0 + f64::EPSILON {
+
+        if (x + y) > 1.0 + f64::EPSILON || x< 0.0 || y < 0.0 {
             Err(CmtError::InvalidChromaticityValues)
         } else {
-            let s = l / y;
-            let xyz = Vector3::new(x * s, l, (1.0 - x - y) * s);
+            let scale = l / y;
+            let xyz = Vector3::new(x * scale, l, (1.0 - x - y) * scale);
             Ok(Self::from_vecs(xyz, observer))
         }
     }

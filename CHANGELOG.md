@@ -26,10 +26,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   methods.
 
 ### Changed
+- `XYZ::new` now only uses a single array of tristimulus values; the white reference value was dropped in the XYZ representation.
 - Make indexing into a `Spectrum` with out of bounds wavelengths cause a panic, instead
   of returning `NaN`s or modifying the first or last values.
 
 ### Fixed
+- Fix bug `XYZ::set_illuminance`. Avoid divide be zero when luminous values is zero.
 - Fix bug in `WideRgb::compress`. Previously `WideRgb` instances with only positive channel values
   would have its lowest channel value invalidly scaled down to 0.0. And instances with only values
   below 1.0 would have its highest channel value invalidly scaled up to 1.0.
