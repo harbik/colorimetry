@@ -37,9 +37,9 @@ pub struct CieCam16 {
 
 impl CieCam16 {
     /// CIECAM16 coordinates for a particular set of viewing conditions.
-    fn new(xyz: XYZ, vc: ViewConditions) -> Result<Self, CmtError> {
-        let xyz0 = xyz.xyz.ok_or(CmtError::NoColorant)?;
-        let xyzn0 = xyz.xyzn;
+    fn new(xyz: XYZ, xyzn: XYZ, vc: ViewConditions) -> Result<Self, CmtError> {
+        let xyz_vec = xyz.xyz;
+        let xyzn_vec = xyzn.xyz;
         let ReferenceValues {
             n,
             z,
@@ -48,10 +48,10 @@ impl CieCam16 {
             d_rgb,
             aw,
             qu,
-        } = ReferenceValues::new(xyzn0, vc);
+        } = ReferenceValues::new(xyzn_vec, vc);
         let vcdd = vc.dd();
         let vcfl = vc.f_l();
-        let mut rgb = M16 * xyz0;
+        let mut rgb = M16 * xyz_vec;
         rgb.component_mul_assign(&Vector3::from(d_rgb));
         rgb.apply(|v| vc.lum_adapt(v, 0.26, qu));
 
@@ -77,7 +77,7 @@ impl CieCam16 {
             vc,
             jch: Vector3::new(jj, cc, h * 180.0 / PI),
             observer: xyz.observer,
-            xyzn: xyzn0,
+            xyzn: xyzn_vec,
         })
     }
 
@@ -125,7 +125,7 @@ impl CieCam16 {
         let vc = vc_opt.unwrap_or(self.vc);
         let xyzn = if let Some(white) = white_opt {
             if white.observer == self.observer {
-                white.xyzn
+                white.xyz
             } else {
                 return Err(CmtError::RequireSameObserver);
             }
@@ -166,7 +166,7 @@ impl CieCam16 {
         let rgb = rgb_p.component_div(&d_rgb_vec);
 
         let xyz = M16INV * rgb;
-        Ok(XYZ::from_vecs(xyzn, Some(xyz), self.observer))
+        Ok(XYZ::from_vecs(xyz, self.observer))
     }
 }
 
@@ -260,13 +260,10 @@ mod cam_test {
     #[test]
     fn test_worked_example() {
         // see section 7 CIE 248:2022
-        let xyz = XYZ::new(
-            [96.46, 100.0, 108.62],
-            Some([60.70, 49.60, 10.29]),
-            Observer::Std1931,
-        );
+        let xyz = XYZ::new([60.70, 49.60, 10.29], Observer::Std1931);
+        let xyzn = XYZ::new([96.46, 100.0, 108.62], Observer::Std1931);
         let vc = ViewConditions::new(16.0, 1.0, 1.0, 0.69, 40.0, None);
-        let cam = CieCam16::new(xyz, vc).unwrap();
+        let cam = CieCam16::new(xyz, xyzn, vc).unwrap();
         let &[j, c, h] = cam.jch.as_ref();
         // println!("J:\t{j:?}\nC:\t{c:?}\nh:\t{h:?}");
         approx::assert_abs_diff_eq!(j, 70.4406, epsilon = 1E-4);
