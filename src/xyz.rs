@@ -1,6 +1,6 @@
 //! Tristimulus Values
-//! ================== 
-//! 
+//! ==================
+//!
 //! The `xyz` module provides core types and operations for working with CIE tristimulus values (X,
 //! Y, Z) and chromaticity in Rust.  
 //!  
@@ -14,7 +14,7 @@
 //!   - `XYZ::rgb()` to convert tristimulus values into out-of-gamut [`WideRgb`] in any `RgbSpace`.  
 //!   - `XYZ::dominant_wavelength()` to locate the dominant wavelength relative to a white point.  
 //!   - CIE UCS (`uv60`, `uvw64`), CIELUV (`uvprime`, `uv_prime_distance`), and optional CCT.  
-//! - Arithmetic and comparison implementations (addition, multiplication, [`AbsDiffEq`](approx::AbsDiffEq), [`UlpsEq`](approx::UlpsEq)) for `XYZ`
+//! - Arithmetic and comparison implementations (addition, multiplication, [`AbsDiffEq`], [`UlpsEq`](approx::UlpsEq)) for `XYZ`
 //!   that enforce matching observers besided numerical equality.
 //! - WASM bindings to expose constructors and accessors for JavaScript.  
 //! - A comprehensive test suite (`xyz_test`) covering D65 reference, round-trip conversions,  
@@ -148,7 +148,7 @@ impl XYZ {
         let l = l.unwrap_or(100.0);
         let observer = observer.unwrap_or_default();
 
-        if (x + y) > 1.0 + f64::EPSILON || x< 0.0 || y < 0.0 {
+        if (x + y) > 1.0 + f64::EPSILON || x < 0.0 || y < 0.0 {
             Err(CmtError::InvalidChromaticityValues)
         } else {
             let scale = l / y;
