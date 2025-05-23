@@ -476,7 +476,7 @@ impl std::ops::Add<XYZ> for XYZ {
             self.observer == rhs.observer,
             "Can not add two XYZ values for different observers"
         );
-        self.xyz = self.xyz + rhs.xyz;
+        self.xyz += rhs.xyz;
         self
     }
 }
