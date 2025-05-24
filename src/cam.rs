@@ -40,6 +40,9 @@ impl CieCam16 {
     fn new(xyz: XYZ, xyzn: XYZ, vc: ViewConditions) -> Result<Self, CmtError> {
         let xyz_vec = xyz.xyz;
         let xyzn_vec = xyzn.xyz;
+        if xyz.observer != xyzn.observer {
+            return Err(CmtError::RequireSameObserver);
+        }
         let ReferenceValues {
             n,
             z,
