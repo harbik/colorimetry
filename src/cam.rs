@@ -1,3 +1,32 @@
+//! # CIECAM16 Color Appearance Model
+//!
+//! This module implements the **CIECAM16** appearance model (CIE 248:2022).  
+//! It converts CIE XYZ tristimulus values into perceptual correlates of lightness (J),  
+//! chroma (C), and hue angle (h) under specified viewing conditions, and supports:
+//! - **Raw “Jab”** coordinates (analogous to CIELAB’s a/b axes) via `jab`  
+//! - **Perceptually uniform “Ja′b′”** coordinates (CAM16-UCS) via `jab_prime`  
+//! - **Inverse transform** back to XYZ with optional new white or viewing conditions via `xyz`.  
+//! - **Chromatic adaptation** using CIECAT02 matrices  
+//! - Utility functions for achromatic response, eccentricity, and more  
+//!
+//! ## Example
+//! ```rust
+//! use colorimetry::cam::CieCam16;
+//! use colorimetry::viewconditions::ViewConditions;
+//! use colorimetry::xyz::XYZ;
+//! use colorimetry::observer::Observer;
+//!
+//! let sample = XYZ::new([60.7, 49.6, 10.3], Observer::Std1931);
+//! let white  = XYZ::new([96.46, 100.0, 108.62], Observer::Std1931);
+//! let vc     = ViewConditions::new(16.0, 1.0, 1.0, 0.69, 40.0, None);
+//!
+//! let cam = CieCam16::new(sample, white, vc).unwrap();
+//! let jch = cam.jch();
+//! println!("JCh: {:?}", jch);
+//! ```
+//!
+//! *Methods and internals marked `pub(crate)` have been omitted for brevity.*
+
 use std::f64::consts::PI;
 
 const P1C: f64 = 50_000.0 / 13.0;
@@ -22,6 +51,18 @@ use crate::{
 
 use super::viewconditions::{ReferenceValues, ViewConditions};
 
+/// CIECAM16 Color Appearance Model
+///
+/// Implements the CIECAM16 appearance model (CIE 248:2022), which predicts how we
+/// perceive color under different viewing conditions. Building on CIECAM02 with
+/// several enhancements, it computes the JCh correlates:
+/// - **J**: Lightness  
+/// - **C**: Chroma (colorfulness)  
+/// - **h**: Hue angle  
+///
+/// It also performs chromatic adaptation, allowing colors to be accurately
+/// transformed between different illuminants and viewing environments.
+///
 #[derive(Debug)]
 pub struct CieCam16 {
     /// Colorimetric Observer used.
@@ -36,8 +77,18 @@ pub struct CieCam16 {
 }
 
 impl CieCam16 {
-    /// CIECAM16 coordinates for a particular set of viewing conditions.
-    fn new(xyz: XYZ, xyzn: XYZ, vc: ViewConditions) -> Result<Self, CmtError> {
+    /// Creates a new CieCam16 instance from the given XYZ tristimulus values of the color and the reference white,
+    /// and the viewing conditions.
+    /// The XYZ values must be share the same observer, otherwise an error is returned.
+    /// # Arguments
+    /// * `xyz` - The XYZ tristimulus values of the color to be transformed.
+    /// * `xyzn` - The XYZ tristimulus values of the reference white.
+    /// * `vc` - The viewing conditions to be used for the transformation.
+    /// # Returns
+    /// A Result containing the CieCam16 instance if successful, or a CmtError if an error occurs.
+    /// # Errors
+    /// Returns an error if the XYZ values are not in the same observer system.
+    pub fn new(xyz: XYZ, xyzn: XYZ, vc: ViewConditions) -> Result<Self, CmtError> {
         let xyz_vec = xyz.xyz;
         let xyzn_vec = xyzn.xyz;
         if xyz.observer != xyzn.observer {
@@ -84,7 +135,22 @@ impl CieCam16 {
         })
     }
 
-    fn jabp(&self) -> Vector3<f64> {
+    /// Returns the JCh values of the color as a `Vector3<f64>`.
+    ///
+    /// The JCh values are a lightness, chroma, and hue angle representation of the color.
+    pub fn jch(&self) -> Vector3<f64> {
+        self.jch
+    }
+
+    /// CIECAM16 “raw Jab” coordinates, wich are analogous to CIELAB’s *a*/*b* values.
+    ///
+    /// **Note:**  
+    /// - These raw Jab coordinates are _not_ perceptually uniform.  
+    /// - Euclidean distances in this space do **not** reliably correspond to visual color differences.  
+    ///
+    /// For a perceptually uniform version, use `jabp()`, which applies the CAM16-UCS non-linear  
+    /// stretching (with constants `C1 = 0.007` and `C2 = 0.0228`) to produce `(J′, a′, b′)`.
+    pub fn jab(&self) -> Vector3<f64> {
         let &[jj, cc, h] = self.jch.as_ref();
         let m = cc * self.vc.f_l().powf(0.25);
         let mprime = 1.0 / UCS_C2 * (1.0 + UCS_C2 * m).ln();
@@ -95,7 +161,19 @@ impl CieCam16 {
         )
     }
 
-    fn jchp(&self) -> Vector3<f64> {
+    /// This function returns the CIECAM16 UCS "Ja'b'" values, which are a perceptually uniform representation  
+    /// of color.
+    ///  
+    /// **Note:**  
+    /// - **J′**: Lightness  
+    /// - **a′**, **b′**: Chromatic components, derived from the non-linear CAM16-UCS transformation applied  
+    ///   to the raw Jab values.
+    ///
+    /// Euclidean distance between colors in this space more reliably matches human-perceived color differences.  
+    /// The constants `C1 = 0.007` and `C2 = 0.0228` are used for the transformation to UCS type.  
+    ///  
+    /// For the raw, non-uniform Jab values, see the `jab()` function.
+    pub fn jab_prime(&self) -> Vector3<f64> {
         let &[jj, cc, h] = self.jch.as_ref();
         let m = cc * self.vc.f_l().powf(0.25);
         let mprime = 1.0 / UCS_C2 * (1.0 + UCS_C2 * m).ln();
@@ -106,8 +184,53 @@ impl CieCam16 {
         )
     }
 
-    // Static equation Observer::Cam::delta_e_prime, same for CAM16 and CAM02 values
-    fn delta_e_prime(jabp1: &[f64], jabp2: &[f64]) -> f64 {
+    /// Returns the JC'h' values of the color as a `Vector3<f64>`.
+    pub fn jch_prime(&self) -> Vector3<f64> {
+        let &[jj, cc, h] = self.jch.as_ref();
+        let m = cc * self.vc.f_l().powf(0.25);
+        let mprime = 1.0 / UCS_C2 * (1.0 + UCS_C2 * m).ln();
+        Vector3::new(
+            (1.0 + 100.0 * UCS_C1) * jj / (1.0 + UCS_C1 * jj),
+            mprime * (h * PI / 180.0).cos(),
+            mprime * (h * PI / 180.0).sin(),
+        )
+    }
+
+    /// Calculates the CIECAM16-UCS ΔE′ (prime) color difference between two colors.
+    ///
+    /// This method converts each color to its CAM16-UCS Ja′b′ coordinates and then
+    /// computes the Euclidean distance, which closely matches perceived color differences.
+    ///
+    /// # Formula
+    /// ```text
+    /// ΔE′ = sqrt((J1′ - J2′)² + (a1′ - a2′)² + (b1′ - b2′)²)
+    /// ```
+    ///
+    /// # Parameters
+    /// - `other`: The `CieCam16` instance to compare against.
+    ///
+    /// # Returns
+    /// The ΔE′ value as an `f64`, representing the perceptual color difference.
+    ///
+    /// # Errors
+    /// Returns an error if the observers of the two colors do not match.
+    pub fn delta_e_prime(&self, other: &Self) -> Result<f64, CmtError> {
+        if self.observer != other.observer {
+            return Err(CmtError::RequireSameObserver);
+        }
+
+        let jabp1 = self.jab_prime();
+        let jabp2 = other.jab_prime();
+        Ok(Self::delta_e_prime_from_jabp(
+            jabp1.as_ref(),
+            jabp2.as_ref(),
+        ))
+    }
+
+    /// Calculates the CIECAM16 distance between two Ja'b' values.
+    /// This is the CIECAM16 distance formula, which is used to calculate the
+    /// perceptual difference between two colors in the CIECAM16 color space.
+    fn delta_e_prime_from_jabp(jabp1: &[f64], jabp2: &[f64]) -> f64 {
         if (UCS_KL - 1.0).abs() < f64::EPSILON {
             distance(jabp1, jabp2)
         } else {
@@ -115,16 +238,49 @@ impl CieCam16 {
         }
     }
 
-    /// Inverse Transform, using optional different view conditions or a different reference white.
+    /// Inverse-transform CIECAM16 appearance correlates back to CIE XYZ tristimulus values.
     ///
-    /// This can be used to match colors with different viewing conditions, for example to match the
-    /// colors as viewied in a viewing cabinet to the colors on a display.
-    /// Also a different white adaptation state can be given, as a chromatic adaptation transform is
-    /// included in the CIECAM model.
-    /// If no different white adaptation or viewing conditionns are given, this is a straight back
-    /// transform from the input parameters, which can for example be used to test the backward
-    /// transform.
-    fn xyz(&self, white_opt: Option<XYZ>, vc_opt: Option<ViewConditions>) -> Result<XYZ, CmtError> {
+    /// You can optionally supply a new reference white or alternate viewing conditions:
+    /// - `white_opt`:  
+    ///   - `Some(white_xyz)`: use this `XYZ` as the white point for chromatic adaptation.  
+    ///   - `None`: reuse the original white reference from when this `CieCam16` was created.
+    /// - `vc_opt`:  
+    ///   - `Some(new_vc)`: apply these `ViewConditions` instead of the original.  
+    ///   - `None`: reuse the original viewing conditions.
+    ///
+    /// This is useful for:  
+    /// - Matching colors across different illuminants or display environments.  
+    /// - Verifying the round-trip accuracy of the forward and inverse transforms.
+    ///
+    /// # Arguments
+    /// - `white_opt: Option<XYZ>`  
+    /// - `vc_opt: Option<ViewConditions>`  
+    ///
+    /// # Returns
+    /// - `Ok(XYZ)`: the reconstructed tristimulus values under the specified (or original) conditions.  
+    /// - `Err(CmtError::RequireSameObserver)`: if `white_opt` has a different `Observer` than `self`.
+    ///
+    /// # Example
+    /// ```rust
+    /// use colorimetry::prelude::*;
+    /// // Original CAM16 instance:
+    /// let sample_xyz = XYZ::new([60.7, 49.6, 10.3], Observer::Std1931);
+    /// let white_xyz  = XYZ::new([96.46, 100.0, 108.62], Observer::Std1931);
+    /// let vc     = ViewConditions::new(16.0, 1.0, 1.0, 0.69, 40.0, None);
+    /// let cam = CieCam16::new(sample_xyz, white_xyz, vc).unwrap();
+    ///
+    /// // Inverse under same conditions:
+    /// let back_to_xyz = cam.xyz(None, None).unwrap();
+    ///
+    /// // Inverse with a new white point:
+    /// let new_white = XYZ::new([95.0, 100.0, 108.0], Observer::Std1931);
+    /// let adapted_xyz = cam.xyz(Some(new_white), None).unwrap();
+    /// ```
+    pub fn xyz(
+        &self,
+        white_opt: Option<XYZ>,
+        vc_opt: Option<ViewConditions>,
+    ) -> Result<XYZ, CmtError> {
         let vc = vc_opt.unwrap_or(self.vc);
         let xyzn = if let Some(white) = white_opt {
             if white.observer == self.observer {
@@ -192,7 +348,7 @@ fn inv_cone_adaptation(f_l: f64, x: f64) -> f64 {
     x.signum() * ((100.0 * t.powf(1.0 / 0.42)) / f_l)
 }
 
-pub const MCAT02: SMatrix<f64, 3, 3> = matrix![
+pub(crate) const MCAT02: SMatrix<f64, 3, 3> = matrix![
      0.7328,  0.4296,  -0.1624;
     -0.7036,  1.6975,   0.0061;
      0.0030,  0.0136,   0.9834;
@@ -201,49 +357,49 @@ pub const MCAT02: SMatrix<f64, 3, 3> = matrix![
 /**
    Inverse CIECAT02 Chromatic Adaptation as a Matrix
 */
-pub const MCAT02INV: SMatrix<f64, 3, 3> = matrix![
+pub(crate) const MCAT02INV: SMatrix<f64, 3, 3> = matrix![
     1.096123820835514, 		-0.2788690002182872, 	0.18274517938277304;
     0.45436904197535916,	 0.4735331543074117,	0.0720978037172291;
     -0.009627608738429353, 	-0.005698031216113419,	1.0153256399545427;
 ];
 
-pub const MHPE: SMatrix<f64, 3, 3> = matrix![
+pub(crate) const MHPE: SMatrix<f64, 3, 3> = matrix![
      0.38971, 0.68898, -0.07868;
     -0.22981, 1.18340,  0.04641;
      0.00000, 0.00000,  1.00000;
 ];
 
-pub const MHPEINVLUO: SMatrix<f64, 3, 3> = matrix![
+pub(crate) const MHPEINVLUO: SMatrix<f64, 3, 3> = matrix![
     1.910197, -1.112124,  0.201908;
     0.370950,  0.629054, -0.000008;
     0.000000,  0.000000,  1.000000;
 ];
 
-pub const MHPEINV: SMatrix<f64, 3, 3> = matrix![
+pub(crate) const MHPEINV: SMatrix<f64, 3, 3> = matrix![
     1.9101968340520348, -1.1121238927878747,  0.20190795676749937;
     0.3709500882486886,  0.6290542573926132, -0.000008055142184359149;
     0.0,  				 0.0,  				  1.0;
 ];
 
-pub const MCAT02INVLUO: SMatrix<f64, 3, 3> = matrix![
+pub(crate) const MCAT02INVLUO: SMatrix<f64, 3, 3> = matrix![
      1.096124, -0.278869, 0.182745;
      0.454369,  0.473533, 0.072098;
     -0.009628, -0.005698, 1.015326;
 ];
 
-pub static M16: Matrix3<f64> = matrix![
+pub(crate) static M16: Matrix3<f64> = matrix![
     0.401288, 0.650173, -0.051461;
     -0.250268, 1.204414, 0.045854;
     -0.002079, 0.048952, 0.953127
 ];
 
-pub static M16INV: Matrix3<f64> = matrix![
+pub(crate) static M16INV: Matrix3<f64> = matrix![
     1.86206786, -1.01125463, 0.14918677;
     0.38752654, 0.62144744, -0.00897398;
     -0.01584150, -0.03412294, 1.04996444
 ];
 
-pub static MRGBAINV: Matrix3<f64> = matrix![
+pub(crate) static MRGBAINV: Matrix3<f64> = matrix![
 460.0/C16_3, 451.0/C16_3, 288.0/C16_3;
 460.0/C16_3, -891.0/C16_3, -261.0/C16_3;
 460.0/C16_3, -220.0/C16_3, -6_300.0/C16_3;

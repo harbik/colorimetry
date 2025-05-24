@@ -16,6 +16,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Added
 - Add `r()`, `g()` and `b()` methods to `WideRgb` for easy access to each channel value.
 - Add `Chromaticity` struct and use it instead of `[f64; 2]` to represent chromaticity coordinates.
+- Add `jch` method `CieCam16` to get JCh values as a Vector3<f64>.
+- Add `delta_e_prime` method to `CieCam16` to get the CIECAM16-UCS color difference between two `CieCam16` values.
+- Add `cam` and `CieCam16` documentation.
 
 ### Removed
 - Remove undocumented `XYZ::srgb` method that both clamped out-of-gamut values and converted
@@ -29,6 +32,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - `XYZ::new` now only uses a single array of tristimulus values; the white reference value was dropped in the XYZ representation.
 - Make indexing into a `Spectrum` with out of bounds wavelengths cause a panic, instead
   of returning `NaN`s or modifying the first or last values.
+- Exposed `CieCam16::jab` methods, which was private before.
+- Renamed private `CieCam16::jabp` to `CieCam16::jab_prime` method, and made it public.
+- Renamed private `CieCam16::jchp` to `CieCam16::jch_prime` method, and made it public.
+- Made `CieCam16` conversion matrices private, as being implementation details.
+
 
 ### Fixed
 - Fix bug `XYZ::set_illuminance`. Avoid divide be zero when luminous values is zero.

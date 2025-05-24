@@ -1,3 +1,4 @@
+pub use super::cam::*;
 #[cfg(feature = "cct")]
 pub use super::cct::*;
 pub use super::colorant::*;
@@ -18,6 +19,7 @@ pub use super::spectrum::*;
 pub use super::std_illuminants::*;
 pub use super::stimulus::*;
 pub use super::traits::*;
+pub use super::viewconditions::*;
 pub use super::widergb::*;
 pub use super::xyz::*;
 use wasm_bindgen::JsValue;
