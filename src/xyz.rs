@@ -246,11 +246,10 @@ impl XYZ {
     /// assert_ulps_eq!(d65_xyz, XYZ::new(D65A, Observer::Std1931), epsilon = 1E-2);
     ///
     /// let d65_xyz_sample = CIE1931.xyz(&StdIlluminant::D65, Some(&Colorant::white()));
-    /// dbg!(d65_xyz_sample);
     /// assert_ulps_eq!(d65_xyz_sample, XYZ::new(D65A, Observer::Std1931), epsilon = 1E-2);
     /// ```
     pub fn set_illuminance(mut self, illuminance: f64) -> Self {
-        if self.xyz.y > f64::EPSILON {
+        if self.xyz.y > f64::EPSILON && illuminance > f64::EPSILON {
             let s = illuminance / self.xyz.y;
             self.xyz.iter_mut().for_each(|v| *v *= s);
             self

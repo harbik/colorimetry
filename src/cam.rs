@@ -148,7 +148,7 @@ impl CieCam16 {
     /// - These raw Jab coordinates are _not_ perceptually uniform.  
     /// - Euclidean distances in this space do **not** reliably correspond to visual color differences.  
     ///
-    /// For a perceptually uniform version, use `jabp()`, which applies the CAM16-UCS non-linear  
+    /// For a perceptually uniform version, use `jab_prime()`, which applies the CAM16-UCS non-linear  
     /// stretching (with constants `C1 = 0.007` and `C2 = 0.0228`) to produce `(J′, a′, b′)`.
     pub fn jab(&self) -> Vector3<f64> {
         let &[jj, cc, h] = self.jch.as_ref();

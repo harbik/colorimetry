@@ -39,7 +39,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 ### Fixed
-- Fix bug `XYZ::set_illuminance`. Avoid divide be zero when luminous values is zero.
+- Fix bug `XYZ::set_illuminance`. Avoid divide be zero when luminous values is zero, or negative.
 - Fix bug in `WideRgb::compress`. Previously `WideRgb` instances with only positive channel values
   would have its lowest channel value invalidly scaled down to 0.0. And instances with only values
   below 1.0 would have its highest channel value invalidly scaled up to 1.0.
