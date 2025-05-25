@@ -214,7 +214,7 @@ impl CieCam16 {
     ///
     /// # Errors
     /// Returns an error if the observers of the two colors do not match.
-    pub fn delta_e_prime(&self, other: &Self) -> Result<f64, CmtError> {
+    pub fn ciede2016(&self, other: &Self) -> Result<f64, CmtError> {
         if self.observer != other.observer {
             return Err(CmtError::RequireSameObserver);
         }

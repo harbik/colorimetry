@@ -17,8 +17,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Add `r()`, `g()` and `b()` methods to `WideRgb` for easy access to each channel value.
 - Add `Chromaticity` struct and use it instead of `[f64; 2]` to represent chromaticity coordinates.
 - Add `jch` method `CieCam16` to get JCh values as a Vector3<f64>.
-- Add `delta_e_prime` method to `CieCam16` to get the CIECAM16-UCS color difference between two `CieCam16` values.
+- Add `ciede2016` method to `CieCam16` to get the CIECAM16-UCS color difference between two `CieCam16` values.
 - Add `cam` and `CieCam16` documentation.
+- Add `ciede2000` method to `CieLab`.
 
 ### Removed
 - Remove undocumented `XYZ::srgb` method that both clamped out-of-gamut values and converted
@@ -36,6 +37,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Renamed private `CieCam16::jabp` to `CieCam16::jab_prime` method, and made it public.
 - Renamed private `CieCam16::jchp` to `CieCam16::jch_prime` method, and made it public.
 - Made `CieCam16` conversion matrices private, as being implementation details.
+- Added expclicit reference white tristimulus values to the `CieLab` constructor, which replaces the reference white tristimulus values which were previously included in `XYZ`
+- Renamed `delta_e` to `ciede` for CieLab, to align with the common name for this in Colorimetry 
+- Renamed the `CieLab::new` method `CieLab::from_xyz`, as it takes `XYZ` values as arguments.
+- `CieLab` new takes now an CIE L*a*b* [f64;3] array and a reference white `XYZ` value.
+
+
 
 
 ### Fixed

@@ -133,7 +133,7 @@ impl Colorant {
         let xyzn = obs.data().xyz(illuminant, None).set_illuminance(100.0);
         let xyz = obs.data().xyz(illuminant, Some(self));
         // unwrap is safe here, as we know the illuminant and observer are valid
-        CieLab::new(xyz, xyzn).unwrap()
+        CieLab::from_xyz(xyz, xyzn).unwrap()
     }
 }
 

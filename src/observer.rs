@@ -327,7 +327,7 @@ impl ObserverData {
     pub fn lab_d65(&self, filter: &dyn Filter) -> CieLab {
         let xyz = self.xyz(&StdIlluminant::D65, Some(filter));
         let xyzn = self.xyz_d65();
-        CieLab::new(xyz, xyzn).unwrap()
+        CieLab::from_xyz(xyz, xyzn).unwrap()
     }
 
     /// Calculates the L*a*b* CIELAB D50 values of a Colorant, using D65 as an illuminant.
@@ -336,7 +336,7 @@ impl ObserverData {
     pub fn lab_d50(&self, filter: &dyn Filter) -> CieLab {
         let xyz = self.xyz(&StdIlluminant::D50, Some(filter));
         let xyzn = self.xyz_d50();
-        CieLab::new(xyz, xyzn).unwrap()
+        CieLab::from_xyz(xyz, xyzn).unwrap()
     }
 
     /// Returns the wavelength range (in nanometer) for the _horse shoe_,
