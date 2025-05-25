@@ -465,3 +465,50 @@ mod cam_test {
         assert_abs_diff_eq!(xyz, xyz_rev, epsilon = 1E-4);
     }
 }
+
+#[cfg(test)]
+mod round_trip_tests {
+    use crate::prelude::*;
+    use approx::assert_abs_diff_eq;
+
+    #[test]
+    fn xyz_jch_xyz_round_trip() {
+        // pick a handful of representative XYZs
+        let samples = &[
+            [19.01, 20.00, 21.78],
+            [41.24, 21.26, 1.93],
+            [95.05, 100.00, 108.88],
+            [50.00, 50.00, 50.0],
+            [0.00, 0.00, 0.00],
+            [1.00, 1.00, 1.00],
+            [70.00, 50.00, 30.00],
+            [30.00, 60.00, 90.00],
+            [12.14, 28.56, 5.00],
+            [5.00, 12.14, 28.56],
+            [100.00, 100.00, 100.00],
+            [50.00, 50.00, 50.00],
+            [20.00, 30.00, 40.00],
+            [10.00, 20.00, 30.00],
+        ];
+
+        for &xyz_arr in samples {
+            // forward transform (XYZ -> JCh)
+            let xyz = XYZ::new(xyz_arr, Observer::Std1931);
+            let cam = CieCam16::from_xyz(xyz, XYZ_D65, ViewConditions::default()).unwrap();
+            let jch = cam.jch();
+
+            // inverse (JCh -> XYZ)
+            let cam_back = CieCam16::new(jch, XYZ_D65, ViewConditions::default());
+            let xyz_back = cam_back.xyz(None, None).unwrap();
+
+            // compare original vs. round-tripped XYZ
+            let orig = XYZ::new(xyz_arr, Observer::Std1931);
+            let [x0, y0, z0] = orig.values();
+            let [x1, y1, z1] = xyz_back.values();
+
+            assert_abs_diff_eq!(x0, x1, epsilon = 1e-6);
+            assert_abs_diff_eq!(y0, y1, epsilon = 1e-6);
+            assert_abs_diff_eq!(z0, z1, epsilon = 1e-6);
+        }
+    }
+}
