@@ -16,7 +16,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Added
 - Add `r()`, `g()` and `b()` methods to `WideRgb` for easy access to each channel value.
 - Add `Chromaticity` struct and use it instead of `[f64; 2]` to represent chromaticity coordinates.
-- Add `jch` method `CieCam16` to get JCh values as a Vector3<f64>.
+- Add `jch` method to `CieCam16` to get JCh values as a `[f64;3]`-array.
 - Add `ciede2016` method to `CieCam16` to get the CIECAM16-UCS color difference between two `CieCam16` values.
 - Add `cam` and `CieCam16` documentation.
 - Add `ciede2000` method to `CieLab`.
@@ -40,9 +40,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added expclicit reference white tristimulus values to the `CieLab` constructor, which replaces the reference white tristimulus values which were previously included in `XYZ`
 - Renamed `delta_e` to `ciede` for CieLab, to align with the common name for this in Colorimetry 
 - Renamed the `CieLab::new` method `CieLab::from_xyz`, as it takes `XYZ` values as arguments.
-- `CieLab` new takes now an CIE L*a*b* [f64;3] array and a reference white `XYZ` value.
+- `CieLab::new` takes now a CIE L*a*b* [f64;3]-array and a reference white `XYZ` value.
 - Renamed the `CieCam16::new` method `CieCam16::from_xyz`, as it takes `XYZ` values as arguments.
-- `CieCam16` new takes now an _JCh) `[f64;3]` array, a reference white `XYZ` value, and a `ViewConditions` instance.
+- `CieCam16` new takes now an _JCh_ `[f64;3]`-array, a reference white `XYZ` value, and a `ViewConditions` instance.
 
 
 
