@@ -20,7 +20,7 @@
 //! let white  = XYZ::new([96.46, 100.0, 108.62], Observer::Std1931);
 //! let vc     = ViewConditions::new(16.0, 1.0, 1.0, 0.69, 40.0, None);
 //!
-//! let cam = CieCam16::new(sample, white, vc).unwrap();
+//! let cam = CieCam16::from_xyz(sample, white, vc).unwrap();
 //! let jch = cam.jch();
 //! println!("JCh: {:?}", jch);
 //! ```
@@ -80,14 +80,25 @@ pub struct CieCam16 {
 }
 
 impl CieCam16 {
-    /// Creates a new CieCam16 instance from the given JCh values, XYZ tristimulus values of the reference white,
-    /// and the viewing conditions.
+    /// Construct a CIECAM16 instance from precomputed JCh appearance correlates.
+    ///
+    /// This skips the usual XYZ→JCh conversion and initializes the model directly with:
+    /// - J (lightness, 0…100)  
+    /// - C (chroma, ≥ 0; in practice 0…~100+)  
+    /// - h (hue angle in degrees, 0°…360°)  
+    ///  
     /// # Arguments
-    /// * `jch` - The JCh values of the color to be transformed, as an array of three f64 values.
-    /// * `xyzn` - The XYZ tristimulus values of the reference white, as an XYZ instance.
-    /// * `vc` - The viewing conditions to be used for the transformation, as a ViewConditions instance.
+    /// - `jch` — `[J, C, h]` correlates  
+    /// - `xyzn` — Reference‐white `XYZ` (must share the same `Observer`)  
+    /// - `vc` — Viewing conditions (`ViewConditions`)  
+    ///
     /// # Returns
-    /// A new CieCam16 instance.
+    /// A `CieCam16` instance initialized with the provided appearance correlates, white point, and viewing conditions.
+    ///
+    /// # Notes
+    /// - Not every (J, C, h) triple corresponds to a real color.  
+    /// - This constructor does _not_ validate the inputs; to ensure validity, you would need to  
+    ///   perform the inverse transform (`.xyz()`) or convert to RGB and check for out-of-gamut values.  
     pub fn new(jch: [f64; 3], xyzn: XYZ, vc: ViewConditions) -> Self {
         Self {
             jch: Vector3::from(jch),
@@ -287,7 +298,7 @@ impl CieCam16 {
     /// let sample_xyz = XYZ::new([60.7, 49.6, 10.3], Observer::Std1931);
     /// let white_xyz  = XYZ::new([96.46, 100.0, 108.62], Observer::Std1931);
     /// let vc     = ViewConditions::new(16.0, 1.0, 1.0, 0.69, 40.0, None);
-    /// let cam = CieCam16::new(sample_xyz, white_xyz, vc).unwrap();
+    /// let cam = CieCam16::from_xyz(sample_xyz, white_xyz, vc).unwrap();
     ///
     /// // Inverse under same conditions:
     /// let back_to_xyz = cam.xyz(None, None).unwrap();
