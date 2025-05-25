@@ -12,7 +12,7 @@
 //! ## Example
 //! ```rust
 //! use colorimetry::cam::CieCam16;
-//! use colorimetry::viewconditions::ViewConditions;
+//! use colorimetry::cam::viewconditions::ViewConditions;
 //! use colorimetry::xyz::XYZ;
 //! use colorimetry::observer::Observer;
 //!
@@ -26,6 +26,8 @@
 //! ```
 //!
 //! *Methods and internals marked `pub(crate)` have been omitted for brevity.*
+
+pub mod viewconditions;
 
 use std::f64::consts::PI;
 
@@ -42,6 +44,7 @@ const UCS_C2: f64 = 0.0228;
 use nalgebra::{matrix, vector, Matrix3, SMatrix, Vector3};
 
 use crate::{
+    cam::viewconditions::{ReferenceValues, ViewConditions},
     error::CmtError,
     geometry::distance,
     prelude::Observer,
@@ -49,7 +52,7 @@ use crate::{
     xyz::XYZ,
 };
 
-use super::viewconditions::{ReferenceValues, ViewConditions};
+//use super::viewconditions::{ReferenceValues, ViewConditions};
 
 /// CIECAM16 Color Appearance Model
 ///
@@ -138,8 +141,8 @@ impl CieCam16 {
     /// Returns the JCh values of the color as a `Vector3<f64>`.
     ///
     /// The JCh values are a lightness, chroma, and hue angle representation of the color.
-    pub fn jch(&self) -> Vector3<f64> {
-        self.jch
+    pub fn jch(&self) -> [f64; 3] {
+        self.jch.into()
     }
 
     /// CIECAM16 “raw Jab” coordinates, wich are analogous to CIELAB’s *a*/*b* values.
@@ -150,15 +153,15 @@ impl CieCam16 {
     ///
     /// For a perceptually uniform version, use `jab_prime()`, which applies the CAM16-UCS non-linear  
     /// stretching (with constants `C1 = 0.007` and `C2 = 0.0228`) to produce `(J′, a′, b′)`.
-    pub fn jab(&self) -> Vector3<f64> {
+    pub fn jab(&self) -> [f64; 3] {
         let &[jj, cc, h] = self.jch.as_ref();
         let m = cc * self.vc.f_l().powf(0.25);
         let mprime = 1.0 / UCS_C2 * (1.0 + UCS_C2 * m).ln();
-        Vector3::new(
+        [
             (1.0 + 100.0 * UCS_C1) * jj / (1.0 + UCS_C1 * jj),
             mprime * (h * PI / 180.0).cos(),
             mprime * (h * PI / 180.0).sin(),
-        )
+        ]
     }
 
     /// This function returns the CIECAM16 UCS "Ja'b'" values, which are a perceptually uniform representation  
@@ -173,27 +176,27 @@ impl CieCam16 {
     /// The constants `C1 = 0.007` and `C2 = 0.0228` are used for the transformation to UCS type.  
     ///  
     /// For the raw, non-uniform Jab values, see the `jab()` function.
-    pub fn jab_prime(&self) -> Vector3<f64> {
+    pub fn jab_prime(&self) -> [f64; 3] {
         let &[jj, cc, h] = self.jch.as_ref();
         let m = cc * self.vc.f_l().powf(0.25);
         let mprime = 1.0 / UCS_C2 * (1.0 + UCS_C2 * m).ln();
-        Vector3::new(
+        [
             (1.0 + 100.0 * UCS_C1) * jj / (1.0 + UCS_C1 * jj),
             mprime * (h * PI / 180.0).cos(),
             mprime * (h * PI / 180.0).sin(),
-        )
+        ]
     }
 
     /// Returns the JC'h' values of the color as a `Vector3<f64>`.
-    pub fn jch_prime(&self) -> Vector3<f64> {
+    pub fn jch_prime(&self) -> [f64; 3] {
         let &[jj, cc, h] = self.jch.as_ref();
         let m = cc * self.vc.f_l().powf(0.25);
         let mprime = 1.0 / UCS_C2 * (1.0 + UCS_C2 * m).ln();
-        Vector3::new(
+        [
             (1.0 + 100.0 * UCS_C1) * jj / (1.0 + UCS_C1 * jj),
             mprime * (h * PI / 180.0).cos(),
             mprime * (h * PI / 180.0).sin(),
-        )
+        ]
     }
 
     /// Calculates the CIECAM16-UCS ΔE′ (prime) color difference between two colors.
@@ -348,7 +351,7 @@ fn inv_cone_adaptation(f_l: f64, x: f64) -> f64 {
     x.signum() * ((100.0 * t.powf(1.0 / 0.42)) / f_l)
 }
 
-pub(crate) const MCAT02: SMatrix<f64, 3, 3> = matrix![
+const MCAT02: SMatrix<f64, 3, 3> = matrix![
      0.7328,  0.4296,  -0.1624;
     -0.7036,  1.6975,   0.0061;
      0.0030,  0.0136,   0.9834;
@@ -357,49 +360,49 @@ pub(crate) const MCAT02: SMatrix<f64, 3, 3> = matrix![
 /**
    Inverse CIECAT02 Chromatic Adaptation as a Matrix
 */
-pub(crate) const MCAT02INV: SMatrix<f64, 3, 3> = matrix![
+const MCAT02INV: SMatrix<f64, 3, 3> = matrix![
     1.096123820835514, 		-0.2788690002182872, 	0.18274517938277304;
     0.45436904197535916,	 0.4735331543074117,	0.0720978037172291;
     -0.009627608738429353, 	-0.005698031216113419,	1.0153256399545427;
 ];
 
-pub(crate) const MHPE: SMatrix<f64, 3, 3> = matrix![
+const MHPE: SMatrix<f64, 3, 3> = matrix![
      0.38971, 0.68898, -0.07868;
     -0.22981, 1.18340,  0.04641;
      0.00000, 0.00000,  1.00000;
 ];
 
-pub(crate) const MHPEINVLUO: SMatrix<f64, 3, 3> = matrix![
+const MHPEINVLUO: SMatrix<f64, 3, 3> = matrix![
     1.910197, -1.112124,  0.201908;
     0.370950,  0.629054, -0.000008;
     0.000000,  0.000000,  1.000000;
 ];
 
-pub(crate) const MHPEINV: SMatrix<f64, 3, 3> = matrix![
+const MHPEINV: SMatrix<f64, 3, 3> = matrix![
     1.9101968340520348, -1.1121238927878747,  0.20190795676749937;
     0.3709500882486886,  0.6290542573926132, -0.000008055142184359149;
     0.0,  				 0.0,  				  1.0;
 ];
 
-pub(crate) const MCAT02INVLUO: SMatrix<f64, 3, 3> = matrix![
+const MCAT02INVLUO: SMatrix<f64, 3, 3> = matrix![
      1.096124, -0.278869, 0.182745;
      0.454369,  0.473533, 0.072098;
     -0.009628, -0.005698, 1.015326;
 ];
 
-pub(crate) static M16: Matrix3<f64> = matrix![
+const M16: Matrix3<f64> = matrix![
     0.401288, 0.650173, -0.051461;
     -0.250268, 1.204414, 0.045854;
     -0.002079, 0.048952, 0.953127
 ];
 
-pub(crate) static M16INV: Matrix3<f64> = matrix![
+const M16INV: Matrix3<f64> = matrix![
     1.86206786, -1.01125463, 0.14918677;
     0.38752654, 0.62144744, -0.00897398;
     -0.01584150, -0.03412294, 1.04996444
 ];
 
-pub(crate) static MRGBAINV: Matrix3<f64> = matrix![
+const MRGBAINV: Matrix3<f64> = matrix![
 460.0/C16_3, 451.0/C16_3, 288.0/C16_3;
 460.0/C16_3, -891.0/C16_3, -261.0/C16_3;
 460.0/C16_3, -220.0/C16_3, -6_300.0/C16_3;
