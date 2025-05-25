@@ -41,6 +41,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Renamed `delta_e` to `ciede` for CieLab, to align with the common name for this in Colorimetry 
 - Renamed the `CieLab::new` method `CieLab::from_xyz`, as it takes `XYZ` values as arguments.
 - `CieLab` new takes now an CIE L*a*b* [f64;3] array and a reference white `XYZ` value.
+- Renamed the `CieCam16::new` method `CieCam16::from_xyz`, as it takes `XYZ` values as arguments.
+- `CieCam16` new takes now an _JCh) `[f64;3]` array, a reference white `XYZ` value, and a `ViewConditions` instance.
 
 
 

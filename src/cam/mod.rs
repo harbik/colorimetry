@@ -80,6 +80,23 @@ pub struct CieCam16 {
 }
 
 impl CieCam16 {
+    /// Creates a new CieCam16 instance from the given JCh values, XYZ tristimulus values of the reference white,
+    /// and the viewing conditions.
+    /// # Arguments
+    /// * `jch` - The JCh values of the color to be transformed, as an array of three f64 values.
+    /// * `xyzn` - The XYZ tristimulus values of the reference white, as an XYZ instance.
+    /// * `vc` - The viewing conditions to be used for the transformation, as a ViewConditions instance.
+    /// # Returns
+    /// A new CieCam16 instance.
+    pub fn new(jch: [f64; 3], xyzn: XYZ, vc: ViewConditions) -> Self {
+        Self {
+            jch: Vector3::from(jch),
+            xyzn: xyzn.xyz,
+            vc,
+            observer: xyzn.observer,
+        }
+    }
+
     /// Creates a new CieCam16 instance from the given XYZ tristimulus values of the color and the reference white,
     /// and the viewing conditions.
     /// The XYZ values must be share the same observer, otherwise an error is returned.
@@ -91,7 +108,7 @@ impl CieCam16 {
     /// A Result containing the CieCam16 instance if successful, or a CmtError if an error occurs.
     /// # Errors
     /// Returns an error if the XYZ values are not in the same observer system.
-    pub fn new(xyz: XYZ, xyzn: XYZ, vc: ViewConditions) -> Result<Self, CmtError> {
+    pub fn from_xyz(xyz: XYZ, xyzn: XYZ, vc: ViewConditions) -> Result<Self, CmtError> {
         let xyz_vec = xyz.xyz;
         let xyzn_vec = xyzn.xyz;
         if xyz.observer != xyzn.observer {
@@ -425,7 +442,7 @@ mod cam_test {
         let xyz = XYZ::new([60.70, 49.60, 10.29], Observer::Std1931);
         let xyzn = XYZ::new([96.46, 100.0, 108.62], Observer::Std1931);
         let vc = ViewConditions::new(16.0, 1.0, 1.0, 0.69, 40.0, None);
-        let cam = CieCam16::new(xyz, xyzn, vc).unwrap();
+        let cam = CieCam16::from_xyz(xyz, xyzn, vc).unwrap();
         let &[j, c, h] = cam.jch.as_ref();
         // println!("J:\t{j:?}\nC:\t{c:?}\nh:\t{h:?}");
         approx::assert_abs_diff_eq!(j, 70.4406, epsilon = 1E-4);
