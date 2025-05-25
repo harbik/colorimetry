@@ -465,3 +465,38 @@ mod cam_test {
         assert_abs_diff_eq!(xyz, xyz_rev, epsilon = 1E-4);
     }
 }
+
+#[cfg(test)]
+mod ciecam16_tests {
+    use crate::prelude::*;
+    use approx::assert_ulps_eq;
+
+    #[test]
+    fn ciecam16_round_trip_examples() {
+        // Test vectors generated with the Python Colour library under:
+        //   white = XYZ_D65, Yb=20, LA=100, nc=9, F=0.8
+        // Each entry is ([X,Y,Z], [J, C, h])
+        
+
+        let cases: &[_] = &[
+            ([19.01, 20.00, 21.78], [41.731208, 0.103356, 217.067960]),
+            ([41.24, 21.26,  1.93], [67.086747, 0.043545, 352.501141]),
+            ([50.00,  0.00,  0.00], [73.114828, 0.000000,   0.000000]),
+            ([95.047,100.00,108.883], [100.000000, 0.000000,   0.000000]),
+            ([ 0.000,  0.000,  0.000], [  0.000000, 0.000000,   0.000000]),
+            ([ 1.000,  1.000,  1.000], [ 46.181735, 0.000000,   0.000000]),
+            ([70.000, 50.000, 30.000], [ 87.112255, 0.000000,   0.000000]),
+            ([30.000, 60.000, 90.000], [ 70.815357, 0.000000,   0.000000]),
+        ];
+
+        for &(xyz, expected) in cases {
+            // Construct via the library's convenience function
+            let cam = CieCam16::from_xyz(XYZ::new(xyz, Observer::Std1931), XYZ_D65, ViewConditions::default()).unwrap();
+            let [j, c, h] = cam.jch();
+
+            assert_ulps_eq!(j, expected[0],   epsilon = 1e-6);
+            assert_ulps_eq!(c, expected[1],   epsilon = 1e-6);
+            assert_ulps_eq!(h, expected[2],   epsilon = 1e-4);
+        }
+    }
+}
