@@ -112,7 +112,7 @@ impl TryFrom<&Illuminant> for CRI {
     fn try_from(illuminant: &Illuminant) -> Result<Self, Self::Error> {
         let illuminant = &illuminant.clone().set_illuminance(&CIE1931, 100.0);
         // Calculate Device Under Test (dut) XYZ illuminant and sample values
-        let xyz_dut = CIE1931.xyz_from_spectrum(illuminant, None);
+        let xyz_dut = CIE1931.xyz_from_spectrum(illuminant);
         let xyz_dut_samples: [XYZ; N_TCS] = TCS
             .each_ref()
             .map(|colorant| CIE1931.xyz(illuminant, Some(colorant)));
@@ -127,7 +127,7 @@ impl TryFrom<&Illuminant> for CRI {
         };
 
         // Calculate the reference illuminant values
-        let xyz_ref = CIE1931.xyz_from_spectrum(&illuminant_ref, None);
+        let xyz_ref = CIE1931.xyz_from_spectrum(&illuminant_ref);
         let xyz_ref_samples: [XYZ; N_TCS] = TCS
             .each_ref()
             .map(|colorant| CIE1931.xyz(&illuminant_ref, Some(colorant)));
@@ -141,8 +141,7 @@ impl TryFrom<&Illuminant> for CRI {
             .map(|(xyzr, xyz)| {
                 let cdti = cd(xyz.uv60());
                 let uv_vk = uv_kries(cdt, cdr, cdti);
-                let xyz_vk =
-                    XYZ::from_luv60(uv_vk[0], uv_vk[1], Some(xyz.xyz.unwrap().y), None).unwrap();
+                let xyz_vk = XYZ::from_luv60(uv_vk[0], uv_vk[1], Some(xyz.xyz.y), None).unwrap();
                 let uvw = xyz_vk.uvw64(xyz_ref);
                 let uvwr = xyzr.uvw64(xyz_ref);
                 100.0
