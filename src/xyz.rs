@@ -1,3 +1,37 @@
+//! Tristimulus Values
+//! ==================
+//!
+//! The `xyz` module provides core types and operations for working with CIE tristimulus values (X,
+//! Y, Z) and chromaticity in Rust.  
+//!  
+//! This module includes:  
+//!  
+//! - [`Chromaticity`]: a 2D coordinate type (x, y) representing chromaticity alone.  
+//! - [`XYZ`]: a tristimulus struct bundling an (X, Y, Z) vector with its associated [`Observer`].  
+//! - Constructors for `XYZ` from raw arrays, chromaticity values, and L\*u\*v coordinates.  
+//! - Conversion routines:  
+//!   - `XYZ::chromaticity()` to get a `Chromaticity` from an `XYZ` value.  
+//!   - `XYZ::rgb()` to convert tristimulus values into out-of-gamut [`WideRgb`] in any `RgbSpace`.  
+//!   - `XYZ::dominant_wavelength()` to locate the dominant wavelength relative to a white point.  
+//!   - CIE UCS (`uv60`, `uvw64`), CIELUV (`uvprime`, `uv_prime_distance`), and optional CCT.  
+//! - Arithmetic and comparison implementations (addition, multiplication, [`AbsDiffEq`], [`UlpsEq`](approx::UlpsEq)) for `XYZ`
+//!   that enforce matching observers besided numerical equality.
+//! - WASM bindings to expose constructors and accessors for JavaScript.  
+//! - A comprehensive test suite (`xyz_test`) covering D65 reference, round-trip conversions,  
+//!   gamut checks, and dominant wavelength behavior.  
+//!  
+//! **Key design points:**  
+//!  
+//! 1. **Observer-tagged values:** Every `XYZ` value carries an [`Observer`] to ensure  
+//!    correct color matching functions and prevent invalid transforms.  
+//! 2. **Explicit white reference:** Higher-level models (`CieLab`, `CieCam`, etc.) now  
+//!    take the white reference as a separate argument, removing hidden assumptions.  
+//! 3. **Out-of-gamut handling:** Conversions to `WideRgb` can produce values outside  
+//!    the display gamut; the user can then clamp or compress as needed.  
+//! 4. **Physical validity:** While `XYZ` can represent non-physical values, validation  
+//!    (e.g., non-negative, within spectral locus) may be added in future refinements.  
+//!  
+
 use core::f64;
 use std::ops::Add;
 
@@ -11,12 +45,11 @@ use crate::{
     widergb::WideRgb,
 };
 use approx::{ulps_eq, AbsDiffEq};
-use nalgebra::{ArrayStorage, Vector2, Vector3};
+use nalgebra::{coordinates::X, ArrayStorage, Vector2, Vector3};
 use wasm_bindgen::prelude::wasm_bindgen;
 
 const D65A: [f64; 3] = [95.04, 100.0, 108.86];
-pub const XYZ_D65: XYZ = XYZ::new(D65A, None, Observer::Std1931);
-pub const XYZ_D65WHITE: XYZ = XYZ::new(D65A, Some(D65A), Observer::Std1931);
+pub const XYZ_D65: XYZ = XYZ::new(D65A, Observer::Std1931);
 
 /// A chromaticity coordinate with x and y values.
 #[wasm_bindgen]
@@ -62,57 +95,50 @@ impl Chromaticity {
 
 #[wasm_bindgen]
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
-/// A set of two CIE XYZ Tristimulus values, for a Standard Observer.
+/// Represents a color by its tristimulus value XYZ color space.
 ///
-/// One is associated with an illuminant or a reference white value, denoted by the fieldname `xyzn`, and
-/// a second, optional value, a set of tristimulus values for a stimulus, or 'a color' value.
-/// XYZ values are not often used directly, but form the basis for many colorimetric models, such as
-/// CIELAB and CIECAM.
+/// The `XYZ` struct represents the tristimulus values (X, Y, Z) and the associated observer.
+/// The observer defines the color matching functions used for the conversion.
 pub struct XYZ {
     pub(crate) observer: Observer,
-    pub(crate) xyzn: Vector3<f64>,        // illuminant values
-    pub(crate) xyz: Option<Vector3<f64>>, // stimulus values
+    pub(crate) xyz: Vector3<f64>, // tristimulus values
 }
 
 impl XYZ {
-    /// Define a set of [XYZ]-values directly, using an identifier for its
-    /// associated observer, such as [Observer::Std1931] or [Observer::Std2015].
+    /// Creates a new `XYZ` value from raw tristimulus components and an optional observer.
     ///
-    pub const fn new(xyzn: [f64; 3], xyz: Option<[f64; 3]>, observer: Observer) -> Self {
-        let xyzn = Vector3::<f64>::from_array_storage(ArrayStorage([xyzn]));
-        let xyz = if let Some(xyz) = xyz {
-            Some(Vector3::<f64>::from_array_storage(ArrayStorage([xyz])))
-        } else {
-            None
-        };
-        Self {
-            observer,
-            xyz,
-            xyzn,
-        }
+    /// # Arguments
+    /// - `xyz` – A `[f64; 3]` array of tristimulus values `(X, Y, Z)`.  
+    ///   These are most often in the 0.0–100.0 range but may lie outside it when derived from
+    ///   spectral power distributions.
+    /// - `observer` – The color-matching standard observer to use.  
+    ///
+    /// # Notes
+    /// - The `Y` component represents luminous quantity (candela per square meter, lux, or lumen per square meter).
+    /// - Allowing values outside 0.0–100.0 lets you handle spectra that produce very bright or non-physical results.
+    pub const fn new(xyz: [f64; 3], observer: Observer) -> Self {
+        let xyz = Vector3::<f64>::from_array_storage(ArrayStorage([xyz]));
+        Self { observer, xyz }
     }
 
     /// Defines [XYZ] values from [nalgebra::Vector3] values directly.
-    pub const fn from_vecs(
-        xyzn: Vector3<f64>,
-        xyz: Option<Vector3<f64>>,
-        observer: Observer,
-    ) -> XYZ {
-        Self {
-            observer,
-            xyz,
-            xyzn,
-        }
+    pub const fn from_vecs(xyz: Vector3<f64>, observer: Observer) -> XYZ {
+        Self { observer, xyz }
     }
 
-    /// Create tristimulus values from a chromaticity value, with optional Luminous Value l, and
-    /// optional white reference value yw.
+    // Creates a new `XYZ` value from chromaticity coordinates, an optional luminous value, and an optional observer.
     ///
-    /// This produces a illuminant XYZ value, with xyz value set as xyzn.
+    /// # Arguments
+    /// - `chromaticity` – A `Chromaticity` struct containing the x and y coordinates.  
+    /// - `l` – Optional luminous value (Y). Defaults to `100.0` if `None`, and is used to scale X and Z.  
+    /// - `observer` – Optional color-matching standard observer. Defaults to `Observer::Std1931` if `None`.
     ///
     /// # Errors
+    /// - Returns `CmtError::InvalidChromaticityValues` if `x + y > 1.0 + ε`, since that cannot represent a valid chromaticity.
     ///
-    /// Returns `CmtError::InvalidChromaticityValues` if the sum of x and y is greater than 1.0.
+    /// # Notes
+    /// - The Y component represents luminous quantity (candela / m², lux, or lumen / m²).  
+    /// - Chromaticity-derived XYZ values may lie outside the 0.0–100.0 range when generated from high-intensity or non-physical spectra.
     pub fn from_chromaticity(
         chromaticity: Chromaticity,
         l: Option<f64>,
@@ -121,12 +147,13 @@ impl XYZ {
         let [x, y] = chromaticity.to_array();
         let l = l.unwrap_or(100.0);
         let observer = observer.unwrap_or_default();
-        if (x + y) > 1.0 + f64::EPSILON {
+
+        if (x + y) > 1.0 + f64::EPSILON || x < 0.0 || y < 0.0 {
             Err(CmtError::InvalidChromaticityValues)
         } else {
-            let s = l / y;
-            let xyz = Vector3::new(x * s, l, (1.0 - x - y) * s);
-            Ok(Self::from_vecs(xyz, None, observer))
+            let scale = l / y;
+            let xyz = Vector3::new(x * scale, l, (1.0 - x - y) * scale);
+            Ok(Self::from_vecs(xyz, observer))
         }
     }
 
@@ -147,11 +174,8 @@ impl XYZ {
     /// Used for adding illuminants.
     pub fn try_add(&self, other: XYZ) -> Result<XYZ, CmtError> {
         if self.observer == other.observer {
-            let data = self.xyzn + other.xyzn;
-            match (self.xyz, other.xyz) {
-                (None, None) => Ok(XYZ::from_vecs(data, None, self.observer)),
-                _ => Err(CmtError::NoReferenceWhiteAllowed),
-            }
+            let data = self.xyz + other.xyz;
+            Ok(XYZ::from_vecs(data, self.observer))
         } else {
             Err(CmtError::RequireSameObserver)
         }
@@ -161,7 +185,7 @@ impl XYZ {
     /// ```
     /// use colorimetry::{xyz::XYZ, observer::Observer};
     ///
-    /// let xyz = XYZ::new([95.1, 95.0, 27.0], None, Observer::Std1931);
+    /// let xyz = XYZ::new([95.1, 95.0, 27.0], Observer::Std1931);
     /// assert_eq!(xyz.x(), 95.1);
     /// ```
     pub fn x(&self) -> f64 {
@@ -177,7 +201,7 @@ impl XYZ {
     /// ```
     /// use colorimetry::{xyz::XYZ, observer::Observer};
     ///
-    /// let xyz = XYZ::new([95.1, 95.0, 27.0], None, Observer::Std1931);
+    /// let xyz = XYZ::new([95.1, 95.0, 27.0], Observer::Std1931);
     /// assert_eq!(xyz.y(), 95.0);
     /// ```
     pub fn y(&self) -> f64 {
@@ -188,7 +212,7 @@ impl XYZ {
     /// ```
     /// use colorimetry::{xyz::XYZ, observer::Observer};
     ///
-    /// let xyz = XYZ::new([95.1, 95.0, 27.0], None, Observer::Std1931);
+    /// let xyz = XYZ::new([95.1, 95.0, 27.0], Observer::Std1931);
     /// assert_eq!(xyz.z(), 27.0);
     /// ```
     pub fn z(&self) -> f64 {
@@ -208,7 +232,7 @@ impl XYZ {
     /// assert_ulps_eq!(z, 108.861_036, epsilon = 1E-6);
     /// ```
     pub fn values(&self) -> [f64; 3] {
-        *self.xyz.unwrap_or(self.xyzn).as_ref()
+        *self.xyz.as_ref()
     }
 
     /// Set the illuminance of an illuminant, either for an illuminant directly,
@@ -219,20 +243,20 @@ impl XYZ {
     /// const D65A: [f64;3] = [95.04, 100.0, 108.86];
     ///
     /// let d65_xyz = CIE1931.xyz(&StdIlluminant::D65, None).set_illuminance(100.0);
-    /// assert_ulps_eq!(d65_xyz, XYZ::new(D65A, None, Observer::Std1931), epsilon = 1E-2);
+    /// assert_ulps_eq!(d65_xyz, XYZ::new(D65A, Observer::Std1931), epsilon = 1E-2);
     ///
     /// let d65_xyz_sample = CIE1931.xyz(&StdIlluminant::D65, Some(&Colorant::white()));
-    ///
-    /// assert_ulps_eq!(d65_xyz_sample, XYZ::new(D65A, Some(D65A), Observer::Std1931), epsilon = 1E-2);
+    /// assert_ulps_eq!(d65_xyz_sample, XYZ::new(D65A, Observer::Std1931), epsilon = 1E-2);
     /// ```
     pub fn set_illuminance(mut self, illuminance: f64) -> Self {
-        let s = illuminance / self.xyzn.y;
-        self.xyzn.iter_mut().for_each(|v| *v *= s);
-        if let Some(xyz0) = &mut self.xyz {
-            // colorant with illuminant
-            xyz0.iter_mut().for_each(|v| *v *= s)
-        };
-        self
+        if self.xyz.y > f64::EPSILON && illuminance > f64::EPSILON {
+            let s = illuminance / self.xyz.y;
+            self.xyz.iter_mut().for_each(|v| *v *= s);
+            self
+        } else {
+            // black override
+            XYZ::new([0.0, 0.0, 0.0], self.observer)
+        }
     }
 
     /// Returns the chromaticity coordinates of this `XYZ` value.
@@ -253,7 +277,7 @@ impl XYZ {
     /// CIE 1960 UCS Color Space uv coordinates *Deprecated* by the CIE, but
     /// still used for CCT calculation. Applied to illuminant xyzn values only.
     pub fn uv60(&self) -> [f64; 2] {
-        let &[x, y, z] = self.xyz.unwrap_or(self.xyzn).as_ref();
+        let &[x, y, z] = self.xyz.as_ref();
         let den = x + 15.0 * y + 3.0 * z;
         [4.0 * x / den, 6.0 * y / den]
     }
@@ -274,7 +298,7 @@ impl XYZ {
 
     /// CIE 1976 CIELUV space, with (u',v') coordinates, calculated for stimulus xyz if present, or else for illuminant.
     pub fn uvprime(&self) -> [f64; 2] {
-        let &[x, y, z] = self.xyz.unwrap_or(self.xyzn).as_ref();
+        let &[x, y, z] = self.xyz.as_ref();
         let den = x + 15.0 * y + 3.0 * z;
         [4.0 * x / den, 9.0 * y / den]
     }
@@ -410,7 +434,7 @@ impl XYZ {
     ///
     /// # Arguments
     ///
-    /// - `self`: The XYZ color values to be converted.
+    /// - `self`: The XYZ color values to be converted, with a reference white Yn value of 100.
     /// - `rgb_space`: The target RGB space identifier (e.g., `sRGB`, `Adobe RGB`), uses the default
     ///   sRGB space if `None`` is supplied.
     ///
@@ -425,9 +449,8 @@ impl XYZ {
     /// These methods will change the color which will be less saturated, and less bright as the orignial color.
     pub fn rgb(&self, space: Option<RgbSpace>) -> WideRgb {
         let space = space.unwrap_or_default();
-        let xyz = self.xyz.unwrap_or(self.xyzn);
-        let ywhite = self.xyzn.y;
-        let d = xyz.map(|v| v / ywhite); // normalize to 1.0
+        let xyz = self.xyz;
+        let d = xyz.map(|v| v / 100.0); // normalize to 1.0
         let data = self.observer.data().xyz2rgb(space) * d;
         WideRgb {
             space,
@@ -452,12 +475,7 @@ impl AbsDiffEq for XYZ {
     }
 
     fn abs_diff_eq(&self, other: &Self, epsilon: Self::Epsilon) -> bool {
-        let xyz_test = match (self.xyz, other.xyz) {
-            (None, None) => true,
-            (Some(xyz0), Some(xyz1)) => xyz0.abs_diff_eq(&xyz1, epsilon),
-            _ => false,
-        };
-        self.observer == other.observer && self.xyzn.abs_diff_eq(&other.xyzn, epsilon) && xyz_test
+        self.observer == other.observer && self.xyz.abs_diff_eq(&other.xyz, epsilon)
     }
 }
 
@@ -467,14 +485,7 @@ impl approx::UlpsEq for XYZ {
     }
 
     fn ulps_eq(&self, other: &Self, epsilon: Self::Epsilon, max_ulps: u32) -> bool {
-        let xyz_test = match (self.xyz, other.xyz) {
-            (None, None) => true,
-            (Some(xyz0), Some(xyz1)) => xyz0.ulps_eq(&xyz1, epsilon, max_ulps),
-            _ => false,
-        };
-        self.observer == other.observer
-            && self.xyzn.ulps_eq(&other.xyzn, epsilon, max_ulps)
-            && xyz_test
+        self.observer == other.observer && self.xyz.ulps_eq(&other.xyz, epsilon, max_ulps)
     }
 }
 
@@ -483,10 +494,7 @@ impl std::ops::Mul<f64> for XYZ {
 
     /// Multiplication with a right-handed float f64.
     fn mul(mut self, rhs: f64) -> Self::Output {
-        if let Some(mut xyz) = self.xyz {
-            xyz *= rhs;
-        }
-        self.xyzn *= rhs;
+        self.xyz *= rhs;
         self
     }
 }
@@ -497,10 +505,7 @@ impl std::ops::Mul<XYZ> for f64 {
     /// Multiplication of a [`XYZ`]` value on the right of "*" with a float on the left,
     /// resulting in a new [`XYZ`]`.
     fn mul(self, mut rhs: XYZ) -> Self::Output {
-        if let Some(mut xyz) = rhs.xyz {
-            xyz *= self;
-        }
-        rhs.xyzn *= self;
+        rhs.xyz *= self;
         rhs
     }
 }
@@ -511,30 +516,15 @@ impl std::ops::Add<XYZ> for XYZ {
     /// Add tristimulus values using the "+" operator.
     ///
     /// Panics if not the same oberver is used.
-    /// If either XYZ's has only a xyzn-value, indicating it is an illuminant or a stimulus, the other's xyz-value is requalified
-    /// as a direct stimulus, overwriting it's xyz value.
     fn add(mut self, rhs: XYZ) -> Self::Output {
         assert!(
             self.observer == rhs.observer,
             "Can not add two XYZ values for different observers"
         );
-        (self.xyz, self.xyzn) = match (rhs.xyz, self.xyz) {
-            (None, None) => (None, self.xyzn + rhs.xyzn),
-            (Some(xyz1), Some(xyz2)) => (Some(xyz1 + xyz2), self.xyzn + rhs.xyzn),
-            (Some(xyz), None) => (None, xyz + self.xyzn),
-            (None, Some(xyz)) => (None, xyz + rhs.xyzn),
-        };
+        self.xyz += rhs.xyz;
         self
     }
 }
-
-/*
-impl Default for XYZ {
-    fn default() -> Self {
-        Self { observer: Default::default(), xyz: Default::default(), xyzn: Default::default() }
-    }
-}
- */
 
 // JS-WASM Interface code
 #[cfg(target_arch = "wasm32")]
@@ -727,18 +717,13 @@ mod xyz_test {
     fn ulps_xyz_test() {
         use approx::assert_ulps_eq;
         use nalgebra::Vector3;
-        let xyz0 = XYZ::from_vecs(Vector3::zeros(), None, Observer::Std1931);
+        let xyz0 = XYZ::from_vecs(Vector3::zeros(), Observer::Std1931);
 
-        let xyz1 = XYZ::from_vecs(
-            Vector3::new(0.0, 0.0, f64::EPSILON),
-            None,
-            Observer::Std1931,
-        );
+        let xyz1 = XYZ::from_vecs(Vector3::new(0.0, 0.0, f64::EPSILON), Observer::Std1931);
         assert_ulps_eq!(xyz0, xyz1, epsilon = 1E-5);
 
         let xyz2 = XYZ::from_vecs(
             Vector3::new(0.0, 0.0, 2.0 * f64::EPSILON),
-            None,
             Observer::Std1931,
         );
         approx::assert_ulps_ne!(xyz0, xyz2);
@@ -746,7 +731,7 @@ mod xyz_test {
         // different observer
         #[cfg(feature = "supplemental-observers")]
         {
-            let xyz3 = XYZ::from_vecs(Vector3::zeros(), None, Observer::Std1964);
+            let xyz3 = XYZ::from_vecs(Vector3::zeros(), Observer::Std1964);
             approx::assert_ulps_ne!(xyz0, xyz3);
         }
     }

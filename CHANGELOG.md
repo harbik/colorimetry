@@ -16,6 +16,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Added
 - Add `r()`, `g()` and `b()` methods to `WideRgb` for easy access to each channel value.
 - Add `Chromaticity` struct and use it instead of `[f64; 2]` to represent chromaticity coordinates.
+- Add `jch` method to `CieCam16` to get JCh values as a `[f64;3]`-array.
+- Add `ciede2016` method to `CieCam16` to get the CIECAM16-UCS color difference between two `CieCam16` values.
+- Add `cam` and `CieCam16` documentation.
+- Add `ciede2000` method to `CieLab`.
 
 ### Removed
 - Remove undocumented `XYZ::srgb` method that both clamped out-of-gamut values and converted
@@ -26,10 +30,25 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   methods.
 
 ### Changed
+- `XYZ::new` now only uses a single array of tristimulus values; the white reference value was dropped in the XYZ representation.
 - Make indexing into a `Spectrum` with out of bounds wavelengths cause a panic, instead
   of returning `NaN`s or modifying the first or last values.
+- Exposed `CieCam16::jab` methods, which was private before.
+- Renamed private `CieCam16::jabp` to `CieCam16::jab_prime` method, and made it public.
+- Renamed private `CieCam16::jchp` to `CieCam16::jch_prime` method, and made it public.
+- Made `CieCam16` conversion matrices private, as being implementation details.
+- Added expclicit reference white tristimulus values to the `CieLab` constructor, which replaces the reference white tristimulus values which were previously included in `XYZ`
+- Renamed `delta_e` to `ciede` for CieLab, to align with the common name for this in Colorimetry 
+- Renamed the `CieLab::new` method `CieLab::from_xyz`, as it takes `XYZ` values as arguments.
+- `CieLab::new` takes now a CIE L*a*b* [f64;3]-array and a reference white `XYZ` value.
+- Renamed the `CieCam16::new` method `CieCam16::from_xyz`, as it takes `XYZ` values as arguments.
+- `CieCam16` new takes now an _JCh_ `[f64;3]`-array, a reference white `XYZ` value, and a `ViewConditions` instance.
+
+
+
 
 ### Fixed
+- Fix bug `XYZ::set_illuminance`. Avoid divide be zero when luminous values is zero, or negative.
 - Fix bug in `WideRgb::compress`. Previously `WideRgb` instances with only positive channel values
   would have its lowest channel value invalidly scaled down to 0.0. And instances with only values
   below 1.0 would have its highest channel value invalidly scaled up to 1.0.

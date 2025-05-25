@@ -267,7 +267,7 @@ mod rgbspace_tests {
             let iter = primaries_chromaticity.into_iter().zip(primaries_colorants);
             for (chromaticity, colorant) in iter {
                 let computed_chromaticity = CIE1931
-                    .xyz_from_spectrum(&colorant.spectrum(), None)
+                    .xyz_from_spectrum(&colorant.spectrum())
                     .chromaticity();
                 assert_ulps_eq!(
                     chromaticity.to_array().as_ref(),
