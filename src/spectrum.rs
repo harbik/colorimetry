@@ -1,13 +1,11 @@
-/*!
-# Spectral Composition
-
-The field of Colorimetry uses mathematical models to describe the sensations in our mind which we
-call color.  These models are based the spectral composition of stimuli, essentially rays of light
-hitting the photosensitive cells in the back of our eyes, and the spectral sensitiviy of these
-cells. The spectral composition of light, and the objects involved in its processing such as filters
-and painted patches, is represented by the [Spectrum]-object in this library.
-The spectral sensitivity of human vision is described by an [`Observer`](crate::observer::Observer).
-*/
+//! # Basis for Spectral Data Representations
+//!
+//! The field of Colorimetry uses mathematical models to describe the sensations in our mind which we
+//! call color.  These models are based the spectral composition of stimuli, essentially rays of light
+//! hitting the photosensitive cells in the back of our eyes, and the spectral sensitiviy of these
+//! cells. The spectral composition of light, and the objects involved in its processing such as filters
+//! and painted patches, is represented by the [Spectrum]-object in this library.
+//! The spectral sensitivity of human vision is described by an [`Observer`](crate::observer::Observer).
 use core::f64;
 use std::{
     borrow::Cow,
