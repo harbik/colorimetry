@@ -163,7 +163,7 @@ impl ObserverData {
     /// The Light trait is implemented by [`StdIlluminant`] and [Illuminant](crate::illuminant::Illuminant).
     ///
     /// [`Colorant`] implments the [`Filter`] trait.
-    /// [`Rgb`](crate::rgb::rgb::Rgb), which represents a display pixel, implements both in this library.
+    /// [`Rgb`](crate::rgb::Rgb), which represents a display pixel, implements both in this library.
     /// As a light, it is the light emitted from the pixel, as a filter it is the RGB-composite
     /// filter which is applied to the underlying standard illuminant of color space.
     pub fn xyz(&self, light: &dyn Light, filter: Option<&dyn Filter>) -> XYZ {
