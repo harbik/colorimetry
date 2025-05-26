@@ -1,4 +1,4 @@
-//! # Illuminant
+//! # Spectral Power Distributions for Standard and User Definied Illuminants
 //!
 //! This module defines spectral **illuminants**—spectral power distributions (SPDs)
 //! representing light sources or combinations of sources (e.g. daylight, LEDs, black-body radiators).
