@@ -43,7 +43,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - `CieLab::new` takes now a CIE L*a*b* [f64;3]-array and a reference white `XYZ` value.
 - Renamed the `CieCam16::new` method `CieCam16::from_xyz`, as it takes `XYZ` values as arguments.
 - `CieCam16` new takes now an _JCh_ `[f64;3]`-array, a reference white `XYZ` value, and a `ViewConditions` instance.
-- Changed library module structure combining by related modules in sub-modules, make the structure less flat.
+- Changed library module structure combining related modules in sub-modules, make the structure less flat.
 
 ### Fixed
 - Fix bug `XYZ::set_illuminance`. Avoid divide be zero when luminous values is zero, or negative.
