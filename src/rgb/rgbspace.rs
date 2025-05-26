@@ -2,9 +2,9 @@ use std::{collections::HashMap, sync::OnceLock};
 
 use crate::xyz::Chromaticity;
 use crate::{
-    colorant::Colorant, data::illuminants::D65, data::observers::CIE1931, rgb::gamma::GammaCurve,
-    illuminant::Illuminant, rgb::gaussian_filtered_primaries, spectrum::Spectrum,
-    std_illuminants::StdIlluminant, stimulus::Stimulus,
+    colorant::Colorant, illuminant::illuminants::D65, illuminant::std_illuminants::StdIlluminant,
+    illuminant::Illuminant, observer::observers::CIE1931, rgb::gamma::GammaCurve,
+    rgb::gaussian_filtered_primaries, spectrum::Spectrum, stimulus::Stimulus,
 };
 use strum_macros::EnumIter;
 use wasm_bindgen::prelude::wasm_bindgen;

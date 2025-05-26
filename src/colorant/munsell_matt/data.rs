@@ -1,4 +1,4 @@
-use crate::munsell_matt::{MATT_M, MATT_N};
+use crate::colorant::munsell_matt::{MATT_M, MATT_N};
 
 pub(crate) static MUNSELL_MATT_KEYS: [&str; MATT_M] = [
     "2.5R9/2",

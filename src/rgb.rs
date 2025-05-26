@@ -56,9 +56,9 @@ pub mod widergb;
 
 use crate::{
     colorant::Colorant,
-    data::observers::CIE1931,
     error::CmtError,
     illuminant::Illuminant,
+    observer::observers::CIE1931,
     observer::Observer,
     rgb::rgbspace::RgbSpace,
     rgb::widergb::WideRgb,

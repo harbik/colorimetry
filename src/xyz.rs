@@ -427,7 +427,7 @@ impl XYZ {
     }
 
     #[cfg(feature = "cct")]
-    pub fn cct(self) -> Result<crate::cct::CCT, CmtError> {
+    pub fn cct(self) -> Result<crate::illuminant::cct::CCT, CmtError> {
         self.try_into()
     }
     /// Converts a set of **XYZ tristimulus values** to **WideRgb values** using the specified RGB space.

@@ -1,3 +1,6 @@
+#[cfg(feature = "munsell")]
+pub mod munsell_matt;
+
 use std::{
     borrow::Cow,
     ops::{Add, AddAssign, Deref, DerefMut, Mul, MulAssign},
@@ -8,11 +11,11 @@ use nalgebra::SVector;
 
 use crate::{
     error::CmtError,
+    illuminant::std_illuminants,
     lab::CieLab,
     physics::{gaussian_peak_one, wavelength},
     prelude::{Illuminant, Observer, D65, SPECTRUM_WAVELENGTH_RANGE},
     spectrum::{wavelengths, Spectrum, NS},
-    std_illuminants,
     traits::{Filter, Light},
 };
 

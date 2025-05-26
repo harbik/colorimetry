@@ -12,9 +12,9 @@ use wasm_bindgen::prelude::*;
 
 use crate::{
     colorant::Colorant,
-    data::observers::CIE1931,
     error::CmtError,
     illuminant::Illuminant,
+    observer::observers::CIE1931,
     rgb::rgbspace::RgbSpace,
     spectrum::{Spectrum, SPECTRUM_WAVELENGTH_RANGE},
     traits::Light,
@@ -51,7 +51,10 @@ pub static TCS: LazyLock<[Colorant; N_TCS]> = LazyLock::new(|| {
 #[test]
 fn tcs_test() {
     for (i, s) in TCS.iter().enumerate() {
-        let xyz = CIE1931.xyz(&crate::std_illuminants::StdIlluminant::D65, Some(s));
+        let xyz = CIE1931.xyz(
+            &crate::illuminant::std_illuminants::StdIlluminant::D65,
+            Some(s),
+        );
         let [r, g, b] = xyz.rgb(Some(RgbSpace::SRGB)).values();
         println!("{:2} ({r:3},{g:3},{b:3})", i + 1);
     }
@@ -336,7 +339,7 @@ mod cri_test {
         // println!("{cri0:?}");
         approx::assert_ulps_eq!(
             cri0.as_ref(),
-            [100.0; crate::cri::N_TCS].as_ref(),
+            [100.0; cri::N_TCS].as_ref(),
             epsilon = 0.03
         );
     }

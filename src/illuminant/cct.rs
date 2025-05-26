@@ -42,9 +42,9 @@ use std::{cmp::max, sync::OnceLock};
 use approx::{assert_ulps_eq, relative_eq, ulps_eq, AbsDiffEq, RelativeEq, UlpsEq};
 
 use crate::{
-    data::observers::CIE1931,
     error::CmtError,
     geometry::distance_to_line,
+    observer::observers::CIE1931,
     observer::{Observer, ObserverData},
     physics::planck,
     spectrum::NS,
@@ -459,7 +459,8 @@ fn test_cct_at_max_error() {
 #[test]
 #[cfg(feature = "cie-illuminants")]
 fn f1_test() {
-    let xyz_f1 = CIE1931.xyz_cie_table(&crate::std_illuminants::StdIlluminant::F1, None);
+    let xyz_f1 =
+        CIE1931.xyz_cie_table(&crate::illuminant::std_illuminants::StdIlluminant::F1, None);
     // value from CIE Standard CIE15:2004 Table T8.1
     approx::assert_ulps_eq!(xyz_f1.cct().unwrap().t(), 6430.0, epsilon = 0.5);
 }
@@ -467,7 +468,10 @@ fn f1_test() {
 #[test]
 #[cfg(feature = "cie-illuminants")]
 fn f3_1_test() {
-    let xyz_f3_1 = CIE1931.xyz_cie_table(&crate::std_illuminants::StdIlluminant::F3_1, None);
+    let xyz_f3_1 = CIE1931.xyz_cie_table(
+        &crate::illuminant::std_illuminants::StdIlluminant::F3_1,
+        None,
+    );
     // value from CIE Standard CIE15:2004 Table T8.1
     approx::assert_ulps_eq!(xyz_f3_1.cct().unwrap().t(), 2932.0, epsilon = 0.5);
 }

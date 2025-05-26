@@ -40,8 +40,8 @@
 
 use crate::{
     colorant::Colorant,
-    data::observers::CIE1931,
     illuminant::Illuminant,
+    observer::observers::CIE1931,
     observer::Observer,
     rgb::{self, rgbspace::RgbSpace, Rgb},
     spectrum::Spectrum,

@@ -48,15 +48,17 @@
 
  */
 
+pub mod observers;
+
 use crate::{
     colorant::Colorant,
     error::CmtError,
     geometry::LineAB,
+    illuminant::std_illuminants::StdIlluminant,
     lab::CieLab,
     physics::{planck, planck_slope, to_wavelength},
     rgb::rgbspace::RgbSpace,
     spectrum::{Spectrum, NS, SPECTRUM_WAVELENGTH_RANGE},
-    std_illuminants::StdIlluminant,
     traits::{Filter, Light},
     xyz::XYZ,
 };
@@ -101,13 +103,13 @@ impl Observer {
     */
     pub fn data(&self) -> &'static ObserverData {
         match self {
-            Observer::Std1931 => &crate::data::observers::CIE1931,
+            Observer::Std1931 => &observers::CIE1931,
             #[cfg(feature = "supplemental-observers")]
-            Observer::Std1964 => &crate::data::observers::CIE1964,
+            Observer::Std1964 => &observers::CIE1964,
             #[cfg(feature = "supplemental-observers")]
-            Observer::Std2015 => &crate::data::observers::CIE2015,
+            Observer::Std2015 => &observers::CIE2015,
             #[cfg(feature = "supplemental-observers")]
-            Observer::Std2015_10 => &crate::data::observers::CIE2015_10,
+            Observer::Std2015_10 => &observers::CIE2015_10,
         }
     }
 }
