@@ -1,52 +1,46 @@
-/*!
-
-# Standard Observers
-
-- Human color perception
-    - begins in the retina, triggered by light stimuli detected by the **retina’s L, M, and S cones**,
-      each sensitive to different wavelength ranges.
-      - The **L cone** is most sensitive to long wavelengths (red),
-      - the **M cone** to medium wavelengths (green),
-      - and the **S cone** to short wavelengths (blue).
-
-- Visual responsivity varies with the angular extent of the field of view.
-  - The **CIE 1931 Standard Observer** defines color matching functions for a **2-degree** field of
-    view, representing central (foveal) vision.  This is typically used for viewing **small objects**,
-    such as point light sources or fine details.
-  - The **CIE 1964 Standard Observer** extends the field of view to **10 degrees**, capturing a
-    broader area of the retina, including more peripheral cones.  It is recommended for **larger
-    objects** or extended fields, such as color patches, or when measuring color in more immersive
-    viewing conditions.
-- Cone response differ across individuals, leading to variations in color perception.
-  - **Genetic variation**, especially on the **X chromosome**, causes differences in cone types and
-    densities—explaining individual variations and color vision deficiencies (e.g., red-green color
-    blindness).
-  - Additional variation comes from the **optical media of the eye** (lens, cornea, macula), which
-    filter incoming light and change with age and health.
-- Cone responses form the physiological basis of **tristimulus values (X, Y, Z)**, first defined by the **CIE**
-  in 1931.
-  - Color matching experiments using **bipartite fields** and narrow-band **RGB primaries** were used
-    to measure how observers match colors across the visible spectrum.
-  - Data from **Wright** and **Guild**, using a total of 17 male observers, were combined to define
-    average **RGB color matching functions**.
-  - To eliminate negative values, the RGB functions were transformed into the **XYZ space** using
-    imaginary primaries.
-  - The Y function was aligned with the **CIE 1924 photopic luminosity function**.
-  - The resulting **color matching functions**—𝑥̅(λ), 𝑦̅(λ), and 𝑧̅(λ)— define the standard observer’s response.
-  - These functions are the foundation of **chromaticity diagrams** like the **CIE 1931 (x, y)**
-    space, used to visualize color perception across the visible spectrum.
-- The **CIE 1931 Standard Observer** is the most widely used, but it has limitations.
-  - It does not accurately represent color perception in the blue region of the spectrum.
-  - The **CIE 2015 Standard Observer** was developed to address these limitations, providing a more
-    accurate representation of human color vision, especially in the blue region.
-  - It is based on the **CIE 2015 color matching functions**, which are derived from the spectral
-    sensitivities of the cones in the retina.
-  - The CIE 2015 Standard Observer is recommended for applications requiring high color accuracy,
-    such as colorimetry, color science, and display technology.
-  - It is also used in the **CIE 2015 color space**, which is a more accurate representation of
-    color perception than the CIE 1931 color space.
-
- */
+//! # Standard Observers
+//!
+//! In color science, we model how humans perceive light using “standard observers”—mathematical averages of real people’s color responses. Here’s the gist:
+//!
+//! ## How We See Color
+//! - Our eyes have three types of cones, each tuned to a different part of the spectrum:
+//!   - **L-cones** (long-wavelength, “red” sensitive)  
+//!   - **M-cones** (medium-wavelength, “green” sensitive)  
+//!   - **S-cones** (short-wavelength, “blue” sensitive)  
+//!
+//! ## From Cone Sensitivities to XYZ
+//!
+//! Directly measuring each cone type is extremely challenging, so the CIE came up with a clever substitute:
+//!
+//! - **Color-matching experiments**  
+//!   Observers tweak three narrow-band red, green, and blue lights until they visually match a test color.  
+//! - **Negative matches**  
+//!   Some test colors actually require “subtracting” a primary, which shows up as a negative match value.  
+//! - **Imaginary primaries**  
+//!   To eliminate negatives, the 1931 CIE team transformed those matches into three new “imaginary” primaries—mathematical constructs that guarantee all match values are zero or positive.  
+//! - **Color-matching functions**  
+//!   The non-negative weightings across wavelengths form the CIE 1931 curves x̅(λ), y̅(λ), and z̅(λ).  
+//! - **XYZ tristimulus**  
+//!   Finally, you integrate (dot-product) any light’s spectrum with these functions to get its standard X, Y, and Z values.
+//!
+//! ## Field of View Matters
+//! - **2° Observer (CIE 1931)**  
+//!   - Represents a small, foveal area of about 2°—think looking at a small color patch or point source.  
+//!   - Based on experiments by Wright & Guild using narrow-band primaries and 17 observers.  
+//! - **10° Observer (CIE 1964)**  
+//!   - Covers a wider, more peripheral field (10°)—better for larger patches or immersive scenes.  
+//!
+//! ## Why New Observers?
+//! - The original CIE 1931 functions work well across most of the spectrum but are less accurate in deep blue.  
+//! - **CIE 2015 Observer** recalibrates those functions using updated cone-sensitivity data—especially improving blue-region accuracy.  
+//! - Use the 2015 standard when you need the best possible match to human vision (e.g. advanced colorimetry, high-end display profiling).
+//!
+//! ## Which One to Use?
+//! - **Small, detailed samples** → 2° (CIE 1931)  
+//! - **Large fields or immersive scenes** → 10° (CIE 1964)  
+//! - **Highest-accuracy applications** (especially blue-heavy content) → CIE 2015  
+//!
+//! These standard observers form the backbone of color spaces, chromaticity diagrams, and all standardized color measurements.  
 
 pub mod observers;
 

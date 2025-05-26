@@ -1,54 +1,56 @@
-//! # Rgb: In gamut RGB Color Representation of a Color Stimulus
+//! # Device-dependent Red-Green-Blue (RGB) Colors
 //!
-//! This module provides the `Rgb` struct, a representation of a color stimulus using Red, Green, and Blue
-//! (RGB) floating-point values constrained to the `[0.0, 1.0]` range. Unlike the `WideRgb` type, which allows
-//! for out-of-gamut colors, `Rgb` is strictly limited to the device’s RGB color space gamut, ensuring that
-//! all values are within the valid range for rendering and display.
+//! The `rgb` module provides types and functions for working with device-dependent
+//! Red-Green-Blue colors.
 //!
-//! ## Key Features
-//! - **Constrained RGB Values:** The `Rgb` struct enforces that all RGB values must be within the range
-//!   `[0.0, 1.0]`. Attempts to create values outside this range will result in an error.
-//! - **Color Space Support:** Supports various RGB color spaces through the `RgbSpace` type, including sRGB,
-//!   Adobe RGB, and custom-defined spaces.
-//! - **Observer Customization:** Allows the use of different colorimetric observers (e.g., CIE 1931, CIE 2015),
-//!   enhancing accuracy in color conversions.
-//! - **Data Conversions:** Provides methods to convert RGB values to `XYZ` tristimulus values, and to u8 and u16
-//!   arrays for compatibility with 8-bit and 16-bit RGB formats.
-//! - **Validation:** Ensures that all RGB values are validated during creation, preventing invalid color data.
+//! ## Submodules
 //!
-//! ## Example Usage
+//! - **`gamma`**  
+//!   Encoding and decoding gamma curves (e.g. sRGB, AdobeRGB) for nonlinear ↔ linear conversions.  
+//! - **`rgbspace`**  
+//!   Definitions of `RgbSpace` (primaries, white point, conversion matrices) and helpers  
+//!   to transform between RGB and CIE XYZ.  
+//! - **`widergb`**  
+//!   The `WideRgb` type, which allows out-of-gamut values (outside `[0.0,1.0]`) for HDR or extended-gamut workflows.
 //!
-//! ```rust
-//! use colorimetry::rgb::Rgb;
+//! ## Core Features
 //!
-//! // Creating a valid Rgb instance
-//! let rgb = Rgb::new(0.5, 0.3, 0.7, None, None).unwrap();
+//! - **Strict Validation**  
+//!   Creating an `Rgb` with `Rgb::new(r, g, b, …)` returns an error if any component lies
+//!   outside `[0.0, 1.0]`.  
+//! - **Multiple Constructors**  
+//!   - `Rgb::new(r, g, b, observer, space)` — fully specified  
+//!   - `Rgb::from_u8(r, g, b, …)` / `Rgb::from_u16(r, g, b, …)` — byte- or word-based input  
+//! - **Color Space & Observer**  
+//!   Optionally supply a standard observer (e.g. CIE1931 or CIE2015) and an RGB color
+//!   space (e.g. sRGB, AdobeRGB). Defaults are Std1931 + sRGB.
 //!
-//! // Convert to a u8 array for image processing
-//! let u8_rgb: [u8; 3] = rgb.into();
+//! ## Conversions
 //!
-//! // Convert to XYZ tristimulus values
-//! let xyz = rgb.xyz();
-//!
-//! println!("RGB as u8: {:?}", u8_rgb);
-//! println!("XYZ values: {:?}", xyz.values());
-//! ```
+//! - **To XYZ**  
+//!   Call `.xyz()` to convert into CIE XYZ tristimulus values (scaled so Y = 100 for white).
+//! - **To Device Values**  
+//!   Use `Into<[u8; 3]>` or `Into<[f64; 3]>` for byte or float arrays, automatically applying
+//!   the color space’s gamma curve.
 //!
 //! ## Error Handling
-//! - The `Rgb::new()` method returns an `Err(CmtError::InvalidRgbValue)` if any of the provided RGB values
-//!   are outside the `[0.0, 1.0]` range.
-//! - The `from_u8()` and `from_u16()` methods internally clamp values to ensure they remain within the valid range.
+//!
+//! - `Rgb::new(...)` returns `Err(CmtError::InvalidRgbValue)` if any component ∉ `[0.0,1.0]`.  
+//! - `from_u8` / `from_u16` automatically clamp inputs into range and never error.
 //!
 //! ## Notes
-//! - Unlike the `WideRgb` type, which supports out-of-gamut colors, `Rgb` enforces strict adherence to the
-//!   `[0.0, 1.0]` range. As such, it is ideal for cases where data must be strictly constrained to the device’s
-//!   rendering gamut.
-//! - The `observer` field is optional but can be specified to provide more accurate conversions to `XYZ` values
-//!   based on specific viewing conditions.
+//!
+//! - Use `Rgb` when you need **strict gamut compliance**. For HDR or out-of-gamut workflows,
+//!   consider `WideRgb`.  
+//! - Supplying an alternate `observer` or `space` customizes the `.xyz()` conversion for specialized
+//!   viewing conditions or display profiles.
 //!
 //! ## Testing
-//! - Comprehensive unit tests verify RGB value validation, conversion methods, and compatibility with different
-//!   data formats, including `u8` and `f64` arrays.
+//!
+//! The module includes unit tests for:
+//! - Value validation and clamping  
+//! - Byte and float conversions  
+//! - XYZ tristimulus output under default settings  
 
 pub mod gamma;
 pub mod rgbspace;
