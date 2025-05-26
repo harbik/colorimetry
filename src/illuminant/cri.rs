@@ -337,11 +337,7 @@ mod cri_test {
         // should be all 100.0
         let cri0: CRI = (&D50).try_into().unwrap();
         // println!("{cri0:?}");
-        approx::assert_ulps_eq!(
-            cri0.as_ref(),
-            [100.0; cri::N_TCS].as_ref(),
-            epsilon = 0.03
-        );
+        approx::assert_ulps_eq!(cri0.as_ref(), [100.0; cri::N_TCS].as_ref(), epsilon = 0.03);
     }
 
     #[test]

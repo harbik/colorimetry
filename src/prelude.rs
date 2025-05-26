@@ -1,13 +1,13 @@
 pub use super::cam::viewconditions::*;
 pub use super::cam::*;
-#[cfg(feature = "cct")]
-pub use super::illuminant::cct::*;
 #[cfg(feature = "munsell")]
 pub use super::colorant::munsell_matt::*;
 pub use super::colorant::*;
+pub use super::geometry::*;
+#[cfg(feature = "cct")]
+pub use super::illuminant::cct::*;
 #[cfg(feature = "cri")]
 pub use super::illuminant::cri::*;
-pub use super::geometry::*;
 pub use super::illuminant::illuminants::*;
 pub use super::illuminant::std_illuminants::*;
 pub use super::illuminant::*;
