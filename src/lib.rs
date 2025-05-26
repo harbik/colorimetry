@@ -14,7 +14,6 @@ pub mod colorant;
 pub mod cri;
 pub mod data;
 pub mod error;
-pub mod gamma;
 pub mod geometry;
 pub mod illuminant;
 pub mod lab;

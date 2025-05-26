@@ -50,6 +50,7 @@
 //! - Comprehensive unit tests verify RGB value validation, conversion methods, and compatibility with different
 //!   data formats, including `u8` and `f64` arrays.
 
+pub mod gamma;
 pub mod rgbspace;
 pub mod widergb;
 

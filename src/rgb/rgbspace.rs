@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::OnceLock};
 
 use crate::xyz::Chromaticity;
 use crate::{
-    colorant::Colorant, data::illuminants::D65, data::observers::CIE1931, gamma::GammaCurve,
+    colorant::Colorant, data::illuminants::D65, data::observers::CIE1931, rgb::gamma::GammaCurve,
     illuminant::Illuminant, rgb::gaussian_filtered_primaries, spectrum::Spectrum,
     std_illuminants::StdIlluminant, stimulus::Stimulus,
 };
