@@ -43,7 +43,7 @@ use crate::{
     data::observers::CIE1931,
     illuminant::Illuminant,
     observer::Observer,
-    rgb::{self, rgb::Rgb, rgbspace::RgbSpace},
+    rgb::{self, rgbspace::RgbSpace, Rgb},
     spectrum::Spectrum,
     stimulus::Stimulus,
     traits::{Filter, Light},
@@ -180,7 +180,7 @@ impl WideRgb {
     /// # Example
     /// ```rust
     /// # use colorimetry::rgb::widergb::WideRgb;
-    /// # use colorimetry::rgb::rgb::Rgb;
+    /// # use colorimetry::rgb::Rgb;
     /// # use approx::assert_abs_diff_eq;
     ///
     /// // A `WideRgb` value with out-of-gamut components.
