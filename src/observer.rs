@@ -54,7 +54,7 @@ use crate::{
     geometry::LineAB,
     lab::CieLab,
     physics::{planck, planck_slope, to_wavelength},
-    rgbspace::RgbSpace,
+    rgb::rgbspace::RgbSpace,
     spectrum::{Spectrum, NS, SPECTRUM_WAVELENGTH_RANGE},
     std_illuminants::StdIlluminant,
     traits::{Filter, Light},
@@ -163,7 +163,7 @@ impl ObserverData {
     /// The Light trait is implemented by [`StdIlluminant`] and [Illuminant](crate::illuminant::Illuminant).
     ///
     /// [`Colorant`] implments the [`Filter`] trait.
-    /// [`Rgb`](crate::rgb::Rgb), which represents a display pixel, implements both in this library.
+    /// [`Rgb`](crate::rgb::rgb::Rgb), which represents a display pixel, implements both in this library.
     /// As a light, it is the light emitted from the pixel, as a filter it is the RGB-composite
     /// filter which is applied to the underlying standard illuminant of color space.
     pub fn xyz(&self, light: &dyn Light, filter: Option<&dyn Filter>) -> XYZ {
@@ -468,7 +468,7 @@ mod obs_test {
 
     use super::Observer;
     use crate::prelude::{StdIlluminant, CIE1931};
-    use crate::rgbspace::RgbSpace;
+    use crate::rgb::rgbspace::RgbSpace;
     use crate::spectrum::SPECTRUM_WAVELENGTH_RANGE;
     use crate::xyz::{Chromaticity, XYZ};
     use approx::assert_ulps_eq;
@@ -547,7 +547,7 @@ mod obs_test {
             0.4124564, 0.3575761, 0.1804375, 0.2126729, 0.7151522, 0.0721750, 0.0193339, 0.1191920,
             0.9503041,
         );
-        let got = CIE1931.rgb2xyz(&crate::rgbspace::RgbSpace::SRGB);
+        let got = CIE1931.rgb2xyz(&crate::rgb::rgbspace::RgbSpace::SRGB);
         approx::assert_ulps_eq!(want, got, epsilon = 3E-4);
     }
 
@@ -559,7 +559,7 @@ mod obs_test {
             3.2404542, -1.5371385, -0.4985314, -0.9692660, 1.8760108, 0.0415560, 0.0556434,
             -0.2040259, 1.0572252,
         );
-        let got = CIE1931.xyz2rgb(crate::rgbspace::RgbSpace::SRGB);
+        let got = CIE1931.xyz2rgb(crate::rgb::rgbspace::RgbSpace::SRGB);
         approx::assert_ulps_eq!(want, got, epsilon = 3E-4);
     }
 

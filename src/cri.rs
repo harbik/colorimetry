@@ -15,7 +15,7 @@ use crate::{
     data::observers::CIE1931,
     error::CmtError,
     illuminant::Illuminant,
-    rgbspace::RgbSpace,
+    rgb::rgbspace::RgbSpace,
     spectrum::{Spectrum, SPECTRUM_WAVELENGTH_RANGE},
     traits::Light,
     xyz::XYZ,

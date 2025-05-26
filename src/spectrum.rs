@@ -33,8 +33,8 @@ use crate::{
     observer::ObserverData,
     physics::C,
     physics::{gaussian_peak_one, led_ohno, planck, sigma_from_fwhm, stefan_boltzmann, wavelength},
+    rgb::widergb::WideRgb,
     std_illuminants::StdIlluminant,
-    widergb::WideRgb,
 };
 
 /// The wavelength range of the spectrums supported by this library.

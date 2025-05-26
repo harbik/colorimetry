@@ -40,9 +40,9 @@ use crate::{
     geometry::{LineAB, Orientation},
     illuminant::Illuminant,
     observer::{self, Observer},
-    rgbspace::RgbSpace,
+    rgb::rgbspace::RgbSpace,
+    rgb::widergb::WideRgb,
     spectrum::Spectrum,
-    widergb::WideRgb,
 };
 use approx::{ulps_eq, AbsDiffEq};
 use nalgebra::{coordinates::X, ArrayStorage, Vector2, Vector3};

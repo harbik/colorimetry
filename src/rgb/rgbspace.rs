@@ -3,7 +3,7 @@ use std::{collections::HashMap, sync::OnceLock};
 use crate::xyz::Chromaticity;
 use crate::{
     colorant::Colorant, data::illuminants::D65, data::observers::CIE1931, gamma::GammaCurve,
-    illuminant::Illuminant, rgb::gaussian_filtered_primaries, spectrum::Spectrum,
+    illuminant::Illuminant, rgb::rgb::gaussian_filtered_primaries, spectrum::Spectrum,
     std_illuminants::StdIlluminant, stimulus::Stimulus,
 };
 use strum_macros::EnumIter;
@@ -259,7 +259,7 @@ mod rgbspace_tests {
     /// Check color points of the primaries, as calculated from the space's
     /// spectra, to the targets returned by the `RgbSpace::primaries_chromaticity()` method.
     fn primaries_chromaticity_match_stimulus_spectrum() {
-        for space in RgbSpace::iter() {
+        for space in super::RgbSpace::iter() {
             let primaries_chromaticity = space.primaries_chromaticity();
             let primaries_colorants = &space.data().primaries;
             assert_eq!(primaries_chromaticity.len(), primaries_colorants.len());
