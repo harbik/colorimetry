@@ -702,7 +702,7 @@ mod tests {
     fn ee() {
         let chromaticity = CIE1931
             .xyz_from_spectrum(
-                &Illuminant::equal_energy()
+                Illuminant::equal_energy()
                     .set_illuminance(&CIE1931, 100.0)
                     .as_ref(),
             )
@@ -714,7 +714,7 @@ mod tests {
     #[test]
     fn d65() {
         let chromaticity = CIE1931
-            .xyz_from_spectrum(&Illuminant::d65().set_illuminance(&CIE1931, 100.0).as_ref())
+            .xyz_from_spectrum(Illuminant::d65().set_illuminance(&CIE1931, 100.0).as_ref())
             .chromaticity();
         // See table T3 CIE15:2004 (calculated with 5nm intervals, instead of 1nm, as used here)
         assert_ulps_eq!(chromaticity.x(), 0.312_72, epsilon = 5E-5);
@@ -732,7 +732,7 @@ mod tests {
     #[test]
     fn d50() {
         let chromaticity = CIE1931
-            .xyz_from_spectrum(&Illuminant::d50().set_illuminance(&CIE1931, 100.0).as_ref())
+            .xyz_from_spectrum(Illuminant::d50().set_illuminance(&CIE1931, 100.0).as_ref())
             .chromaticity();
         // See table T3 CIE15:2004 (calculated with 5nm intervals, instead of 1nm, as used here)
         assert_ulps_eq!(chromaticity.x(), 0.345_67, epsilon = 5E-5);
