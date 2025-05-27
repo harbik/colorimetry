@@ -48,8 +48,8 @@ use approx::{ulps_eq, AbsDiffEq};
 use nalgebra::{coordinates::X, ArrayStorage, Vector2, Vector3};
 use wasm_bindgen::prelude::wasm_bindgen;
 
-const D65A: [f64; 3] = [95.04, 100.0, 108.86];
-pub const XYZ_D65: XYZ = XYZ::new(D65A, Observer::Std1931);
+//const D65A: [f64; 3] = [95.04, 100.0, 108.86];
+//pub const XYZ_D65_CIE1931: XYZ = XYZ::new(D65A, Observer::Std1931);
 
 /// A chromaticity coordinate with x and y values.
 #[wasm_bindgen]

@@ -505,11 +505,12 @@ mod round_trip_tests {
         for &xyz_arr in samples {
             // forward transform (XYZ -> JCh)
             let xyz = XYZ::new(xyz_arr, Observer::Std1931);
-            let cam = CieCam16::from_xyz(xyz, XYZ_D65, ViewConditions::default()).unwrap();
+            let xyz_d65 = CIE1931.xyz_d65();
+            let cam = CieCam16::from_xyz(xyz, xyz_d65, ViewConditions::default()).unwrap();
             let jch = cam.jch();
 
             // inverse (JCh -> XYZ)
-            let cam_back = CieCam16::new(jch, XYZ_D65, ViewConditions::default());
+            let cam_back = CieCam16::new(jch, xyz_d65, ViewConditions::default());
             let xyz_back = cam_back.xyz(None, None).unwrap();
 
             // compare original vs. round-tripped XYZ

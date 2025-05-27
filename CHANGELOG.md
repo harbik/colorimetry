@@ -30,6 +30,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   more explicit by converting to the `Rgb` type in between with one of the provided conversion
   methods.
 - Remove `DeRef<Spectrum> for Illuminant` to be replaced with the more explcicit `AsRef<Spectrum>.
+- Remove `XYZ_D65`, using `xyz_d65` instead.
 
 ### Changed
 - `XYZ::new` now only uses a single array of tristimulus values; the white reference value was dropped in the XYZ representation.
