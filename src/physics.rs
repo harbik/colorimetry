@@ -1,3 +1,39 @@
+//! # Functions and Constants from Physics
+//!
+//! This module provides core physical constants and spectral‐generation functions
+//! used throughout the library to build illuminants, LEDs, black‐body radiators,
+//! and band-pass filters.  
+//!
+//! ## Constants
+//! - `C` — Speed of light (m/s)  
+//! - `KB` — Boltzmann constant (m²·kg·s⁻²·K⁻¹)  
+//! - `H` — Planck constant (m²·kg/s)  
+//! - `C1` — First radiation constant (W·m²)  
+//! - `C2`, `C2_NBS_1931`, `C2_IPTS_1948`, `C2_ITS_1968` — Second radiation constants for various standards  
+//! - `SIGMA` — Stefan–Boltzmann constant (W·m⁻²·K⁻⁴)  
+//!
+//! ## Black‐Body Radiation
+//! - `planck_c2(l, T, c2)` — Planck’s law at wavelength `l` (m), temperature `T` (K), using constant `c2`.  
+//! - `planck_slope_c2`, `planck_curvature_c2` — First and second derivatives with respect to temperature.  
+//! - `planck(l, T)` / `planck_slope(l, T)` — Convenience wrappers using the current `C2`.  
+//! - `stefan_boltzmann(T)` — Total radiant emittance of a black‐body at `T` (W·m⁻²).  
+//!
+//! ## Spectral Band & LED Models
+//! - `sigma_from_fwhm(fwhm)` / `fwhm_from_sigma(σ)` — Convert between FWHM and standard deviation.  
+//! - `gaussian_peak_one(x, μ, σ)` — Un‐normalized Gaussian with peak = 1.0.  
+//! - `gaussian_normalized(x, μ, σ)` — Standard Gaussian PDF.  
+//! - `led_ohno(λ, center, width)` — NIST Ohno white‐LED SPD model (Optical Engineering 44(11), 2005).  
+//!
+//! ## Wavelength Conversions
+//! - `wavelength(i)` — Map an index or meter‐value `i` to meters (handles both raw nm and index → nm).  
+//! - `to_wavelength(x, xmin, xmax)` — Linearly interpolate a domain value `x ∈ [xmin, xmax]` to the
+//!   spectrum range [380 nm … 780 nm].  
+//!
+//! ## Usage
+//! Use these primitives to generate accurate spectral power distributions for illuminants,
+//! stimuli, colorants, and to perform photometric and radiometric calculations.
+//!
+
 use crate::spectrum::SPECTRUM_WAVELENGTH_RANGE;
 use num_traits::ToPrimitive;
 use wasm_bindgen::prelude::wasm_bindgen;

@@ -1,7 +1,7 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 use std::hint::black_box;
 
-use colorimetry::widergb::WideRgb;
+use colorimetry::rgb::WideRgb;
 
 fn criterion_benchmark(c: &mut Criterion) {
     let wide_rgb = WideRgb::new(0.1, 0.3, 1.0, None, None);

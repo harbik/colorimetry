@@ -12,10 +12,10 @@ use wasm_bindgen::prelude::*;
 
 use crate::{
     colorant::Colorant,
-    data::observers::CIE1931,
     error::CmtError,
     illuminant::Illuminant,
-    rgbspace::RgbSpace,
+    observer::CIE1931,
+    rgb::RgbSpace,
     spectrum::{Spectrum, SPECTRUM_WAVELENGTH_RANGE},
     traits::Light,
     xyz::XYZ,
@@ -51,7 +51,10 @@ pub static TCS: LazyLock<[Colorant; N_TCS]> = LazyLock::new(|| {
 #[test]
 fn tcs_test() {
     for (i, s) in TCS.iter().enumerate() {
-        let xyz = CIE1931.xyz(&crate::std_illuminants::StdIlluminant::D65, Some(s));
+        let xyz = CIE1931.xyz(
+            &crate::illuminant::cie_illuminant::CieIlluminant::D65,
+            Some(s),
+        );
         let [r, g, b] = xyz.rgb(Some(RgbSpace::SRGB)).values();
         println!("{:2} ({r:3},{g:3},{b:3})", i + 1);
     }
@@ -336,7 +339,7 @@ mod cri_test {
         // println!("{cri0:?}");
         approx::assert_ulps_eq!(
             cri0.as_ref(),
-            [100.0; crate::cri::N_TCS].as_ref(),
+            [100.0; crate::illuminant::cri::N_TCS].as_ref(),
             epsilon = 0.03
         );
     }
@@ -345,7 +348,7 @@ mod cri_test {
     #[cfg(feature = "cie-illuminants")]
     fn cri_f1() {
         // should be all 100.0
-        let cri0: CRI = StdIlluminant::F1.illuminant().try_into().unwrap();
+        let cri0: CRI = CieIlluminant::F1.illuminant().try_into().unwrap();
         println!("{cri0:?}");
         // approx::assert_ulps_eq!(cri0.as_ref(), [100.0;crate::cri::N_TCS].as_ref(), epsilon = 0.05);
     }
@@ -354,7 +357,7 @@ mod cri_test {
     #[cfg(feature = "cie-illuminants")]
     fn cri_f3_1() {
         // 2932K, check with values as given in CIE15:2004 Table T.8.2
-        let cri0: CRI = StdIlluminant::F3_1.illuminant().try_into().unwrap();
+        let cri0: CRI = CieIlluminant::F3_1.illuminant().try_into().unwrap();
         approx::assert_ulps_eq!(
             cri0.as_ref(),
             [42, 69, 89, 39, 41, 52, 66, 13, -109, 29, 19, 21, 47, 93]
@@ -368,7 +371,7 @@ mod cri_test {
     #[cfg(feature = "cie-illuminants")]
     fn cri_f3_11() {
         // 5854K, check with values as given in CIE15:2004 Table T.8.2
-        let cri0: CRI = CRI::new(StdIlluminant::F3_11).unwrap();
+        let cri0: CRI = CRI::new(CieIlluminant::F3_11).unwrap();
 
         let expected_ra = 78.0;
         approx::assert_abs_diff_eq!(cri0.ra(), expected_ra, epsilon = 1.0);

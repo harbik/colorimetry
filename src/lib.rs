@@ -7,27 +7,16 @@
 #![allow(clippy::approx_constant)]
 
 pub mod cam;
-#[cfg(feature = "cct")]
-pub mod cct;
 pub mod colorant;
-#[cfg(feature = "cri")]
-pub mod cri;
-pub mod data;
 pub mod error;
-pub mod gamma;
 pub mod geometry;
 pub mod illuminant;
 pub mod lab;
-#[cfg(feature = "munsell")]
-pub mod munsell_matt;
 pub mod observer;
 pub mod physics;
 pub mod prelude;
 pub mod rgb;
-pub mod rgbspace;
 pub mod spectrum;
-pub mod std_illuminants;
 pub mod stimulus;
 pub mod traits;
-pub mod widergb;
 pub mod xyz;

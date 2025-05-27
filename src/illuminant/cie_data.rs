@@ -23,8 +23,6 @@ macro_rules! data_illuminant {
 // using a step size of 5 nanometer.  As this library uses spectral
 // distributions to allow the use of different observers, and follows the
 // `CIE015:2004` Colorimetry standard, we accept this deviation.
-//pub static D65: Spectrum = Spectrum(
-//    SVector::<f64, NS>::from_array_storage(ArrayStorage([[
 #[rustfmt::skip]
 data_illuminant!(D65,
     [49.9755, 50.4428, 50.91, 51.3773, 51.8446, 52.3118, 52.7791, 53.2464, 53.7137, 54.1809, 54.6482, 57.4589, 60.2695, 63.0802, 65.8909, 68.7015, 71.5122, 74.3229, 77.1336, 79.9442,

@@ -8,7 +8,7 @@ use strum::IntoEnumIterator;
 /// parameters distance to the Planckian, the general Color Rendering Index Ra, and the spectal
 /// color rendering index R9.
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    for spc in StdIlluminant::iter() {
+    for spc in CieIlluminant::iter() {
         // Calculate CRI parameters
         let cri: CRI = spc.as_ref().try_into()?;
         let ra = cri.ra();

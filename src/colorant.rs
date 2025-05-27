@@ -1,3 +1,57 @@
+//! # Spectral Reflectance/Transmission Functions for Filters and Surface Colors
+//!
+//! The **Colorant** module defines spectral **reflectance/transmission filters** (colorants or color patches),
+//! represented as `Spectrum` values in the range [0.0…1.0] over 380 nm…780 nm at 1 nm steps (401 samples).
+//! A `Colorant` can model physical filters, paints, or ideal‐theoretical patches.
+//!
+//! ## Key Type
+//!
+//! - `pub struct Colorant`
+//!   Wraps a `Spectrum` of 401 floating-point reflectance values, clamped to \[0,1\].  
+//!
+//! ## Constructors & Factories
+//!
+//! ```text
+//! Colorant::new(spectrum)        // Validate and wrap a raw Spectrum
+//! Colorant::gray(g)              // Uniform reflectance = g
+//! Colorant::white()              // Perfect white patch (guu=1.0)
+//! Colorant::black()              // Perfect black patch (g=0.0)
+//! Colorant::top_hat(center, w)   // Rectangular bandpass filter
+//! Colorant::gaussian(center, σ)  // Gaussian band filter
+//! ```
+//!
+//! You can also construct analytically:
+//! ```text
+//! let f: Colorant = (|x: f64| /* f(x) in [0,1] */).into();
+//! ```
+//!
+//! ## Conversions & Metrics
+//!
+//! - **CIELab**:  
+//!   ```text
+//!   let lab: CieLab = colorant.cielab(Some(&illuminant), Some(observer));
+//!   ```  
+//!   Converts reflectance+illuminant → tristimulus → L\*a\*b\*.
+//!
+//! ## Arithmetic & Traits
+//!
+//! - **Subtractive mixing** via `*` (multiplicative spectrum clamp)  
+//! - **Additive combination** via `+` (spectrum clamp)  
+//! - Implements `Filter` and `Light` for seamless use in `Observer::xyz`  
+//! - Supports `Mul<f64>`, `AddAssign`, `AbsDiffEq` for testing and scaling  
+//!
+//! ## Optional Features
+//!
+//! - `#[cfg(feature = "munsell")]`  
+//!   Includes the `munsell_matt` module for Munsell‐based matte patches.
+//!
+
+#[cfg(feature = "munsell")]
+mod munsell_matt;
+
+#[cfg(feature = "munsell")]
+pub use munsell_matt::*;
+
 use std::{
     borrow::Cow,
     ops::{Add, AddAssign, Deref, DerefMut, Mul, MulAssign},
@@ -8,11 +62,11 @@ use nalgebra::SVector;
 
 use crate::{
     error::CmtError,
+    illuminant::CieIlluminant,
     lab::CieLab,
     physics::{gaussian_peak_one, wavelength},
     prelude::{Illuminant, Observer, D65, SPECTRUM_WAVELENGTH_RANGE},
     spectrum::{wavelengths, Spectrum, NS},
-    std_illuminants,
     traits::{Filter, Light},
 };
 

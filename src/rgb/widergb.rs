@@ -19,7 +19,7 @@
 //! ## Example Usage
 //!
 //! ```rust
-//! use colorimetry::widergb::WideRgb;
+//! use colorimetry::rgb::WideRgb;
 //!
 //! let wide_rgb = WideRgb::new(1.5, -0.2, 0.8, None, None);
 //! let compressed_rgb = wide_rgb.compress();
@@ -40,11 +40,10 @@
 
 use crate::{
     colorant::Colorant,
-    data::observers::CIE1931,
     illuminant::Illuminant,
     observer::Observer,
-    rgb::{self, Rgb},
-    rgbspace::RgbSpace,
+    observer::CIE1931,
+    rgb::{self, rgbspace::RgbSpace, Rgb},
     spectrum::Spectrum,
     stimulus::Stimulus,
     traits::{Filter, Light},
@@ -118,7 +117,7 @@ impl WideRgb {
     /// Returns the RGB values as an array with the red, green, and blue values respectively
     ///
     /// ```rust
-    /// # use colorimetry::widergb::WideRgb;
+    /// # use colorimetry::rgb::WideRgb;
     /// let rgb = WideRgb::new(0.1, 0.2, 0.3, None, None);
     /// let [r, g, b] = rgb.values();
     /// assert_eq!([r, g, b], [0.1, 0.2, 0.3]);
@@ -140,7 +139,7 @@ impl WideRgb {
     /// Converts a `WideRgb` value to a valid `Rgb` value by clamping red, green, and blue values to the range [0, 1].
     ///
     /// ```rust
-    /// # use colorimetry::widergb::WideRgb;
+    /// # use colorimetry::rgb::WideRgb;
     ///
     /// // A `WideRgb` value with out-of-gamut components.
     /// let wide_rgb = WideRgb::new(1.2, -0.5, 0.8, None, None);
@@ -180,7 +179,7 @@ impl WideRgb {
     ///
     /// # Example
     /// ```rust
-    /// # use colorimetry::widergb::WideRgb;
+    /// # use colorimetry::rgb::WideRgb;
     /// # use colorimetry::rgb::Rgb;
     /// # use approx::assert_abs_diff_eq;
     ///

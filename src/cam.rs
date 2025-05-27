@@ -12,7 +12,7 @@
 //! ## Example
 //! ```rust
 //! use colorimetry::cam::CieCam16;
-//! use colorimetry::cam::viewconditions::ViewConditions;
+//! use colorimetry::cam::ViewConditions;
 //! use colorimetry::xyz::XYZ;
 //! use colorimetry::observer::Observer;
 //!
@@ -27,7 +27,8 @@
 //!
 //! *Methods and internals marked `pub(crate)` have been omitted for brevity.*
 
-pub mod viewconditions;
+mod viewconditions;
+pub use viewconditions::ViewConditions;
 
 use std::f64::consts::PI;
 
@@ -44,15 +45,13 @@ const UCS_C2: f64 = 0.0228;
 use nalgebra::{matrix, vector, Matrix3, SMatrix, Vector3};
 
 use crate::{
-    cam::viewconditions::{ReferenceValues, ViewConditions},
+    cam::viewconditions::ReferenceValues,
     error::CmtError,
     geometry::distance,
     prelude::Observer,
     traits::{Filter, Light},
     xyz::XYZ,
 };
-
-//use super::viewconditions::{ReferenceValues, ViewConditions};
 
 /// CIECAM16 Color Appearance Model
 ///
@@ -215,7 +214,19 @@ impl CieCam16 {
         ]
     }
 
-    /// Returns the JC'h' values of the color as a `Vector3<f64>`.
+    /// Returns the JC'h' values of the color as an array.
+    ///
+    /// The JC'h' values are a lightness, chroma, and hue angle representation of the color,
+    /// where:
+    /// - **J** is the lightness (0 to 100)
+    /// - **C'** is the chroma (0 or greater)
+    /// - **h'** is the hue angle in degrees (0° to 360°)
+    ///
+    /// This method is similar to `jab_prime()`, but it uses the JCh representation instead of the raw Jab.
+    /// It applies the CAM16-UCS non-linear stretching to produce a perceptually uniform representation.
+    ///
+    /// # Returns
+    /// An array containing the JCh values: `[J, C', h']`.
     pub fn jch_prime(&self) -> [f64; 3] {
         let &[jj, cc, h] = self.jch.as_ref();
         let m = cc * self.vc.f_l().powf(0.25);

@@ -1,62 +1,60 @@
-/*!
+//! # Standard Observers
+//!
+//! In color science, we model how humans perceive light using “standard observers”—mathematical averages of real people’s color responses. Here’s the gist:
+//!
+//! ## How We See Color
+//! - Our eyes have three types of cones, each tuned to a different part of the spectrum:
+//!   - **L-cones** (long-wavelength, “red” sensitive)  
+//!   - **M-cones** (medium-wavelength, “green” sensitive)  
+//!   - **S-cones** (short-wavelength, “blue” sensitive)  
+//!
+//! ## From Cone Sensitivities to XYZ
+//!
+//! Directly measuring each cone type is extremely challenging, so the CIE came up with a clever substitute:
+//!
+//! - **Color-matching experiments**  
+//!   Observers tweak three narrow-band red, green, and blue lights until they visually match a test color.  
+//! - **Negative matches**  
+//!   Some test colors actually require “subtracting” a primary, which shows up as a negative match value.  
+//! - **Imaginary primaries**  
+//!   To eliminate negatives, the 1931 CIE team transformed those matches into three new “imaginary” primaries—mathematical constructs that guarantee all match values are zero or positive.  
+//! - **Color-matching functions**  
+//!   The non-negative weightings across wavelengths form the CIE 1931 curves x̅(λ), y̅(λ), and z̅(λ).  
+//! - **XYZ tristimulus**  
+//!   Finally, you integrate (dot-product) any light’s spectrum with these functions to get its standard X, Y, and Z values.
+//!
+//! ## Field of View Matters
+//! - **2° Observer (CIE 1931)**  
+//!   - Represents a small, foveal area of about 2°—think looking at a small color patch or point source.  
+//!   - Based on experiments by Wright & Guild using narrow-band primaries and 17 observers.  
+//! - **10° Observer (CIE 1964)**  
+//!   - Covers a wider, more peripheral field (10°)—better for larger patches or immersive scenes.  
+//!
+//! ## Why New Observers?
+//! - The original CIE 1931 functions work well across most of the spectrum but are less accurate in deep blue.  
+//! - **CIE 2015 Observer** recalibrates those functions using updated cone-sensitivity data—especially improving blue-region accuracy.  
+//! - Use the 2015 standard when you need the best possible match to human vision (e.g. advanced colorimetry, high-end display profiling).
+//!
+//! ## Which One to Use?
+//! - **Small, detailed samples** → 2° (CIE 1931)  
+//! - **Large fields or immersive scenes** → 10° (CIE 1964)  
+//! - **Highest-accuracy applications** (especially blue-heavy content) → CIE 2015  
+//!
+//! These standard observers form the backbone of color spaces, chromaticity diagrams, and all standardized color measurements.  
 
-# Standard Observers
+mod observers;
 
-- Human color perception
-    - begins in the retina, triggered by light stimuli detected by the **retina’s L, M, and S cones**,
-      each sensitive to different wavelength ranges.
-      - The **L cone** is most sensitive to long wavelengths (red),
-      - the **M cone** to medium wavelengths (green),
-      - and the **S cone** to short wavelengths (blue).
-
-- Visual responsivity varies with the angular extent of the field of view.
-  - The **CIE 1931 Standard Observer** defines color matching functions for a **2-degree** field of
-    view, representing central (foveal) vision.  This is typically used for viewing **small objects**,
-    such as point light sources or fine details.
-  - The **CIE 1964 Standard Observer** extends the field of view to **10 degrees**, capturing a
-    broader area of the retina, including more peripheral cones.  It is recommended for **larger
-    objects** or extended fields, such as color patches, or when measuring color in more immersive
-    viewing conditions.
-- Cone response differ across individuals, leading to variations in color perception.
-  - **Genetic variation**, especially on the **X chromosome**, causes differences in cone types and
-    densities—explaining individual variations and color vision deficiencies (e.g., red-green color
-    blindness).
-  - Additional variation comes from the **optical media of the eye** (lens, cornea, macula), which
-    filter incoming light and change with age and health.
-- Cone responses form the physiological basis of **tristimulus values (X, Y, Z)**, first defined by the **CIE**
-  in 1931.
-  - Color matching experiments using **bipartite fields** and narrow-band **RGB primaries** were used
-    to measure how observers match colors across the visible spectrum.
-  - Data from **Wright** and **Guild**, using a total of 17 male observers, were combined to define
-    average **RGB color matching functions**.
-  - To eliminate negative values, the RGB functions were transformed into the **XYZ space** using
-    imaginary primaries.
-  - The Y function was aligned with the **CIE 1924 photopic luminosity function**.
-  - The resulting **color matching functions**—𝑥̅(λ), 𝑦̅(λ), and 𝑧̅(λ)— define the standard observer’s response.
-  - These functions are the foundation of **chromaticity diagrams** like the **CIE 1931 (x, y)**
-    space, used to visualize color perception across the visible spectrum.
-- The **CIE 1931 Standard Observer** is the most widely used, but it has limitations.
-  - It does not accurately represent color perception in the blue region of the spectrum.
-  - The **CIE 2015 Standard Observer** was developed to address these limitations, providing a more
-    accurate representation of human color vision, especially in the blue region.
-  - It is based on the **CIE 2015 color matching functions**, which are derived from the spectral
-    sensitivities of the cones in the retina.
-  - The CIE 2015 Standard Observer is recommended for applications requiring high color accuracy,
-    such as colorimetry, color science, and display technology.
-  - It is also used in the **CIE 2015 color space**, which is a more accurate representation of
-    color perception than the CIE 1931 color space.
-
- */
+pub use observers::*;
 
 use crate::{
     colorant::Colorant,
     error::CmtError,
     geometry::LineAB,
+    illuminant::CieIlluminant,
     lab::CieLab,
     physics::{planck, planck_slope, to_wavelength},
-    rgbspace::RgbSpace,
+    rgb::RgbSpace,
     spectrum::{Spectrum, NS, SPECTRUM_WAVELENGTH_RANGE},
-    std_illuminants::StdIlluminant,
     traits::{Filter, Light},
     xyz::XYZ,
 };
@@ -101,13 +99,13 @@ impl Observer {
     */
     pub fn data(&self) -> &'static ObserverData {
         match self {
-            Observer::Std1931 => &crate::data::observers::CIE1931,
+            Observer::Std1931 => &observers::CIE1931,
             #[cfg(feature = "supplemental-observers")]
-            Observer::Std1964 => &crate::data::observers::CIE1964,
+            Observer::Std1964 => &observers::CIE1964,
             #[cfg(feature = "supplemental-observers")]
-            Observer::Std2015 => &crate::data::observers::CIE2015,
+            Observer::Std2015 => &observers::CIE2015,
             #[cfg(feature = "supplemental-observers")]
-            Observer::Std2015_10 => &crate::data::observers::CIE2015_10,
+            Observer::Std2015_10 => &observers::CIE2015_10,
         }
     }
 }
@@ -160,7 +158,7 @@ impl ObserverData {
     /// Calulates Tristimulus values for an object implementing the [Light] trait, and an optional [Filter],
     /// filtering the light.
     ///
-    /// The Light trait is implemented by [`StdIlluminant`] and [Illuminant](crate::illuminant::Illuminant).
+    /// The Light trait is implemented by [`CieIlluminant`] and [Illuminant](crate::illuminant::Illuminant).
     ///
     /// [`Colorant`] implments the [`Filter`] trait.
     /// [`Rgb`](crate::rgb::Rgb), which represents a display pixel, implements both in this library.
@@ -214,7 +212,7 @@ impl ObserverData {
     /// Values are not normalized by default, unless an illuminance value is provided.
     ///
     /// TODO: buffer values
-    pub fn xyz_cie_table(&self, std_illuminant: &StdIlluminant, illuminance: Option<f64>) -> XYZ {
+    pub fn xyz_cie_table(&self, std_illuminant: &CieIlluminant, illuminance: Option<f64>) -> XYZ {
         let xyz = self.xyz_from_spectrum(std_illuminant.illuminant());
         if let Some(l) = illuminance {
             xyz.set_illuminance(l)
@@ -226,13 +224,13 @@ impl ObserverData {
     /// XYZ tristimulus values for the CIE standard daylight illuminant D65.
     /// The values are calculated on first use.
     pub fn xyz_d65(&self) -> XYZ {
-        self.xyz_cie_table(&StdIlluminant::D65, Some(100.0))
+        self.xyz_cie_table(&CieIlluminant::D65, Some(100.0))
     }
 
     /// XYZ tristimulus values for the CIE standard daylight illuminant D50.
     /// The values are calculated on first use.
     pub fn xyz_d50(&self) -> XYZ {
-        self.xyz_cie_table(&StdIlluminant::D50, Some(100.0))
+        self.xyz_cie_table(&CieIlluminant::D50, Some(100.0))
     }
 
     /**
@@ -249,21 +247,21 @@ impl ObserverData {
         and converting the resulting value to RGB values.
         ```
             use colorimetry::prelude::*;
-            let rgb: [u8;3] = CIE1931.xyz_from_std_illuminant_x_fn(&StdIlluminant::D65, |x|x).rgb(None).clamp().into();
+            let rgb: [u8;3] = CIE1931.xyz_from_std_illuminant_x_fn(&CieIlluminant::D65, |x|x).rgb(None).clamp().into();
             assert_eq!(rgb, [212, 171, 109]);
         ```
         Linear low pass filter, with a value of 1.0 for a wavelength of 380nm, and a value of 0.0 for 780nm,
         and converting the resulting value to RGB values.
         ```
             use colorimetry::prelude::*;
-            let rgb: [u8;3] = CIE1931.xyz_from_std_illuminant_x_fn(&StdIlluminant::D65, |x|1.0-x).rgb(None).clamp().into();
+            let rgb: [u8;3] = CIE1931.xyz_from_std_illuminant_x_fn(&CieIlluminant::D65, |x|1.0-x).rgb(None).clamp().into();
             assert_eq!(rgb, [158, 202, 237]);
         ```
 
     */
     pub fn xyz_from_std_illuminant_x_fn(
         &self,
-        illuminant: &StdIlluminant,
+        illuminant: &CieIlluminant,
         f: impl Fn(f64) -> f64,
     ) -> XYZ {
         let ill = illuminant.illuminant();
@@ -325,7 +323,7 @@ impl ObserverData {
     /// Accepts a Colorant Spectrum only.
     /// Returns f64::NAN's otherwise.
     pub fn lab_d65(&self, filter: &dyn Filter) -> CieLab {
-        let xyz = self.xyz(&StdIlluminant::D65, Some(filter));
+        let xyz = self.xyz(&CieIlluminant::D65, Some(filter));
         let xyzn = self.xyz_d65();
         CieLab::from_xyz(xyz, xyzn).unwrap()
     }
@@ -334,7 +332,7 @@ impl ObserverData {
     /// Accepts a Colorant Spectrum only.
     /// Returns f64::NAN's otherwise.
     pub fn lab_d50(&self, filter: &dyn Filter) -> CieLab {
-        let xyz = self.xyz(&StdIlluminant::D50, Some(filter));
+        let xyz = self.xyz(&CieIlluminant::D50, Some(filter));
         let xyzn = self.xyz_d50();
         CieLab::from_xyz(xyz, xyzn).unwrap()
     }
@@ -467,8 +465,8 @@ impl ObserverData {}
 mod obs_test {
 
     use super::Observer;
-    use crate::prelude::{StdIlluminant, CIE1931};
-    use crate::rgbspace::RgbSpace;
+    use crate::prelude::{CieIlluminant, CIE1931};
+    use crate::rgb::RgbSpace;
     use crate::spectrum::SPECTRUM_WAVELENGTH_RANGE;
     use crate::xyz::{Chromaticity, XYZ};
     use approx::assert_ulps_eq;
@@ -547,7 +545,7 @@ mod obs_test {
             0.4124564, 0.3575761, 0.1804375, 0.2126729, 0.7151522, 0.0721750, 0.0193339, 0.1191920,
             0.9503041,
         );
-        let got = CIE1931.rgb2xyz(&crate::rgbspace::RgbSpace::SRGB);
+        let got = CIE1931.rgb2xyz(&crate::rgb::RgbSpace::SRGB);
         approx::assert_ulps_eq!(want, got, epsilon = 3E-4);
     }
 
@@ -559,7 +557,7 @@ mod obs_test {
             3.2404542, -1.5371385, -0.4985314, -0.9692660, 1.8760108, 0.0415560, 0.0556434,
             -0.2040259, 1.0572252,
         );
-        let got = CIE1931.xyz2rgb(crate::rgbspace::RgbSpace::SRGB);
+        let got = CIE1931.xyz2rgb(crate::rgb::RgbSpace::SRGB);
         approx::assert_ulps_eq!(want, got, epsilon = 3E-4);
     }
 
@@ -572,7 +570,7 @@ mod obs_test {
             xyz,
             xyzn,
             observer,
-        } = CIE1931.xyz_cie_table(&StdIlluminant::D65, Some(100.0));
+        } = CIE1931.xyz_cie_table(&CieIlluminant::D65, Some(100.0));
         approx::assert_ulps_eq!(xyzn, na::Vector3::new(95.04, 100.0, 108.86), epsilon = 1E-2);
         assert!(xyz.is_none());
     }
@@ -597,7 +595,7 @@ mod obs_test {
 
     #[test]
     fn test_xyz_from_illuminant_x_fn() {
-        let xyz = CIE1931.xyz_from_std_illuminant_x_fn(&StdIlluminant::D65, |_v| 1.0);
+        let xyz = CIE1931.xyz_from_std_illuminant_x_fn(&CieIlluminant::D65, |_v| 1.0);
         let d65xyz = CIE1931.xyz_d65().xyz;
         approx::assert_ulps_eq!(
             xyz,
@@ -607,7 +605,7 @@ mod obs_test {
 
     #[test]
     fn test_xyz_of_sample_with_standard_illuminant() {
-        use crate::prelude::{StdIlluminant::D65 as d65, XYZ};
+        use crate::prelude::{CieIlluminant::D65 as d65, XYZ};
         let xyz = CIE1931
             .xyz(&d65, Some(&crate::colorant::Colorant::white()))
             .set_illuminance(100.0);

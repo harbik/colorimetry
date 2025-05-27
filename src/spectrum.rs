@@ -1,13 +1,11 @@
-/*!
-# Spectral Composition
-
-The field of Colorimetry uses mathematical models to describe the sensations in our mind which we
-call color.  These models are based the spectral composition of stimuli, essentially rays of light
-hitting the photosensitive cells in the back of our eyes, and the spectral sensitiviy of these
-cells. The spectral composition of light, and the objects involved in its processing such as filters
-and painted patches, is represented by the [Spectrum]-object in this library.
-The spectral sensitivity of human vision is described by an [`Observer`](crate::observer::Observer).
-*/
+//! # Basis for Spectral Data Representations
+//!
+//! The field of Colorimetry uses mathematical models to describe the sensations in our mind which we
+//! call color.  These models are based the spectral composition of stimuli, essentially rays of light
+//! hitting the photosensitive cells in the back of our eyes, and the spectral sensitiviy of these
+//! cells. The spectral composition of light, and the objects involved in its processing such as filters
+//! and painted patches, is represented by the [Spectrum]-object in this library.
+//! The spectral sensitivity of human vision is described by an [`Observer`](crate::observer::Observer).
 use core::f64;
 use std::{
     borrow::Cow,
@@ -27,14 +25,14 @@ use nalgebra::{DVector, SVector};
 
 use crate::{
     colorant::Colorant,
-    data::illuminants::{D50, D65},
-    data::observers::CIE1931,
     error::CmtError,
+    illuminant::CieIlluminant,
+    illuminant::{D50, D65},
     observer::ObserverData,
+    observer::CIE1931,
     physics::C,
     physics::{gaussian_peak_one, led_ohno, planck, sigma_from_fwhm, stefan_boltzmann, wavelength},
-    std_illuminants::StdIlluminant,
-    widergb::WideRgb,
+    rgb::WideRgb,
 };
 
 /// The wavelength range of the spectrums supported by this library.
@@ -740,7 +738,7 @@ mod tests {
 
     #[cfg_attr(test, cfg(feature = "cie-illuminants"))]
     fn a() {
-        let a: Illuminant = StdIlluminant::A.into();
+        let a: Illuminant = CieIlluminant::A.into();
         let chromaticity = CIE1931.xyz_from_spectrum(&a).chromaticity();
         // See table T3 CIE15:2004 (calculated with 5nm intervals, instead of 1nm, as used here)
         assert_ulps_eq!(chromaticity.x(), 0.447_58, epsilon = 5E-5);

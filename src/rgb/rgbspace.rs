@@ -2,9 +2,9 @@ use std::{collections::HashMap, sync::OnceLock};
 
 use crate::xyz::Chromaticity;
 use crate::{
-    colorant::Colorant, data::illuminants::D65, data::observers::CIE1931, gamma::GammaCurve,
-    illuminant::Illuminant, rgb::gaussian_filtered_primaries, spectrum::Spectrum,
-    std_illuminants::StdIlluminant, stimulus::Stimulus,
+    colorant::Colorant, illuminant::CieIlluminant, illuminant::Illuminant, illuminant::D65,
+    observer::CIE1931, rgb::gamma::GammaCurve, rgb::gaussian_filtered_primaries,
+    spectrum::Spectrum, stimulus::Stimulus,
 };
 use strum_macros::EnumIter;
 use wasm_bindgen::prelude::wasm_bindgen;
@@ -78,11 +78,11 @@ impl RgbSpace {
     }
 
     /// Returns the reference white point illuminant for this color space.
-    pub fn white(&self) -> StdIlluminant {
+    pub fn white(&self) -> CieIlluminant {
         match self {
-            Self::SRGB => StdIlluminant::D65,
-            Self::ADOBE => StdIlluminant::D65,
-            Self::DisplayP3 => StdIlluminant::D65,
+            Self::SRGB => CieIlluminant::D65,
+            Self::ADOBE => CieIlluminant::D65,
+            Self::DisplayP3 => CieIlluminant::D65,
         }
     }
 }
@@ -107,7 +107,7 @@ health conditions.
 */
 pub struct RgbSpaceData {
     pub(crate) primaries: [Stimulus; 3],
-    pub(crate) white: StdIlluminant,
+    pub(crate) white: CieIlluminant,
     pub(crate) gamma: GammaCurve,
 }
 
@@ -122,7 +122,7 @@ impl RgbSpaceData {
     vice versa (see the `rgb2xyz(rgbid: &RgbSpaceId)` and `xyz2rgb(rgbid: &RgbSpaceId)`
     methods of `Observer`).
     */
-    pub fn new(primaries: [Stimulus; 3], white: StdIlluminant, gamma: GammaCurve) -> Self {
+    pub fn new(primaries: [Stimulus; 3], white: CieIlluminant, gamma: GammaCurve) -> Self {
         Self {
             primaries,
             white,
@@ -175,7 +175,7 @@ impl RgbSpaceData {
 
         SRGB.get_or_init(|| {
             let primaries = gaussian_filtered_primaries(&D65, RED, GREEN, BLUE);
-            let white = StdIlluminant::D65;
+            let white = CieIlluminant::D65;
             let gamma =
                 GammaCurve::new(vec![2.4, 1.0 / 1.055, 0.055 / 1.055, 1.0 / 12.92, 0.04045]);
             Self {
@@ -206,7 +206,7 @@ impl RgbSpaceData {
 
         ADOBE_RGB.get_or_init(|| {
             let primaries = gaussian_filtered_primaries(&D65, RED, GREEN, BLUE);
-            let white = StdIlluminant::D65;
+            let white = CieIlluminant::D65;
             let gamma = GammaCurve::new(vec![563.0 / 256.0]);
             // See https://en.wikipedia.org/wiki/Adobe_RGB_color_space#ICC_PCS_color_image_encoding
             Self {
@@ -237,7 +237,7 @@ impl RgbSpaceData {
 
         DISPLAY_P3.get_or_init(|| {
             let primaries = gaussian_filtered_primaries(&D65, RED, GREEN, BLUE);
-            let white = StdIlluminant::D65;
+            let white = CieIlluminant::D65;
             let gamma =
                 GammaCurve::new(vec![2.4, 1.0 / 1.055, 0.055 / 1.055, 1.0 / 12.92, 0.04045]);
             Self {
@@ -259,7 +259,7 @@ mod rgbspace_tests {
     /// Check color points of the primaries, as calculated from the space's
     /// spectra, to the targets returned by the `RgbSpace::primaries_chromaticity()` method.
     fn primaries_chromaticity_match_stimulus_spectrum() {
-        for space in RgbSpace::iter() {
+        for space in super::RgbSpace::iter() {
             let primaries_chromaticity = space.primaries_chromaticity();
             let primaries_colorants = &space.data().primaries;
             assert_eq!(primaries_chromaticity.len(), primaries_colorants.len());

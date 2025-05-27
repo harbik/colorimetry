@@ -1,3 +1,64 @@
+//! # Spectral Power Distributions for Standard and User Definied Illuminants
+//!
+//! This module defines spectral **illuminants**—spectral power distributions (SPDs)
+//! representing light sources or combinations of sources (e.g. daylight, LEDs, black-body radiators).
+//! Spectral data cover 380 nm…780 nm at 1 nm intervals (401 samples).
+//!
+//! ## Submodules
+//! - `illuminants`         – pre-defined `Spectrum` constants (e.g. D50, D65).  
+//! - `std_illuminants`     – enum `CieIlluminant` for standard illuminants.
+//!
+//! ## Key Types
+//! - **`Illuminant`**
+//!   Wrapper around `Spectrum` with convenience constructors and SPD-specific operations.
+//!
+//! ## Manipulation & Analysis
+//! - **`set_irradiance(f64)`** / **`.irradiance()`**  
+//!   Scale or measure total spectral power (W/m²).  
+//! - **`set_illuminance(obs, lux)`** / **`.illuminance(obs)`**  
+//!   Scale or measure photometric illuminance (lux) via a given `Observer`.  
+//! - **`xyz(obs_opt)`** → `XYZ`  
+//!   Compute tristimulus values for this SPD under a chosen observer (default CIE 1931).  
+//! - **Color Rendering Index** (feature “cri”):  
+//!   Compute CRI metrics if enabled.  
+//! - **Correlated Color Temperature** (feature “cct”):  
+//!   Derive CCT and DUV when enabled.
+//!
+//! ## Traits & Conversions
+//! - `impl Light for Illuminant`  
+//! - `From<Spectrum> for Illuminant`  
+//! - `Mul<f64>` implementations for scaling SPDs.
+//!
+//! ## WASM Bindings
+//! Exposed via `#[wasm_bindgen]` for JavaScript usage (e.g. constructing SPDs, reading values, CRI).
+//!
+//! ## Examples
+//! ```rust
+//! use colorimetry::prelude::*;
+//! // Create a 6500 K black-body SPD, measure its chromaticity:
+//! let ill = Illuminant::planckian(6500.0);
+//! let xyz = CIE1931.xyz(&ill, None).set_illuminance(100.0);
+//! let [x, y] = xyz.chromaticity().to_array();
+//! ```  
+
+mod cie_data;
+pub use cie_data::*;
+
+mod cie_illuminant;
+pub use cie_illuminant::CieIlluminant;
+
+#[cfg(feature = "cct")]
+mod cct;
+
+#[cfg(feature = "cct")]
+pub use cct::CCT;
+
+#[cfg(feature = "cri")]
+mod cri;
+
+#[cfg(feature = "cri")]
+pub use cri::*;
+
 use std::{
     borrow::Cow,
     ops::{Deref, Mul},
@@ -7,19 +68,14 @@ use wasm_bindgen::prelude::*;
 use nalgebra::{ArrayStorage, SMatrix, SVector};
 
 use crate::{
-    data::illuminants::{D50, D65},
     error::CmtError,
     illuminant,
     observer::{Observer, ObserverData},
     physics::{gaussian_peak_one, led_ohno, planck, stefan_boltzmann, wavelength},
     spectrum::{wavelengths, Spectrum, NS, SPECTRUM_WAVELENGTH_RANGE},
-    std_illuminants::StdIlluminant,
     traits::Light,
     xyz::XYZ,
 };
-
-#[cfg(feature = "cri")]
-use crate::cri::CRI;
 
 #[derive(Clone, Default)]
 #[wasm_bindgen]
@@ -165,7 +221,7 @@ impl Illuminant {
     ///   or when the CCT is outside the range of 1000 to 25000 Kelvin.
     #[cfg(feature = "cri")]
     pub fn cri(&self) -> Result<CRI, CmtError> {
-        use crate::cri::CRI;
+        use cri::CRI;
 
         self.try_into()
     }
@@ -221,10 +277,10 @@ impl Illuminant {
     /// - CmtError::OutOfRange when the the distance to the Planckian locus is larger than 0.05 DUV,
     ///   or when the CCT is outside the range of 1000 to 25000 Kelvin.
     #[cfg(feature = "cct")]
-    pub fn cct(&self) -> Result<crate::cct::CCT, CmtError> {
+    pub fn cct(&self) -> Result<cct::CCT, CmtError> {
         // CIE requires using the CIE1931 observer for calculating the CCT.
         let xyz = self.xyz(Some(Observer::Std1931));
-        crate::cct::CCT::from_xyz(xyz)
+        cct::CCT::from_xyz(xyz)
     }
 }
 
@@ -299,7 +355,7 @@ impl Illuminant {
     /// which takes a wavelength domain and spectral data as arguments.
     #[wasm_bindgen(constructor)]
     pub fn new_js(data: &[f64]) -> Result<Illuminant, wasm_bindgen::JsError> {
-        Ok(Illuminant(Spectrum::try_from(data)?))
+        Ok(Illuminant(Spectrum::try_from(cie_data)?))
     }
 
     /// Returns the spectral data values, as a Float64Array containing 401 data
@@ -322,12 +378,12 @@ impl Illuminant {
         todo!()
     }
 
-    /// Get the StdIlluminant spectrum. Typically you don't need to use the Spectrum itself, as many
-    /// methods just accept the StdIlluminant directly.
+    /// Get the CieIlluminant spectrum. Typically you don't need to use the Spectrum itself, as many
+    /// methods just accept the CieIlluminant directly.
     #[wasm_bindgen(js_name=illuminant)]
-    pub fn llluminant_js(stdill: StdIlluminant) -> Self {
+    pub fn llluminant_js(stdill: CieIlluminant) -> Self {
         // need this as wasm_bindgen does not support `impl` on Enum types (yet?).
-        // in Rust use StdIlluminant.spectrum() directly, which also gives a reference instead of a copy.
+        // in Rust use CieIlluminant.spectrum() directly, which also gives a reference instead of a copy.
         stdill.illuminant().clone()
     }
 }
