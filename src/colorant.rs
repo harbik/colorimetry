@@ -47,7 +47,10 @@
 //!
 
 #[cfg(feature = "munsell")]
-pub mod munsell_matt;
+mod munsell_matt;
+
+#[cfg(feature = "munsell")]
+pub use munsell_matt::*;
 
 use std::{
     borrow::Cow,

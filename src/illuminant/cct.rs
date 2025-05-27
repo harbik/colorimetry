@@ -44,7 +44,7 @@ use approx::{assert_ulps_eq, relative_eq, ulps_eq, AbsDiffEq, RelativeEq, UlpsEq
 use crate::{
     error::CmtError,
     geometry::distance_to_line,
-    observer::observers::CIE1931,
+    observer::CIE1931,
     observer::{Observer, ObserverData},
     physics::planck,
     spectrum::NS,

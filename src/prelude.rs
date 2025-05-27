@@ -34,25 +34,14 @@
 //! By importing `prelude::*`, you get a comprehensive set of tools for colorimetry tasks—no more
 //! hunting through modules for the right name!
 
-pub use super::cam::viewconditions::*;
 pub use super::cam::*;
-#[cfg(feature = "munsell")]
-pub use super::colorant::munsell_matt::*;
 pub use super::colorant::*;
 pub use super::geometry::*;
-#[cfg(feature = "cct")]
-pub use super::illuminant::cct::*;
-#[cfg(feature = "cri")]
-pub use super::illuminant::cri::*;
-pub use super::illuminant::illuminants::*;
 pub use super::illuminant::std_illuminants::*;
 pub use super::illuminant::*;
 pub use super::lab::*;
-pub use super::observer::observers::*;
 pub use super::observer::*;
 pub use super::physics::*;
-pub use super::rgb::rgbspace::*;
-pub use super::rgb::widergb::*;
 pub use super::rgb::*;
 pub use super::spectrum::*;
 pub use super::stimulus::*;

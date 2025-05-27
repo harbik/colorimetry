@@ -40,8 +40,8 @@ use crate::{
     geometry::{LineAB, Orientation},
     illuminant::Illuminant,
     observer::{self, Observer},
-    rgb::rgbspace::RgbSpace,
-    rgb::widergb::WideRgb,
+    rgb::RgbSpace,
+    rgb::WideRgb,
     spectrum::Spectrum,
 };
 use approx::{ulps_eq, AbsDiffEq};
@@ -427,7 +427,7 @@ impl XYZ {
     }
 
     #[cfg(feature = "cct")]
-    pub fn cct(self) -> Result<crate::illuminant::cct::CCT, CmtError> {
+    pub fn cct(self) -> Result<crate::illuminant::CCT, CmtError> {
         self.try_into()
     }
     /// Converts a set of **XYZ tristimulus values** to **WideRgb values** using the specified RGB space.

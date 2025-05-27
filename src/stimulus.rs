@@ -5,8 +5,8 @@ use std::{
 };
 
 use crate::{
-    illuminant::Illuminant, observer::ObserverData, rgb::widergb::WideRgb, rgb::Rgb,
-    spectrum::Spectrum, traits::Light,
+    illuminant::Illuminant, observer::ObserverData, rgb::Rgb, rgb::WideRgb, spectrum::Spectrum,
+    traits::Light,
 };
 
 #[derive(Clone)]
@@ -42,7 +42,7 @@ impl Stimulus {
             g_u8,
             b_u8,
             Some(crate::observer::Observer::Std1931),
-            Some(crate::rgb::rgbspace::RgbSpace::SRGB),
+            Some(crate::rgb::RgbSpace::SRGB),
         );
         rgb.into()
     }
@@ -73,7 +73,7 @@ impl Sum for Stimulus {
 /// instance.
 ///
 /// It uses a linear combination of the spectral primaries as defined for a particular
-/// [`RgbSpace``](crate::rgb::rgbspace::RgbSpace).
+/// [`RgbSpace``](crate::rgb::RgbSpace).
 /// Most of the color spaces in this library use Daylight filtered Gaussian primaries,
 /// but you can also use your own color space based on primaries measured by a spectrometer.
 /// Spectral representations of pixels allow color matching for arbitrary observers,

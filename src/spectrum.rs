@@ -26,13 +26,13 @@ use nalgebra::{DVector, SVector};
 use crate::{
     colorant::Colorant,
     error::CmtError,
-    illuminant::illuminants::{D50, D65},
+    illuminant::{D50, D65},
     illuminant::std_illuminants::StdIlluminant,
-    observer::observers::CIE1931,
     observer::ObserverData,
+    observer::CIE1931,
     physics::C,
     physics::{gaussian_peak_one, led_ohno, planck, sigma_from_fwhm, stefan_boltzmann, wavelength},
-    rgb::widergb::WideRgb,
+    rgb::WideRgb,
 };
 
 /// The wavelength range of the spectrums supported by this library.

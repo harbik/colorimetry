@@ -14,8 +14,8 @@ use crate::{
     colorant::Colorant,
     error::CmtError,
     illuminant::Illuminant,
-    observer::observers::CIE1931,
-    rgb::rgbspace::RgbSpace,
+    observer::CIE1931,
+    rgb::RgbSpace,
     spectrum::{Spectrum, SPECTRUM_WAVELENGTH_RANGE},
     traits::Light,
     xyz::XYZ,
@@ -337,7 +337,11 @@ mod cri_test {
         // should be all 100.0
         let cri0: CRI = (&D50).try_into().unwrap();
         // println!("{cri0:?}");
-        approx::assert_ulps_eq!(cri0.as_ref(), [100.0; cri::N_TCS].as_ref(), epsilon = 0.03);
+        approx::assert_ulps_eq!(
+            cri0.as_ref(),
+            [100.0; crate::illuminant::cri::N_TCS].as_ref(),
+            epsilon = 0.03
+        );
     }
 
     #[test]

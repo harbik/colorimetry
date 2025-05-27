@@ -52,18 +52,19 @@
 //! - Byte and float conversions  
 //! - XYZ tristimulus output under default settings  
 
-pub mod gamma;
-pub mod rgbspace;
-pub mod widergb;
+mod gamma;
+mod rgbspace;
+mod widergb;
+
+pub use rgbspace::RgbSpace;
+pub use widergb::WideRgb;
 
 use crate::{
     colorant::Colorant,
     error::CmtError,
     illuminant::Illuminant,
-    observer::observers::CIE1931,
     observer::Observer,
-    rgb::rgbspace::RgbSpace,
-    rgb::widergb::WideRgb,
+    observer::CIE1931,
     spectrum::Spectrum,
     stimulus::Stimulus,
     traits::{Filter, Light},

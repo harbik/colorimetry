@@ -12,7 +12,7 @@
 //! ## Example
 //! ```rust
 //! use colorimetry::cam::CieCam16;
-//! use colorimetry::cam::viewconditions::ViewConditions;
+//! use colorimetry::cam::ViewConditions;
 //! use colorimetry::xyz::XYZ;
 //! use colorimetry::observer::Observer;
 //!
@@ -27,7 +27,8 @@
 //!
 //! *Methods and internals marked `pub(crate)` have been omitted for brevity.*
 
-pub mod viewconditions;
+mod viewconditions;
+pub use viewconditions::ViewConditions;
 
 use std::f64::consts::PI;
 
@@ -44,7 +45,7 @@ const UCS_C2: f64 = 0.0228;
 use nalgebra::{matrix, vector, Matrix3, SMatrix, Vector3};
 
 use crate::{
-    cam::viewconditions::{ReferenceValues, ViewConditions},
+    cam::viewconditions::{ReferenceValues},
     error::CmtError,
     geometry::distance,
     prelude::Observer,

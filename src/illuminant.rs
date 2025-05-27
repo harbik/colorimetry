@@ -41,14 +41,22 @@
 //! let [x, y] = xyz.chromaticity().to_array();
 //! ```  
 
-pub mod illuminants;
+mod cie_data;
+pub use cie_data::*;
+
 pub mod std_illuminants;
 
 #[cfg(feature = "cct")]
-pub mod cct;
+mod cct;
+
+#[cfg(feature = "cct")]
+pub use cct::CCT;
 
 #[cfg(feature = "cri")]
-pub mod cri;
+mod cri;
+
+#[cfg(feature = "cri")]
+pub use cri::*;
 
 use std::{
     borrow::Cow,
@@ -69,10 +77,6 @@ use crate::{
     xyz::XYZ,
 };
 
-use illuminants::{D50, D65};
-
-#[cfg(feature = "cri")]
-use cri::CRI;
 
 #[derive(Clone, Default)]
 #[wasm_bindgen]
@@ -352,7 +356,7 @@ impl Illuminant {
     /// which takes a wavelength domain and spectral data as arguments.
     #[wasm_bindgen(constructor)]
     pub fn new_js(data: &[f64]) -> Result<Illuminant, wasm_bindgen::JsError> {
-        Ok(Illuminant(Spectrum::try_from(illuminants)?))
+        Ok(Illuminant(Spectrum::try_from(cie_data)?))
     }
 
     /// Returns the spectral data values, as a Float64Array containing 401 data
