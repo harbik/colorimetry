@@ -34,7 +34,8 @@
 //!
 //! ## Examples
 //! ```rust
-//! use colorimetry::prelude::*;
+//! use colorimetry::illuminant::Illuminant;
+//! use colorimetry::observer::CIE1931;
 //! // Create a 6500 K black-body SPD, measure its chromaticity:
 //! let ill = Illuminant::planckian(6500.0);
 //! let xyz = CIE1931.xyz(&ill, None).set_illuminance(100.0);
@@ -152,7 +153,8 @@ impl Illuminant {
     /// The generated spectrum is scaled to have a total power, over the full
     /// spectrum (including infrared), of 1 Watt.
     /// ```rust
-    /// # use colorimetry::prelude::*;
+    /// # use colorimetry::illuminant::Illuminant;
+    /// use colorimetry::observer::CIE1931;
     /// # use approx::assert_ulps_eq;
     ///
     /// let p3000 = Illuminant::planckian(3000.0);
@@ -294,15 +296,15 @@ impl From<Spectrum> for Illuminant {
 impl Mul<f64> for Illuminant {
     /// Multiply a spectrum with a scalar f64 value.
     /// ```
-    ///     use colorimetry::prelude::*;
-    ///     use approx::assert_ulps_eq;
+    /// # use colorimetry::illuminant::Illuminant;
+    /// use approx::assert_ulps_eq;
     ///
-    ///     let mut led = Illuminant::led(550.0, 25.0);
-    ///     let mut irradiance = led.irradiance();
-    ///     assert_ulps_eq!(led.irradiance(), 1.0, epsilon = 1E-10);
+    /// let mut led = Illuminant::led(550.0, 25.0);
+    /// let mut irradiance = led.irradiance();
+    /// assert_ulps_eq!(led.irradiance(), 1.0, epsilon = 1E-10);
     ///
-    ///     led = led * 10.0;
-    ///     assert_ulps_eq!(led.irradiance(), 10.0, epsilon = 1E-10);
+    /// led = led * 10.0;
+    /// assert_ulps_eq!(led.irradiance(), 10.0, epsilon = 1E-10);
     /// ```
     type Output = Self;
 
@@ -315,15 +317,15 @@ impl Mul<f64> for Illuminant {
 impl Mul<Illuminant> for f64 {
     /// Multiply a spectrum with a scalar f64 value.
     /// ```
-    ///     use colorimetry::prelude::*;
-    ///     use approx::assert_ulps_eq;
+    /// use colorimetry::illuminant::Illuminant;
+    /// use approx::assert_ulps_eq;
     ///
-    ///     let mut led = Illuminant::led(550.0, 25.0);
-    ///     let mut irradiance = led.irradiance();
-    ///     assert_ulps_eq!(led.irradiance(), 1.0, epsilon = 1E-10);
+    /// let mut led = Illuminant::led(550.0, 25.0);
+    /// let mut irradiance = led.irradiance();
+    /// assert_ulps_eq!(led.irradiance(), 1.0, epsilon = 1E-10);
     ///
-    ///     led = 10.0 * led;
-    ///     assert_ulps_eq!(led.irradiance(), 10.0, epsilon = 1E-10);
+    /// led = 10.0 * led;
+    /// assert_ulps_eq!(led.irradiance(), 10.0, epsilon = 1E-10);
     /// ```
     type Output = Illuminant;
 
@@ -388,32 +390,6 @@ impl Illuminant {
     }
 }
 
-#[test]
-fn test_d_illuminant() {
-    use crate::prelude::*;
-    let s = Illuminant::d_illuminant(6504.0).unwrap();
-    let xyz = CIE1931.xyz_from_spectrum(&s).set_illuminance(100.0);
-    approx::assert_ulps_eq!(xyz, CIE1931.xyz_d65(), epsilon = 2E-2);
-}
-
-#[test]
-fn test_d_illuminant_range_error() {
-    use crate::prelude::*;
-    let s = Illuminant::d_illuminant(3999.0);
-    assert!(s.is_err());
-    let s = Illuminant::d_illuminant(25001.0);
-    assert!(s.is_err());
-}
-
-#[test]
-fn test_xyz() {
-    use crate::prelude::*;
-    let s = *Illuminant::d_illuminant(6504.0).unwrap().values();
-    let illuminant = Illuminant(Spectrum::from(s));
-    let xyz = illuminant.xyz(None).set_illuminance(100.0);
-    approx::assert_ulps_eq!(xyz, CIE1931.xyz_d65(), epsilon = 2E-2);
-}
-
 const CIE_D_S_LEN: usize = 81;
 
 static CIE_D_S: SMatrix<f64, CIE_D_S_LEN, 3> = SMatrix::from_array_storage(ArrayStorage([
@@ -444,3 +420,34 @@ static CIE_D_S: SMatrix<f64, CIE_D_S_LEN, 3> = SMatrix::from_array_storage(Array
         7.30, 7.60, 7.80, 8.00, 7.35, 6.70, 5.95, 5.20, 6.30, 7.40, 7.10, 6.80,
     ],
 ]));
+
+#[cfg(test)]
+mod tests {
+    use super::Illuminant;
+    use crate::observer::CIE1931;
+    use crate::spectrum::Spectrum;
+    use nalgebra::{ArrayStorage, SMatrix};
+
+    #[test]
+    fn test_d_illuminant() {
+        let s = Illuminant::d_illuminant(6504.0).unwrap();
+        let xyz = CIE1931.xyz_from_spectrum(&s).set_illuminance(100.0);
+        approx::assert_ulps_eq!(xyz, CIE1931.xyz_d65(), epsilon = 2E-2);
+    }
+
+    #[test]
+    fn test_d_illuminant_range_error() {
+        let s = Illuminant::d_illuminant(3999.0);
+        assert!(s.is_err());
+        let s = Illuminant::d_illuminant(25001.0);
+        assert!(s.is_err());
+    }
+
+    #[test]
+    fn test_xyz() {
+        let s = *Illuminant::d_illuminant(6504.0).unwrap().values();
+        let illuminant = Illuminant(Spectrum::from(s));
+        let xyz = illuminant.xyz(None).set_illuminance(100.0);
+        approx::assert_ulps_eq!(xyz, CIE1931.xyz_d65(), epsilon = 2E-2);
+    }
+}

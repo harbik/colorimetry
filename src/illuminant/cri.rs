@@ -330,7 +330,8 @@ static TCS5: SMatrix<f64, 81, N_TCS> = SMatrix::from_array_storage(ArrayStorage(
 
 #[cfg(test)]
 mod cri_test {
-    use crate::prelude::*;
+    use super::CRI;
+    use crate::illuminant::{CieIlluminant, D50};
 
     #[test]
     fn cri_d50() {

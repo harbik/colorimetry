@@ -62,11 +62,11 @@ use nalgebra::SVector;
 
 use crate::{
     error::CmtError,
-    illuminant::CieIlluminant,
+    illuminant::{CieIlluminant, D65},
     lab::CieLab,
+    observer::Observer,
     physics::{gaussian_peak_one, wavelength},
-    prelude::{Illuminant, Observer, D65, SPECTRUM_WAVELENGTH_RANGE},
-    spectrum::{wavelengths, Spectrum, NS},
+    spectrum::{wavelengths, Spectrum, NS, SPECTRUM_WAVELENGTH_RANGE},
     traits::{Filter, Light},
 };
 
@@ -129,7 +129,9 @@ impl Colorant {
     /// The filter has a peak value of 1.0
     /// ```rust
     /// # use approx::assert_ulps_eq;
-    /// use colorimetry::prelude::*;
+    /// # use colorimetry::colorant::Colorant;
+    /// use colorimetry::traits::Filter;
+    ///
     /// let colorant = Colorant::top_hat(550.0, 1.0);
     /// let bandfilter = colorant.spectrum();
     /// assert_ulps_eq!(bandfilter[549], 0.0);
@@ -195,7 +197,6 @@ impl Colorant {
 fn test_colorant_cielab() {
     // Test that the CIELAB values for a white colorant are as expected.
     // A white surface has CIELAB values of L* = 100, a* = 0, b* = 0.
-    use crate::prelude::*;
     use approx::assert_abs_diff_eq;
     let colorant = Colorant::white();
     let [l, a, b] = colorant.cielab(None, None).values();
@@ -227,7 +228,9 @@ where
 
         Values are clamped to a range from 0.0 to 1.0.
         ```rust
-        use colorimetry::prelude::*;
+        # use colorimetry::colorant::Colorant;
+        use colorimetry::illuminant::D65;
+        use colorimetry::observer::CIE1931;
 
         // linear filter from 0.0 to 1.0.
         let tilt: Colorant = (|x:f64|x).into();
@@ -301,7 +304,7 @@ impl Mul<Colorant> for Colorant {
     ///
     /// Subtractive Mixing.
     /// ```rust
-    /// use colorimetry::prelude::*;
+    /// # use colorimetry::colorant::Colorant;
     /// let w = Colorant::white();
     /// let b = Colorant::black();
     /// let r: Colorant = w * b;
@@ -319,7 +322,7 @@ impl Mul<&Colorant> for &Colorant {
     /// Non-consuming multiplication.
     /// Subtractive Mixing.
     /// ```rust
-    /// use colorimetry::prelude::*;
+    /// # use colorimetry::colorant::Colorant;
     /// let w = Colorant::white();
     /// let b = Colorant::black();
     /// let r: Colorant = &w * &b;

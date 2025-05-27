@@ -179,8 +179,8 @@ pub fn wavelength<T: ToPrimitive>(i: T) -> f64 {
 /// Map a value x, in a domain from xmin to xmax to a wavelength in the domain
 /// from 380E-9 to 780E-9 meter.
 /// ```
+/// # use colorimetry::physics::to_wavelength;
 /// // Wavelength from an index value in the domain from 0 to 400:
-/// use colorimetry::prelude::*;
 /// let l = to_wavelength(200, 0, 400);
 /// approx::assert_ulps_eq!(l, 580E-9);
 ///

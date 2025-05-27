@@ -87,7 +87,7 @@ impl Spectrum {
     ```rust
     // Creates a linear gradient filter, with a zero transmission at 380 nanometer, and full
     // transmission at 780 nanometer. This is an example using a uniform wavelength domain as input.
-    use colorimetry::prelude::*;
+    # use colorimetry::spectrum::Spectrum;
     use approx::assert_ulps_eq;
     let data = [0.0, 1.0];
     let wl = [380.0, 780.0];
@@ -609,7 +609,10 @@ fn sprague(h: f64, v: &[f64]) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::prelude::*;
+    use crate::illuminant::Illuminant;
+    use crate::rgb::Rgb;
+    use crate::stimulus::Stimulus;
+    use crate::traits::Filter as _;
     use approx::assert_ulps_eq;
     use std::f64::consts::PI;
 

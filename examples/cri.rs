@@ -1,8 +1,9 @@
 // to run this example use:
 //  `cargo run --features cie-illuminants,cri --example cri`
 use colored::Colorize;
-use colorimetry::prelude::*;
-use strum::IntoEnumIterator;
+use colorimetry::illuminant::{CieIlluminant, CCT, CRI};
+use colorimetry::observer::CIE1931;
+use strum::IntoEnumIterator as _;
 
 /// Prints the standard illuminants in the library, with their elated color temperature, with
 /// parameters distance to the Planckian, the general Color Rendering Index Ra, and the spectal

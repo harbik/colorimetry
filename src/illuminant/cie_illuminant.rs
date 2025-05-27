@@ -30,7 +30,7 @@
 //!
 //! ```
 //! // print all the CieIlluminants
-//!     use colorimetry::prelude::*;
+//!     use colorimetry::illuminant::CieIlluminant;
 //!     use strum::IntoEnumIterator;
 //!
 //!     for spc in CieIlluminant::iter() {

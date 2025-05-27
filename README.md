@@ -48,10 +48,9 @@ or add this line to the dependencies in your Cargo.toml file:
 ```toml
     colorimetry = "0.0.5"
 ```
-The easiest way to use the objects and functions in this library is through its prelude.
 
 ```rust
-    use colorimetry::prelude::*;
+    use colorimetry::illuminant::D65;
 
     // D65 Tristimulus values, using the CIE1931 standard observer by default
     let [x, y, z] = D65.xyz(None).set_illuminance(100.0).values();
@@ -149,10 +148,11 @@ A [`Stimulus`] is used to model pixels in displays, where a combination of red, 
 <summary><strong>Intialize from Array</strong></summary>
 
 ```rust
-    use colorimetry::prelude::*;
+    use colorimetry::spectrum::{self, Spectrum};
+    use colorimetry::stimulus::Stimulus;
 
     // a black hole stimulus spectrum, using NS = 401 zero values
-    let black_hole_spectrum = Spectrum::new([0.0; NS]);
+    let black_hole_spectrum = Spectrum::new([0.0; spectrum::NS]);
     
     // the stimulus, reaching our eyes, when looking at a black hole:
     let black_hole_stimulus = Stimulus::new(black_hole_spectrum);
@@ -196,7 +196,8 @@ Alternatively, the library includes the CIE standard illuminants.
 To get an `Illuminant` from your spectral data, first create a `Spectrum`, for example by using one of the interpolation methods, or directly using an array.
 
 ```rust
-    use colorimetry::prelude::*;
+    use colorimetry::spectrum::Spectrum;
+    use colorimetry::illuminant::Illuminant;
 
     // create equal energy spectrum from an array, with values of 1.0.
     let spectrum = Spectrum::new([1.0; 401]);
@@ -219,7 +220,8 @@ To get an `Illuminant` from your spectral data, first create a `Spectrum`, for e
 - **Planckian illuminant**, a pure thermal emission based spectrum.
   Uses Plank's law, and takes an absolute temperature, in Kelvin, as argument.
   ```rust
-      use crate::colorimetry::prelude::*;
+      use colorimetry::illuminant::Illuminant;
+      use colorimetry::observer::CIE1931;
 
       // Plankian illuminant with a temperature of 3000 Kelvin
       let p3000 = Illuminant::planckian(3000.0);
@@ -270,7 +272,7 @@ Here we us Plank's law, to create an illuminant spectrum, and check its temperat
   ```rust
       # #[cfg(feature = "cct")]{
       // this example requires `cct` feature enabled
-      use crate::colorimetry::prelude::*;
+      use colorimetry::illuminant::Illuminant;
 
       // Plankian illuminant with a temperature of 3000 Kelvin
       let p3000 = Illuminant::planckian(3000.0);
@@ -296,7 +298,7 @@ The CIE Color Rendering Index (CRI), including the general color rendering index
     # #[cfg(all(feature = "cri", feature = "cie-illuminants"))]{
     // this example requires `cri` and `cie-illuminants` features enabled
 
-    use crate::colorimetry::prelude::*;
+    use colorimetry::illuminant::CieIlluminant;
 
     let f3_11 = CieIlluminant::F3_11.illuminant();
     let cri = f3_11.cri().unwrap();
@@ -348,7 +350,7 @@ The library defines different model based factory functions.
 Here are a couple of examples.
 
 ```rust
-use crate::colorimetry::prelude::*;
+use colorimetry::colorant::Colorant;
 
 // Create a perfect white `Colorant` or color patch, with no absorption.
 let white = Colorant::white(); 
@@ -389,7 +391,7 @@ The [`Colorant::cielab`] method calculates a colorant's CIELAB values.
 Here is an example calculating the CIELAB coordinates for a perfect white colorant:
 
 ```rust
-  use crate::colorimetry::prelude::*;
+  use colorimetry::colorant::Colorant;
 
   let colorant = Colorant::white();
 
@@ -431,7 +433,9 @@ If any value falls outside this range, the constructor returns an error.
   This function allows calculating the perceived color difference between different observers, from the perspective of a single observer.
 
   ```rust
-  use colorimetry::prelude::*;
+  use colorimetry::stimulus::Stimulus;
+  use colorimetry::observer::CIE1931;
+
   let red = Stimulus::from_srgb(255, 0, 0);
   let red_chromaticity = CIE1931.xyz(&red, None).chromaticity();
   approx::assert_abs_diff_eq!(

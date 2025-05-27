@@ -48,7 +48,7 @@ use crate::{
     cam::viewconditions::ReferenceValues,
     error::CmtError,
     geometry::distance,
-    prelude::Observer,
+    observer::Observer,
     traits::{Filter, Light},
     xyz::XYZ,
 };
@@ -304,7 +304,10 @@ impl CieCam16 {
     ///
     /// # Example
     /// ```rust
-    /// use colorimetry::prelude::*;
+    /// use colorimetry::cam::{CieCam16, ViewConditions};
+    /// use colorimetry::observer::Observer;
+    /// use colorimetry::xyz::XYZ;
+    ///
     /// // Original CAM16 instance:
     /// let sample_xyz = XYZ::new([60.7, 49.6, 10.3], Observer::Std1931);
     /// let white_xyz  = XYZ::new([96.46, 100.0, 108.62], Observer::Std1931);
@@ -450,7 +453,6 @@ const MRGBAINV: Matrix3<f64> = matrix![
 #[cfg(test)]
 mod cam_test {
     use super::*;
-    use crate::prelude::*;
     use approx::{assert_abs_diff_eq, assert_ulps_eq};
 
     #[test]
@@ -479,7 +481,9 @@ mod cam_test {
 
 #[cfg(test)]
 mod round_trip_tests {
-    use crate::prelude::*;
+    use super::{CieCam16, ViewConditions};
+    use crate::observer::Observer;
+    use crate::xyz::{XYZ, XYZ_D65};
     use approx::assert_abs_diff_eq;
 
     #[test]

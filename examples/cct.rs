@@ -3,7 +3,8 @@
 
 use clap::Parser;
 use colored::Colorize;
-use colorimetry::prelude::*;
+use colorimetry::illuminant::CCT;
+use colorimetry::xyz::{Chromaticity, XYZ};
 
 /// Calculate Correlated Color Temperature, Planckian Distance, and Tint, for a given set of (x,y)
 /// chromaticity values.

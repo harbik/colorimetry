@@ -221,7 +221,8 @@ impl XYZ {
 
     /// Returns the XYZ Tristimulus values in an array on the format [X, Y, Z]
     /// ```
-    /// use colorimetry::prelude::*;
+    /// use colorimetry::illuminant::CieIlluminant;
+    /// use colorimetry::observer::CIE1931;
     /// use approx::assert_ulps_eq;
     ///
     /// let d65_xyz = CIE1931.xyz(&CieIlluminant::D65, None).set_illuminance(100.0);
@@ -238,7 +239,10 @@ impl XYZ {
     /// Set the illuminance of an illuminant, either for an illuminant directly,
     /// or for the reference illuminant, in case a color sample XYZ.
     /// ```
-    /// use colorimetry::prelude::*;
+    /// use colorimetry::colorant::Colorant;
+    /// use colorimetry::illuminant::CieIlluminant;
+    /// use colorimetry::observer::{CIE1931, Observer};
+    /// use colorimetry::xyz::XYZ;
     /// use approx::assert_ulps_eq;
     /// const D65A: [f64;3] = [95.04, 100.0, 108.86];
     ///
@@ -261,7 +265,8 @@ impl XYZ {
 
     /// Returns the chromaticity coordinates of this `XYZ` value.
     /// ```
-    /// use colorimetry::prelude::*;
+    /// use colorimetry::illuminant::CieIlluminant;
+    /// use colorimetry::observer::CIE1931;
     /// use approx::assert_ulps_eq;
     ///
     /// let d65_xyz = CIE1931.xyz(&CieIlluminant::D65, None);
@@ -632,7 +637,10 @@ impl XYZ {
 
 #[cfg(test)]
 mod xyz_test {
-    use crate::prelude::*;
+    use super::XYZ;
+    use crate::geometry::LineAB;
+    use crate::observer::{Observer, CIE1931};
+    use crate::rgb::{RgbSpace, WideRgb};
     use approx::assert_ulps_eq;
 
     #[test]

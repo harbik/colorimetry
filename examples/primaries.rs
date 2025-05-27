@@ -3,7 +3,13 @@ use argmin::{
     solver::neldermead::NelderMead,
 };
 use colored::Colorize;
-use colorimetry::prelude::*;
+use colorimetry::{
+    colorant::Colorant,
+    illuminant::CieIlluminant,
+    observer::CIE1931,
+    rgb::RgbSpace,
+    xyz::{Chromaticity, XYZ},
+};
 use strum::IntoEnumIterator as _;
 
 #[allow(dead_code)]

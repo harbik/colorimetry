@@ -29,7 +29,9 @@
 //! ## Examples
 //!
 //! ```rust
-//! use colorimetry::prelude::*;
+//! use colorimetry::lab::CieLab;
+//! use colorimetry::observer::Observer;
+//! use colorimetry::xyz::{XYZ, XYZ_D65};
 //!
 //! // Convert XYZ to Lab
 //! let xyz = XYZ::new([36.0, 70.0, 12.0], Observer::Std1931);
@@ -49,7 +51,7 @@ use approx::ulps_eq;
 use nalgebra::{RowVector3, Vector3};
 use std::f64::consts::PI;
 
-use crate::{error::CmtError, prelude::Observer, xyz::XYZ};
+use crate::{error::CmtError, observer::Observer, xyz::XYZ};
 use strum_macros::Display;
 use wasm_bindgen::prelude::wasm_bindgen;
 
@@ -118,7 +120,9 @@ impl CieLab {
     /// as well as more advanced formulas (e.g., CIEDE2000, or CIECAM16DE).
     /// # Example
     /// ```
-    /// use colorimetry::prelude::*;
+    /// # use colorimetry::lab::CieLab;
+    /// use colorimetry::observer::Observer;
+    /// use colorimetry::xyz::{XYZ, XYZ_D65};
     ///
     /// let xyz1 = XYZ::new([36.0, 70.0, 12.0], Observer::Std1931);
     /// let xyz2 = XYZ::new([35.0, 71.0, 11.0], Observer::Std1931);
@@ -159,7 +163,8 @@ impl CieLab {
     /// as it better matches human perception of color differences.
     /// # Example
     /// ```
-    /// use colorimetry::prelude::*;
+    /// # use colorimetry::lab::CieLab;
+    /// use colorimetry::xyz::XYZ_D65;
     ///
     /// // Sharma et al. (2005) test case 25
     /// let lab1 = CieLab::new([60.2574, -34.0099, 36.2677], XYZ_D65);
@@ -295,8 +300,10 @@ fn delta_e_ciede2000(lab1: Vector3<f64>, lab2: Vector3<f64>) -> f64 {
 
 #[cfg(test)]
 mod tests {
-    use crate::prelude::*;
+    use crate::xyz::XYZ_D65;
     use approx::assert_abs_diff_eq;
+
+    use super::CieLab;
     use nalgebra::vector;
 
     #[test]

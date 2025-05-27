@@ -14,7 +14,6 @@ pub mod illuminant;
 pub mod lab;
 pub mod observer;
 pub mod physics;
-pub mod prelude;
 pub mod rgb;
 pub mod spectrum;
 pub mod stimulus;

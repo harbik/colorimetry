@@ -121,7 +121,7 @@ pub static MM_KEY_MAP: LazyLock<BTreeMap<&str, usize>> = LazyLock::new(|| {
 
 #[cfg(test)]
 mod test_munsell_matt {
-    use crate::prelude::*;
+    use super::MunsellMattCollection;
 
     #[test]
     fn test_iter() {

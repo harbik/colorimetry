@@ -250,7 +250,7 @@ impl approx::UlpsEq for WideRgb {
 
 #[cfg(test)]
 mod rgb_tests {
-    use crate::prelude::*;
+    use super::WideRgb;
 
     #[test]
     fn get_values() {

@@ -246,14 +246,16 @@ impl ObserverData {
         Linear high pass filter, with a value of 0.0 for a wavelength of 380nm, and a value of 1.0 for 780nm,
         and converting the resulting value to RGB values.
         ```
-            use colorimetry::prelude::*;
+            use colorimetry::observer::CIE1931;
+            use colorimetry::illuminant::CieIlluminant;
             let rgb: [u8;3] = CIE1931.xyz_from_std_illuminant_x_fn(&CieIlluminant::D65, |x|x).rgb(None).clamp().into();
             assert_eq!(rgb, [212, 171, 109]);
         ```
         Linear low pass filter, with a value of 1.0 for a wavelength of 380nm, and a value of 0.0 for 780nm,
         and converting the resulting value to RGB values.
         ```
-            use colorimetry::prelude::*;
+            use colorimetry::observer::CIE1931;
+            use colorimetry::illuminant::CieIlluminant;
             let rgb: [u8;3] = CIE1931.xyz_from_std_illuminant_x_fn(&CieIlluminant::D65, |x|1.0-x).rgb(None).clamp().into();
             assert_eq!(rgb, [158, 202, 237]);
         ```
@@ -465,7 +467,8 @@ impl ObserverData {}
 mod obs_test {
 
     use super::Observer;
-    use crate::prelude::{CieIlluminant, CIE1931};
+    use crate::illuminant::CieIlluminant;
+    use crate::observer::CIE1931;
     use crate::rgb::RgbSpace;
     use crate::spectrum::SPECTRUM_WAVELENGTH_RANGE;
     use crate::xyz::{Chromaticity, XYZ};
@@ -605,13 +608,13 @@ mod obs_test {
 
     #[test]
     fn test_xyz_of_sample_with_standard_illuminant() {
-        use crate::prelude::{CieIlluminant::D65 as d65, XYZ};
+        use crate::illuminant::CieIlluminant::D65;
         let xyz = CIE1931
-            .xyz(&d65, Some(&crate::colorant::Colorant::white()))
+            .xyz(&D65, Some(&crate::colorant::Colorant::white()))
             .set_illuminance(100.0);
-        approx::assert_ulps_eq!(xyz, CIE1931.xyz_from_std_illuminant_x_fn(&d65, |_| 1.0));
+        approx::assert_ulps_eq!(xyz, CIE1931.xyz_from_std_illuminant_x_fn(&D65, |_| 1.0));
 
-        let xyz = CIE1931.xyz(&d65, Some(&crate::colorant::Colorant::black()));
-        approx::assert_ulps_eq!(xyz, CIE1931.xyz_from_std_illuminant_x_fn(&d65, |_| 0.0));
+        let xyz = CIE1931.xyz(&D65, Some(&crate::colorant::Colorant::black()));
+        approx::assert_ulps_eq!(xyz, CIE1931.xyz_from_std_illuminant_x_fn(&D65, |_| 0.0));
     }
 }

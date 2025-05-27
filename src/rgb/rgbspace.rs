@@ -251,7 +251,9 @@ impl RgbSpaceData {
 
 #[cfg(test)]
 mod rgbspace_tests {
-    use crate::{prelude::*, rgb};
+    use crate::observer::CIE1931;
+    use crate::rgb;
+    use crate::traits::Light as _;
     use approx::assert_ulps_eq;
     use strum::IntoEnumIterator;
 
