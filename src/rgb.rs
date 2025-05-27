@@ -291,7 +291,8 @@ impl Filter for Rgb {
     ///
     /// // Compare with the CIE D65 reference white point
     /// let d65: XYZ = CIE1931.xyz(&CieIlluminant::D65, Some(&rgb));
-    /// approx::assert_ulps_eq!(d65, XYZ_D65, epsilon = 1e-2);
+    /// let xyz_d65 = CIE1931.xyz_d65();
+    /// approx::assert_ulps_eq!(d65, xyz_d65, epsilon = 1e-2);
     /// ```
     ///
     /// # Implementation Details
