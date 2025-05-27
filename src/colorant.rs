@@ -61,7 +61,7 @@ use approx::{assert_abs_diff_eq, AbsDiffEq};
 use nalgebra::SVector;
 
 use crate::{
-    error::CmtError,
+    error::Error,
     illuminant::CieIlluminant,
     lab::CieLab,
     physics::{gaussian_peak_one, wavelength},
@@ -90,9 +90,9 @@ impl Colorant {
     /// # Errors
     ///
     /// - CmtError::OutOfRange when the spectrum contains values outside the range 0.0 to 1.0.
-    pub fn new(spectrum: Spectrum) -> Result<Self, CmtError> {
+    pub fn new(spectrum: Spectrum) -> Result<Self, Error> {
         if spectrum.values().iter().any(|v| !(0.0..=1.0).contains(v)) {
-            Err(CmtError::OutOfRange {
+            Err(Error::OutOfRange {
                 name: "Colorant Spectral Value".into(),
                 low: 0.0,
                 high: 1.0,
@@ -205,7 +205,7 @@ fn test_colorant_cielab() {
 }
 
 impl TryFrom<Spectrum> for Colorant {
-    type Error = CmtError;
+    type Error = Error;
 
     /// Creates a Colorant from a spectrum, while validating the spectrum values.
     ///

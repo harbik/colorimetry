@@ -1,7 +1,7 @@
 use wasm_bindgen::JsValue;
 
 #[derive(thiserror::Error, Debug, PartialEq)]
-pub enum CmtError {
+pub enum Error {
     #[error("{name} should be within in range from {low} to {high}")]
     OutOfRange { name: String, low: f64, high: f64 },
     #[error("Error: {0}")]
@@ -44,20 +44,20 @@ pub enum CmtError {
     InvalidRgbValue,
 }
 
-impl From<&str> for CmtError {
+impl From<&str> for Error {
     fn from(s: &str) -> Self {
-        CmtError::ErrorString(s.to_string())
+        Error::ErrorString(s.to_string())
     }
 }
 
-impl From<JsValue> for CmtError {
+impl From<JsValue> for Error {
     fn from(s: JsValue) -> Self {
-        CmtError::ErrorString(s.as_string().expect("Sorry, Unknown Error Encountered"))
+        Error::ErrorString(s.as_string().expect("Sorry, Unknown Error Encountered"))
     }
 }
 
-impl From<CmtError> for JsValue {
-    fn from(value: CmtError) -> Self {
+impl From<Error> for JsValue {
+    fn from(value: Error) -> Self {
         value.to_string().into()
     }
 }

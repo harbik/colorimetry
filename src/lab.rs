@@ -49,7 +49,7 @@ use approx::ulps_eq;
 use nalgebra::{RowVector3, Vector3};
 use std::f64::consts::PI;
 
-use crate::{error::CmtError, prelude::Observer, xyz::XYZ};
+use crate::{error::Error, prelude::Observer, xyz::XYZ};
 use strum_macros::Display;
 use wasm_bindgen::prelude::wasm_bindgen;
 
@@ -86,9 +86,9 @@ impl CieLab {
     ///
     /// # Returns
     /// A `Result` containing the CIE L*a*b* color or an error if the observers do not match.
-    pub fn from_xyz(xyz: XYZ, xyzn: XYZ) -> Result<CieLab, CmtError> {
+    pub fn from_xyz(xyz: XYZ, xyzn: XYZ) -> Result<CieLab, Error> {
         if xyz.observer != xyzn.observer {
-            Err(CmtError::RequireSameObserver)
+            Err(Error::RequireSameObserver)
         } else {
             Ok(CieLab {
                 observer: xyz.observer,
@@ -127,16 +127,16 @@ impl CieLab {
     /// let de = lab1.ciede(&lab2).unwrap();
     /// approx::assert_abs_diff_eq!(de, 6.57, epsilon = 0.01);
     /// ```
-    pub fn ciede(&self, other: &Self) -> Result<f64, CmtError> {
+    pub fn ciede(&self, other: &Self) -> Result<f64, Error> {
         if self.observer != other.observer {
-            return Err(CmtError::RequireSameObserver);
+            return Err(Error::RequireSameObserver);
         }
         if ulps_eq!(self.xyzn, other.xyzn) {
             let &[l1, a1, b1] = self.lab.as_ref();
             let &[l2, a2, b2] = other.lab.as_ref();
             Ok(((l2 - l1).powi(2) + (a2 - a1).powi(2) + (b2 - b1).powi(2)).sqrt())
         } else {
-            Err(CmtError::RequiresSameIlluminant)
+            Err(Error::RequiresSameIlluminant)
         }
     }
 
@@ -167,14 +167,14 @@ impl CieLab {
     /// let de = lab1.ciede2000(&lab2).unwrap();
     /// approx::assert_abs_diff_eq!(de, 1.2644, epsilon = 1E-4);
     /// ```
-    pub fn ciede2000(&self, other: &Self) -> Result<f64, CmtError> {
+    pub fn ciede2000(&self, other: &Self) -> Result<f64, Error> {
         if self.observer != other.observer {
-            return Err(CmtError::RequireSameObserver);
+            return Err(Error::RequireSameObserver);
         }
         if ulps_eq!(self.xyzn, other.xyzn) {
             Ok(delta_e_ciede2000(self.lab, other.lab))
         } else {
-            Err(CmtError::RequiresSameIlluminant)
+            Err(Error::RequiresSameIlluminant)
         }
     }
 

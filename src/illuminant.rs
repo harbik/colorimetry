@@ -68,7 +68,7 @@ use wasm_bindgen::prelude::*;
 use nalgebra::{ArrayStorage, SMatrix, SVector};
 
 use crate::{
-    error::CmtError,
+    error::Error,
     illuminant,
     observer::{Observer, ObserverData},
     physics::{gaussian_peak_one, led_ohno, planck, stefan_boltzmann, wavelength},
@@ -220,7 +220,7 @@ impl Illuminant {
     /// - CmtError::OutOfRange when the illuminant's distance to the Planckian locus is larger than 0.05 DUV,
     ///   or when the CCT is outside the range of 1000 to 25000 Kelvin.
     #[cfg(feature = "cri")]
-    pub fn cri(&self) -> Result<CRI, CmtError> {
+    pub fn cri(&self) -> Result<CRI, Error> {
         use cri::CRI;
 
         self.try_into()
@@ -229,9 +229,9 @@ impl Illuminant {
     /// Creates a CIE D Illuminant with a correlated color temperature (CCT) in Kelvin.
     /// # Errors
     /// - CmtError::OutOfRange when the cct argument is below 4000 or above 25000 Kelvin.
-    pub fn d_illuminant(cct: f64) -> Result<Illuminant, CmtError> {
+    pub fn d_illuminant(cct: f64) -> Result<Illuminant, Error> {
         if !(4000.0..=25000.0).contains(&cct) {
-            Err(CmtError::OutOfRange {
+            Err(Error::OutOfRange {
                 name: "CIE D Illuminant Temperature".to_string(),
                 low: 4000.0,
                 high: 25000.0,
@@ -277,7 +277,7 @@ impl Illuminant {
     /// - CmtError::OutOfRange when the the distance to the Planckian locus is larger than 0.05 DUV,
     ///   or when the CCT is outside the range of 1000 to 25000 Kelvin.
     #[cfg(feature = "cct")]
-    pub fn cct(&self) -> Result<cct::CCT, CmtError> {
+    pub fn cct(&self) -> Result<cct::CCT, Error> {
         // CIE requires using the CIE1931 observer for calculating the CCT.
         let xyz = self.xyz(Some(Observer::Std1931));
         cct::CCT::from_xyz(xyz)
@@ -374,7 +374,7 @@ impl Illuminant {
     /// seperately to limit the size of the main web assembly library.
     #[cfg(feature = "cri")]
     #[wasm_bindgen(js_name=cri)]
-    pub fn cri_js(&self) -> Result<crate::cri::CRI, CmtError> {
+    pub fn cri_js(&self) -> Result<crate::cri::CRI, Error> {
         todo!()
     }
 

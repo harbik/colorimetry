@@ -61,7 +61,7 @@ pub use widergb::WideRgb;
 
 use crate::{
     colorant::Colorant,
-    error::CmtError,
+    error::Error,
     illuminant::Illuminant,
     observer::Observer,
     observer::CIE1931,
@@ -138,7 +138,7 @@ impl Rgb {
         b: f64,
         opt_observer: Option<Observer>,
         opt_rgbspace: Option<RgbSpace>,
-    ) -> Result<Self, CmtError> {
+    ) -> Result<Self, Error> {
         if (0.0..=1.0).contains(&r) && (0.0..=1.0).contains(&g) && (0.0..=1.0).contains(&b) {
             let observer = opt_observer.unwrap_or_default();
             let space = opt_rgbspace.unwrap_or_default();
@@ -148,7 +148,7 @@ impl Rgb {
                 space,
             })
         } else {
-            Err(CmtError::InvalidRgbValue)
+            Err(Error::InvalidRgbValue)
         }
     }
 

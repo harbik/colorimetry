@@ -48,7 +48,7 @@ pub use observers::*;
 
 use crate::{
     colorant::Colorant,
-    error::CmtError,
+    error::Error,
     geometry::LineAB,
     illuminant::CieIlluminant,
     lab::CieLab,
@@ -196,9 +196,9 @@ impl ObserverData {
     /// However, please read the documentation for the
     /// [`spectral_locus_wavelength_range`](Self::spectral_locus_wavelength_range) method on
     /// situations where you might not want to sample the full range.
-    pub fn xyz_at_wavelength(&self, wavelength: usize) -> Result<XYZ, CmtError> {
+    pub fn xyz_at_wavelength(&self, wavelength: usize) -> Result<XYZ, Error> {
         if !SPECTRUM_WAVELENGTH_RANGE.contains(&wavelength) {
-            return Err(CmtError::WavelengthOutOfRange);
+            return Err(Error::WavelengthOutOfRange);
         };
         let &[x, y, z] = self
             .data
