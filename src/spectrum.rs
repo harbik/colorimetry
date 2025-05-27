@@ -11,7 +11,6 @@ use std::{
     borrow::Cow,
     collections::BTreeMap,
     default,
-    error::Error,
     iter::Sum,
     ops::{Add, AddAssign, Deref, Div, Index, IndexMut, Mul, MulAssign, RangeInclusive},
 };
@@ -25,7 +24,7 @@ use nalgebra::{DVector, SVector};
 
 use crate::{
     colorant::Colorant,
-    error::CmtError,
+    error::Error,
     illuminant::CieIlluminant,
     illuminant::{D50, D65},
     observer::ObserverData,
@@ -112,11 +111,11 @@ impl Spectrum {
     assert_ulps_eq!(spd[380+400], 0.0);
     ```
     */
-    pub fn linear_interpolate(wavelengths: &[f64], data: &[f64]) -> Result<Self, CmtError> {
+    pub fn linear_interpolate(wavelengths: &[f64], data: &[f64]) -> Result<Self, Error> {
         let data = match wavelengths.len() {
             2 => linterp(wavelengths.try_into().unwrap(), data)?,
             3.. => linterp_irr(wavelengths, data)?,
-            _ => return Err(CmtError::InterpolateWavelengthError),
+            _ => return Err(Error::InterpolateWavelengthError),
         };
         Ok(Self(SVector::<f64, 401>::from_array_storage(
             nalgebra::ArrayStorage([data]),
@@ -130,7 +129,7 @@ impl Spectrum {
     /// [The Interpolation Method of Sprague-Karup](https://www.sciencedirect.com/science/article/pii/0771050X75900273)
     /// for the description of the method.
     /// This implementation uses end-point values for extrapolation, as recommended by CIE15:2004 7.2.2.1.
-    pub fn sprague_interpolate(wavelengths: [f64; 2], data: &[f64]) -> Result<Self, CmtError> {
+    pub fn sprague_interpolate(wavelengths: [f64; 2], data: &[f64]) -> Result<Self, Error> {
         let data = sprinterp(wavelengths, data)?;
         Ok(Self(SVector::<f64, 401>::from_array_storage(
             nalgebra::ArrayStorage([data]),
@@ -180,11 +179,11 @@ impl From<[f64; NS]> for Spectrum {
 }
 
 impl TryFrom<&[f64]> for Spectrum {
-    type Error = CmtError;
+    type Error = Error;
 
     fn try_from(data: &[f64]) -> Result<Self, Self::Error> {
         if data.len() != NS {
-            Err(CmtError::DataSize401Error)
+            Err(Error::DataSize401Error)
         } else {
             Ok(Self(SVector::<f64, NS>::from_iterator(
                 data.iter().copied(),
@@ -309,7 +308,7 @@ impl Spectrum {
         wavelengths: &[f64],
         data: &[f64],
         total_js: &JsValue,
-    ) -> Result<Spectrum, CmtError> {
+    ) -> Result<Spectrum, Error> {
         Self::linear_interpolate(wavelengths, data)
     }
 
@@ -320,7 +319,7 @@ impl Spectrum {
     /// seperately to limit the size of the main web assembly library.
     #[cfg(feature = "cri")]
     #[wasm_bindgen(js_name=cri)]
-    pub fn cri_js(&self) -> Result<crate::cri::CRI, CmtError> {
+    pub fn cri_js(&self) -> Result<crate::cri::CRI, Error> {
         todo!()
     }
 }
@@ -482,7 +481,7 @@ pub fn wavelengths<T: ToPrimitive, const N: usize>(v: [T; N]) -> [f64; N] {
 }
 
 /// Linear interpolation over a dataset over an equidistant wavelength domain
-fn linterp(mut wl: [f64; 2], data: &[f64]) -> Result<[f64; NS], CmtError> {
+fn linterp(mut wl: [f64; 2], data: &[f64]) -> Result<[f64; NS], Error> {
     wl.sort_by(|a, b| a.partial_cmp(b).unwrap());
     let [wl, wh] = wavelengths(wl);
     let dlm1 = data.len() - 1; // data length min one
@@ -510,9 +509,9 @@ wavelength domain.
 This algorithm uses a BTreeMap coolection, with wavelengths in picometers as key,
 to find a data interval containing the target wavelengths.
  */
-fn linterp_irr(wl: &[f64], data: &[f64]) -> Result<[f64; NS], CmtError> {
+fn linterp_irr(wl: &[f64], data: &[f64]) -> Result<[f64; NS], Error> {
     if wl.len() != data.len() {
-        Err(CmtError::InterpolateWavelengthError)
+        Err(Error::InterpolateWavelengthError)
     } else {
         // BTreeMap can not work with floats as keys, using picometer unit
         // (E-12) here as key, so the precision is here three decimals in units
@@ -556,10 +555,10 @@ fn linterp_irr(wl: &[f64], data: &[f64]) -> Result<[f64; NS], CmtError> {
 }
 
 /// Sprague interpolation over a dataset over an equidistant wavelength domain
-fn sprinterp(mut wl: [f64; 2], data: &[f64]) -> Result<[f64; NS], CmtError> {
+fn sprinterp(mut wl: [f64; 2], data: &[f64]) -> Result<[f64; NS], Error> {
     let imax = data.len() - 1;
     if imax < 6 {
-        return Err(CmtError::ProvideAtLeastNValues(imax));
+        return Err(Error::ProvideAtLeastNValues(imax));
     };
     let f64_imax = imax as f64;
 

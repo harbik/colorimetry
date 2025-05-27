@@ -39,7 +39,7 @@
 //! ```
 
 use crate::{
-    error::CmtError, illuminant::Illuminant, spectrum::Spectrum, spectrum::NS, traits::Light,
+    error::Error, illuminant::Illuminant, spectrum::Spectrum, spectrum::NS, traits::Light,
 };
 use nalgebra::{ArrayStorage, SMatrix};
 use std::{borrow::Cow, ops::Deref, vec};

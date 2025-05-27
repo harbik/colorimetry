@@ -21,4 +21,4 @@ pub mod stimulus;
 pub mod traits;
 pub mod xyz;
 
-pub use error::CmtError;
+pub use error::Error;

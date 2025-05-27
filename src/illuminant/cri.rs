@@ -12,7 +12,7 @@ use wasm_bindgen::prelude::*;
 
 use crate::{
     colorant::Colorant,
-    error::CmtError,
+    error::Error,
     illuminant::Illuminant,
     observer::CIE1931,
     rgb::RgbSpace,
@@ -84,7 +84,7 @@ fn tcs_test() {
 pub struct CRI([f64; N_TCS]);
 
 impl CRI {
-    pub fn new(s: impl AsRef<Illuminant>) -> Result<Self, CmtError> {
+    pub fn new(s: impl AsRef<Illuminant>) -> Result<Self, Error> {
         s.as_ref().try_into()
     }
 
@@ -110,7 +110,7 @@ impl Index<usize> for CRI {
 /// Can fail, for example if the Spectrum's correlated color temperature is out of range.
 /// Uses CIE1931, and requires "cct"-feature.
 impl TryFrom<&Illuminant> for CRI {
-    type Error = CmtError;
+    type Error = Error;
 
     fn try_from(illuminant: &Illuminant) -> Result<Self, Self::Error> {
         let illuminant = &illuminant.clone().set_illuminance(&CIE1931, 100.0);

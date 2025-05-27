@@ -36,7 +36,7 @@ use core::f64;
 use std::ops::Add;
 
 use crate::{
-    error::CmtError,
+    error::Error,
     geometry::{LineAB, Orientation},
     illuminant::Illuminant,
     observer::{self, Observer},
@@ -143,13 +143,13 @@ impl XYZ {
         chromaticity: Chromaticity,
         l: Option<f64>,
         observer: Option<Observer>,
-    ) -> Result<XYZ, CmtError> {
+    ) -> Result<XYZ, Error> {
         let [x, y] = chromaticity.to_array();
         let l = l.unwrap_or(100.0);
         let observer = observer.unwrap_or_default();
 
         if (x + y) > 1.0 + f64::EPSILON || x < 0.0 || y < 0.0 {
-            Err(CmtError::InvalidChromaticityValues)
+            Err(Error::InvalidChromaticityValues)
         } else {
             let scale = l / y;
             let xyz = Vector3::new(x * scale, l, (1.0 - x - y) * scale);
@@ -162,7 +162,7 @@ impl XYZ {
         v: f64,
         l: Option<f64>,
         observer: Option<Observer>,
-    ) -> Result<XYZ, CmtError> {
+    ) -> Result<XYZ, Error> {
         let den = 2.0 * u - 8.0 * v + 4.0;
         let x = (3.0 * u) / den;
         let y = (2.0 * v) / den;
@@ -172,12 +172,12 @@ impl XYZ {
     /// Try to add two tristimulus values.
     /// Requires sharing the same observer, and no reference white set.
     /// Used for adding illuminants.
-    pub fn try_add(&self, other: XYZ) -> Result<XYZ, CmtError> {
+    pub fn try_add(&self, other: XYZ) -> Result<XYZ, Error> {
         if self.observer == other.observer {
             let data = self.xyz + other.xyz;
             Ok(XYZ::from_vecs(data, self.observer))
         } else {
-            Err(CmtError::RequireSameObserver)
+            Err(Error::RequireSameObserver)
         }
     }
 
@@ -322,14 +322,14 @@ impl XYZ {
     /// result, the maxium range of dominant wavelengths which can be obtained
     /// is from 380 to 699 nanometer;
     ///
-    pub fn dominant_wavelength(&self, white: XYZ) -> Result<f64, CmtError> {
+    pub fn dominant_wavelength(&self, white: XYZ) -> Result<f64, Error> {
         let mut sign = 1.0;
         let wavelength_range = self.observer.data().spectral_locus_wavelength_range();
         let mut low = *wavelength_range.start();
         let mut high = *wavelength_range.end();
         let mut mid = 540usize; // 200 fails, as its tail overlaps into the blue region
         if white.observer != self.observer {
-            Err(CmtError::RequireSameObserver)
+            Err(Error::RequireSameObserver)
         } else {
             let chromaticity = self.chromaticity();
             let [mut x, mut y] = [chromaticity.x(), chromaticity.y()];
@@ -417,7 +417,7 @@ impl XYZ {
                 if dlow < 0.0 || dhigh > 0.0 {
                     // not ended up between two lines
                     let s = format!("bisection error in dominant wavelength search:  {dlow} {low} {dhigh} {high}");
-                    return Err(CmtError::ErrorString(s));
+                    return Err(Error::ErrorString(s));
                 }
                 let dl = (dlow.abs() * high as f64 + dhigh.abs() * low as f64)
                     / (dlow.abs() + dhigh.abs());
@@ -427,7 +427,7 @@ impl XYZ {
     }
 
     #[cfg(feature = "cct")]
-    pub fn cct(self) -> Result<crate::illuminant::CCT, CmtError> {
+    pub fn cct(self) -> Result<crate::illuminant::CCT, Error> {
         self.try_into()
     }
     /// Converts a set of **XYZ tristimulus values** to **WideRgb values** using the specified RGB space.
@@ -569,8 +569,8 @@ impl XYZ {
     */
 
     #[wasm_bindgen(constructor, variadic)]
-    pub fn new_js(x: f64, y: f64, opt: &js_sys::Array) -> Result<XYZ, crate::error::CmtError> {
-        use crate::error::CmtError;
+    pub fn new_js(x: f64, y: f64, opt: &js_sys::Array) -> Result<XYZ, crate::error::Error> {
+        use crate::error::Error;
         use wasm_bindgen::convert::TryFromJsValue;
         let (x, y, z, obs) = match opt.length() {
             0 => (
@@ -588,20 +588,20 @@ impl XYZ {
                 }
             }
             2 => {
-                let z = opt.get(0).as_f64().ok_or(CmtError::ErrorString(
+                let z = opt.get(0).as_f64().ok_or(Error::ErrorString(
                     "please provide a z value as number".into(),
                 ))?;
                 let obs = Observer::try_from_js_value(opt.get(1))?;
                 (x, y, z, obs)
             }
             _ => {
-                return Err(CmtError::ErrorString(
+                return Err(Error::ErrorString(
                     "Invalid Arguments for XYZ constructor".into(),
                 ));
             }
         };
         if x < 0.0 || y < 0.0 || z < 0.0 {
-            return Err(CmtError::ErrorString(
+            return Err(Error::ErrorString(
                 "XYZ values should be all positive values".into(),
             ));
         }

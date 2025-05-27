@@ -46,7 +46,7 @@ use nalgebra::{matrix, vector, Matrix3, SMatrix, Vector3};
 
 use crate::{
     cam::viewconditions::ReferenceValues,
-    error::CmtError,
+    error::Error,
     geometry::distance,
     prelude::Observer,
     traits::{Filter, Light},
@@ -118,11 +118,11 @@ impl CieCam16 {
     /// A Result containing the CieCam16 instance if successful, or a CmtError if an error occurs.
     /// # Errors
     /// Returns an error if the XYZ values are not in the same observer system.
-    pub fn from_xyz(xyz: XYZ, xyzn: XYZ, vc: ViewConditions) -> Result<Self, CmtError> {
+    pub fn from_xyz(xyz: XYZ, xyzn: XYZ, vc: ViewConditions) -> Result<Self, Error> {
         let xyz_vec = xyz.xyz;
         let xyzn_vec = xyzn.xyz;
         if xyz.observer != xyzn.observer {
-            return Err(CmtError::RequireSameObserver);
+            return Err(Error::RequireSameObserver);
         }
         let ReferenceValues {
             n,
@@ -256,9 +256,9 @@ impl CieCam16 {
     ///
     /// # Errors
     /// Returns an error if the observers of the two colors do not match.
-    pub fn ciede2016(&self, other: &Self) -> Result<f64, CmtError> {
+    pub fn ciede2016(&self, other: &Self) -> Result<f64, Error> {
         if self.observer != other.observer {
-            return Err(CmtError::RequireSameObserver);
+            return Err(Error::RequireSameObserver);
         }
 
         let jabp1 = self.jab_prime();
@@ -322,13 +322,13 @@ impl CieCam16 {
         &self,
         white_opt: Option<XYZ>,
         vc_opt: Option<ViewConditions>,
-    ) -> Result<XYZ, CmtError> {
+    ) -> Result<XYZ, Error> {
         let vc = vc_opt.unwrap_or(self.vc);
         let xyzn = if let Some(white) = white_opt {
             if white.observer == self.observer {
                 white.xyz
             } else {
-                return Err(CmtError::RequireSameObserver);
+                return Err(Error::RequireSameObserver);
             }
         } else {
             self.xyzn

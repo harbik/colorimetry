@@ -3,7 +3,7 @@ use core::f64;
 use nalgebra::ComplexField;
 use wasm_bindgen::prelude::wasm_bindgen;
 
-use crate::error::CmtError;
+use crate::error::Error;
 
 /// Distance of point (x,y) to line going through points (x0,y0) having slope m
 ///
@@ -34,7 +34,7 @@ pub enum Orientation {
 }
 
 impl LineAB {
-    pub fn new(a: [f64; 2], b: [f64; 2]) -> Result<Self, CmtError> {
+    pub fn new(a: [f64; 2], b: [f64; 2]) -> Result<Self, Error> {
         let [[xa, ya], [xb, yb]] = [a, b];
         let l = (xb - xa).hypot(yb - ya);
         let angle = (yb - ya).atan2(xb - xa);
@@ -49,7 +49,7 @@ impl LineAB {
                 angle,
             })
         } else {
-            Err(CmtError::RequiresDistinctPoints)
+            Err(Error::RequiresDistinctPoints)
         }
     }
 
@@ -103,9 +103,9 @@ impl LineAB {
     /// segments, and have a value between 0 and 1 if the intersection is
     /// between the two points used to define the lineAB.
     /// See [Wikipedia](https://en.wikipedia.org/wiki/Line–line_intersection#Given_two_points_on_each_line_segment) for the algorithm used.
-    pub fn intersect(&self, line: &LineAB) -> Result<([f64; 2], f64, f64), CmtError> {
+    pub fn intersect(&self, line: &LineAB) -> Result<([f64; 2], f64, f64), Error> {
         if (self.angle() - line.angle()).abs() < 2.0 * f64::EPSILON {
-            Err(CmtError::NoIntersection)
+            Err(Error::NoIntersection)
         } else {
             let [x1, y1, x2, y2] = [self.xa, self.ya, self.xb, self.yb];
             let [x3, y3, x4, y4] = [line.xa, line.ya, line.xb, line.yb];
@@ -207,7 +207,7 @@ pub struct Triangle {
     nom: f64,
 }
 impl Triangle {
-    pub fn new(a: [f64; 2], b: [f64; 2], c: [f64; 2]) -> Result<Self, CmtError> {
+    pub fn new(a: [f64; 2], b: [f64; 2], c: [f64; 2]) -> Result<Self, Error> {
         let [[xa, ya], [xb, yb], [xc, yc]] = [a, b, c];
         let la = (xc - xb).hypot(yc - yb);
         let lb = (xc - xa).hypot(yc - ya);
@@ -227,7 +227,7 @@ impl Triangle {
                 nom,
             })
         } else {
-            Err(CmtError::RequiresDistinctPoints)
+            Err(Error::RequiresDistinctPoints)
         }
     }
 

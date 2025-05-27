@@ -45,6 +45,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - `CieCam16` new takes now an _JCh_ `[f64;3]`-array, a reference white `XYZ` value, and a `ViewConditions` instance.
 - Changed library module structure combining related modules in sub-modules, make the structure less flat, and re-export of most sub-module entities.
 - Renamed `StdIlluminant`-`enum` to `CieIlluminant`
+- Rename `CmtError` to `Error`.
 
 ### Fixed
 - Fix bug `XYZ::set_illuminance`. Avoid divide be zero when luminous values is zero, or negative.

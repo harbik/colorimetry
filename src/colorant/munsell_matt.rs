@@ -16,7 +16,7 @@ use wasm_bindgen::prelude::*;
 
 use crate::{
     colorant::munsell_matt::data::{MUNSELL_MATT_DATA, MUNSELL_MATT_KEYS},
-    error::CmtError,
+    error::Error,
     spectrum::{Spectrum, SPECTRUM_WAVELENGTH_RANGE},
     traits::Filter,
 };
@@ -54,11 +54,11 @@ impl MunsellMatt {
     /// Try to find the spectral data for the given key.
     ///
     /// Fails if the key is not found.
-    pub fn try_new(key: String) -> Result<MunsellMatt, CmtError> {
+    pub fn try_new(key: String) -> Result<MunsellMatt, Error> {
         if let Some(&i) = MM_KEY_MAP.get(key.as_str()) {
             Ok(Self::new(i))
         } else {
-            Err(CmtError::SpectrumNotFound(key))
+            Err(Error::SpectrumNotFound(key))
         }
     }
 }

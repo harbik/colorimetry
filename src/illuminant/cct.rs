@@ -42,7 +42,7 @@ use std::{cmp::max, sync::OnceLock};
 use approx::{assert_ulps_eq, relative_eq, ulps_eq, AbsDiffEq, RelativeEq, UlpsEq};
 
 use crate::{
-    error::CmtError,
+    error::Error,
     geometry::distance_to_line,
     observer::CIE1931,
     observer::{Observer, ObserverData},
@@ -103,13 +103,13 @@ impl CCT {
     /// - `CCTTemperatureTooLow`: if `cct` is below 1000 Kelvin.
     /// - `CCTDuvHighError`: if `duv` is above 0.05.
     /// - `CCTDuvLowError`: if `duv` is below -0.05.
-    pub fn new(cct: f64, duv: f64) -> Result<Self, CmtError> {
+    pub fn new(cct: f64, duv: f64) -> Result<Self, Error> {
         match (cct, duv) {
-            (_, d) if d > 0.05 => Err(CmtError::CCTDuvHighError),
-            (_, d) if d < -0.05 => Err(CmtError::CCTDuvLowError),
+            (_, d) if d > 0.05 => Err(Error::CCTDuvHighError),
+            (_, d) if d < -0.05 => Err(Error::CCTDuvLowError),
             (t, d) if ulps_eq!(t, im2t(0)) || ulps_eq!(t, im2t(N_STEPS - 1)) => Ok(Self(t, d)),
-            (t, _) if t > im2t(0) => Err(CmtError::CCTTemperatureTooHigh),
-            (t, _) if t < im2t(N_STEPS - 1) => Err(CmtError::CCTTemperatureTooLow),
+            (t, _) if t > im2t(0) => Err(Error::CCTTemperatureTooHigh),
+            (t, _) if t < im2t(N_STEPS - 1) => Err(Error::CCTTemperatureTooLow),
             (t, d) => Ok(Self(t, d)),
         }
     }
@@ -122,7 +122,7 @@ impl CCT {
     /// - `CCTTemperatureTooLow`: if `cct` is below 1000 Kelvin.
     /// - `CCTDuvHighError`: if `tint` is above 50.
     /// - `CCTDuvLowError`: if `tint` is below -50.
-    pub fn new_with_tint(cct: f64, tint: f64) -> Result<Self, CmtError> {
+    pub fn new_with_tint(cct: f64, tint: f64) -> Result<Self, Error> {
         Self::new(cct, tint / 1000.0)
     }
 
@@ -137,7 +137,7 @@ impl CCT {
     /// - `CCTTemperatureTooLow`: if the calculated CCT is below 1000 Kelvin.
     /// - `CCTDuvHighError`: if the calculated Duv is above 0.05.
     /// - `CCTDuvLowError`: if the calculated Duv is below -0.05.
-    pub fn from_xyz(xyz: XYZ) -> Result<Self, CmtError> {
+    pub fn from_xyz(xyz: XYZ) -> Result<Self, Error> {
         CCT::try_from(xyz)
     }
 
@@ -188,11 +188,11 @@ const MIRED_MAX: usize = 1000;
 /// Calculate Correlated Color temperature and Planckian Deviation distance, using the CIE1960 color
 /// space, using Robertson and Binary Search algorithms.
 impl TryFrom<XYZ> for CCT {
-    type Error = CmtError;
+    type Error = Error;
 
     fn try_from(xyz: XYZ) -> Result<Self, Self::Error> {
         if xyz.observer != Observer::Std1931 {
-            return Err(CmtError::RequiresCIE1931XYZ);
+            return Err(Error::RequiresCIE1931XYZ);
         }
         let [u, v] = xyz.uv60();
         // index bounderies N_STEPS-1 length lookup table e.g. 0-4095
@@ -224,7 +224,7 @@ impl TryFrom<XYZ> for CCT {
                     dhigh = 1.0;
                     imhigh = 1;
                 }
-                d if d > 0.0 => return Err(CmtError::CCTTemperatureTooHigh),
+                d if d > 0.0 => return Err(Error::CCTTemperatureTooHigh),
                 d => dlow = d,
             };
         };
@@ -237,7 +237,7 @@ impl TryFrom<XYZ> for CCT {
                     dhigh = -0.0;
                     imlow = N_STEPS - 2;
                 }
-                d if d < 0.0 => return Err(CmtError::CCTTemperatureTooLow),
+                d if d < 0.0 => return Err(Error::CCTTemperatureTooLow),
                 d => dlow = d,
             };
         };
@@ -251,7 +251,7 @@ impl TryFrom<XYZ> for CCT {
 /// Calculate tristimulus values from a Correlated Color Temperature and a Planckian Locus Distance.
 /// This can fail for lower temperatures, and positive distances, with a chromaticity outsiode the CIE 1931 gamut.
 impl TryFrom<CCT> for XYZ {
-    type Error = CmtError;
+    type Error = Error;
     fn try_from(cct: CCT) -> Result<Self, Self::Error> {
         let CCT(t, d) = cct;
         let [u0, v0, m] = iso_temp_line(t);
@@ -373,22 +373,22 @@ fn test_cct() {
     // Temperature too low here...
     let xyz: XYZ = CCT(999.0, 0.0).try_into().unwrap();
     let cct: Result<CCT, _> = xyz.try_into();
-    assert_eq!(cct, Err(CmtError::CCTTemperatureTooLow));
+    assert_eq!(cct, Err(Error::CCTTemperatureTooLow));
 
     // ... and too high here.
     let xyz: XYZ = CCT(1E6 + 1.0, 0.0).try_into().unwrap();
     let cct: Result<CCT, _> = xyz.try_into();
-    assert_eq!(cct, Err(CmtError::CCTTemperatureTooHigh));
+    assert_eq!(cct, Err(Error::CCTTemperatureTooHigh));
 
     // DUV too high...
     let xyz: XYZ = CCT(6000.0, 0.051).try_into().unwrap();
     let cct: Result<CCT, _> = xyz.try_into();
-    assert_eq!(cct, Err(CmtError::CCTDuvHighError));
+    assert_eq!(cct, Err(Error::CCTDuvHighError));
 
     // and too low here.
     let xyz: XYZ = CCT(6000.0, -0.051).try_into().unwrap();
     let cct: Result<CCT, _> = xyz.try_into();
-    assert_eq!(cct, Err(CmtError::CCTDuvLowError));
+    assert_eq!(cct, Err(Error::CCTDuvLowError));
 }
 
 // Helper for tests computing the uv prime distance and verifying it's
