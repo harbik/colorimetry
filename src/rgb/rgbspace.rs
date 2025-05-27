@@ -174,7 +174,7 @@ impl RgbSpaceData {
         const BLUE: [f64; 2] = [398.0273721579992, 52.55338039394701];
 
         SRGB.get_or_init(|| {
-            let primaries = gaussian_filtered_primaries(&D65, RED, GREEN, BLUE);
+            let primaries = gaussian_filtered_primaries(D65.as_ref(), RED, GREEN, BLUE);
             let white = CieIlluminant::D65;
             let gamma =
                 GammaCurve::new(vec![2.4, 1.0 / 1.055, 0.055 / 1.055, 1.0 / 12.92, 0.04045]);
@@ -205,7 +205,7 @@ impl RgbSpaceData {
         const BLUE: [f64; 2] = [398.0273721579992, 52.55338039394701];
 
         ADOBE_RGB.get_or_init(|| {
-            let primaries = gaussian_filtered_primaries(&D65, RED, GREEN, BLUE);
+            let primaries = gaussian_filtered_primaries(D65.as_ref(), RED, GREEN, BLUE);
             let white = CieIlluminant::D65;
             let gamma = GammaCurve::new(vec![563.0 / 256.0]);
             // See https://en.wikipedia.org/wiki/Adobe_RGB_color_space#ICC_PCS_color_image_encoding
@@ -236,7 +236,7 @@ impl RgbSpaceData {
         const BLUE: [f64; 2] = [398.0273721579992, 52.55338039394701];
 
         DISPLAY_P3.get_or_init(|| {
-            let primaries = gaussian_filtered_primaries(&D65, RED, GREEN, BLUE);
+            let primaries = gaussian_filtered_primaries(D65.as_ref(), RED, GREEN, BLUE);
             let white = CieIlluminant::D65;
             let gamma =
                 GammaCurve::new(vec![2.4, 1.0 / 1.055, 0.055 / 1.055, 1.0 / 12.92, 0.04045]);

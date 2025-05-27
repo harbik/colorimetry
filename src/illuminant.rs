@@ -3,43 +3,6 @@
 //! This module defines spectral **illuminants**—spectral power distributions (SPDs)
 //! representing light sources or combinations of sources (e.g. daylight, LEDs, black-body radiators).
 //! Spectral data cover 380 nm…780 nm at 1 nm intervals (401 samples).
-//!
-//! ## Submodules
-//! - `illuminants`         – pre-defined `Spectrum` constants (e.g. D50, D65).  
-//! - `std_illuminants`     – enum `CieIlluminant` for standard illuminants.
-//!
-//! ## Key Types
-//! - **`Illuminant`**
-//!   Wrapper around `Spectrum` with convenience constructors and SPD-specific operations.
-//!
-//! ## Manipulation & Analysis
-//! - **`set_irradiance(f64)`** / **`.irradiance()`**  
-//!   Scale or measure total spectral power (W/m²).  
-//! - **`set_illuminance(obs, lux)`** / **`.illuminance(obs)`**  
-//!   Scale or measure photometric illuminance (lux) via a given `Observer`.  
-//! - **`xyz(obs_opt)`** → `XYZ`  
-//!   Compute tristimulus values for this SPD under a chosen observer (default CIE 1931).  
-//! - **Color Rendering Index** (feature “cri”):  
-//!   Compute CRI metrics if enabled.  
-//! - **Correlated Color Temperature** (feature “cct”):  
-//!   Derive CCT and DUV when enabled.
-//!
-//! ## Traits & Conversions
-//! - `impl Light for Illuminant`  
-//! - `From<Spectrum> for Illuminant`  
-//! - `Mul<f64>` implementations for scaling SPDs.
-//!
-//! ## WASM Bindings
-//! Exposed via `#[wasm_bindgen]` for JavaScript usage (e.g. constructing SPDs, reading values, CRI).
-//!
-//! ## Examples
-//! ```rust
-//! use colorimetry::prelude::*;
-//! // Create a 6500 K black-body SPD, measure its chromaticity:
-//! let ill = Illuminant::planckian(6500.0);
-//! let xyz = CIE1931.xyz(&ill, None).set_illuminance(100.0);
-//! let [x, y] = xyz.chromaticity().to_array();
-//! ```  
 
 mod cie_data;
 pub use cie_data::*;
@@ -81,29 +44,51 @@ use crate::{
 #[wasm_bindgen]
 /// # Illuminant
 ///
-/// An illuminant is a spectral power distribution that represents the spectral power density of a
-/// light source, or a combination of light sources, such as the sun, a light bulb, or an LED, as
-/// expressed in Watts per square meter per nanometer (W/m²/nm), as measured at the input of
-/// a spectrometer. In this library, spectral values span a wavelength range from 380 to 780
-/// nanometers, including the end points, with a step size of 1 nanometer, resulting in 401 spectral
-/// values.
-///
-/// Creating a new illuminant can be done by using the `Illuminant::new` method, which takes a
-/// `Spectrum` as input. Alternatively, you can use the provided static methods to create common
-/// illuminants, such as `Illuminant::d65()` for the D65 standard illuminant, or `Illuminant::planckian(3000.0)`
-/// for a Planckian illuminant at 3000 Kelvin.
-///
-/// The `Illuminant` struct provides methods to manipulate the spectral values, such as
-/// `set_irradiance` to set the total irradiance of the illuminant, and `set_illuminance` to set the
-/// illuminance in lux. It also provides methods to calculate irradiance, illuminance, and the
-/// Color Rendering Index (CRI) values if the `cri` feature is enabled. These methods are only meaningful
-/// for illuminants, and not for other spectral data types like `Colorant`.
+/// An illuminant is a spectral power distribution that represents the
+/// spectral power density of a light source (sun, bulb, LED, etc.) in
+/// W/m²/nm over 380–780 nm (401 samples).
 pub struct Illuminant(pub(crate) Spectrum);
 
+/*
 impl Deref for Illuminant {
     type Target = Spectrum;
 
+    /// Allow treating an `Illuminant` directly as its inner `Spectrum`.
+    /// This is useful for passing an `Illuminant` to functions that expect a `Spectrum`.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use colorimetry::prelude::*;
+    /// use approx::assert_ulps_eq;
+    ///
+    /// let illuminant = Illuminant::d65();
+    /// assert_eq!(illuminant.values().len(), 401);
+    /// // Use the illuminant as a Spectrum
+
+    /// let xyz = CIE1931.xyz_from_spectrum(&illuminant);
+    /// let chromaticity = xyz.chromaticity();
+    /// assert_ulps_eq!(chromaticity.x(), 0.3127, epsilon = 1E-4);
+    /// assert_ulps_eq!(chromaticity.y(), 0.3290, epsilon = 1E-4);
+    /// ```
     fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+ */
+
+impl AsRef<Spectrum> for Illuminant {
+    /// Allows using an `Illuminant` as a reference to its inner `Spectrum`.
+    /// This is useful for passing an `Illuminant` to functions that expect a `&Spectrum`.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use colorimetry::prelude::*;
+    ///
+    /// let illuminant = Illuminant::d65();
+    /// let spectrum: &Spectrum = illuminant.as_ref();
+    /// assert_eq!(spectrum.values().len(), 401);
+    /// ```
+    fn as_ref(&self) -> &Spectrum {
         &self.0
     }
 }
@@ -335,7 +320,7 @@ impl Mul<Illuminant> for f64 {
 
 impl Light for Illuminant {
     fn spectrum(&self) -> Cow<Spectrum> {
-        Cow::Borrowed(self)
+        Cow::Borrowed(self.as_ref())
     }
 }
 
@@ -392,7 +377,7 @@ impl Illuminant {
 fn test_d_illuminant() {
     use crate::prelude::*;
     let s = Illuminant::d_illuminant(6504.0).unwrap();
-    let xyz = CIE1931.xyz_from_spectrum(&s).set_illuminance(100.0);
+    let xyz = CIE1931.xyz_from_spectrum(s.as_ref()).set_illuminance(100.0);
     approx::assert_ulps_eq!(xyz, CIE1931.xyz_d65(), epsilon = 2E-2);
 }
 
@@ -408,7 +393,7 @@ fn test_d_illuminant_range_error() {
 #[test]
 fn test_xyz() {
     use crate::prelude::*;
-    let s = *Illuminant::d_illuminant(6504.0).unwrap().values();
+    let s = *Illuminant::d_illuminant(6504.0).unwrap().as_ref().values();
     let illuminant = Illuminant(Spectrum::from(s));
     let xyz = illuminant.xyz(None).set_illuminance(100.0);
     approx::assert_ulps_eq!(xyz, CIE1931.xyz_d65(), epsilon = 2E-2);

@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Add `ciede2016` method to `CieCam16` to get the CIECAM16-UCS color difference between two `CieCam16` values.
 - Add `cam` and `CieCam16` documentation.
 - Add `ciede2000` method to `CieLab`.
+- Add `AsRef<Spectrum> for Illuminant`, to replace the implicit `Deref`.
 
 ### Removed
 - Remove undocumented `XYZ::srgb` method that both clamped out-of-gamut values and converted
@@ -28,6 +29,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Remove conversion directly from `WideRgb` to clamped and gamma encoded `[u8; 3]`. Prefer being
   more explicit by converting to the `Rgb` type in between with one of the provided conversion
   methods.
+- Remove `DeRef<Spectrum> for Illuminant` to be replaced with the more explcicit `AsRef<Spectrum>.
 
 ### Changed
 - `XYZ::new` now only uses a single array of tristimulus values; the white reference value was dropped in the XYZ representation.
