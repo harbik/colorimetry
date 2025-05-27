@@ -8,7 +8,7 @@
 
 pub mod cam;
 pub mod colorant;
-pub mod error;
+mod error;
 pub mod geometry;
 pub mod illuminant;
 pub mod lab;
@@ -20,3 +20,5 @@ pub mod spectrum;
 pub mod stimulus;
 pub mod traits;
 pub mod xyz;
+
+pub use error::CmtError;
