@@ -3,7 +3,7 @@ io
 jsr
 Deno
 toml
-StdIlluminant
+CieIlluminant
 planckian
 inproduct
 tristimulus

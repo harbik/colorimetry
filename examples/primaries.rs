@@ -9,11 +9,11 @@ use strum::IntoEnumIterator as _;
 #[allow(dead_code)]
 struct Gauss {
     chromaticity: Chromaticity,
-    d: StdIlluminant,
+    d: CieIlluminant,
 }
 
 impl Gauss {
-    fn new(xyz: XYZ, d: StdIlluminant) -> Self {
+    fn new(xyz: XYZ, d: CieIlluminant) -> Self {
         let chromaticity = xyz.chromaticity();
         Self { chromaticity, d }
     }
@@ -27,7 +27,7 @@ impl CostFunction for Gauss {
     fn cost(&self, param: &Self::Param) -> Result<Self::Output, argmin::core::Error> {
         let [l, w] = param.clone().try_into().unwrap();
         let param_chromaticity = CIE1931
-            .xyz(&StdIlluminant::D65, Some(&Colorant::gaussian(l, w)))
+            .xyz(&CieIlluminant::D65, Some(&Colorant::gaussian(l, w)))
             .chromaticity();
         //  println!("({l},{w}) cost: {xt:.4}, {yt:.4}");
         Ok((param_chromaticity.x() - self.chromaticity.x())
@@ -38,12 +38,12 @@ impl CostFunction for Gauss {
 #[allow(dead_code)]
 struct GaussWithAnchor {
     chromaticity: Chromaticity,
-    d: StdIlluminant,
+    d: CieIlluminant,
     anchor: XYZ,
 }
 
 impl GaussWithAnchor {
-    fn new(xyz: XYZ, anchor: XYZ, d: StdIlluminant) -> Self {
+    fn new(xyz: XYZ, anchor: XYZ, d: CieIlluminant) -> Self {
         let chromaticity = xyz.chromaticity();
         Self {
             chromaticity,
@@ -61,7 +61,7 @@ impl CostFunction for GaussWithAnchor {
     fn cost(&self, param: &Self::Param) -> Result<Self::Output, argmin::core::Error> {
         let [l, w, c]: [f64; 3] = param.clone().try_into().unwrap();
         let r = CIE1931
-            .xyz(&StdIlluminant::D65, Some(&Colorant::gaussian(l, w)))
+            .xyz(&CieIlluminant::D65, Some(&Colorant::gaussian(l, w)))
             .set_illuminance(100.0);
         let t = c * self.anchor + (1.0 - c) * r;
         let t_chromaticity = t.chromaticity();

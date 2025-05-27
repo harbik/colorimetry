@@ -224,7 +224,7 @@ impl XYZ {
     /// use colorimetry::prelude::*;
     /// use approx::assert_ulps_eq;
     ///
-    /// let d65_xyz = CIE1931.xyz(&StdIlluminant::D65, None).set_illuminance(100.0);
+    /// let d65_xyz = CIE1931.xyz(&CieIlluminant::D65, None).set_illuminance(100.0);
     /// let [x, y, z] = d65_xyz.values();
     /// // Calculated Spreadsheet Values from CIE Datasets, over a range from 380 to 780nm
     /// assert_ulps_eq!(x, 95.042_267, epsilon = 1E-6);
@@ -242,10 +242,10 @@ impl XYZ {
     /// use approx::assert_ulps_eq;
     /// const D65A: [f64;3] = [95.04, 100.0, 108.86];
     ///
-    /// let d65_xyz = CIE1931.xyz(&StdIlluminant::D65, None).set_illuminance(100.0);
+    /// let d65_xyz = CIE1931.xyz(&CieIlluminant::D65, None).set_illuminance(100.0);
     /// assert_ulps_eq!(d65_xyz, XYZ::new(D65A, Observer::Std1931), epsilon = 1E-2);
     ///
-    /// let d65_xyz_sample = CIE1931.xyz(&StdIlluminant::D65, Some(&Colorant::white()));
+    /// let d65_xyz_sample = CIE1931.xyz(&CieIlluminant::D65, Some(&Colorant::white()));
     /// assert_ulps_eq!(d65_xyz_sample, XYZ::new(D65A, Observer::Std1931), epsilon = 1E-2);
     /// ```
     pub fn set_illuminance(mut self, illuminance: f64) -> Self {
@@ -264,7 +264,7 @@ impl XYZ {
     /// use colorimetry::prelude::*;
     /// use approx::assert_ulps_eq;
     ///
-    /// let d65_xyz = CIE1931.xyz(&StdIlluminant::D65, None);
+    /// let d65_xyz = CIE1931.xyz(&CieIlluminant::D65, None);
     /// let chromaticity = d65_xyz.chromaticity();
     /// assert_ulps_eq!(chromaticity.to_array().as_ref(), [0.312_738, 0.329_052].as_slice(), epsilon = 1E-6);
     /// ```

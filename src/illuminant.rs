@@ -6,7 +6,7 @@
 //!
 //! ## Submodules
 //! - `illuminants`         – pre-defined `Spectrum` constants (e.g. D50, D65).  
-//! - `std_illuminants`     – enum `StdIlluminant` for standard illuminants.
+//! - `std_illuminants`     – enum `CieIlluminant` for standard illuminants.
 //!
 //! ## Key Types
 //! - **`Illuminant`**
@@ -44,7 +44,8 @@
 mod cie_data;
 pub use cie_data::*;
 
-pub mod std_illuminants;
+mod cie_illuminant;
+pub use cie_illuminant::CieIlluminant;
 
 #[cfg(feature = "cct")]
 mod cct;
@@ -69,7 +70,6 @@ use nalgebra::{ArrayStorage, SMatrix, SVector};
 use crate::{
     error::CmtError,
     illuminant,
-    illuminant::std_illuminants::StdIlluminant,
     observer::{Observer, ObserverData},
     physics::{gaussian_peak_one, led_ohno, planck, stefan_boltzmann, wavelength},
     spectrum::{wavelengths, Spectrum, NS, SPECTRUM_WAVELENGTH_RANGE},
@@ -378,12 +378,12 @@ impl Illuminant {
         todo!()
     }
 
-    /// Get the StdIlluminant spectrum. Typically you don't need to use the Spectrum itself, as many
-    /// methods just accept the StdIlluminant directly.
+    /// Get the CieIlluminant spectrum. Typically you don't need to use the Spectrum itself, as many
+    /// methods just accept the CieIlluminant directly.
     #[wasm_bindgen(js_name=illuminant)]
-    pub fn llluminant_js(stdill: StdIlluminant) -> Self {
+    pub fn llluminant_js(stdill: CieIlluminant) -> Self {
         // need this as wasm_bindgen does not support `impl` on Enum types (yet?).
-        // in Rust use StdIlluminant.spectrum() directly, which also gives a reference instead of a copy.
+        // in Rust use CieIlluminant.spectrum() directly, which also gives a reference instead of a copy.
         stdill.illuminant().clone()
     }
 }

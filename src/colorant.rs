@@ -62,7 +62,7 @@ use nalgebra::SVector;
 
 use crate::{
     error::CmtError,
-    illuminant::std_illuminants,
+    illuminant::CieIlluminant,
     lab::CieLab,
     physics::{gaussian_peak_one, wavelength},
     prelude::{Illuminant, Observer, D65, SPECTRUM_WAVELENGTH_RANGE},

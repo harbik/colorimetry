@@ -50,7 +50,7 @@ use crate::{
     colorant::Colorant,
     error::CmtError,
     geometry::LineAB,
-    illuminant::std_illuminants::StdIlluminant,
+    illuminant::CieIlluminant,
     lab::CieLab,
     physics::{planck, planck_slope, to_wavelength},
     rgb::RgbSpace,
@@ -158,7 +158,7 @@ impl ObserverData {
     /// Calulates Tristimulus values for an object implementing the [Light] trait, and an optional [Filter],
     /// filtering the light.
     ///
-    /// The Light trait is implemented by [`StdIlluminant`] and [Illuminant](crate::illuminant::Illuminant).
+    /// The Light trait is implemented by [`CieIlluminant`] and [Illuminant](crate::illuminant::Illuminant).
     ///
     /// [`Colorant`] implments the [`Filter`] trait.
     /// [`Rgb`](crate::rgb::Rgb), which represents a display pixel, implements both in this library.
@@ -212,7 +212,7 @@ impl ObserverData {
     /// Values are not normalized by default, unless an illuminance value is provided.
     ///
     /// TODO: buffer values
-    pub fn xyz_cie_table(&self, std_illuminant: &StdIlluminant, illuminance: Option<f64>) -> XYZ {
+    pub fn xyz_cie_table(&self, std_illuminant: &CieIlluminant, illuminance: Option<f64>) -> XYZ {
         let xyz = self.xyz_from_spectrum(std_illuminant.illuminant());
         if let Some(l) = illuminance {
             xyz.set_illuminance(l)
@@ -224,13 +224,13 @@ impl ObserverData {
     /// XYZ tristimulus values for the CIE standard daylight illuminant D65.
     /// The values are calculated on first use.
     pub fn xyz_d65(&self) -> XYZ {
-        self.xyz_cie_table(&StdIlluminant::D65, Some(100.0))
+        self.xyz_cie_table(&CieIlluminant::D65, Some(100.0))
     }
 
     /// XYZ tristimulus values for the CIE standard daylight illuminant D50.
     /// The values are calculated on first use.
     pub fn xyz_d50(&self) -> XYZ {
-        self.xyz_cie_table(&StdIlluminant::D50, Some(100.0))
+        self.xyz_cie_table(&CieIlluminant::D50, Some(100.0))
     }
 
     /**
@@ -247,21 +247,21 @@ impl ObserverData {
         and converting the resulting value to RGB values.
         ```
             use colorimetry::prelude::*;
-            let rgb: [u8;3] = CIE1931.xyz_from_std_illuminant_x_fn(&StdIlluminant::D65, |x|x).rgb(None).clamp().into();
+            let rgb: [u8;3] = CIE1931.xyz_from_std_illuminant_x_fn(&CieIlluminant::D65, |x|x).rgb(None).clamp().into();
             assert_eq!(rgb, [212, 171, 109]);
         ```
         Linear low pass filter, with a value of 1.0 for a wavelength of 380nm, and a value of 0.0 for 780nm,
         and converting the resulting value to RGB values.
         ```
             use colorimetry::prelude::*;
-            let rgb: [u8;3] = CIE1931.xyz_from_std_illuminant_x_fn(&StdIlluminant::D65, |x|1.0-x).rgb(None).clamp().into();
+            let rgb: [u8;3] = CIE1931.xyz_from_std_illuminant_x_fn(&CieIlluminant::D65, |x|1.0-x).rgb(None).clamp().into();
             assert_eq!(rgb, [158, 202, 237]);
         ```
 
     */
     pub fn xyz_from_std_illuminant_x_fn(
         &self,
-        illuminant: &StdIlluminant,
+        illuminant: &CieIlluminant,
         f: impl Fn(f64) -> f64,
     ) -> XYZ {
         let ill = illuminant.illuminant();
@@ -323,7 +323,7 @@ impl ObserverData {
     /// Accepts a Colorant Spectrum only.
     /// Returns f64::NAN's otherwise.
     pub fn lab_d65(&self, filter: &dyn Filter) -> CieLab {
-        let xyz = self.xyz(&StdIlluminant::D65, Some(filter));
+        let xyz = self.xyz(&CieIlluminant::D65, Some(filter));
         let xyzn = self.xyz_d65();
         CieLab::from_xyz(xyz, xyzn).unwrap()
     }
@@ -332,7 +332,7 @@ impl ObserverData {
     /// Accepts a Colorant Spectrum only.
     /// Returns f64::NAN's otherwise.
     pub fn lab_d50(&self, filter: &dyn Filter) -> CieLab {
-        let xyz = self.xyz(&StdIlluminant::D50, Some(filter));
+        let xyz = self.xyz(&CieIlluminant::D50, Some(filter));
         let xyzn = self.xyz_d50();
         CieLab::from_xyz(xyz, xyzn).unwrap()
     }
@@ -465,7 +465,7 @@ impl ObserverData {}
 mod obs_test {
 
     use super::Observer;
-    use crate::prelude::{StdIlluminant, CIE1931};
+    use crate::prelude::{CieIlluminant, CIE1931};
     use crate::rgb::RgbSpace;
     use crate::spectrum::SPECTRUM_WAVELENGTH_RANGE;
     use crate::xyz::{Chromaticity, XYZ};
@@ -570,7 +570,7 @@ mod obs_test {
             xyz,
             xyzn,
             observer,
-        } = CIE1931.xyz_cie_table(&StdIlluminant::D65, Some(100.0));
+        } = CIE1931.xyz_cie_table(&CieIlluminant::D65, Some(100.0));
         approx::assert_ulps_eq!(xyzn, na::Vector3::new(95.04, 100.0, 108.86), epsilon = 1E-2);
         assert!(xyz.is_none());
     }
@@ -595,7 +595,7 @@ mod obs_test {
 
     #[test]
     fn test_xyz_from_illuminant_x_fn() {
-        let xyz = CIE1931.xyz_from_std_illuminant_x_fn(&StdIlluminant::D65, |_v| 1.0);
+        let xyz = CIE1931.xyz_from_std_illuminant_x_fn(&CieIlluminant::D65, |_v| 1.0);
         let d65xyz = CIE1931.xyz_d65().xyz;
         approx::assert_ulps_eq!(
             xyz,
@@ -605,7 +605,7 @@ mod obs_test {
 
     #[test]
     fn test_xyz_of_sample_with_standard_illuminant() {
-        use crate::prelude::{StdIlluminant::D65 as d65, XYZ};
+        use crate::prelude::{CieIlluminant::D65 as d65, XYZ};
         let xyz = CIE1931
             .xyz(&d65, Some(&crate::colorant::Colorant::white()))
             .set_illuminance(100.0);

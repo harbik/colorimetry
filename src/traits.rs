@@ -8,8 +8,8 @@ use crate::{
 Spectral representation of Lights, typically in form of (standard) Illuminants.
 
 Also allows to use lookup tristimulus values, such as the very common
-[`D65`](crate::illuminant::std_illuminants::StdIlluminant::D65) illuminant
-(see [`StdIlluminant`](crate::illuminant::std_illuminants::StdIlluminant) implemention).
+[`D65`](crate::illuminant::CieIlluminant::D65) illuminant
+(see [`CieIlluminant`](crate::illuminant::CieIlluminant) implemention).
 Calculating them from a spectrum is the default implementation.
 */
 pub trait Light {

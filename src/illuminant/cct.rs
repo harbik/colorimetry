@@ -459,8 +459,7 @@ fn test_cct_at_max_error() {
 #[test]
 #[cfg(feature = "cie-illuminants")]
 fn f1_test() {
-    let xyz_f1 =
-        CIE1931.xyz_cie_table(&crate::illuminant::std_illuminants::StdIlluminant::F1, None);
+    let xyz_f1 = CIE1931.xyz_cie_table(&crate::illuminant::cie_illuminant::CieIlluminant::F1, None);
     // value from CIE Standard CIE15:2004 Table T8.1
     approx::assert_ulps_eq!(xyz_f1.cct().unwrap().t(), 6430.0, epsilon = 0.5);
 }
@@ -469,7 +468,7 @@ fn f1_test() {
 #[cfg(feature = "cie-illuminants")]
 fn f3_1_test() {
     let xyz_f3_1 = CIE1931.xyz_cie_table(
-        &crate::illuminant::std_illuminants::StdIlluminant::F3_1,
+        &crate::illuminant::cie_illuminant::CieIlluminant::F3_1,
         None,
     );
     // value from CIE Standard CIE15:2004 Table T8.1

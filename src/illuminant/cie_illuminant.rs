@@ -1,10 +1,10 @@
 //! # Standard Illuminants
 //!
 //! Many of the CIE Standard Illuminants are made available in this module through
-//! `StdIlluminant` for data-defined illuminants and the
+//! `CieIlluminant` for data-defined illuminants and the
 //! `Spectrum::cie_d_illuminant(cct: f64)` function for generic D-illuminant.
 //!
-//! The `StdIlluminant` object gives access to all the CIE illuminants defined in this library, obtained from the datasets published in the
+//! The `CieIlluminant` object gives access to all the CIE illuminants defined in this library, obtained from the datasets published in the
 //! CIE15::2018 standard, downloaded from the [CIE Website](https://web.archive.org/web/20240314231650/https://cie.co.at/data-tables) August 2024.
 //!
 //! As the data is compiled into the library, you can choose only to include the two basic illuminants `D65` and `D50` to limit the size of your
@@ -18,7 +18,7 @@
 //! For more detailed information on the CIE Standard Illuminant Datasets, see
 //! [Standard illuminant](https://en.wikipedia.org/wiki/Standard_illuminant#White_points_of_standard_illuminants)
 //! on Wikipedia.  Instead of a dash, use the `_` character to access these
-//! illuminants by their name here, so use `StdIlluminant::LED_BH1` to use the
+//! illuminants by their name here, so use `CieIlluminant::LED_BH1` to use the
 //! phosphor-converted Blue LED and Red LED standard illuminant.
 //! The Fluorescent `F3_X` series is included here, with X ranging from 1 to 15.
 //!
@@ -29,11 +29,11 @@
 //! A static reference to the spectra can be obtained using the "spectrum" method.
 //!
 //! ```
-//! // print all the StdIlluminants
+//! // print all the CieIlluminants
 //!     use colorimetry::prelude::*;
 //!     use strum::IntoEnumIterator;
 //!
-//!     for spc in StdIlluminant::iter() {
+//!     for spc in CieIlluminant::iter() {
 //!         println!{"{spc}"};
 //!     }
 //! ```
@@ -45,7 +45,7 @@ use nalgebra::{ArrayStorage, SMatrix};
 use std::{borrow::Cow, ops::Deref, vec};
 use wasm_bindgen::prelude::*;
 
-// This macro generates the `StdIlluminant` enumerator, representing the standard illuminants
+// This macro generates the `CieIlluminant` enumerator, representing the standard illuminants
 // available in the library.  It adds the illuminants defined as static data by their name as an
 // identifier to an `enum`, and add a `spectrum` method to access its data.  This is somewhat
 // contrived, as it is a work around for a wasm-bindgen bug, which does not obey the feature-cfg on
@@ -57,7 +57,7 @@ macro_rules! std_illuminants {
         #[allow(non_camel_case_types)]
         #[wasm_bindgen]
         #[derive(Clone, Copy, Debug, strum_macros::Display, strum_macros::EnumIter)]
-        pub enum StdIlluminant  {
+        pub enum CieIlluminant  {
                 $($val,)*
         }
 
@@ -66,12 +66,12 @@ macro_rules! std_illuminants {
         #[allow(non_camel_case_types)]
         #[wasm_bindgen]
         #[derive(Clone, Debug, Copy, strum_macros::Display, strum_macros::EnumIter)]
-        pub enum StdIlluminant  {
+        pub enum CieIlluminant  {
                 $($val,)*
                 $($cieval,)*
         }
 
-        impl StdIlluminant {
+        impl CieIlluminant {
             pub fn illuminant(&self) -> &crate::illuminant::Illuminant {
                 match self {
                     $(Self::$val => &crate::illuminant::cie_data::$val,)*
@@ -85,19 +85,19 @@ macro_rules! std_illuminants {
     };
 }
 
-impl From<StdIlluminant> for Illuminant {
-    fn from(std_illuminant: StdIlluminant) -> Self {
+impl From<CieIlluminant> for Illuminant {
+    fn from(std_illuminant: CieIlluminant) -> Self {
         std_illuminant.illuminant().clone()
     }
 }
 
-impl AsRef<Illuminant> for StdIlluminant {
+impl AsRef<Illuminant> for CieIlluminant {
     fn as_ref(&self) -> &Illuminant {
         self.illuminant()
     }
 }
 
-impl Light for StdIlluminant {
+impl Light for CieIlluminant {
     fn xyzn(
         &self,
         observer: crate::observer::Observer,

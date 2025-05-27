@@ -26,7 +26,7 @@ use nalgebra::{DVector, SVector};
 use crate::{
     colorant::Colorant,
     error::CmtError,
-    illuminant::std_illuminants::StdIlluminant,
+    illuminant::CieIlluminant,
     illuminant::{D50, D65},
     observer::ObserverData,
     observer::CIE1931,
@@ -738,7 +738,7 @@ mod tests {
 
     #[cfg_attr(test, cfg(feature = "cie-illuminants"))]
     fn a() {
-        let a: Illuminant = StdIlluminant::A.into();
+        let a: Illuminant = CieIlluminant::A.into();
         let chromaticity = CIE1931.xyz_from_spectrum(&a).chromaticity();
         // See table T3 CIE15:2004 (calculated with 5nm intervals, instead of 1nm, as used here)
         assert_ulps_eq!(chromaticity.x(), 0.447_58, epsilon = 5E-5);

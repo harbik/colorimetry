@@ -37,7 +37,6 @@
 pub use super::cam::*;
 pub use super::colorant::*;
 pub use super::geometry::*;
-pub use super::illuminant::std_illuminants::*;
 pub use super::illuminant::*;
 pub use super::lab::*;
 pub use super::observer::*;

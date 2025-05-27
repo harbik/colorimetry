@@ -298,7 +298,7 @@ The CIE Color Rendering Index (CRI), including the general color rendering index
 
     use crate::colorimetry::prelude::*;
 
-    let f3_11 = StdIlluminant::F3_11.illuminant();
+    let f3_11 = CieIlluminant::F3_11.illuminant();
     let cri = f3_11.cri().unwrap();
 
     let expected_ra = 78.0;
