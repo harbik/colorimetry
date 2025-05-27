@@ -45,7 +45,7 @@ const UCS_C2: f64 = 0.0228;
 use nalgebra::{matrix, vector, Matrix3, SMatrix, Vector3};
 
 use crate::{
-    cam::viewconditions::{ReferenceValues},
+    cam::viewconditions::ReferenceValues,
     error::CmtError,
     geometry::distance,
     prelude::Observer,

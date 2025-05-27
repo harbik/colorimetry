@@ -77,7 +77,6 @@ use crate::{
     xyz::XYZ,
 };
 
-
 #[derive(Clone, Default)]
 #[wasm_bindgen]
 /// # Illuminant

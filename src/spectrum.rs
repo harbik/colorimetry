@@ -26,8 +26,8 @@ use nalgebra::{DVector, SVector};
 use crate::{
     colorant::Colorant,
     error::CmtError,
-    illuminant::{D50, D65},
     illuminant::std_illuminants::StdIlluminant,
+    illuminant::{D50, D65},
     observer::ObserverData,
     observer::CIE1931,
     physics::C,
