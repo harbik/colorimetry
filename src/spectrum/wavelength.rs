@@ -53,3 +53,13 @@ pub fn to_wavelength<T: ToPrimitive>(x: T, xmin: T, xmax: T) -> f64 {
     wavelength(*SPECTRUM_WAVELENGTH_RANGE.start()) * (1.0 - f)
         + wavelength(*SPECTRUM_WAVELENGTH_RANGE.end()) * f
 }
+
+/// Convenience function for specifying wavelengths in nanometers or meters.
+///
+/// This accepts integer and float values.
+/// Wwavelength values larger than 1E-3 are assumed to have the unit nanometer
+/// and are converted to a unit of meters.
+/// All integer values are nanometaer values.
+pub fn wavelengths<T: ToPrimitive, const N: usize>(v: [T; N]) -> [f64; N] {
+    v.map(|x| wavelength(x))
+}

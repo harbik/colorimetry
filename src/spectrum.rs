@@ -15,7 +15,6 @@ use std::{
 };
 
 use approx::AbsDiffEq;
-use num_traits::ToPrimitive;
 
 use wasm_bindgen::prelude::*;
 
@@ -27,7 +26,7 @@ use crate::{
 };
 
 mod wavelength;
-pub use wavelength::{to_wavelength, wavelength};
+pub use wavelength::{to_wavelength, wavelength, wavelengths};
 
 /// The wavelength range of the spectrums supported by this library.
 ///
@@ -463,16 +462,6 @@ impl IndexMut<usize> for Spectrum {
     fn index_mut(&mut self, i: usize) -> &mut Self::Output {
         &mut self.0[(i - SPECTRUM_WAVELENGTH_RANGE.start(), 0)]
     }
-}
-
-/// Convenience function for specifying wavelengths in nanometers or meters.
-///
-/// This accepts integer and float values.
-/// Wwavelength values larger than 1E-3 are assumed to have the unit nanometer
-/// and are converted to a unit of meters.
-/// All integer values are nanometaer values.
-pub fn wavelengths<T: ToPrimitive, const N: usize>(v: [T; N]) -> [f64; N] {
-    v.map(|x| wavelength(x))
 }
 
 /// Linear interpolation over a dataset over an equidistant wavelength domain
