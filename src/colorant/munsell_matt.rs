@@ -28,7 +28,7 @@ pub(crate) const MATT_M: usize = 1269;
 pub struct MunsellMatt(String, Spectrum);
 
 impl MunsellMatt {
-    /// Get MunsellMatt Spectral data b`y index.
+    /// Get MunsellMatt Spectral data by index.
     ///
     /// Index value should be in the range from 0..1269. This will panic if a larger number is
     /// requested.
