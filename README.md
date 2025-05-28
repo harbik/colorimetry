@@ -46,7 +46,7 @@ To use this library in a Rust application, run the command:
 ```
 or add this line to the dependencies in your Cargo.toml file:
 ```toml
-    colorimetry = "0.0.5"
+    colorimetry = "0.0.6"
 ```
 The easiest way to use the objects and functions in this library is through its prelude.
 
@@ -121,7 +121,7 @@ cargo add colorimetry --features cri,munsell
 Alternatively, configure features manually in your `Cargo.toml`:
 
 ```toml
-colorimetry = { version = "0.0.5", features = ["cri", "munsell"] }
+colorimetry = { version = "0.0.6", features = ["cri", "munsell"] }
 ```
 
 </details>

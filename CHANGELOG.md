@@ -13,6 +13,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## Unreleased
 
+
+## [0.0.6] - 2025-05-27
+
 ### Added
 - Add `r()`, `g()` and `b()` methods to `WideRgb` for easy access to each channel value.
 - Add `Chromaticity` struct and use it instead of `[f64; 2]` to represent chromaticity coordinates.
