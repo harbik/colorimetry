@@ -39,9 +39,31 @@ impl SecondRadiationConstant {
     }
 }
 
-/// Planck's law describes the spectral radiance of a black body at a given temperature.  This
-/// struct encapsulates the temperature of the black body, with unit of Kelvin, and provides methods
-/// to calculate
+/// Planck’s law describes the spectral radiance of an ideal black body at a given temperature.
+/// 
+/// This struct wraps a black‐body temperature (in Kelvin) and provides methods to:
+/// 
+/// - **spectral_radiance(λ)**  
+///   Compute the spectral radiance \(L_λ\) at wavelength λ (in meters), in units of W·sr⁻¹·m⁻²·m⁻¹.
+/// - **spectral_slope(λ)**  
+///   Compute the first derivative \(\partial L_λ/\partial T\) with respect to temperature (K), useful for sensitivity analysis.  
+/// - **spectral_curvature(λ)**  
+///   Compute the second derivative \(\partial^2 L_λ/\partial T^2\), for curvature and stability studies.  
+/// - **total_radiance()**  
+///   Compute the total power emitted per unit area (W·m⁻²) via the Stefan–Boltzmann law.  
+/// 
+/// # Example
+/// ```rust
+/// # use colorimetry::illuminant::Planck;
+/// let bb = Planck::new(5500.0);        // 5500 K solar‐like black body
+/// let L = bb.at_wavelength(500e-9);   // radiance at 500 nm
+/// let dL_dT = bb.slope_at_wavelength(500e-9);  // sensitivity at 500 nm
+/// let M = bb.total_radiance();            // total exitance (W·m⁻²)
+/// ```
+/// 
+/// # References
+/// - Planck, M. (1901). “On the Law of Distribution of Energy in the Normal Spectrum.”  
+/// - Wikipedia: [Planck’s Law](https://en.wikipedia.org/wiki/Planck%27s_law)
 pub struct Planck(f64);
 
 impl Planck {
@@ -100,7 +122,7 @@ impl Planck {
     /// Calculate the total radiant emittance of a black body at the given temperature.
     /// This is based on the Stefan-Boltzmann law, which states that the total energy radiated per unit surface area
     /// of a black body is proportional to the fourth power of its absolute temperature.
-    pub fn stefan_boltzmann(&self) -> f64 {
+    pub fn total_radiance(&self) -> f64 {
         let temperature = self.0;
         const SIGMA: f64 = 5.670374419184E-8; // Stefan-Boltzmann constant (W m<sup>-2</sup> K<sup>-4</sup>)
         SIGMA * temperature.powi(4)

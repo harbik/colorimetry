@@ -123,7 +123,7 @@ impl Illuminant {
     /// ```
     pub fn planckian(cct: f64) -> Self {
         let p = Planck::new(cct);
-        let s = 1E-9 / p.stefan_boltzmann(); // 1W/m2 total irradiance
+        let s = 1E-9 / p.total_radiance(); // 1W/m2 total irradiance
         let data = SVector::<f64, NS>::from_fn(|i, _j| {
             s * p.at_wavelength((i + SPECTRUM_WAVELENGTH_RANGE.start()) as f64 * 1e-9)
         });
