@@ -48,7 +48,7 @@ pub use observers::*;
 
 use crate::{
     error::Error,
-    illuminant::{planck, planck_slope, CieIlluminant},
+    illuminant::{CieIlluminant, Planck},
     lab::CieLab,
     math::LineAB,
     rgb::RgbSpace,
@@ -305,13 +305,15 @@ impl ObserverData {
     /// `xyz_from_illuminant_as_fn` uses functions over a domain from 0.0 to
     /// 1.0.
     pub fn xyz_planckian_locus(&self, cct: f64) -> XYZ {
-        self.xyz_fn_illuminant(|l| planck(to_wavelength(l, 0.0, 1.0), cct))
+        let p = Planck::new(cct);
+        self.xyz_fn_illuminant(|l| p.at_wavelength(to_wavelength(l, 0.0, 1.0)))
     }
 
     /// The slope of the Plancking locus as a (dX/dT, dY/dT, dZ/dT) contained in
     /// a XYZ object.
     pub fn xyz_planckian_locus_slope(&self, cct: f64) -> XYZ {
-        self.xyz_fn_illuminant(|l| planck_slope(to_wavelength(l, 0.0, 1.0), cct))
+        let p = Planck::new(cct);
+        self.xyz_fn_illuminant(|l| p.slope_at_wavelength(to_wavelength(l, 0.0, 1.0)))
     }
 
     /// Calculates the L*a*b* CIELAB D65 values of a Colorant, using D65 as an illuminant.

@@ -14,6 +14,21 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## Unreleased
 
 
+### Added
+- `Gaussian` struct, to represent normal distributions as used in this library as spectral
+  distributions and used for filtering.
+- `Planck` struct, with methods for calculating blackbody emission spectra.
+
+### Changed
+- Refactored `physics.rs` with the planck functions and LED functions now moved to the `Illuminant` module,
+  and the remaining functions combined with teh `geometry.rs` functions into `math.rs`.
+
+### Removed
+- Various normal distribution (gaussian) helper functions, now all collected as methods of the `Gaussian` struct.
+- Various Planck's law helper functions, now all collected as methods of the `Planck` struct.
+
+### Fixed
+
 ## [0.0.6] - 2025-05-27
 
 ### Added

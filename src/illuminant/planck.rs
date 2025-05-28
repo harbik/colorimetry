@@ -1,97 +1,108 @@
-//! # Functions and Constants from Physics
+//! # Planck Radiation model and Physical Constants
 //!
-//! This module provides core physical constants and spectral‐generation functions
-//! used throughout the library to build illuminants, LEDs, black‐body radiators,
-//! and band-pass filters.  
-//!
-//! ## Constants
-//! - `C` — Speed of light (m/s)  
-//! - `KB` — Boltzmann constant (m²·kg·s⁻²·K⁻¹)  
-//! - `H` — Planck constant (m²·kg/s)  
-//! - `C1` — First radiation constant (W·m²)  
-//! - `C2`, `C2_NBS_1931`, `C2_IPTS_1948`, `C2_ITS_1968` — Second radiation constants for various standards  
-//! - `SIGMA` — Stefan–Boltzmann constant (W·m⁻²·K⁻⁴)  
-//!
-//! ## Black‐Body Radiation
-//! - `planck_c2(l, T, c2)` — Planck’s law at wavelength `l` (m), temperature `T` (K), using constant `c2`.  
-//! - `planck_slope_c2`, `planck_curvature_c2` — First and second derivatives with respect to temperature.  
-//! - `planck(l, T)` / `planck_slope(l, T)` — Convenience wrappers using the current `C2`.  
-//! - `stefan_boltzmann(T)` — Total radiant emittance of a black‐body at `T` (W·m⁻²).  
-//!
-
-use wasm_bindgen::prelude::wasm_bindgen;
 
 /// The speed of light (m/s)
-pub const C: f64 = 299792458.0;
+const C: f64 = 299792458.0;
 
 /// Boltzmann constant (m<sup>2</sup> kg s<sup>-2</sup> K<sup>-1</sup>)
-pub const KB: f64 = 1.3806485279E-23;
+const KB: f64 = 1.3806485279E-23;
 
 /// Planck constant (m<sup>2</sup> kg / s)
-pub const H: f64 = 6.6260700408181E-34;
+const H: f64 = 6.6260700408181E-34;
 
 /// First radiation constant (W m<sup>2</sup>)
-pub const C1: f64 = 2. * std::f64::consts::PI * H * C * C;
+const C1: f64 = 2. * std::f64::consts::PI * H * C * C;
 
-/// Second radiation constant \( c_2 \) appears in Planck's law
-/// and has the SI unit **m·K** (meter times kelvin)
-/// It's definition is now exact, and is used to define the temperature scale, but it's value varied in the past.
-/// see [Wiki ITS](https://en.wikipedia.org/wiki/Planckian_locus#International_Temperature_Scale)
-pub const C2: f64 = H * C / KB;
-
-/// Value as used in the definition oof the A Illuminant
-pub const C2_NBS_1931: f64 = 1.435E-2;
-
-/// Value as used in the D Illuminant series.
-pub const C2_IPTS_1948: f64 = 1.4380E-2;
-pub const C2_ITS_1968: f64 = 1.4388E-2;
-
-/**
-Planck with the second radiant constant as parameter.
-
-This to be used for planckian radiators not in vacuum, or to calculate standard lights defined with
-older values of this constant.
-
-l: wavelength in meter
-t: absolute temperature in Kelvin
-c2: second radiative constant, in meter * Kelvin; can also be used to include refractive index, using c2 ::  c2 / n
-
-*/
-#[inline]
-pub fn planck_c2(l: f64, t: f64, c2: f64) -> f64 {
-    C1 / l.powi(5) / ((c2 / (l * t)).exp() - 1.0)
+/// Variants of the second radiation constant \(c_2\) used in Planck’s law,
+/// reflecting historical definitions and the current exact definition.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum SecondRadiationConstant {
+    /// Current exact definition: \(c_2 = \frac{h \, c}{k_B}\)
+    Exact,
+    /// Value used in the definition of the A Illuminant (NBS 1931)
+    Nbs1931,
+    /// Value used in the D Illuminant series (IPTS 1948)
+    Ipts1948,
+    /// Value used in the D Illuminant series (ITS 1968)
+    Its1968,
 }
 
-/// Planck Temperature derivate: d(Planck)/dT
-pub fn planck_slope_c2(l: f64, t: f64, c2: f64) -> f64 {
-    let c3 = C1 * c2 / t.powi(2);
-    let e = (c2 / (l * t)).exp();
-    c3 / l.powi(6) * e / (e - 1.0).powi(2)
+impl SecondRadiationConstant {
+    /// Returns the numerical value of the chosen constant (in m·K).
+    pub fn value(self) -> f64 {
+        match self {
+            SecondRadiationConstant::Exact => H * C / KB,
+            SecondRadiationConstant::Nbs1931 => 1.435e-2,
+            SecondRadiationConstant::Ipts1948 => 1.4380e-2,
+            SecondRadiationConstant::Its1968 => 1.4388e-2,
+        }
+    }
 }
 
-/// Planck Temperature second derivative: d2(Planck)/dT2
-pub fn planck_curvature_c2(l: f64, t: f64, c2: f64) -> f64 {
-    let e = (c2 / (l * t)).exp();
-    planck_slope_c2(l, t, c2) / t * (c2 / (l * t) * (e + 1.0) / (e - 1.0) - 2.0)
-}
+/// Planck's law describes the spectral radiance of a black body at a given temperature.  This
+/// struct encapsulates the temperature of the black body, with unit of Kelvin, and provides methods
+/// to calculate
+pub struct Planck(f64);
 
-#[inline]
-pub fn planck(l: f64, t: f64) -> f64 {
-    planck_c2(l, t, C2)
-}
+impl Planck {
+    /// Create a new Planck instance with the given temperature with a unit of Kelvin.
+    pub fn new(temperature: f64) -> Self {
+        Planck(temperature)
+    }
 
-#[inline]
-pub fn planck_slope(l: f64, t: f64) -> f64 {
-    planck_slope_c2(l, t, C2)
-}
+    /// Calculate the spectral radiance at a given wavelength.
+    /// This is based on Planck's law, which describes the spectral radiance of a black body at a given temperature.
+    /// # Arguments
+    /// * `wavelength` - The wavelength in meters at which to calculate the spectral radiance.
+    /// # Returns
+    /// The spectral radiance in watts per square meter per steradian per meter (W·m<sup>-2</sup>·sr<sup>-1</sup>·m<sup>-1</sup>).
+    pub fn at_wavelength(&self, wavelength: f64) -> f64 {
+        let t = self.0;
+        let c2 = SecondRadiationConstant::Exact.value();
+        C1 / wavelength.powi(5) / ((c2 / (wavelength * t)).exp() - 1.0)
+    }
 
-/// Stefan-Boltzmann constant (W m<sup>-2</sup> K<sup>-4</sup>)
-const SIGMA: f64 = 5.670_374_419_184E-8;
+    /// Calculate the slope of the spectral radiance with respect to temperature.
+    /// This is the first derivative of Planck's law.
+    /// # Arguments
+    /// * `wavelength` - The wavelength in meters at which to calculate the slope.
+    /// # Returns
+    pub fn slope_at_wavelength(&self, wavelength: f64) -> f64 {
+        let t = self.0;
+        let c2 = SecondRadiationConstant::Exact.value();
+        let c3 = C1 * c2 / t.powi(2);
+        let e = (c2 / (wavelength * t)).exp();
+        c3 / wavelength.powi(6) * e / (e - 1.0).powi(2)
+    }
 
-/// Stefan Boltzmann law: Blackbody's radiant emittance (W m<sup>-2</sup>), as function of its absolute
-/// temperature (K).
-#[inline]
-#[wasm_bindgen(js_name= stefanBoltzmann)]
-pub fn stefan_boltzmann(temperature: f64) -> f64 {
-    SIGMA * temperature.powi(4)
+    pub fn planck_with_legacy_c2(&self, wavelength: f64, c2: SecondRadiationConstant) -> f64 {
+        let t = self.0;
+        let c2_value = c2.value();
+        C1 / wavelength.powi(5) / ((c2_value / (wavelength * t)).exp() - 1.0)
+    }
+
+    pub fn slope_with_legacy_c2(&self, wavelength: f64, c2: SecondRadiationConstant) -> f64 {
+        let t = self.0;
+        let c2_value = c2.value();
+        let c3 = C1 * c2_value / t.powi(2);
+        let e = (c2_value / (wavelength * t)).exp();
+        c3 / wavelength.powi(6) * e / (e - 1.0).powi(2)
+    }
+
+    pub fn curvature_with_legacy_c2(&self, wavelength: f64, c2: SecondRadiationConstant) -> f64 {
+        let t = self.0;
+        let c2_value = c2.value();
+        let e = (c2_value / (wavelength * t)).exp();
+        self.slope_with_legacy_c2(wavelength, c2) / t
+            * (c2_value / (wavelength * t) * (e + 1.0) / (e - 1.0) - 2.0)
+    }
+
+    /// Calculate the total radiant emittance of a black body at the given temperature.
+    /// This is based on the Stefan-Boltzmann law, which states that the total energy radiated per unit surface area
+    /// of a black body is proportional to the fourth power of its absolute temperature.
+    pub fn stefan_boltzmann(&self) -> f64 {
+        let temperature = self.0;
+        const SIGMA: f64 = 5.670374419184E-8; // Stefan-Boltzmann constant (W m<sup>-2</sup> K<sup>-4</sup>)
+        SIGMA * temperature.powi(4)
+    }
 }

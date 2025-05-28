@@ -9,7 +9,6 @@
 pub mod cam;
 pub mod colorant;
 mod error;
-pub mod geometry;
 pub mod illuminant;
 pub mod lab;
 pub mod math;
