@@ -80,7 +80,49 @@ fn tcs_test() {
 
 #[wasm_bindgen]
 #[derive(Debug, Clone, Copy)]
-/// Encapcsulated Array of calculated Ri values, from a test light source.
+/// The **Color Rendering Index (CRI)** for a light source, computed according to CIE 13.3-1995.
+///
+/// This struct holds the 14 individual rendering indices R₁…R₁₄ for the standard test color samples,
+/// and provides the general CRI, Rₐ, which is the average of the first eight Rᵢ values.  
+///
+/// # Calculation Method
+/// 1. The test illuminant is scaled to 100 lx and converted to CIE XYZ under the CIE 1931 observer.  
+/// 2. Each of the 14 standard Colorant test spectra (TCS) is measured under both the test and the  
+///    reference illuminant (black-body or D-series at the test’s correlated color temperature).  
+/// 3. For each sample, the color difference ΔE in CIE UVW space is computed, and  
+///    Rᵢ = 100 − 4.6 · ΔE.  
+/// 4. The general CRI Rₐ is then  
+///    ```text
+///    Rₐ = (R₁ + R₂ + … + R₈) / 8
+///    ```
+///
+/// # Examples
+/// ```rust
+/// use colorimetry::prelude::*;
+///
+/// // Compute CRI for the D65 illuminant:
+/// let cri: CRI = (&Illuminant::d65()).try_into().unwrap();
+///
+/// // General CRI:
+/// let ra = cri.ra();
+/// println!("General CRI Rₐ = {:.1}", ra);
+///
+/// // All 14 individual Rᵢ values:
+/// let ri_values = cri.values();
+/// for (i, &ri) in ri_values.iter().enumerate() {
+///     println!("R{} = {:.1}", i + 1, ri);
+/// }
+/// ```
+///
+/// # Notes
+/// - This implementation uses the **CIE 1931** color space and requires the `"cri"` feature to be enabled in the crate.  
+/// - The CRI-metric is now considered somewhat outdated; newer metrics (e.g., TM-30) are recommended for modern lighting applications.  
+///   However, CRI remains widely used and understood across the lighting industry.
+///
+/// # Errors
+/// Constructing a `CRI` can fail if the illuminant’s correlated color temperature is out of the
+/// valid range (1000–25000 K) or its distance from the Planckian locus exceeds 0.05 Δuv.
+///
 pub struct CRI([f64; N_TCS]);
 
 impl CRI {
@@ -115,7 +157,7 @@ impl TryFrom<&Illuminant> for CRI {
     fn try_from(illuminant: &Illuminant) -> Result<Self, Self::Error> {
         let illuminant = &illuminant.clone().set_illuminance(&CIE1931, 100.0);
         // Calculate Device Under Test (dut) XYZ illuminant and sample values
-        let xyz_dut = CIE1931.xyz_from_spectrum(illuminant);
+        let xyz_dut = CIE1931.xyz_from_spectrum(illuminant.as_ref());
         let xyz_dut_samples: [XYZ; N_TCS] = TCS
             .each_ref()
             .map(|colorant| CIE1931.xyz(illuminant, Some(colorant)));
@@ -130,7 +172,7 @@ impl TryFrom<&Illuminant> for CRI {
         };
 
         // Calculate the reference illuminant values
-        let xyz_ref = CIE1931.xyz_from_spectrum(&illuminant_ref);
+        let xyz_ref = CIE1931.xyz_from_spectrum(illuminant_ref.as_ref());
         let xyz_ref_samples: [XYZ; N_TCS] = TCS
             .each_ref()
             .map(|colorant| CIE1931.xyz(&illuminant_ref, Some(colorant)));

@@ -33,7 +33,7 @@
 //!
 //! // Convert XYZ to Lab
 //! let xyz = XYZ::new([36.0, 70.0, 12.0], Observer::Std1931);
-//! let white = XYZ_D65;
+//! let white = CIE1931.xyz_d65(); // Reference white point (D65 illuminant)
 //! let lab1 = CieLab::from_xyz(xyz, white).unwrap();
 //!
 //! // Direct Lab constructor
@@ -122,8 +122,9 @@ impl CieLab {
     ///
     /// let xyz1 = XYZ::new([36.0, 70.0, 12.0], Observer::Std1931);
     /// let xyz2 = XYZ::new([35.0, 71.0, 11.0], Observer::Std1931);
-    /// let lab1 = CieLab::from_xyz(xyz1, XYZ_D65).unwrap();
-    /// let lab2 = CieLab::from_xyz(xyz2, XYZ_D65).unwrap();
+    /// let xyzn = CIE1931.xyz_d65(); // Reference white point (D65 illuminant)
+    /// let lab1 = CieLab::from_xyz(xyz1, xyzn).unwrap();
+    /// let lab2 = CieLab::from_xyz(xyz2, xyzn).unwrap();
     /// let de = lab1.ciede(&lab2).unwrap();
     /// approx::assert_abs_diff_eq!(de, 6.57, epsilon = 0.01);
     /// ```
@@ -162,8 +163,9 @@ impl CieLab {
     /// use colorimetry::prelude::*;
     ///
     /// // Sharma et al. (2005) test case 25
-    /// let lab1 = CieLab::new([60.2574, -34.0099, 36.2677], XYZ_D65);
-    /// let lab2 = CieLab::new([60.4626, -34.1751, 39.4387], XYZ_D65);
+    /// let xyz_d65 = CIE1931.xyz_d65();
+    /// let lab1 = CieLab::new([60.2574, -34.0099, 36.2677], xyz_d65);
+    /// let lab2 = CieLab::new([60.4626, -34.1751, 39.4387], xyz_d65);
     /// let de = lab1.ciede2000(&lab2).unwrap();
     /// approx::assert_abs_diff_eq!(de, 1.2644, epsilon = 1E-4);
     /// ```
@@ -295,7 +297,7 @@ fn delta_e_ciede2000(lab1: Vector3<f64>, lab2: Vector3<f64>) -> f64 {
 
 #[cfg(test)]
 mod tests {
-    use crate::prelude::*;
+    use crate::{prelude::*, xyz};
     use approx::assert_abs_diff_eq;
     use nalgebra::vector;
 
@@ -488,9 +490,10 @@ mod tests {
             ),
         ];
 
+        let xyz_d65 = CIE1931.xyz_d65();
         for &(lab1_arr, lab2_arr, expected) in cases {
-            let lab1 = CieLab::new(lab1_arr, XYZ_D65);
-            let lab2 = CieLab::new(lab2_arr, XYZ_D65);
+            let lab1 = CieLab::new(lab1_arr, xyz_d65);
+            let lab2 = CieLab::new(lab2_arr, xyz_d65);
             let de = lab1.ciede(&lab2).unwrap();
             approx::assert_abs_diff_eq!(de, expected, epsilon = 1e-4);
         }

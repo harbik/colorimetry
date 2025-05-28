@@ -1,42 +1,4 @@
-//! # Standard Illuminants
-//!
-//! Many of the CIE Standard Illuminants are made available in this module through
-//! `CieIlluminant` for data-defined illuminants and the
-//! `Spectrum::cie_d_illuminant(cct: f64)` function for generic D-illuminant.
-//!
-//! The `CieIlluminant` object gives access to all the CIE illuminants defined in this library, obtained from the datasets published in the
-//! CIE15::2018 standard, downloaded from the [CIE Website](https://web.archive.org/web/20240314231650/https://cie.co.at/data-tables) August 2024.
-//!
-//! As the data is compiled into the library, you can choose only to include the two basic illuminants `D65` and `D50` to limit the size of your
-//! recent `F3_X` series included here,
-//! executable by using the `--no-default-features` in the compiler, or the `default-features = false` in its dependence declaration of this crate in
-//! the `cargo.toml` file of your application. The library uses the "cie-illuminants" feature flag to select the inclusion of these illuminants.
-//!
-//! If you use this library in a JavaScript application, the default `colorimetry` package excludes all the features that allow fast load times for
-//! lightweight applications.  Use the `colorimetry-all` package to use the library with all its features enabled.
-//!
-//! For more detailed information on the CIE Standard Illuminant Datasets, see
-//! [Standard illuminant](https://en.wikipedia.org/wiki/Standard_illuminant#White_points_of_standard_illuminants)
-//! on Wikipedia.  Instead of a dash, use the `_` character to access these
-//! illuminants by their name here, so use `CieIlluminant::LED_BH1` to use the
-//! phosphor-converted Blue LED and Red LED standard illuminant.
-//! The Fluorescent `F3_X` series is included here, with X ranging from 1 to 15.
-//!
-//! The CIE Standard Illuminants, available in the library, defined as enums.
-//!
-//! The illuminants D65 and D50 are always included in this library, all the others will be only
-//! included with the cie-illumiants feature flag.
-//! A static reference to the spectra can be obtained using the "spectrum" method.
-//!
-//! ```
-//! // print all the CieIlluminants
-//!     use colorimetry::prelude::*;
-//!     use strum::IntoEnumIterator;
-//!
-//!     for spc in CieIlluminant::iter() {
-//!         println!{"{spc}"};
-//!     }
-//! ```
+//! # CIE Standard Illuminants Enumerator
 
 use crate::{
     error::Error, illuminant::Illuminant, spectrum::Spectrum, spectrum::NS, traits::Light,
@@ -45,11 +7,6 @@ use nalgebra::{ArrayStorage, SMatrix};
 use std::{borrow::Cow, ops::Deref, vec};
 use wasm_bindgen::prelude::*;
 
-// This macro generates the `CieIlluminant` enumerator, representing the standard illuminants
-// available in the library.  It adds the illuminants defined as static data by their name as an
-// identifier to an `enum`, and add a `spectrum` method to access its data.  This is somewhat
-// contrived, as it is a work around for a wasm-bindgen bug, which does not obey the feature-cfg on
-// a enum item.  see [issue](https://github.com/rustwasm/wasm-bindgen/issues/3297).
 macro_rules! std_illuminants {
     ($($val:ident)* [$($cieval:ident)* ]) => {
         // only basic selection
@@ -63,6 +20,38 @@ macro_rules! std_illuminants {
 
         // extended selection
         #[cfg(feature="cie-illuminants")]
+        /// A **lightweight enum** representing the CIE standard illuminants from the CIE 15:2018 datasets
+        /// (downloaded August 2024). Each variant holds a zero-cost reference to its precompiled spectrum,
+        /// making it easy to include as a field in your own types without pulling in heavy data structures.
+        ///
+        /// This enum implements `IntoEnumIterator`, so you can **iterate through every standard illuminant**
+        /// (useful for testing, batch conversions, or validation).
+        ///
+        /// - Use `CieIlluminant::iter()` or `CieIlluminant::spectrum()` to list or retrieve any built-in illuminant.
+        /// - For a generic D-series illuminant at any correlated color temperature, use
+        ///   `Spectrum::cie_d_illuminant(cct: f64)`.
+        ///
+        /// By default, only **D65** and **D50** are included. To pull in the full set of fluorescent “F3_X”
+        /// series and other CIE illuminants, enable the `"cie-illuminants"` feature in `Cargo.toml`
+        /// (or build with `--features cie-illuminants`). Omit that feature (or use `--no-default-features`)
+        /// to keep your binary lean.
+        ///
+        /// In JavaScript/WebAssembly builds, the `colorimetry` package excludes these extra spectra by default
+        /// for faster load times. To include them, use the `colorimetry-all` bundle instead.
+        ///
+        /// For more background, see the Wikipedia article on
+        /// [Standard illuminant white points](https://en.wikipedia.org/wiki/Standard_illuminant#White_points_of_standard_illuminants).
+        ///
+        /// # Examples
+        /// ```rust
+        /// use colorimetry::prelude::*;
+        /// use strum::IntoEnumIterator;
+        ///
+        /// // Iterate through and print all available CIE illuminants:
+        /// for illum in CieIlluminant::iter() {
+        ///     println!("{illum}");
+        /// }
+        /// ```
         #[allow(non_camel_case_types)]
         #[wasm_bindgen]
         #[derive(Clone, Debug, Copy, strum_macros::Display, strum_macros::EnumIter)]

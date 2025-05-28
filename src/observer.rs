@@ -213,7 +213,7 @@ impl ObserverData {
     ///
     /// TODO: buffer values
     pub fn xyz_cie_table(&self, std_illuminant: &CieIlluminant, illuminance: Option<f64>) -> XYZ {
-        let xyz = self.xyz_from_spectrum(std_illuminant.illuminant());
+        let xyz = self.xyz_from_spectrum(std_illuminant.illuminant().as_ref());
         if let Some(l) = illuminance {
             xyz.set_illuminance(l)
         } else {
