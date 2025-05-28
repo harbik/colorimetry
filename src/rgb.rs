@@ -62,7 +62,6 @@ pub use widergb::WideRgb;
 use crate::{
     colorant::Colorant,
     error::Error,
-    illuminant::Illuminant,
     observer::Observer,
     observer::CIE1931,
     spectrum::Spectrum,
@@ -71,7 +70,7 @@ use crate::{
     xyz::XYZ,
 };
 use approx::AbsDiffEq;
-use nalgebra::{Matrix3, Vector3};
+use nalgebra::Vector3;
 use std::borrow::Cow;
 use wasm_bindgen::prelude::wasm_bindgen;
 

@@ -54,18 +54,17 @@ pub use munsell_matt::*;
 
 use std::{
     borrow::Cow,
-    ops::{Add, AddAssign, Deref, DerefMut, Mul, MulAssign},
+    ops::{Add, AddAssign, Mul},
 };
 
-use approx::{assert_abs_diff_eq, AbsDiffEq};
+use approx::AbsDiffEq;
 use nalgebra::SVector;
 
 use crate::{
     error::Error,
-    illuminant::CieIlluminant,
     lab::CieLab,
     physics::{gaussian_peak_one, wavelength},
-    prelude::{Illuminant, Observer, D65, SPECTRUM_WAVELENGTH_RANGE},
+    prelude::{Observer, D65, SPECTRUM_WAVELENGTH_RANGE},
     spectrum::{wavelengths, Spectrum, NS},
     traits::{Filter, Light},
 };

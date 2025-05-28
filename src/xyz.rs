@@ -33,23 +33,17 @@
 //!  
 
 use core::f64;
-use std::ops::Add;
 
 use crate::{
     error::Error,
     geometry::{LineAB, Orientation},
-    illuminant::Illuminant,
-    observer::{self, Observer},
+    observer::Observer,
     rgb::RgbSpace,
     rgb::WideRgb,
-    spectrum::Spectrum,
 };
-use approx::{ulps_eq, AbsDiffEq};
-use nalgebra::{coordinates::X, ArrayStorage, Vector2, Vector3};
+use approx::AbsDiffEq;
+use nalgebra::{ArrayStorage, Vector2, Vector3};
 use wasm_bindgen::prelude::wasm_bindgen;
-
-//const D65A: [f64; 3] = [95.04, 100.0, 108.86];
-//pub const XYZ_D65_CIE1931: XYZ = XYZ::new(D65A, Observer::Std1931);
 
 /// A chromaticity coordinate with x and y values.
 #[wasm_bindgen]

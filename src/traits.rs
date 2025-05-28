@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use crate::{
-    colorant::Colorant, illuminant::Illuminant, observer::Observer, spectrum::Spectrum, xyz::XYZ,
+    illuminant::Illuminant, observer::Observer, spectrum::Spectrum, xyz::XYZ,
 };
 
 /**

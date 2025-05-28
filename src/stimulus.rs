@@ -5,7 +5,7 @@ use std::{
 };
 
 use crate::{
-    illuminant::Illuminant, observer::ObserverData, rgb::Rgb, rgb::WideRgb, spectrum::Spectrum,
+    observer::ObserverData, rgb::Rgb, spectrum::Spectrum,
     traits::Light,
 };
 

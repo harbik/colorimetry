@@ -1,8 +1,7 @@
 use nalgebra::Vector3;
-use num_traits::Pow;
 use wasm_bindgen::prelude::wasm_bindgen;
 
-use super::{achromatic_rsp, M16, MCAT02, MCAT02INV, MHPE};
+use super::{achromatic_rsp, M16};
 
 #[wasm_bindgen]
 #[derive(Clone, Copy, Debug)]

@@ -1,9 +1,8 @@
-use nalgebra::{ArrayStorage, SMatrix, SVector};
+use nalgebra::{ArrayStorage, SMatrix};
 
 use crate::{
-    illuminant::Illuminant,
     observer::{Observer, ObserverData},
-    spectrum::{Spectrum, NS},
+    spectrum::NS,
 };
 
 pub static CIE1931: ObserverData = ObserverData::new(

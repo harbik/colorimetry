@@ -37,19 +37,18 @@ CCT calculations are based on the **CIE 1931 Standard Observer**.
 */
 
 use core::f64;
-use std::{cmp::max, sync::OnceLock};
+use std::sync::OnceLock;
 
-use approx::{assert_ulps_eq, relative_eq, ulps_eq, AbsDiffEq, RelativeEq, UlpsEq};
+use approx::{ulps_eq, AbsDiffEq, RelativeEq, UlpsEq};
 
 use crate::{
     error::Error,
     geometry::distance_to_line,
     observer::CIE1931,
-    observer::{Observer, ObserverData},
-    physics::planck,
-    spectrum::NS,
+    observer::Observer,
     xyz::XYZ,
 };
+
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct CCT(f64, f64);
@@ -309,9 +308,9 @@ fn im2t(im: usize) -> f64 {
 #[test]
 fn im2t_test() {
     let i0 = im2t(0);
-    assert_ulps_eq!(i0, 1E6);
+    approx::assert_ulps_eq!(i0, 1E6);
     let ins = im2t(N_STEPS - 1);
-    assert_ulps_eq!(ins, 1000.0);
+    approx::assert_ulps_eq!(ins, 1000.0);
 }
 
 fn robertson_interpolate(tp: f64, dp: f64, tn: f64, dn: f64) -> f64 {
@@ -343,6 +342,7 @@ fn duv_interpolate(u: f64, v: f64, imp: usize, imn: usize, dp: f64, dh: f64) -> 
 
 #[test]
 fn test_ends() {
+    use approx::assert_ulps_eq;
     // Temperature  at the low end, should pass...
     let cct0 = CCT::new(1000.0, 0.0).unwrap();
     let xyz: XYZ = cct0.try_into().unwrap();
@@ -438,7 +438,7 @@ fn test_cct_exhaustive() {
         let mut d = D_START;
         while d <= D_END {
             if let Some(d_uv) = compute_d_uv(mired, d) {
-                assert_ulps_eq!(d_uv, 0.0, epsilon = 5.8E-5);
+                approx::assert_ulps_eq!(d_uv, 0.0, epsilon = 5.8E-5);
             }
             d += D_STEP;
         }
@@ -453,7 +453,7 @@ fn test_cct_at_max_error() {
     let d = 0.0005;
 
     let d_uv = compute_d_uv(mired, d).unwrap();
-    assert_ulps_eq!(d_uv, 0.0, epsilon = 5.8E-5);
+    approx::assert_ulps_eq!(d_uv, 0.0, epsilon = 5.8E-5);
 }
 
 #[test]

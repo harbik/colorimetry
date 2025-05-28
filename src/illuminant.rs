@@ -19,12 +19,16 @@ pub use cct::CCT;
 #[cfg(feature = "cri")]
 mod cri;
 
+mod planck;
+mod led;
+
+
 #[cfg(feature = "cri")]
 pub use cri::*;
 
 use std::{
     borrow::Cow,
-    ops::{Deref, Mul},
+    ops::Mul,
 };
 use wasm_bindgen::prelude::*;
 
@@ -32,13 +36,17 @@ use nalgebra::{ArrayStorage, SMatrix, SVector};
 
 use crate::{
     error::Error,
-    illuminant,
     observer::{Observer, ObserverData},
-    physics::{gaussian_peak_one, led_ohno, planck, stefan_boltzmann, wavelength},
+    physics::wavelength,
     spectrum::{wavelengths, Spectrum, NS, SPECTRUM_WAVELENGTH_RANGE},
     traits::Light,
     xyz::XYZ,
 };
+
+use planck::stefan_boltzmann;
+pub use planck::{planck, planck_slope};
+
+use led::led_ohno;
 
 #[derive(Clone, Default)]
 #[wasm_bindgen]
@@ -206,7 +214,6 @@ impl Illuminant {
     ///   or when the CCT is outside the range of 1000 to 25000 Kelvin.
     #[cfg(feature = "cri")]
     pub fn cri(&self) -> Result<CRI, Error> {
-        use cri::CRI;
 
         self.try_into()
     }

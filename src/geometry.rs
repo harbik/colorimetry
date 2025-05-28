@@ -1,7 +1,5 @@
 use core::f64;
 
-use nalgebra::ComplexField;
-use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::error::Error;
 

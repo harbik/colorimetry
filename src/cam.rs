@@ -49,7 +49,6 @@ use crate::{
     error::Error,
     geometry::distance,
     prelude::Observer,
-    traits::{Filter, Light},
     xyz::XYZ,
 };
 
@@ -451,7 +450,7 @@ const MRGBAINV: Matrix3<f64> = matrix![
 mod cam_test {
     use super::*;
     use crate::prelude::*;
-    use approx::{assert_abs_diff_eq, assert_ulps_eq};
+    use approx::assert_abs_diff_eq;
 
     #[test]
     fn test_m16() {

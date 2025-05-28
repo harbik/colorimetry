@@ -10,12 +10,11 @@ use core::f64;
 use std::{
     borrow::Cow,
     collections::BTreeMap,
-    default,
     iter::Sum,
-    ops::{Add, AddAssign, Deref, Div, Index, IndexMut, Mul, MulAssign, RangeInclusive},
+    ops::{Add, AddAssign, Div, Index, IndexMut, Mul, MulAssign, RangeInclusive},
 };
 
-use approx::{AbsDiff, AbsDiffEq};
+use approx::AbsDiffEq;
 use num_traits::ToPrimitive;
 
 use wasm_bindgen::prelude::*;
@@ -23,15 +22,8 @@ use wasm_bindgen::prelude::*;
 use nalgebra::{DVector, SVector};
 
 use crate::{
-    colorant::Colorant,
     error::Error,
-    illuminant::CieIlluminant,
-    illuminant::{D50, D65},
-    observer::ObserverData,
-    observer::CIE1931,
-    physics::C,
-    physics::{gaussian_peak_one, led_ohno, planck, sigma_from_fwhm, stefan_boltzmann, wavelength},
-    rgb::WideRgb,
+    physics::{gaussian_peak_one, sigma_from_fwhm,  wavelength},
 };
 
 /// The wavelength range of the spectrums supported by this library.

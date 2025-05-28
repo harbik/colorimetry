@@ -39,19 +39,12 @@
 //! Unit tests are provided to verify the accuracy of conversions, clamping, and compression operations.
 
 use crate::{
-    colorant::Colorant,
-    illuminant::Illuminant,
     observer::Observer,
-    observer::CIE1931,
-    rgb::{self, rgbspace::RgbSpace, Rgb},
-    spectrum::Spectrum,
-    stimulus::Stimulus,
-    traits::{Filter, Light},
+    rgb::{rgbspace::RgbSpace, Rgb},
     xyz::XYZ,
 };
 use approx::AbsDiffEq;
-use nalgebra::{Matrix3, Vector3};
-use std::{borrow::Cow, sync::OnceLock};
+use nalgebra::Vector3;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 #[wasm_bindgen]

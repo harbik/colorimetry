@@ -46,4 +46,6 @@ pub use super::spectrum::*;
 pub use super::stimulus::*;
 pub use super::traits::*;
 pub use super::xyz::*;
+
+#[cfg(target_arch = "wasm32")]
 use wasm_bindgen::JsValue;
