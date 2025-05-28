@@ -45,11 +45,7 @@ const UCS_C2: f64 = 0.0228;
 use nalgebra::{matrix, vector, Matrix3, SMatrix, Vector3};
 
 use crate::{
-    cam::viewconditions::ReferenceValues,
-    error::Error,
-    geometry::distance,
-    prelude::Observer,
-    xyz::XYZ,
+    cam::viewconditions::ReferenceValues, error::Error, math::distance, prelude::Observer, xyz::XYZ,
 };
 
 /// CIECAM16 Color Appearance Model

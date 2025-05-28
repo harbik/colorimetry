@@ -48,20 +48,17 @@ pub use observers::*;
 
 use crate::{
     error::Error,
-    geometry::LineAB,
-    illuminant::{CieIlluminant, planck, planck_slope},
+    illuminant::{planck, planck_slope, CieIlluminant},
     lab::CieLab,
-    physics::{to_wavelength},
+    math::LineAB,
     rgb::RgbSpace,
+    spectrum::to_wavelength,
     spectrum::{Spectrum, NS, SPECTRUM_WAVELENGTH_RANGE},
     traits::{Filter, Light},
     xyz::XYZ,
 };
 use nalgebra::{Matrix3, SMatrix, Vector3};
-use std::{
-    ops::RangeInclusive,
-    sync::OnceLock,
-};
+use std::{ops::RangeInclusive, sync::OnceLock};
 use strum_macros::EnumIter;
 use wasm_bindgen::prelude::wasm_bindgen;
 
@@ -603,7 +600,7 @@ mod obs_test {
 
     #[test]
     fn test_xyz_of_sample_with_standard_illuminant() {
-        use crate::prelude::{CieIlluminant::D65 as d65};
+        use crate::prelude::CieIlluminant::D65 as d65;
         let xyz = CIE1931
             .xyz(&d65, Some(&crate::colorant::Colorant::white()))
             .set_illuminance(100.0);

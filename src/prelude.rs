@@ -36,11 +36,10 @@
 
 pub use super::cam::*;
 pub use super::colorant::*;
-pub use super::geometry::*;
 pub use super::illuminant::*;
 pub use super::lab::*;
+pub use super::math::*;
 pub use super::observer::*;
-pub use super::physics::*;
 pub use super::rgb::*;
 pub use super::spectrum::*;
 pub use super::stimulus::*;

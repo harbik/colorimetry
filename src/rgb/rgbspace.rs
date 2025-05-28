@@ -2,9 +2,8 @@ use std::sync::OnceLock;
 
 use crate::xyz::Chromaticity;
 use crate::{
-    colorant::Colorant, illuminant::CieIlluminant, illuminant::D65,
-    observer::CIE1931, rgb::gamma::GammaCurve, rgb::gaussian_filtered_primaries,
-    stimulus::Stimulus,
+    colorant::Colorant, illuminant::CieIlluminant, illuminant::D65, observer::CIE1931,
+    rgb::gamma::GammaCurve, rgb::gaussian_filtered_primaries, stimulus::Stimulus,
 };
 use strum_macros::EnumIter;
 use wasm_bindgen::prelude::wasm_bindgen;

@@ -1,8 +1,6 @@
 //! # CIE Standard Illuminants Enumerator
 
-use crate::{
-    illuminant::Illuminant, spectrum::Spectrum, traits::Light,
-};
+use crate::{illuminant::Illuminant, spectrum::Spectrum, traits::Light};
 use std::borrow::Cow;
 use wasm_bindgen::prelude::*;
 

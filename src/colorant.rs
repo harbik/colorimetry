@@ -63,8 +63,9 @@ use nalgebra::SVector;
 use crate::{
     error::Error,
     lab::CieLab,
-    physics::{gaussian_peak_one, wavelength},
+    math::gaussian_peak_one,
     prelude::{Observer, D65, SPECTRUM_WAVELENGTH_RANGE},
+    spectrum::wavelength,
     spectrum::{wavelengths, Spectrum, NS},
     traits::{Filter, Light},
 };

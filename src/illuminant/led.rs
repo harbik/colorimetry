@@ -11,8 +11,6 @@
 //! - `led_ohno(λ, center, width)` — NIST Ohno white‐LED SPD model (Optical Engineering 44(11), 2005).  
 //!
 
-
-
 const A: f64 = 1.11926158998; // scaling factor for power
 const B: f64 = 1.08480681239; // scaling factor for width (l_w = B * l_fwhm)
 

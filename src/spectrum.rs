@@ -23,8 +23,11 @@ use nalgebra::{DVector, SVector};
 
 use crate::{
     error::Error,
-    physics::{gaussian_peak_one, sigma_from_fwhm,  wavelength},
+    math::{gaussian_peak_one, sigma_from_fwhm},
 };
+
+mod wavelength;
+pub use wavelength::{to_wavelength, wavelength};
 
 /// The wavelength range of the spectrums supported by this library.
 ///

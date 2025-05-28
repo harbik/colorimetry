@@ -19,7 +19,6 @@
 //! - `stefan_boltzmann(T)` — Total radiant emittance of a black‐body at `T` (W·m⁻²).  
 //!
 
-
 use wasm_bindgen::prelude::wasm_bindgen;
 
 /// The speed of light (m/s)
@@ -46,7 +45,6 @@ pub const C2_NBS_1931: f64 = 1.435E-2;
 /// Value as used in the D Illuminant series.
 pub const C2_IPTS_1948: f64 = 1.4380E-2;
 pub const C2_ITS_1968: f64 = 1.4388E-2;
-
 
 /**
 Planck with the second radiant constant as parameter.

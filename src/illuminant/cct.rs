@@ -42,13 +42,8 @@ use std::sync::OnceLock;
 use approx::{ulps_eq, AbsDiffEq, RelativeEq, UlpsEq};
 
 use crate::{
-    error::Error,
-    geometry::distance_to_line,
-    observer::CIE1931,
-    observer::Observer,
-    xyz::XYZ,
+    error::Error, math::distance_to_line, observer::Observer, observer::CIE1931, xyz::XYZ,
 };
-
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct CCT(f64, f64);

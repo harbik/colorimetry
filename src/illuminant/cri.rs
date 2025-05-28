@@ -11,7 +11,12 @@ use std::{ops::Index, sync::LazyLock};
 use wasm_bindgen::prelude::*;
 
 use crate::{
-    colorant::Colorant, error::Error, illuminant::Illuminant, observer::CIE1931, spectrum::{Spectrum, SPECTRUM_WAVELENGTH_RANGE}, xyz::XYZ
+    colorant::Colorant,
+    error::Error,
+    illuminant::Illuminant,
+    observer::CIE1931,
+    spectrum::{Spectrum, SPECTRUM_WAVELENGTH_RANGE},
+    xyz::XYZ,
 };
 
 /// Nummer of Test Color Sample Spectra

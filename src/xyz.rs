@@ -36,7 +36,7 @@ use core::f64;
 
 use crate::{
     error::Error,
-    geometry::{LineAB, Orientation},
+    math::{LineAB, Orientation},
     observer::Observer,
     rgb::RgbSpace,
     rgb::WideRgb,

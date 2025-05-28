@@ -1,8 +1,6 @@
-
-
-use nalgebra::{SVector, ArrayStorage};
 use crate::illuminant::Illuminant;
 use crate::spectrum::{Spectrum, NS};
+use nalgebra::{ArrayStorage, SVector};
 
 macro_rules! data_illuminant {
     ($name:ident, $data: tt) => {
