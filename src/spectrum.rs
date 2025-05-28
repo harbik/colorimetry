@@ -20,10 +20,7 @@ use wasm_bindgen::prelude::*;
 
 use nalgebra::{DVector, SVector};
 
-use crate::{
-    error::Error,
-    math::{gaussian_peak_one, sigma_from_fwhm},
-};
+use crate::{Error, math::Gaussian};
 
 mod wavelength;
 pub use wavelength::{to_wavelength, wavelength, wavelengths};
@@ -141,11 +138,11 @@ impl Spectrum {
         if fwhm < 1E-3 {
             fwhm *= 1E6
         }; // to nanometer
-        let sigma = sigma_from_fwhm(fwhm);
-        let sd3 = (6.0 * sigma).floor() as i32;
+        let gaussian = Gaussian::from_fwhm(0.0, fwhm);
+        let sd3 = (6.0 * gaussian.sigma()).floor() as i32;
         let mut kernel = DVector::<f64>::from_iterator(
             (2 * sd3 + 1) as usize,
-            (-sd3..=sd3).map(|i| gaussian_peak_one(i as f64, 0.0, sigma)),
+            (-sd3..=sd3).map(|i| gaussian.peak_one(i as f64)),
         );
 
         // The smooth operation should not change the energy in a spectrum, so we scale the kernel
@@ -819,7 +816,10 @@ mod tests {
         s[550] = 1.0;
         s.smooth(5.0);
 
-        let sigma = sigma_from_fwhm(5.0);
+        let gauss = Gaussian::from_fwhm(550.0, 5.0);
+        let sigma = gauss.sigma();
+
+        //  let sigma = sigma_from_fwhm(5.0);
         let w = Colorant::gaussian(550.0, sigma);
         let scale = sigma * (PI * 2.0).sqrt(); // integral of a gaussian
         s.0.iter()

@@ -63,7 +63,7 @@ use nalgebra::SVector;
 use crate::{
     error::Error,
     lab::CieLab,
-    math::gaussian_peak_one,
+    math::Gaussian,
     prelude::{Observer, D65, SPECTRUM_WAVELENGTH_RANGE},
     spectrum::wavelength,
     spectrum::{wavelengths, Spectrum, NS},
@@ -166,12 +166,9 @@ impl Colorant {
     /// The filter has a peak value of 1.0
     pub fn gaussian(center: f64, sigma: f64) -> Self {
         let [center_m, width_m] = wavelengths([center, sigma]);
+        let gauss = Gaussian::new(center_m, width_m);
         let data = SVector::<f64, NS>::from_fn(|i, _j| {
-            gaussian_peak_one(
-                wavelength(i + SPECTRUM_WAVELENGTH_RANGE.start()),
-                center_m,
-                width_m,
-            )
+            gauss.peak_one(wavelength(i + SPECTRUM_WAVELENGTH_RANGE.start()))
         });
         Self(Spectrum(data))
     }
