@@ -40,9 +40,9 @@ impl SecondRadiationConstant {
 }
 
 /// Planck’s law describes the spectral radiance of an ideal black body at a given temperature.
-/// 
+///
 /// This struct wraps a black‐body temperature (in Kelvin) and provides methods to:
-/// 
+///
 /// - **spectral_radiance(λ)**  
 ///   Compute the spectral radiance \(L_λ\) at wavelength λ (in meters), in units of W·sr⁻¹·m⁻²·m⁻¹.
 /// - **spectral_slope(λ)**  
@@ -51,7 +51,7 @@ impl SecondRadiationConstant {
 ///   Compute the second derivative \(\partial^2 L_λ/\partial T^2\), for curvature and stability studies.  
 /// - **total_radiance()**  
 ///   Compute the total power emitted per unit area (W·m⁻²) via the Stefan–Boltzmann law.  
-/// 
+///
 /// # Example
 /// ```rust
 /// # use colorimetry::illuminant::Planck;
@@ -60,7 +60,7 @@ impl SecondRadiationConstant {
 /// let dL_dT = bb.slope_at_wavelength(500e-9);  // sensitivity at 500 nm
 /// let M = bb.total_radiance();            // total exitance (W·m⁻²)
 /// ```
-/// 
+///
 /// # References
 /// - Planck, M. (1901). “On the Law of Distribution of Energy in the Normal Spectrum.”  
 /// - Wikipedia: [Planck’s Law](https://en.wikipedia.org/wiki/Planck%27s_law)

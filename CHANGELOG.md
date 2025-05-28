@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Changed
 - Refactored `physics.rs` with the planck functions and LED functions now moved to the `Illuminant` module,
   and the remaining functions combined with teh `geometry.rs` functions into `math.rs`.
+- Changed `stefan_boltzmann` method name to `total_radiance`.
 
 ### Removed
 - Various normal distribution (gaussian) helper functions, now all collected as methods of the `Gaussian` struct.
