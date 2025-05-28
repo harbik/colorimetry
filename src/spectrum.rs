@@ -20,7 +20,7 @@ use wasm_bindgen::prelude::*;
 
 use nalgebra::{DVector, SVector};
 
-use crate::{Error, math::Gaussian};
+use crate::{math::Gaussian, Error};
 
 mod wavelength;
 pub use wavelength::{to_wavelength, wavelength, wavelengths};
