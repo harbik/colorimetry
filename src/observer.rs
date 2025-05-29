@@ -235,8 +235,10 @@ impl ObserverData {
     /// let cie1931_d65_xyz = colorimetry::observer::CIE1931.xyz_d65();
     /// approx::assert_ulps_eq!(cie1931_d65_xyz.values().as_ref(), [95.047, 100.0, 108.883].as_ref(), epsilon = 5E-2);
     ///
-    /// let cie1964_d65_xyz = colorimetry::observer::CIE1964.xyz_d65();
-    /// approx::assert_ulps_eq!(cie1964_d65_xyz.values().as_ref(), [94.811, 100.0, 107.304].as_ref(), epsilon = 5E-2);
+    /// if cfg!(feature = "supplemental-observers") {
+    ///     let cie1964_d65_xyz = colorimetry::observer::CIE1964.xyz_d65();
+    ///     approx::assert_ulps_eq!(cie1964_d65_xyz.values().as_ref(), [94.811, 100.0, 107.304].as_ref(), epsilon = 5E-2);
+    /// }
     /// ```
     pub fn xyz_d65(&self) -> XYZ {
         *self.d65.get_or_init(|| {
