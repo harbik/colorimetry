@@ -276,29 +276,6 @@ impl ObserverData {
         }
     }
 
-    /**
-        Calculates XYZ tristimulus values for an illuminant with its spectral distribution
-        described by a function, defined over a domain from 0.0 to 1.0, with 0.0 corresponding to
-        a wavelength of 380nm, and 1.0 to a wavelength of 780nm.
-
-        It is mainly used in this library to calculate the Planckian locus, which is described by
-        Planck's law.  The resulting XYZ value will be normalized to hava a Y value of 100.0
-        and yw is set to None.
-    */
-    pub fn xyz_fn_illuminant(&self, f: impl Fn(f64) -> f64) -> XYZ {
-        let xyz = self
-            .data
-            .column_iter()
-            .enumerate()
-            .fold(Vector3::zeros(), |acc, (i, cmf)| {
-                acc + cmf * f(i as f64 / (NS - 1) as f64)
-            });
-        XYZ {
-            xyz,
-            observer: self.tag,
-        }
-    }
-
     /// Calculates XYZ tristimulus values for a Planckian emitter for this
     /// observer. The `to_wavelength`` function is used, as planck functions
     /// requires the wavelength to be in units of meters, and the
@@ -306,14 +283,14 @@ impl ObserverData {
     /// 1.0.
     pub fn xyz_planckian_locus(&self, cct: f64) -> XYZ {
         let p = Planck::new(cct);
-        self.xyz_fn_illuminant(|l| p.at_wavelength(to_wavelength(l, 0.0, 1.0)))
+        self.xyz_from_fn(|l| p.at_wavelength(to_wavelength(l, 0.0, 1.0)))
     }
 
     /// The slope of the Plancking locus as a (dX/dT, dY/dT, dZ/dT) contained in
     /// a XYZ object.
     pub fn xyz_planckian_locus_slope(&self, cct: f64) -> XYZ {
         let p = Planck::new(cct);
-        self.xyz_fn_illuminant(|l| p.slope_at_wavelength(to_wavelength(l, 0.0, 1.0)))
+        self.xyz_from_fn(|l| p.slope_at_wavelength(to_wavelength(l, 0.0, 1.0)))
     }
 
     /// Calculates the L*a*b* CIELAB D65 values of a Colorant, using D65 as an illuminant.
@@ -449,6 +426,36 @@ impl ObserverData {
             Some([x / s, y / s])
         } else {
             None
+        }
+    }
+
+    /// Calculates the XYZ tristimulus values for a spectrum defined by a function.
+    ///
+    /// The input function `f` should accept a floating-point value in the range `[0.0, 1.0]`,
+    /// where `0.0` corresponds to a wavelength of 380 nm and `1.0` to 780 nm.
+    /// The function will be called once for each wavelength step (401 times at 1 nm intervals).
+    ///
+    /// # Arguments
+    /// * `f` - A function that takes a floating-point value in the range `[0.0, 1.0]` and returns
+    ///   the spectral value at that wavelength, in units of watts per square meter per nanometer (W/m²/nm) for
+    ///   illuminants, or Watts per square meter per steradian per nanometer (W/m²/sr/nm) for stimuli.
+    ///
+    /// # Notes
+    /// - This method is used in the library to compute the Planckian locus (the color of blackbody
+    ///   radiators), as described by Planck's law.
+    /// - To use this method for colorants, include a spectral illuminant value in the function `f`,
+    ///   and multiply this with the colorant.
+    pub fn xyz_from_fn(&self, f: impl Fn(f64) -> f64) -> XYZ {
+        let xyz = self
+            .data
+            .column_iter()
+            .enumerate()
+            .fold(Vector3::zeros(), |acc, (i, cmf)| {
+                acc + cmf * f(i as f64 / (NS - 1) as f64)
+            });
+        XYZ {
+            xyz,
+            observer: self.tag,
         }
     }
 }
