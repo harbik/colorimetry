@@ -52,6 +52,12 @@ mod munsell_matt;
 #[cfg(feature = "munsell")]
 pub use munsell_matt::*;
 
+#[cfg(feature = "cri")]
+mod tcs;
+
+#[cfg(feature = "cri")]
+pub use tcs::{N_TCS, TCS};
+
 use std::{
     borrow::Cow,
     ops::{Add, AddAssign, Mul},
