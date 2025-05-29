@@ -9,9 +9,9 @@
 use wasm_bindgen::prelude::*;
 
 use crate::{
+    colorant::{N_TCS, TCS},
     error::Error,
     illuminant::Illuminant,
-    colorant::{TCS, N_TCS},
     observer::CIE1931,
     xyz::XYZ,
 };

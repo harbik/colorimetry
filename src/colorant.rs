@@ -56,8 +56,7 @@ pub use munsell_matt::*;
 mod tcs;
 
 #[cfg(feature = "cri")]
-pub use tcs::{TCS, N_TCS};
-
+pub use tcs::{N_TCS, TCS};
 
 use std::{
     borrow::Cow,

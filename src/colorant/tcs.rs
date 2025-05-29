@@ -38,17 +38,11 @@ fn tcs_test() {
     use crate::observer::CIE1931;
     let xyzn = CIE1931.xyz_d65();
     for (i, s) in TCS.iter().enumerate() {
-        let xyz = CIE1931.xyz(
-            &crate::illuminant::CieIlluminant::D65,
-            Some(s),
-        );
-        let [r, g, b]: [u8;3] = xyz.rgb(Some(crate::rgb::RgbSpace::SRGB)).clamp().into();
-        print!("{:2} ({r:3},{g:3},{b:3})\n", i + 1);
-    //    let lab = crate::lab::CieLab::from_xyz(xyz, xyzn).unwrap();
-    //    dbg!(i, lab.lab);
+        let xyz = CIE1931.xyz(&crate::illuminant::CieIlluminant::D65, Some(s));
+        let [r, g, b]: [u8; 3] = xyz.rgb(Some(crate::rgb::RgbSpace::SRGB)).clamp().into();
+        println!("{:2} ({r:3},{g:3},{b:3})", i + 1);
     }
 }
-
 
 /// Spectral radiance factors of 14 test samples for the CIE colour rendering index calculation.
 ///
