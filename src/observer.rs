@@ -234,11 +234,6 @@ impl ObserverData {
     ///
     /// let cie1931_d65_xyz = colorimetry::observer::CIE1931.xyz_d65();
     /// approx::assert_ulps_eq!(cie1931_d65_xyz.values().as_ref(), [95.047, 100.0, 108.883].as_ref(), epsilon = 5E-2);
-    ///
-    /// if cfg!(feature = "supplemental-observers") {
-    ///     let cie1964_d65_xyz = colorimetry::observer::CIE1964.xyz_d65();
-    ///     approx::assert_ulps_eq!(cie1964_d65_xyz.values().as_ref(), [94.811, 100.0, 107.304].as_ref(), epsilon = 5E-2);
-    /// }
     /// ```
     pub fn xyz_d65(&self) -> XYZ {
         *self.d65.get_or_init(|| {
@@ -250,7 +245,7 @@ impl ObserverData {
     /// XYZ tristimulus values for the CIE standard daylight illuminant D50 (buffered).
     ///
     /// # Examples
-    /// ```
+    /// ```ignore
     /// // Test data from [CIE 15:2018](https://cie.co.at/publications/colorimetry-4th-edition) for test data
     /// use colorimetry::{xyz::XYZ, illuminant::CieIlluminant};
     ///
@@ -647,5 +642,40 @@ mod obs_test {
 
         let xyz = CIE1931.xyz(&d65, Some(&crate::colorant::Colorant::black()));
         approx::assert_ulps_eq!(xyz, CIE1931.xyz_from_colorant_fn(&d65, |_| 0.0));
+    }
+
+    #[test]
+    fn test_xyz_d65_d50() {
+        let cie1931_d65_xyz = crate::observer::CIE1931.xyz_d65();
+        approx::assert_ulps_eq!(
+            cie1931_d65_xyz.values().as_ref(),
+            [95.047, 100.0, 108.883].as_ref(),
+            epsilon = 5E-2
+        );
+
+        let cie1931_d50_xyz = crate::observer::CIE1931.xyz_d50();
+        approx::assert_ulps_eq!(
+            cie1931_d50_xyz.values().as_ref(),
+            [96.421, 100.0, 82.519].as_ref(),
+            epsilon = 5E-2
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "supplemental-observers")]
+    fn test_xyz_d65_d50_cie1964() {
+        let cie1964_d50_xyz = crate::observer::CIE1964.xyz_d50();
+        approx::assert_ulps_eq!(
+            cie1964_d50_xyz.values().as_ref(),
+            [96.720, 100.0, 81.427].as_ref(),
+            epsilon = 5E-2
+        );
+
+        let cie1964_d65_xyz = crate::observer::CIE1964.xyz_d65();
+        approx::assert_ulps_eq!(
+            cie1964_d65_xyz.values().as_ref(),
+            [94.811, 100.0, 107.304].as_ref(),
+            epsilon = 5E-2
+        );
     }
 }
