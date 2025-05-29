@@ -4,10 +4,7 @@ use std::{
     ops::{Deref, Mul},
 };
 
-use crate::{
-    illuminant::Illuminant, observer::ObserverData, rgb::Rgb, rgb::WideRgb, spectrum::Spectrum,
-    traits::Light,
-};
+use crate::{observer::ObserverData, rgb::Rgb, spectrum::Spectrum, traits::Light};
 
 #[derive(Clone)]
 pub struct Stimulus(pub(crate) Spectrum);

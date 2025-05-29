@@ -10,29 +10,20 @@ use core::f64;
 use std::{
     borrow::Cow,
     collections::BTreeMap,
-    default,
     iter::Sum,
-    ops::{Add, AddAssign, Deref, Div, Index, IndexMut, Mul, MulAssign, RangeInclusive},
+    ops::{Add, AddAssign, Div, Index, IndexMut, Mul, MulAssign, RangeInclusive},
 };
 
-use approx::{AbsDiff, AbsDiffEq};
-use num_traits::ToPrimitive;
+use approx::AbsDiffEq;
 
 use wasm_bindgen::prelude::*;
 
 use nalgebra::{DVector, SVector};
 
-use crate::{
-    colorant::Colorant,
-    error::Error,
-    illuminant::CieIlluminant,
-    illuminant::{D50, D65},
-    observer::ObserverData,
-    observer::CIE1931,
-    physics::C,
-    physics::{gaussian_peak_one, led_ohno, planck, sigma_from_fwhm, stefan_boltzmann, wavelength},
-    rgb::WideRgb,
-};
+use crate::{math::Gaussian, Error};
+
+mod wavelength;
+pub use wavelength::{to_wavelength, wavelength, wavelengths};
 
 /// The wavelength range of the spectrums supported by this library.
 ///
@@ -147,11 +138,11 @@ impl Spectrum {
         if fwhm < 1E-3 {
             fwhm *= 1E6
         }; // to nanometer
-        let sigma = sigma_from_fwhm(fwhm);
-        let sd3 = (6.0 * sigma).floor() as i32;
+        let gaussian = Gaussian::from_fwhm(0.0, fwhm);
+        let sd3 = (6.0 * gaussian.sigma()).floor() as i32;
         let mut kernel = DVector::<f64>::from_iterator(
             (2 * sd3 + 1) as usize,
-            (-sd3..=sd3).map(|i| gaussian_peak_one(i as f64, 0.0, sigma)),
+            (-sd3..=sd3).map(|i| gaussian.peak_one(i as f64)),
         );
 
         // The smooth operation should not change the energy in a spectrum, so we scale the kernel
@@ -468,16 +459,6 @@ impl IndexMut<usize> for Spectrum {
     fn index_mut(&mut self, i: usize) -> &mut Self::Output {
         &mut self.0[(i - SPECTRUM_WAVELENGTH_RANGE.start(), 0)]
     }
-}
-
-/// Convenience function for specifying wavelengths in nanometers or meters.
-///
-/// This accepts integer and float values.
-/// Wwavelength values larger than 1E-3 are assumed to have the unit nanometer
-/// and are converted to a unit of meters.
-/// All integer values are nanometaer values.
-pub fn wavelengths<T: ToPrimitive, const N: usize>(v: [T; N]) -> [f64; N] {
-    v.map(|x| wavelength(x))
 }
 
 /// Linear interpolation over a dataset over an equidistant wavelength domain
@@ -835,7 +816,10 @@ mod tests {
         s[550] = 1.0;
         s.smooth(5.0);
 
-        let sigma = sigma_from_fwhm(5.0);
+        let gauss = Gaussian::from_fwhm(550.0, 5.0);
+        let sigma = gauss.sigma();
+
+        //  let sigma = sigma_from_fwhm(5.0);
         let w = Colorant::gaussian(550.0, sigma);
         let scale = sigma * (PI * 2.0).sqrt(); // integral of a gaussian
         s.0.iter()

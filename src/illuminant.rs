@@ -19,26 +19,27 @@ pub use cct::CCT;
 #[cfg(feature = "cri")]
 mod cri;
 
+mod led;
+mod planck;
+pub use planck::Planck;
+
 #[cfg(feature = "cri")]
 pub use cri::*;
 
-use std::{
-    borrow::Cow,
-    ops::{Deref, Mul},
-};
+use std::{borrow::Cow, ops::Mul};
 use wasm_bindgen::prelude::*;
 
 use nalgebra::{ArrayStorage, SMatrix, SVector};
 
 use crate::{
     error::Error,
-    illuminant,
     observer::{Observer, ObserverData},
-    physics::{gaussian_peak_one, led_ohno, planck, stefan_boltzmann, wavelength},
-    spectrum::{wavelengths, Spectrum, NS, SPECTRUM_WAVELENGTH_RANGE},
+    spectrum::{wavelength, wavelengths, Spectrum, NS, SPECTRUM_WAVELENGTH_RANGE},
     traits::Light,
     xyz::XYZ,
 };
+
+use led::led_ohno;
 
 #[derive(Clone, Default)]
 #[wasm_bindgen]
@@ -48,33 +49,6 @@ use crate::{
 /// spectral power density of a light source (sun, bulb, LED, etc.) in
 /// W/m²/nm over 380–780 nm (401 samples).
 pub struct Illuminant(pub(crate) Spectrum);
-
-/*
-impl Deref for Illuminant {
-    type Target = Spectrum;
-
-    /// Allow treating an `Illuminant` directly as its inner `Spectrum`.
-    /// This is useful for passing an `Illuminant` to functions that expect a `Spectrum`.
-    ///
-    /// # Examples
-    /// ```rust
-    /// use colorimetry::prelude::*;
-    /// use approx::assert_ulps_eq;
-    ///
-    /// let illuminant = Illuminant::d65();
-    /// assert_eq!(illuminant.values().len(), 401);
-    /// // Use the illuminant as a Spectrum
-
-    /// let xyz = CIE1931.xyz_from_spectrum(&illuminant);
-    /// let chromaticity = xyz.chromaticity();
-    /// assert_ulps_eq!(chromaticity.x(), 0.3127, epsilon = 1E-4);
-    /// assert_ulps_eq!(chromaticity.y(), 0.3290, epsilon = 1E-4);
-    /// ```
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
- */
 
 impl AsRef<Spectrum> for Illuminant {
     /// Allows using an `Illuminant` as a reference to its inner `Spectrum`.
@@ -148,9 +122,10 @@ impl Illuminant {
     ///
     /// ```
     pub fn planckian(cct: f64) -> Self {
-        let s = 1E-9 / stefan_boltzmann(cct); // 1W/m2 total irradiance
+        let p = Planck::new(cct);
+        let s = 1E-9 / p.total_radiance(); // 1W/m2 total irradiance
         let data = SVector::<f64, NS>::from_fn(|i, _j| {
-            s * planck((i + SPECTRUM_WAVELENGTH_RANGE.start()) as f64 * 1e-9, cct)
+            s * p.at_wavelength((i + SPECTRUM_WAVELENGTH_RANGE.start()) as f64 * 1e-9)
         });
         Self(Spectrum(data))
     }
@@ -206,8 +181,6 @@ impl Illuminant {
     ///   or when the CCT is outside the range of 1000 to 25000 Kelvin.
     #[cfg(feature = "cri")]
     pub fn cri(&self) -> Result<CRI, Error> {
-        use cri::CRI;
-
         self.try_into()
     }
 

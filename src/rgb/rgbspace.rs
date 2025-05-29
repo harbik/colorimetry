@@ -1,10 +1,9 @@
-use std::{collections::HashMap, sync::OnceLock};
+use std::sync::OnceLock;
 
 use crate::xyz::Chromaticity;
 use crate::{
-    colorant::Colorant, illuminant::CieIlluminant, illuminant::Illuminant, illuminant::D65,
-    observer::CIE1931, rgb::gamma::GammaCurve, rgb::gaussian_filtered_primaries,
-    spectrum::Spectrum, stimulus::Stimulus,
+    colorant::Colorant, illuminant::CieIlluminant, illuminant::D65, observer::CIE1931,
+    rgb::gamma::GammaCurve, rgb::gaussian_filtered_primaries, stimulus::Stimulus,
 };
 use strum_macros::EnumIter;
 use wasm_bindgen::prelude::wasm_bindgen;
@@ -251,7 +250,7 @@ impl RgbSpaceData {
 
 #[cfg(test)]
 mod rgbspace_tests {
-    use crate::{prelude::*, rgb};
+    use crate::prelude::*;
     use approx::assert_ulps_eq;
     use strum::IntoEnumIterator;
 

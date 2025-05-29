@@ -1,10 +1,7 @@
 //! # CIE Standard Illuminants Enumerator
 
-use crate::{
-    error::Error, illuminant::Illuminant, spectrum::Spectrum, spectrum::NS, traits::Light,
-};
-use nalgebra::{ArrayStorage, SMatrix};
-use std::{borrow::Cow, ops::Deref, vec};
+use crate::{illuminant::Illuminant, spectrum::Spectrum, traits::Light};
+use std::borrow::Cow;
 use wasm_bindgen::prelude::*;
 
 macro_rules! std_illuminants {

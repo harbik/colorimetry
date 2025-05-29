@@ -47,25 +47,20 @@ mod observers;
 pub use observers::*;
 
 use crate::{
-    colorant::Colorant,
     error::Error,
-    geometry::LineAB,
-    illuminant::CieIlluminant,
+    illuminant::{CieIlluminant, Planck},
     lab::CieLab,
-    physics::{planck, planck_slope, to_wavelength},
+    math::LineAB,
     rgb::RgbSpace,
+    spectrum::to_wavelength,
     spectrum::{Spectrum, NS, SPECTRUM_WAVELENGTH_RANGE},
     traits::{Filter, Light},
     xyz::XYZ,
 };
 use nalgebra::{Matrix3, SMatrix, Vector3};
-use std::{
-    borrow::{Borrow, Cow},
-    ops::{Index, RangeInclusive},
-    sync::OnceLock,
-};
+use std::{ops::RangeInclusive, sync::OnceLock};
 use strum_macros::EnumIter;
-use wasm_bindgen::{convert::IntoWasmAbi, prelude::wasm_bindgen};
+use wasm_bindgen::prelude::wasm_bindgen;
 
 /**
    Light-weight identifier added to the `XYZ` and `RGB` datasets,
@@ -160,7 +155,7 @@ impl ObserverData {
     ///
     /// The Light trait is implemented by [`CieIlluminant`] and [Illuminant](crate::illuminant::Illuminant).
     ///
-    /// [`Colorant`] implments the [`Filter`] trait.
+    /// [`Colorant`](crate::colorant::Colorant) implments the [`Filter`] trait.
     /// [`Rgb`](crate::rgb::Rgb), which represents a display pixel, implements both in this library.
     /// As a light, it is the light emitted from the pixel, as a filter it is the RGB-composite
     /// filter which is applied to the underlying standard illuminant of color space.
@@ -310,13 +305,15 @@ impl ObserverData {
     /// `xyz_from_illuminant_as_fn` uses functions over a domain from 0.0 to
     /// 1.0.
     pub fn xyz_planckian_locus(&self, cct: f64) -> XYZ {
-        self.xyz_fn_illuminant(|l| planck(to_wavelength(l, 0.0, 1.0), cct))
+        let p = Planck::new(cct);
+        self.xyz_fn_illuminant(|l| p.at_wavelength(to_wavelength(l, 0.0, 1.0)))
     }
 
     /// The slope of the Plancking locus as a (dX/dT, dY/dT, dZ/dT) contained in
     /// a XYZ object.
     pub fn xyz_planckian_locus_slope(&self, cct: f64) -> XYZ {
-        self.xyz_fn_illuminant(|l| planck_slope(to_wavelength(l, 0.0, 1.0), cct))
+        let p = Planck::new(cct);
+        self.xyz_fn_illuminant(|l| p.slope_at_wavelength(to_wavelength(l, 0.0, 1.0)))
     }
 
     /// Calculates the L*a*b* CIELAB D65 values of a Colorant, using D65 as an illuminant.
@@ -468,7 +465,7 @@ mod obs_test {
     use crate::prelude::{CieIlluminant, CIE1931};
     use crate::rgb::RgbSpace;
     use crate::spectrum::SPECTRUM_WAVELENGTH_RANGE;
-    use crate::xyz::{Chromaticity, XYZ};
+    use crate::xyz::XYZ;
     use approx::assert_ulps_eq;
     use strum::IntoEnumIterator as _;
 
@@ -605,7 +602,7 @@ mod obs_test {
 
     #[test]
     fn test_xyz_of_sample_with_standard_illuminant() {
-        use crate::prelude::{CieIlluminant::D65 as d65, XYZ};
+        use crate::prelude::CieIlluminant::D65 as d65;
         let xyz = CIE1931
             .xyz(&d65, Some(&crate::colorant::Colorant::white()))
             .set_illuminance(100.0);

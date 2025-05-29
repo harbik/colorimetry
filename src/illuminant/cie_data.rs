@@ -1,10 +1,6 @@
-use nalgebra::{ArrayStorage, SMatrix, SVector};
-
-use crate::{
-    illuminant::Illuminant,
-    observer::{Observer, ObserverData},
-    spectrum::{Spectrum, NS},
-};
+use crate::illuminant::Illuminant;
+use crate::spectrum::{Spectrum, NS};
+use nalgebra::{ArrayStorage, SVector};
 
 macro_rules! data_illuminant {
     ($name:ident, $data: tt) => {

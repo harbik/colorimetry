@@ -1,8 +1,6 @@
 use std::borrow::Cow;
 
-use crate::{
-    colorant::Colorant, illuminant::Illuminant, observer::Observer, spectrum::Spectrum, xyz::XYZ,
-};
+use crate::{illuminant::Illuminant, observer::Observer, spectrum::Spectrum, xyz::XYZ};
 
 /**
 Spectral representation of Lights, typically in form of (standard) Illuminants.

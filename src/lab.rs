@@ -46,11 +46,10 @@
 //! ```
 
 use approx::ulps_eq;
-use nalgebra::{RowVector3, Vector3};
+use nalgebra::Vector3;
 use std::f64::consts::PI;
 
 use crate::{error::Error, prelude::Observer, xyz::XYZ};
-use strum_macros::Display;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 #[wasm_bindgen]
@@ -297,7 +296,7 @@ fn delta_e_ciede2000(lab1: Vector3<f64>, lab2: Vector3<f64>) -> f64 {
 
 #[cfg(test)]
 mod tests {
-    use crate::{prelude::*, xyz};
+    use crate::prelude::*;
     use approx::assert_abs_diff_eq;
     use nalgebra::vector;
 

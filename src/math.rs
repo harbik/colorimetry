@@ -1,17 +1,83 @@
+//! # Utility Mathematical functions
+//!
+//! ## Usage
+//! Use these primitives to generate accurate spectral power distributions for illuminants,
+//! stimuli, colorants, and to perform photometric and radiometric calculations.
+//!
+
+use crate::Error;
 use core::f64;
+use std::f64::consts::PI;
 
-use nalgebra::ComplexField;
-use wasm_bindgen::prelude::wasm_bindgen;
+/// Constant for converting a Gaussian distribution’s standard deviation (σ)
+/// to its full width at half maximum (FWHM).
+const STDEV2FWHM: f64 = 2.3548200450309493; // (8.0 * 2f64.ln()).sqrt())
 
-use crate::error::Error;
+/// A Gaussian distribution, defined by its mean (μ) and standard deviation (σ).
+/// This struct provides methods to create a Gaussian from its parameters,
+/// calculate its full width at half maximum (FWHM), evaluate the Gaussian at a point,
+/// and compute the peak value of the Gaussian at a given point.
+pub struct Gaussian {
+    mu: f64,
+    sigma: f64,
+}
 
-/// Distance of point (x,y) to line going through points (x0,y0) having slope m
-///
-/// See Robertson68 formula (4), but included the multiplication with the sign of m to extend the Robertson method to
-/// lower color temperatures to deal with the change of the sign value of the Blackbody locus normal: it
-/// is negative for temperatures higher than 1667K, and positive otherwise.
-pub fn distance_to_line(x: f64, y: f64, x0: f64, y0: f64, m: f64) -> f64 {
-    m.signum() * ((y - y0) - m * (x - x0)) / m.hypot(1.0)
+impl Gaussian {
+    /// Creates a new Gaussian distribution with the specified mean (μ) and standard deviation (σ).
+    pub fn new(mu: f64, sigma: f64) -> Self {
+        Self { mu, sigma }
+    }
+
+    /// Creates a new Gaussian distribution from its mean (μ) and full width at half maximum (FWHM).
+    pub fn from_fwhm(mu: f64, fwhm: f64) -> Self {
+        let sigma = fwhm / STDEV2FWHM;
+        Self { mu, sigma }
+    }
+
+    /// Returns the mean (μ) of the Gaussian distribution.
+    pub fn mu(&self) -> f64 {
+        self.mu
+    }
+
+    /// Returns the standard deviation (σ) of the Gaussian distribution.
+    pub fn sigma(&self) -> f64 {
+        self.sigma
+    }
+
+    /// Calculates the full width at half maximum (FWHM) of the Gaussian distribution.
+    pub fn fwhm(&self) -> f64 {
+        let sigma = self.sigma;
+        sigma * STDEV2FWHM
+    }
+
+    /// Computes the Gaussian function at `x`, normalized so that its peak (at the mean) has a value
+    /// of 1.0.
+    pub fn peak_one(&self, x: f64) -> f64 {
+        let mu = self.mu;
+        let sigma = self.sigma;
+        let exponent = -((x - mu).powi(2)) / (2.0 * sigma.powi(2));
+        exponent.exp()
+    }
+
+    /// Evaluates the normalized Gaussian function at `x`, such that the total area under the curve
+    /// is 1.0.  In spectral terms, this represents a distribution whose integrated power is 1 W.
+    pub fn normalized(&self, x: f64) -> f64 {
+        let mu = self.mu;
+        let sigma = self.sigma;
+        let exponent = -((x - mu).powi(2)) / (2.0 * sigma.powi(2));
+        (1.0 / (sigma * (2.0 * PI).sqrt())) * exponent.exp()
+    }
+}
+
+#[test]
+fn gaussian_peak_one_test() {
+    use approx::assert_ulps_eq;
+    let sigma = 10E-9;
+    let mu = 500E-9;
+    let gauss = Gaussian::new(mu, sigma);
+    let x = mu - sigma;
+    let v = gauss.peak_one(x);
+    assert_ulps_eq!(v, 0.60653065971, epsilon = 1E-10);
 }
 
 #[derive(Clone, Copy)]
@@ -115,6 +181,15 @@ impl LineAB {
             Ok(([x1 + t * (x2 - x1), (y1 + t * (y2 - y1))], t, u))
         }
     }
+}
+
+/// Distance of point (x,y) to line going through points (x0,y0) having slope m
+///
+/// See Robertson68 formula (4), but included the multiplication with the sign of m to extend the Robertson method to
+/// lower color temperatures to deal with the change of the sign value of the Blackbody locus normal: it
+/// is negative for temperatures higher than 1667K, and positive otherwise.
+pub fn distance_to_line(x: f64, y: f64, x0: f64, y0: f64, m: f64) -> f64 {
+    m.signum() * ((y - y0) - m * (x - x0)) / m.hypot(1.0)
 }
 
 #[test]

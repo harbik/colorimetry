@@ -10,7 +10,6 @@
 
 mod data;
 
-use js_sys::Iter;
 use std::{collections::BTreeMap, sync::LazyLock};
 use wasm_bindgen::prelude::*;
 

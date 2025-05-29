@@ -15,9 +15,7 @@ use crate::{
     error::Error,
     illuminant::Illuminant,
     observer::CIE1931,
-    rgb::RgbSpace,
     spectrum::{Spectrum, SPECTRUM_WAVELENGTH_RANGE},
-    traits::Light,
     xyz::XYZ,
 };
 
@@ -55,7 +53,7 @@ fn tcs_test() {
             &crate::illuminant::cie_illuminant::CieIlluminant::D65,
             Some(s),
         );
-        let [r, g, b] = xyz.rgb(Some(RgbSpace::SRGB)).values();
+        let [r, g, b] = xyz.rgb(Some(crate::rgb::RgbSpace::SRGB)).values();
         println!("{:2} ({r:3},{g:3},{b:3})", i + 1);
     }
 

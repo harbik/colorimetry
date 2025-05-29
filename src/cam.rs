@@ -45,12 +45,7 @@ const UCS_C2: f64 = 0.0228;
 use nalgebra::{matrix, vector, Matrix3, SMatrix, Vector3};
 
 use crate::{
-    cam::viewconditions::ReferenceValues,
-    error::Error,
-    geometry::distance,
-    prelude::Observer,
-    traits::{Filter, Light},
-    xyz::XYZ,
+    cam::viewconditions::ReferenceValues, error::Error, math::distance, prelude::Observer, xyz::XYZ,
 };
 
 /// CIECAM16 Color Appearance Model
@@ -451,7 +446,7 @@ const MRGBAINV: Matrix3<f64> = matrix![
 mod cam_test {
     use super::*;
     use crate::prelude::*;
-    use approx::{assert_abs_diff_eq, assert_ulps_eq};
+    use approx::assert_abs_diff_eq;
 
     #[test]
     fn test_m16() {
