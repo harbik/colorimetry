@@ -228,54 +228,6 @@ impl ObserverData {
         self.xyz_cie_table(&CieIlluminant::D50, Some(100.0))
     }
 
-    /**
-        Calculates XYZ tristimulus values for an analytic representation of a spectral distribution of
-        a filter or a color patch, using a normalized wavelength domain ranging from a value of 0.0 to 1.0,
-        illuminated with a standard illuminant.
-
-        The spectral values should be defined within a range from 0.0 to 1.0, and are clamped otherwise.
-        The resulting XYZ value will have relative Y values in the range from 0 to 100.0,
-        and yw is set to a value of 100.0.
-
-        # Examples
-        Linear high pass filter, with a value of 0.0 for a wavelength of 380nm, and a value of 1.0 for 780nm,
-        and converting the resulting value to RGB values.
-        ```
-            use colorimetry::prelude::*;
-            let rgb: [u8;3] = CIE1931.xyz_from_std_illuminant_x_fn(&CieIlluminant::D65, |x|x).rgb(None).clamp().into();
-            assert_eq!(rgb, [212, 171, 109]);
-        ```
-        Linear low pass filter, with a value of 1.0 for a wavelength of 380nm, and a value of 0.0 for 780nm,
-        and converting the resulting value to RGB values.
-        ```
-            use colorimetry::prelude::*;
-            let rgb: [u8;3] = CIE1931.xyz_from_std_illuminant_x_fn(&CieIlluminant::D65, |x|1.0-x).rgb(None).clamp().into();
-            assert_eq!(rgb, [158, 202, 237]);
-        ```
-
-    */
-    pub fn xyz_from_std_illuminant_x_fn(
-        &self,
-        illuminant: &CieIlluminant,
-        f: impl Fn(f64) -> f64,
-    ) -> XYZ {
-        let ill = illuminant.illuminant();
-        let xyzn = self.xyz_cie_table(illuminant, None);
-        let xyz = self
-            .data
-            .column_iter()
-            .zip(ill.0 .0.iter())
-            .enumerate()
-            .fold(Vector3::zeros(), |acc, (i, (cmfi, sv))| {
-                acc + cmfi * f(i as f64 / (NS - 1) as f64).clamp(0.0, 1.0) * *sv
-            });
-        let scale = 100.0 / xyzn.xyz.y;
-        XYZ {
-            xyz: xyz * self.lumconst * scale,
-            observer: self.tag,
-        }
-    }
-
     /// Calculates XYZ tristimulus values for a Planckian emitter for this
     /// observer. The `to_wavelength`` function is used, as planck functions
     /// requires the wavelength to be in units of meters, and the
@@ -443,8 +395,7 @@ impl ObserverData {
     /// # Notes
     /// - This method is used in the library to compute the Planckian locus (the color of blackbody
     ///   radiators), as described by Planck's law.
-    /// - To use this method for colorants, include a spectral illuminant value in the function `f`,
-    ///   and multiply this with the colorant.
+    /// - For colorants, use [`xyz_from_colorant_fn`](Self::xyz_from_colorant_fn).
     pub fn xyz_from_fn(&self, f: impl Fn(f64) -> f64) -> XYZ {
         let xyz = self
             .data
@@ -455,6 +406,46 @@ impl ObserverData {
             });
         XYZ {
             xyz,
+            observer: self.tag,
+        }
+    }
+
+    /// Calculates XYZ tristimulus values for an analytic representation of a spectral distribution of
+    /// a filter or a color patch, using a normalized wavelength domain ranging from a value of 0.0 to 1.0,
+    /// illuminated with a standard illuminant.
+    ///
+    /// The spectral values should be defined within a range from 0.0 to 1.0, and are clamped otherwise.
+    /// The resulting XYZ value will have relative Y values in the range from 0 to 100.0.
+    ///
+    /// # Examples
+    /// A linear high pass filter, with a value of 0.0 for a wavelength of 380nm, and a value of 1.0 for 780nm,
+    /// and converting the resulting value to RGB values.
+    /// ```
+    /// use colorimetry::prelude::*;
+    /// let rgb: [u8;3] = CIE1931.xyz_from_colorant_fn(&CieIlluminant::D65, |x|x).rgb(None).clamp().into();
+    /// assert_eq!(rgb, [212, 171, 109]);
+    /// ```
+    /// Linear low pass filter, with a value of 1.0 for a wavelength of 380nm, and a value of 0.0 for 780nm,
+    /// and converting the resulting value to RGB values.
+    /// ```
+    /// use colorimetry::prelude::*;
+    /// let rgb: [u8;3] = CIE1931.xyz_from_colorant_fn(&CieIlluminant::D65, |x|1.0-x).rgb(None).clamp().into();
+    /// assert_eq!(rgb, [158, 202, 237]);
+    /// ```
+    pub fn xyz_from_colorant_fn(&self, illuminant: &CieIlluminant, f: impl Fn(f64) -> f64) -> XYZ {
+        let ill = illuminant.illuminant();
+        let xyzn = self.xyz_cie_table(illuminant, None);
+        let xyz = self
+            .data
+            .column_iter()
+            .zip(ill.0 .0.iter())
+            .enumerate()
+            .fold(Vector3::zeros(), |acc, (i, (cmfi, sv))| {
+                acc + cmfi * f(i as f64 / (NS - 1) as f64).clamp(0.0, 1.0) * *sv
+            });
+        let scale = 100.0 / xyzn.xyz.y;
+        XYZ {
+            xyz: xyz * self.lumconst * scale,
             observer: self.tag,
         }
     }
@@ -599,7 +590,7 @@ mod obs_test {
 
     #[test]
     fn test_xyz_from_illuminant_x_fn() {
-        let xyz = CIE1931.xyz_from_std_illuminant_x_fn(&CieIlluminant::D65, |_v| 1.0);
+        let xyz = CIE1931.xyz_from_colorant_fn(&CieIlluminant::D65, |_v| 1.0);
         let d65xyz = CIE1931.xyz_d65().xyz;
         approx::assert_ulps_eq!(
             xyz,
@@ -613,9 +604,9 @@ mod obs_test {
         let xyz = CIE1931
             .xyz(&d65, Some(&crate::colorant::Colorant::white()))
             .set_illuminance(100.0);
-        approx::assert_ulps_eq!(xyz, CIE1931.xyz_from_std_illuminant_x_fn(&d65, |_| 1.0));
+        approx::assert_ulps_eq!(xyz, CIE1931.xyz_from_colorant_fn(&d65, |_| 1.0));
 
         let xyz = CIE1931.xyz(&d65, Some(&crate::colorant::Colorant::black()));
-        approx::assert_ulps_eq!(xyz, CIE1931.xyz_from_std_illuminant_x_fn(&d65, |_| 0.0));
+        approx::assert_ulps_eq!(xyz, CIE1931.xyz_from_colorant_fn(&d65, |_| 0.0));
     }
 }
