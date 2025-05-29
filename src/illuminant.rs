@@ -163,7 +163,8 @@ impl Illuminant {
     /// Sets the illuminance of the illuminant spectrum, which is expressed lumen per square meter,
     /// also referred to as lux.
     pub fn set_illuminance(mut self, obs: &ObserverData, illuminance: f64) -> Self {
-        let l = illuminance / (obs.data.row(1) * self.0 .0 * obs.lumconst).x;
+        let y = obs.y_from_spectrum(self.as_ref());
+        let l = illuminance / y;
         self.0 .0.iter_mut().for_each(|v| *v *= l);
         self
     }
@@ -171,7 +172,7 @@ impl Illuminant {
     /// Calculates the illuminance of the illuminant spectrum, which is expressed in lumen per square meter,
     /// also referred to as lux.
     pub fn illuminance(&self, obs: &ObserverData) -> f64 {
-        (obs.data.row(1) * self.0 .0 * obs.lumconst).x
+        obs.y_from_spectrum(self.as_ref())
     }
 
     /// Calculates the Color Rendering Index values for illuminant spectrum.

@@ -126,9 +126,11 @@ impl Observer {
 */
 #[wasm_bindgen]
 pub struct ObserverData {
-    pub(crate) data: SMatrix<f64, 3, NS>,
-    pub(crate) lumconst: f64,
-    pub(crate) tag: Observer,
+    data: SMatrix<f64, 3, NS>,
+    lumconst: f64,
+    tag: Observer,
+    d65: OnceLock<XYZ>,
+    d50: OnceLock<XYZ>,
 
     /// The range of indices for which the spectral locus of this observer returns unique
     /// chromaticity coordinates. See documentation for the
@@ -146,6 +148,8 @@ impl ObserverData {
             data,
             lumconst,
             tag,
+            d65: OnceLock::new(),
+            d50: OnceLock::new(),
             spectral_locus_range: OnceLock::new(),
         }
     }
@@ -184,6 +188,11 @@ impl ObserverData {
         XYZ::from_vecs(xyz, self.tag)
     }
 
+    /// Calculates the lumimous value or Y tristimulus value for a general spectrum.
+    pub fn y_from_spectrum(&self, spectrum: &Spectrum) -> f64 {
+        (self.data.row(1) * spectrum.0 * self.lumconst)[(0, 0)]
+    }
+
     /// Returns the observer's color matching function (CMF) data as an [XYZ] tristimulus
     /// value for the given wavelength.
     ///
@@ -216,16 +225,44 @@ impl ObserverData {
         }
     }
 
-    /// XYZ tristimulus values for the CIE standard daylight illuminant D65.
-    /// The values are calculated on first use.
+    /// XYZ tristimulus values for the CIE standard daylight illuminant D65 (buffered).
+    ///
+    /// # Examples
+    /// ```
+    /// // Test data from [CIE 15:2018](https://cie.co.at/publications/colorimetry-4th-edition) for test data
+    /// use colorimetry::{xyz::XYZ, illuminant::CieIlluminant};
+    ///
+    /// let cie1931_d65_xyz = colorimetry::observer::CIE1931.xyz_d65();
+    /// approx::assert_ulps_eq!(cie1931_d65_xyz.values().as_ref(), [95.047, 100.0, 108.883].as_ref(), epsilon = 5E-2);
+    ///
+    /// let cie1964_d65_xyz = colorimetry::observer::CIE1964.xyz_d65();
+    /// approx::assert_ulps_eq!(cie1964_d65_xyz.values().as_ref(), [94.811, 100.0, 107.304].as_ref(), epsilon = 5E-2);
+    /// ```
     pub fn xyz_d65(&self) -> XYZ {
-        self.xyz_cie_table(&CieIlluminant::D65, Some(100.0))
+        *self.d65.get_or_init(|| {
+            self.xyz_from_spectrum(CieIlluminant::D65.illuminant().as_ref())
+                .set_illuminance(100.0)
+        })
     }
 
-    /// XYZ tristimulus values for the CIE standard daylight illuminant D50.
-    /// The values are calculated on first use.
+    /// XYZ tristimulus values for the CIE standard daylight illuminant D50 (buffered).
+    ///
+    /// # Examples
+    /// ```
+    /// // Test data from [CIE 15:2018](https://cie.co.at/publications/colorimetry-4th-edition) for test data
+    /// use colorimetry::{xyz::XYZ, illuminant::CieIlluminant};
+    ///
+    /// let cie1931_d50_xyz = colorimetry::observer::CIE1931.xyz_d50();
+    /// approx::assert_ulps_eq!(cie1931_d50_xyz.values().as_ref(), [96.421, 100.0, 82.519].as_ref(), epsilon = 5E-2);
+    ///
+    /// let cie1964_d50_xyz = colorimetry::observer::CIE1964.xyz_d50();
+    /// approx::assert_ulps_eq!(cie1964_d50_xyz.values().as_ref(), [96.720, 100.0, 81.427].as_ref(), epsilon = 5E-2);
+    /// ```
     pub fn xyz_d50(&self) -> XYZ {
-        self.xyz_cie_table(&CieIlluminant::D50, Some(100.0))
+        *self.d50.get_or_init(|| {
+            self.xyz_from_spectrum(CieIlluminant::D50.illuminant().as_ref())
+                .set_illuminance(100.0)
+        })
     }
 
     /// Calculates XYZ tristimulus values for a Planckian emitter for this

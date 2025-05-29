@@ -25,7 +25,8 @@ impl Stimulus {
 
     /// Sets the luminance of the stimulus based on the observer data and a luminance value.
     pub fn set_luminance(mut self, obs: &ObserverData, luminance: f64) -> Self {
-        let l = luminance / (obs.data.row(1) * self.0 .0 * obs.lumconst).x;
+        let y = obs.y_from_spectrum(self.as_ref());
+        let l = luminance / y;
         self.0 .0.iter_mut().for_each(|v| *v *= l);
         self
     }
@@ -102,5 +103,11 @@ impl Mul<Stimulus> for f64 {
 
     fn mul(self, rhs: Stimulus) -> Self::Output {
         Stimulus(self * rhs.0)
+    }
+}
+
+impl AsRef<Spectrum> for Stimulus {
+    fn as_ref(&self) -> &Spectrum {
+        &self.0
     }
 }
