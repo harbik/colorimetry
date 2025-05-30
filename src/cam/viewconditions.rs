@@ -1,7 +1,4 @@
-use nalgebra::Vector3;
 use wasm_bindgen::prelude::wasm_bindgen;
-
-use super::{achromatic_rsp, M16};
 
 #[wasm_bindgen]
 #[derive(Clone, Copy, Debug)]
@@ -136,37 +133,4 @@ pub struct ReferenceValues {
     pub(crate) d_rgb: [f64; 3],
     pub(crate) aw: f64,
     pub(crate) qu: f64, // see lum_adapt
-}
-
-impl ReferenceValues {
-    pub fn new(xyzn: Vector3<f64>, vc: ViewConditions) -> Self {
-        let mut rgb_w = M16 * xyzn;
-        // println!("***RGBw {rgb_w}");
-        let vcd = vc.dd();
-        let yw = xyzn[1];
-        let d_rgb = rgb_w.map(|v| vcd * yw / v + 1.0 - vcd);
-        let n = vc.yb / yw;
-        let z = n.sqrt() + 1.48;
-        let nbb = 0.725 * n.powf(-0.2);
-        let ncb = nbb;
-        rgb_w.component_mul_assign(&Vector3::from(d_rgb)); // rgb_wc
-                                                           //  println!("***RGBwc {rgb_w}");
-        let qu = 150f64.max(rgb_w[0].max(rgb_w[1]).max(rgb_w[2]));
-
-        // rgb_paw
-        rgb_w.apply(|q| vc.lum_adapt(q, 0.26, qu));
-        //        println!("***RGBaw {rgb_w}");
-        let aw = achromatic_rsp(rgb_w, nbb);
-        //        println!("***aw {aw} qu {qu}");
-
-        Self {
-            n,
-            z,
-            nbb,
-            ncb,
-            d_rgb: d_rgb.into(),
-            aw,
-            qu,
-        }
-    }
 }

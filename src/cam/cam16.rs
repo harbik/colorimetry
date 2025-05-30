@@ -27,14 +27,12 @@
 //!
 //! *Methods and internals marked `pub(crate)` have been omitted for brevity.*
 
-use super::ViewConditions;
+use super::{CamJCh, CamTransforms, ViewConditions};
 use std::f64::consts::PI;
 
-use nalgebra::{matrix, vector, Vector3};
+use nalgebra::{matrix, vector, Matrix3, Vector3};
 
-use crate::{
-    cam::viewconditions::ReferenceValues, error::Error, math::distance, prelude::Observer, xyz::XYZ,
-};
+use crate::{cam::viewconditions::ReferenceValues, error::Error, observer::Observer, xyz::XYZ};
 
 /// CIECAM16 Color Appearance Model
 ///
@@ -49,17 +47,7 @@ use crate::{
 /// transformed between different illuminants and viewing environments.
 ///
 #[derive(Debug)]
-pub struct CieCam16 {
-    /// Colorimetric Observer used.
-    /// The standard requires use of the CIE1931 standard observer.
-    pub(crate) observer: Observer,
-    /// Correlates of Lightness, Chroma, and hue-angle
-    pub(crate) jch: Vector3<f64>,
-    /// Tristimulus values of the reference white beng use
-    pub(crate) xyzn: Vector3<f64>,
-    /// Viewing Conditions
-    pub(crate) vc: ViewConditions, // 6 f64
-}
+pub struct CieCam16(CamJCh);
 
 impl CieCam16 {
     /// Construct a CIECAM16 instance from precomputed JCh appearance correlates.
@@ -82,12 +70,12 @@ impl CieCam16 {
     /// - This constructor does _not_ validate the inputs; to ensure validity, you would need to  
     ///   perform the inverse transform (`.xyz()`) or convert to RGB and check for out-of-gamut values.  
     pub fn new(jch: [f64; 3], xyzn: XYZ, vc: ViewConditions) -> Self {
-        Self {
+        Self(CamJCh {
             jch: Vector3::from(jch),
             xyzn: xyzn.xyz,
             vc,
             observer: xyzn.observer,
-        }
+        })
     }
 
     /// Creates a new CieCam16 instance from the given XYZ tristimulus values of the color and the reference white,
@@ -107,6 +95,7 @@ impl CieCam16 {
         if xyz.observer != xyzn.observer {
             return Err(Error::RequireSameObserver);
         }
+        let cam = Self::new([0.0; 3], xyzn, vc); // early init, so we can use the reference values
         let ReferenceValues {
             n,
             z,
@@ -115,10 +104,10 @@ impl CieCam16 {
             d_rgb,
             aw,
             qu,
-        } = ReferenceValues::new(xyzn_vec, vc);
+        } = cam.reference_values();
         let vcdd = vc.dd();
         let vcfl = vc.f_l();
-        let mut rgb = super::M16 * xyz_vec;
+        let mut rgb = M16 * xyz_vec;
         rgb.component_mul_assign(&Vector3::from(d_rgb));
         rgb.apply(|v| vc.lum_adapt(v, 0.26, qu));
 
@@ -140,127 +129,12 @@ impl CieCam16 {
             / (rgb[0] + rgb[1] + 21.0 / 20.0 * rgb[2]);
         let cc = t.powf(0.9) * (jj / 100.).sqrt() * (1.64 - (0.29f64).powf(n)).powf(0.73);
 
-        Ok(Self {
+        Ok(Self(CamJCh {
             vc,
             jch: Vector3::new(jj, cc, h * 180.0 / PI),
             observer: xyz.observer,
             xyzn: xyzn_vec,
-        })
-    }
-
-    /// Returns the JCh values of the color as a `Vector3<f64>`.
-    ///
-    /// The JCh values are a lightness, chroma, and hue angle representation of the color.
-    pub fn jch(&self) -> [f64; 3] {
-        self.jch.into()
-    }
-
-    /// CIECAM16 “raw Jab” coordinates, wich are analogous to CIELAB’s *a*/*b* values.
-    ///
-    /// **Note:**  
-    /// - These raw Jab coordinates are _not_ perceptually uniform.  
-    /// - Euclidean distances in this space do **not** reliably correspond to visual color differences.  
-    ///
-    /// For a perceptually uniform version, use `jab_prime()`, which applies the CAM16-UCS non-linear  
-    /// stretching (with constants `C1 = 0.007` and `C2 = 0.0228`) to produce `(J′, a′, b′)`.
-    pub fn jab(&self) -> [f64; 3] {
-        let &[jj, cc, h] = self.jch.as_ref();
-        let m = cc * self.vc.f_l().powf(0.25);
-        let mprime = 1.0 / super::UCS_C2 * (1.0 + super::UCS_C2 * m).ln();
-        [
-            (1.0 + 100.0 * super::UCS_C1) * jj / (1.0 + super::UCS_C1 * jj),
-            mprime * (h * PI / 180.0).cos(),
-            mprime * (h * PI / 180.0).sin(),
-        ]
-    }
-
-    /// This function returns the CIECAM16 UCS "Ja'b'" values, which are a perceptually uniform representation  
-    /// of color.
-    ///  
-    /// **Note:**  
-    /// - **J′**: Lightness  
-    /// - **a′**, **b′**: Chromatic components, derived from the non-linear CAM16-UCS transformation applied  
-    ///   to the raw Jab values.
-    ///
-    /// Euclidean distance between colors in this space more reliably matches human-perceived color differences.  
-    /// The constants `C1 = 0.007` and `C2 = 0.0228` are used for the transformation to UCS type.  
-    ///  
-    /// For the raw, non-uniform Jab values, see the `jab()` function.
-    pub fn jab_prime(&self) -> [f64; 3] {
-        let &[jj, cc, h] = self.jch.as_ref();
-        let m = cc * self.vc.f_l().powf(0.25);
-        let mprime = 1.0 / super::UCS_C2 * (1.0 + super::UCS_C2 * m).ln();
-        [
-            (1.0 + 100.0 * super::UCS_C1) * jj / (1.0 + super::UCS_C1 * jj),
-            mprime * (h * PI / 180.0).cos(),
-            mprime * (h * PI / 180.0).sin(),
-        ]
-    }
-
-    /// Returns the JC'h' values of the color as an array.
-    ///
-    /// The JC'h' values are a lightness, chroma, and hue angle representation of the color,
-    /// where:
-    /// - **J** is the lightness (0 to 100)
-    /// - **C'** is the chroma (0 or greater)
-    /// - **h'** is the hue angle in degrees (0° to 360°)
-    ///
-    /// This method is similar to `jab_prime()`, but it uses the JCh representation instead of the raw Jab.
-    /// It applies the CAM16-UCS non-linear stretching to produce a perceptually uniform representation.
-    ///
-    /// # Returns
-    /// An array containing the JCh values: `[J, C', h']`.
-    pub fn jch_prime(&self) -> [f64; 3] {
-        let &[jj, cc, h] = self.jch.as_ref();
-        let m = cc * self.vc.f_l().powf(0.25);
-        let mprime = 1.0 / super::UCS_C2 * (1.0 + super::UCS_C2 * m).ln();
-        [
-            (1.0 + 100.0 * super::UCS_C1) * jj / (1.0 + super::UCS_C1 * jj),
-            mprime * (h * PI / 180.0).cos(),
-            mprime * (h * PI / 180.0).sin(),
-        ]
-    }
-
-    /// Calculates the CIECAM16-UCS ΔE′ (prime) color difference between two colors.
-    ///
-    /// This method converts each color to its CAM16-UCS Ja′b′ coordinates and then
-    /// computes the Euclidean distance, which closely matches perceived color differences.
-    ///
-    /// # Formula
-    /// ```text
-    /// ΔE′ = sqrt((J1′ - J2′)² + (a1′ - a2′)² + (b1′ - b2′)²)
-    /// ```
-    ///
-    /// # Parameters
-    /// - `other`: The `CieCam16` instance to compare against.
-    ///
-    /// # Returns
-    /// The ΔE′ value as an `f64`, representing the perceptual color difference.
-    ///
-    /// # Errors
-    /// Returns an error if the observers of the two colors do not match.
-    pub fn ciede2016(&self, other: &Self) -> Result<f64, Error> {
-        if self.observer != other.observer {
-            return Err(Error::RequireSameObserver);
-        }
-
-        let jabp1 = self.jab_prime();
-        let jabp2 = other.jab_prime();
-        Ok(Self::delta_e_prime_from_jabp(
-            jabp1.as_ref(),
-            jabp2.as_ref(),
-        ))
-    }
-
-    /// Calculates the CIECAM16 distance between two Ja'b' values.
-    /// This is the CIECAM16 distance formula, which is used to calculate the
-    /// perceptual difference between two colors in the CIECAM16 color space.
-    fn delta_e_prime_from_jabp(jabp1: &[f64], jabp2: &[f64]) -> f64 {
-        if (super::UCS_KL - 1.0).abs() < f64::EPSILON {
-            distance(jabp1, jabp2)
-        } else {
-            todo!()
-        }
+        }))
     }
 
     /// Inverse-transform CIECAM16 appearance correlates back to CIE XYZ tristimulus values.
@@ -306,15 +180,15 @@ impl CieCam16 {
         white_opt: Option<XYZ>,
         vc_opt: Option<ViewConditions>,
     ) -> Result<XYZ, Error> {
-        let vc = vc_opt.unwrap_or(self.vc);
+        let vc = vc_opt.unwrap_or(self.view_conditions().clone());
         let xyzn = if let Some(white) = white_opt {
-            if white.observer == self.observer {
+            if white.observer == self.observer() {
                 white.xyz
             } else {
                 return Err(Error::RequireSameObserver);
             }
         } else {
-            self.xyzn
+            self.xyzn().clone()
         };
         let ReferenceValues {
             n,
@@ -324,21 +198,21 @@ impl CieCam16 {
             d_rgb,
             aw,
             qu,
-        } = ReferenceValues::new(xyzn, vc);
+        } = self.reference_values();
         let d_rgb_vec = Vector3::from(d_rgb);
-        let &[lightness, chroma, hue_angle] = self.jch.as_ref();
+        let &[lightness, chroma, hue_angle] = self.jch_vec().as_ref();
         let t = (chroma / ((lightness / 100.0).sqrt() * (1.64 - 0.29f64.powf(n)).powf(0.73)))
-            .powf(super::RCPR_9);
-        let p1 = (super::P1C * vc.nc * ncb * super::eccentricity(hue_angle)) / t; // NaN if t=0, but OK, as check on t==0.0 if used
+            .powf(1.0 / 9.0);
+        let p1 = (Self::P1C * vc.nc * ncb * super::eccentricity(hue_angle)) / t; // NaN if t=0, but OK, as check on t==0.0 if used
         let p2 = super::achromatic_response_from_lightness(aw, vc.c, z, lightness) / nbb + 0.305;
         let (a, b) = match hue_angle.to_radians().sin_cos() {
             (_, _) if t.is_nan() || t == 0.0 => (0.0, 0.0),
             (hs, hc) if hs.abs() >= hc.abs() => {
-                let b = p2 * super::NOM / (p1 / hs + super::DEN1 * hc / hs + super::DEN2);
+                let b = p2 * Self::NOM / (p1 / hs + Self::DEN1 * hc / hs + Self::DEN2);
                 (b * hc / hs, b)
             }
             (hs, hc) => {
-                let a = p2 * super::NOM / (p1 / hc + super::DEN1 + super::DEN2 * hs / hc);
+                let a = p2 * Self::NOM / (p1 / hc + Self::DEN1 + Self::DEN2 * hs / hc);
                 (a, a * hs / hc)
             }
         };
@@ -349,10 +223,57 @@ impl CieCam16 {
         let rgb_p = (m * vector![p2, a, b]).map(|x| super::inv_cone_adaptation(vc.f_l(), x)); // Step 4 & 5
         let rgb = rgb_p.component_div(&d_rgb_vec);
 
-        let xyz = super::M16INV * rgb;
-        Ok(XYZ::from_vecs(xyz, self.observer))
+        let xyz = M16INV * rgb;
+        Ok(XYZ::from_vecs(xyz, self.observer()))
     }
 }
+
+impl CamTransforms for CieCam16 {
+    const DEN1: f64 = ((2.0 + Self::P3) * 220.0) / C16_3;
+    const DEN2: f64 = (Self::P3 * 6300.0 - 27.0) / C16_3;
+
+    /// Returns the JCh appearance correlates of this CieCam16 instance.
+    fn jch_vec(&self) -> &Vector3<f64> {
+        &self.0.jch
+    }
+
+    /// Returns the viewing conditions of this CieCam16 instance.
+    fn view_conditions(&self) -> &ViewConditions {
+        &self.0.vc
+    }
+
+    /// Returns the observer of this CieCam16 instance.
+    fn observer(&self) -> Observer {
+        self.0.observer
+    }
+
+    fn xyzn(&self) -> &Vector3<f64> {
+        &self.0.xyzn
+    }
+    fn xyz2cam_rgb(xyz_vec: Vector3<f64>) -> Vector3<f64> {
+        M16 * xyz_vec
+    }
+}
+
+const C16_3: f64 = 1_403.0;
+
+const M16: Matrix3<f64> = matrix![
+    0.401288, 0.650173, -0.051461;
+    -0.250268, 1.204414, 0.045854;
+    -0.002079, 0.048952, 0.953127
+];
+
+const M16INV: Matrix3<f64> = matrix![
+    1.86206786, -1.01125463, 0.14918677;
+    0.38752654, 0.62144744, -0.00897398;
+    -0.01584150, -0.03412294, 1.04996444
+];
+
+const MRGBAINV: Matrix3<f64> = matrix![
+   460.0/C16_3, 451.0/C16_3, 288.0/C16_3;
+   460.0/C16_3, -891.0/C16_3, -261.0/C16_3;
+   460.0/C16_3, -220.0/C16_3, -6_300.0/C16_3;
+];
 
 #[cfg(test)]
 mod cam_test {
@@ -363,11 +284,7 @@ mod cam_test {
 
     #[test]
     fn test_m16() {
-        approx::assert_abs_diff_eq!(
-            crate::cam::M16INV * crate::cam::M16,
-            Matrix3::identity(),
-            epsilon = 1E-8
-        );
+        approx::assert_abs_diff_eq!(M16INV * M16, Matrix3::identity(), epsilon = 1E-8);
     }
 
     #[test]
@@ -377,7 +294,7 @@ mod cam_test {
         let xyzn = XYZ::new([96.46, 100.0, 108.62], Observer::Std1931);
         let vc = ViewConditions::new(16.0, 1.0, 1.0, 0.69, 40.0, None);
         let cam = CieCam16::from_xyz(xyz, xyzn, vc).unwrap();
-        let &[j, c, h] = cam.jch.as_ref();
+        let &[j, c, h] = cam.jch_vec().as_ref();
         // println!("J:\t{j:?}\nC:\t{c:?}\nh:\t{h:?}");
         approx::assert_abs_diff_eq!(j, 70.4406, epsilon = 1E-4);
         approx::assert_abs_diff_eq!(c, 58.6035, epsilon = 1E-4);
