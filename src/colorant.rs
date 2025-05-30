@@ -49,6 +49,12 @@
 #[cfg(feature = "munsell")]
 mod munsell_matt;
 
+#[cfg(feature = "cfi")]
+mod cfi;
+
+#[cfg(feature = "cfi")]
+pub use cfi::CFI;
+
 #[cfg(feature = "munsell")]
 pub use munsell_matt::*;
 
