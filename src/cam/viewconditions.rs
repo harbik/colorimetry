@@ -1,5 +1,6 @@
 use wasm_bindgen::prelude::wasm_bindgen;
 
+
 #[wasm_bindgen]
 #[derive(Clone, Copy, Debug)]
 pub struct ViewConditions {
@@ -120,17 +121,3 @@ pub const CIE_HOME_DISPLAY: ViewConditions = ViewConditions {
     la: 16.0,
     dopt: None,
 };
-
-/// Values used in CieCam forward and backward transformations, only dependent on the view
-/// conditions and the reference white.
-/// For a set of colors, viewed under the same conditions, these have to be calculated only once.
-#[derive(Clone, Copy, Debug)]
-pub struct ReferenceValues {
-    pub(crate) n: f64,
-    pub(crate) z: f64,
-    pub(crate) nbb: f64,
-    pub(crate) ncb: f64,
-    pub(crate) d_rgb: [f64; 3],
-    pub(crate) aw: f64,
-    pub(crate) qu: f64, // see lum_adapt
-}

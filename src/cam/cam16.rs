@@ -14,6 +14,7 @@
 //! use colorimetry::cam::CieCam16;
 //! use colorimetry::cam::ViewConditions;
 //! use colorimetry::xyz::XYZ;
+//! use colorimetry::cam::CamTransforms;
 //! use colorimetry::observer::Observer;
 //!
 //! let sample = XYZ::new([60.7, 49.6, 10.3], Observer::Std1931);
@@ -27,12 +28,12 @@
 //!
 //! *Methods and internals marked `pub(crate)` have been omitted for brevity.*
 
-use super::{CamJCh, CamTransforms, ViewConditions};
+use super::{CamJCh, CamTransforms, ReferenceValues, ViewConditions};
 use std::f64::consts::PI;
 
 use nalgebra::{matrix, vector, Matrix3, Vector3};
 
-use crate::{cam::viewconditions::ReferenceValues, error::Error, observer::Observer, xyz::XYZ};
+use crate::{error::Error, observer::Observer, xyz::XYZ};
 
 /// CIECAM16 Color Appearance Model
 ///
@@ -180,7 +181,7 @@ impl CieCam16 {
         white_opt: Option<XYZ>,
         vc_opt: Option<ViewConditions>,
     ) -> Result<XYZ, Error> {
-        let vc = vc_opt.unwrap_or(self.view_conditions().clone());
+        let vc = vc_opt.unwrap_or_default();
         let xyzn = if let Some(white) = white_opt {
             if white.observer == self.observer() {
                 white.xyz
@@ -202,7 +203,7 @@ impl CieCam16 {
         let d_rgb_vec = Vector3::from(d_rgb);
         let &[lightness, chroma, hue_angle] = self.jch_vec().as_ref();
         let t = (chroma / ((lightness / 100.0).sqrt() * (1.64 - 0.29f64.powf(n)).powf(0.73)))
-            .powf(1.0 / 9.0);
+            .powf(Self::RCPR_9);
         let p1 = (Self::P1C * vc.nc * ncb * super::eccentricity(hue_angle)) / t; // NaN if t=0, but OK, as check on t==0.0 if used
         let p2 = super::achromatic_response_from_lightness(aw, vc.c, z, lightness) / nbb + 0.305;
         let (a, b) = match hue_angle.to_radians().sin_cos() {
@@ -295,13 +296,13 @@ mod cam_test {
         let vc = ViewConditions::new(16.0, 1.0, 1.0, 0.69, 40.0, None);
         let cam = CieCam16::from_xyz(xyz, xyzn, vc).unwrap();
         let &[j, c, h] = cam.jch_vec().as_ref();
-        // println!("J:\t{j:?}\nC:\t{c:?}\nh:\t{h:?}");
+        //println!("J:\t{j:?}\nC:\t{c:?}\nh:\t{h:?}");
         approx::assert_abs_diff_eq!(j, 70.4406, epsilon = 1E-4);
         approx::assert_abs_diff_eq!(c, 58.6035, epsilon = 1E-4);
         approx::assert_abs_diff_eq!(h, 57.9145, epsilon = 1E-4);
 
         // inverse transformation, with no change in white adaptation of viewing conditions.
-        let xyz_rev = cam.xyz(None, None).unwrap();
+        let xyz_rev = cam.xyz(None, Some(vc)).unwrap();
         assert_abs_diff_eq!(xyz, xyz_rev, epsilon = 1E-4);
     }
 }

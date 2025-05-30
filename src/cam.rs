@@ -15,6 +15,7 @@
 //! use colorimetry::cam::ViewConditions;
 //! use colorimetry::xyz::XYZ;
 //! use colorimetry::observer::Observer;
+//! use colorimetry::cam::CamTransforms;
 //!
 //! let sample = XYZ::new([60.7, 49.6, 10.3], Observer::Std1931);
 //! let white  = XYZ::new([96.46, 100.0, 108.62], Observer::Std1931);
@@ -24,11 +25,8 @@
 //! let jch = cam.jch();
 //! println!("JCh: {:?}", jch);
 //! ```
-//!
-//! *Methods and internals marked `pub(crate)` have been omitted for brevity.*
 
 mod viewconditions;
-use viewconditions::ReferenceValues;
 pub use viewconditions::ViewConditions;
 
 mod cam16;
@@ -52,6 +50,20 @@ pub struct CamJCh {
 
     /// Viewing Conditions
     vc: ViewConditions,
+}
+
+/// Values used in CieCam forward and backward transformations, only dependent on the view
+/// conditions and the reference white.
+/// For a set of colors, viewed under the same conditions, these have to be calculated only once.
+#[derive(Clone, Copy, Debug)]
+pub struct ReferenceValues {
+    n: f64,
+    z: f64,
+    nbb: f64,
+    ncb: f64,
+    d_rgb: [f64; 3],
+    aw: f64,
+    qu: f64, // see lum_adapt
 }
 
 pub trait CamTransforms {
