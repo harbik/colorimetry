@@ -189,7 +189,7 @@ impl CieCam16 {
                 return Err(Error::RequireSameObserver);
             }
         } else {
-            self.xyzn().clone()
+            *self.xyzn()
         };
         let ReferenceValues {
             n,

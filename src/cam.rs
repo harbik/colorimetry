@@ -33,8 +33,8 @@ mod cam16;
 pub use crate::cam::cam16::CieCam16;
 
 use crate::observer::Observer;
-use std::f64::consts::PI;
 use nalgebra::{matrix, SMatrix, Vector3};
+use std::f64::consts::PI;
 
 #[derive(Debug)]
 pub struct CamJCh {
@@ -85,7 +85,7 @@ pub trait CamTransforms {
 
     fn reference_values(&self) -> ReferenceValues {
         let vc = self.view_conditions();
-        let mut rgb_w = Self::xyz2cam_rgb(self.xyzn().clone());
+        let mut rgb_w = Self::xyz2cam_rgb(*self.xyzn());
         let vcd = vc.dd();
         let yw = self.xyzn()[1];
         let d_rgb = rgb_w.map(|v| vcd * yw / v + 1.0 - vcd);
@@ -117,7 +117,7 @@ pub trait CamTransforms {
     ///
     /// The JCh values are a lightness, chroma, and hue angle representation of the color.
     fn jch(&self) -> [f64; 3] {
-        self.jch_vec().clone().into()
+        (*self.jch_vec()).into()
     }
 
     /// CIECAM16 “raw Jab” coordinates, wich are analogous to CIELAB’s *a*/*b* values.
@@ -206,8 +206,6 @@ pub trait CamTransforms {
         }
     }
 }
-
-
 
 #[inline]
 pub fn achromatic_rsp(rgb: Vector3<f64>, nbb: f64) -> f64 {
