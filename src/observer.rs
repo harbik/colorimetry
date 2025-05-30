@@ -126,9 +126,11 @@ impl Observer {
 */
 #[wasm_bindgen]
 pub struct ObserverData {
-    pub(crate) data: SMatrix<f64, 3, NS>,
-    pub(crate) lumconst: f64,
-    pub(crate) tag: Observer,
+    data: SMatrix<f64, 3, NS>,
+    lumconst: f64,
+    tag: Observer,
+    d65: OnceLock<XYZ>,
+    d50: OnceLock<XYZ>,
 
     /// The range of indices for which the spectral locus of this observer returns unique
     /// chromaticity coordinates. See documentation for the
@@ -146,6 +148,8 @@ impl ObserverData {
             data,
             lumconst,
             tag,
+            d65: OnceLock::new(),
+            d50: OnceLock::new(),
             spectral_locus_range: OnceLock::new(),
         }
     }
@@ -184,6 +188,11 @@ impl ObserverData {
         XYZ::from_vecs(xyz, self.tag)
     }
 
+    /// Calculates the lumimous value or Y tristimulus value for a general spectrum.
+    pub fn y_from_spectrum(&self, spectrum: &Spectrum) -> f64 {
+        (self.data.row(1) * spectrum.0 * self.lumconst)[(0, 0)]
+    }
+
     /// Returns the observer's color matching function (CMF) data as an [XYZ] tristimulus
     /// value for the given wavelength.
     ///
@@ -216,87 +225,41 @@ impl ObserverData {
         }
     }
 
-    /// XYZ tristimulus values for the CIE standard daylight illuminant D65.
-    /// The values are calculated on first use.
+    /// XYZ tristimulus values for the CIE standard daylight illuminant D65 (buffered).
+    ///
+    /// # Examples
+    /// ```
+    /// // Test data from [CIE 15:2018](https://cie.co.at/publications/colorimetry-4th-edition) for test data
+    /// use colorimetry::{xyz::XYZ, illuminant::CieIlluminant};
+    ///
+    /// let cie1931_d65_xyz = colorimetry::observer::CIE1931.xyz_d65();
+    /// approx::assert_ulps_eq!(cie1931_d65_xyz.values().as_ref(), [95.047, 100.0, 108.883].as_ref(), epsilon = 5E-2);
+    /// ```
     pub fn xyz_d65(&self) -> XYZ {
-        self.xyz_cie_table(&CieIlluminant::D65, Some(100.0))
+        *self.d65.get_or_init(|| {
+            self.xyz_from_spectrum(CieIlluminant::D65.illuminant().as_ref())
+                .set_illuminance(100.0)
+        })
     }
 
-    /// XYZ tristimulus values for the CIE standard daylight illuminant D50.
-    /// The values are calculated on first use.
+    /// XYZ tristimulus values for the CIE standard daylight illuminant D50 (buffered).
+    ///
+    /// # Examples
+    /// ```ignore
+    /// // Test data from [CIE 15:2018](https://cie.co.at/publications/colorimetry-4th-edition) for test data
+    /// use colorimetry::{xyz::XYZ, illuminant::CieIlluminant};
+    ///
+    /// let cie1931_d50_xyz = colorimetry::observer::CIE1931.xyz_d50();
+    /// approx::assert_ulps_eq!(cie1931_d50_xyz.values().as_ref(), [96.421, 100.0, 82.519].as_ref(), epsilon = 5E-2);
+    ///
+    /// let cie1964_d50_xyz = colorimetry::observer::CIE1964.xyz_d50();
+    /// approx::assert_ulps_eq!(cie1964_d50_xyz.values().as_ref(), [96.720, 100.0, 81.427].as_ref(), epsilon = 5E-2);
+    /// ```
     pub fn xyz_d50(&self) -> XYZ {
-        self.xyz_cie_table(&CieIlluminant::D50, Some(100.0))
-    }
-
-    /**
-        Calculates XYZ tristimulus values for an analytic representation of a spectral distribution of
-        a filter or a color patch, using a normalized wavelength domain ranging from a value of 0.0 to 1.0,
-        illuminated with a standard illuminant.
-
-        The spectral values should be defined within a range from 0.0 to 1.0, and are clamped otherwise.
-        The resulting XYZ value will have relative Y values in the range from 0 to 100.0,
-        and yw is set to a value of 100.0.
-
-        # Examples
-        Linear high pass filter, with a value of 0.0 for a wavelength of 380nm, and a value of 1.0 for 780nm,
-        and converting the resulting value to RGB values.
-        ```
-            use colorimetry::prelude::*;
-            let rgb: [u8;3] = CIE1931.xyz_from_std_illuminant_x_fn(&CieIlluminant::D65, |x|x).rgb(None).clamp().into();
-            assert_eq!(rgb, [212, 171, 109]);
-        ```
-        Linear low pass filter, with a value of 1.0 for a wavelength of 380nm, and a value of 0.0 for 780nm,
-        and converting the resulting value to RGB values.
-        ```
-            use colorimetry::prelude::*;
-            let rgb: [u8;3] = CIE1931.xyz_from_std_illuminant_x_fn(&CieIlluminant::D65, |x|1.0-x).rgb(None).clamp().into();
-            assert_eq!(rgb, [158, 202, 237]);
-        ```
-
-    */
-    pub fn xyz_from_std_illuminant_x_fn(
-        &self,
-        illuminant: &CieIlluminant,
-        f: impl Fn(f64) -> f64,
-    ) -> XYZ {
-        let ill = illuminant.illuminant();
-        let xyzn = self.xyz_cie_table(illuminant, None);
-        let xyz = self
-            .data
-            .column_iter()
-            .zip(ill.0 .0.iter())
-            .enumerate()
-            .fold(Vector3::zeros(), |acc, (i, (cmfi, sv))| {
-                acc + cmfi * f(i as f64 / (NS - 1) as f64).clamp(0.0, 1.0) * *sv
-            });
-        let scale = 100.0 / xyzn.xyz.y;
-        XYZ {
-            xyz: xyz * self.lumconst * scale,
-            observer: self.tag,
-        }
-    }
-
-    /**
-        Calculates XYZ tristimulus values for an illuminant with its spectral distribution
-        described by a function, defined over a domain from 0.0 to 1.0, with 0.0 corresponding to
-        a wavelength of 380nm, and 1.0 to a wavelength of 780nm.
-
-        It is mainly used in this library to calculate the Planckian locus, which is described by
-        Planck's law.  The resulting XYZ value will be normalized to hava a Y value of 100.0
-        and yw is set to None.
-    */
-    pub fn xyz_fn_illuminant(&self, f: impl Fn(f64) -> f64) -> XYZ {
-        let xyz = self
-            .data
-            .column_iter()
-            .enumerate()
-            .fold(Vector3::zeros(), |acc, (i, cmf)| {
-                acc + cmf * f(i as f64 / (NS - 1) as f64)
-            });
-        XYZ {
-            xyz,
-            observer: self.tag,
-        }
+        *self.d50.get_or_init(|| {
+            self.xyz_from_spectrum(CieIlluminant::D50.illuminant().as_ref())
+                .set_illuminance(100.0)
+        })
     }
 
     /// Calculates XYZ tristimulus values for a Planckian emitter for this
@@ -306,14 +269,14 @@ impl ObserverData {
     /// 1.0.
     pub fn xyz_planckian_locus(&self, cct: f64) -> XYZ {
         let p = Planck::new(cct);
-        self.xyz_fn_illuminant(|l| p.at_wavelength(to_wavelength(l, 0.0, 1.0)))
+        self.xyz_from_fn(|l| p.at_wavelength(to_wavelength(l, 0.0, 1.0)))
     }
 
     /// The slope of the Plancking locus as a (dX/dT, dY/dT, dZ/dT) contained in
     /// a XYZ object.
     pub fn xyz_planckian_locus_slope(&self, cct: f64) -> XYZ {
         let p = Planck::new(cct);
-        self.xyz_fn_illuminant(|l| p.slope_at_wavelength(to_wavelength(l, 0.0, 1.0)))
+        self.xyz_from_fn(|l| p.slope_at_wavelength(to_wavelength(l, 0.0, 1.0)))
     }
 
     /// Calculates the L*a*b* CIELAB D65 values of a Colorant, using D65 as an illuminant.
@@ -449,6 +412,75 @@ impl ObserverData {
             Some([x / s, y / s])
         } else {
             None
+        }
+    }
+
+    /// Calculates the XYZ tristimulus values for a spectrum defined by a function.
+    ///
+    /// The input function `f` should accept a floating-point value in the range `[0.0, 1.0]`,
+    /// where `0.0` corresponds to a wavelength of 380 nm and `1.0` to 780 nm.
+    /// The function will be called once for each wavelength step (401 times at 1 nm intervals).
+    ///
+    /// # Arguments
+    /// * `f` - A function that takes a floating-point value in the range `[0.0, 1.0]` and returns
+    ///   the spectral value at that wavelength, in units of watts per square meter per nanometer (W/m²/nm) for
+    ///   illuminants, or Watts per square meter per steradian per nanometer (W/m²/sr/nm) for stimuli.
+    ///
+    /// # Notes
+    /// - This method is used in the library to compute the Planckian locus (the color of blackbody
+    ///   radiators), as described by Planck's law.
+    /// - For colorants, use [`xyz_from_colorant_fn`](Self::xyz_from_colorant_fn).
+    pub fn xyz_from_fn(&self, f: impl Fn(f64) -> f64) -> XYZ {
+        let xyz = self
+            .data
+            .column_iter()
+            .enumerate()
+            .fold(Vector3::zeros(), |acc, (i, cmf)| {
+                acc + cmf * f(i as f64 / (NS - 1) as f64)
+            });
+        XYZ {
+            xyz,
+            observer: self.tag,
+        }
+    }
+
+    /// Calculates XYZ tristimulus values for an analytic representation of a spectral distribution of
+    /// a filter or a color patch, using a normalized wavelength domain ranging from a value of 0.0 to 1.0,
+    /// illuminated with a standard illuminant.
+    ///
+    /// The spectral values should be defined within a range from 0.0 to 1.0, and are clamped otherwise.
+    /// The resulting XYZ value will have relative Y values in the range from 0 to 100.0.
+    ///
+    /// # Examples
+    /// A linear high pass filter, with a value of 0.0 for a wavelength of 380nm, and a value of 1.0 for 780nm,
+    /// and converting the resulting value to RGB values.
+    /// ```
+    /// use colorimetry::prelude::*;
+    /// let rgb: [u8;3] = CIE1931.xyz_from_colorant_fn(&CieIlluminant::D65, |x|x).rgb(None).clamp().into();
+    /// assert_eq!(rgb, [212, 171, 109]);
+    /// ```
+    /// Linear low pass filter, with a value of 1.0 for a wavelength of 380nm, and a value of 0.0 for 780nm,
+    /// and converting the resulting value to RGB values.
+    /// ```
+    /// use colorimetry::prelude::*;
+    /// let rgb: [u8;3] = CIE1931.xyz_from_colorant_fn(&CieIlluminant::D65, |x|1.0-x).rgb(None).clamp().into();
+    /// assert_eq!(rgb, [158, 202, 237]);
+    /// ```
+    pub fn xyz_from_colorant_fn(&self, illuminant: &CieIlluminant, f: impl Fn(f64) -> f64) -> XYZ {
+        let ill = illuminant.illuminant();
+        let xyzn = self.xyz_cie_table(illuminant, None);
+        let xyz = self
+            .data
+            .column_iter()
+            .zip(ill.0 .0.iter())
+            .enumerate()
+            .fold(Vector3::zeros(), |acc, (i, (cmfi, sv))| {
+                acc + cmfi * f(i as f64 / (NS - 1) as f64).clamp(0.0, 1.0) * *sv
+            });
+        let scale = 100.0 / xyzn.xyz.y;
+        XYZ {
+            xyz: xyz * self.lumconst * scale,
+            observer: self.tag,
         }
     }
 }
@@ -592,7 +624,7 @@ mod obs_test {
 
     #[test]
     fn test_xyz_from_illuminant_x_fn() {
-        let xyz = CIE1931.xyz_from_std_illuminant_x_fn(&CieIlluminant::D65, |_v| 1.0);
+        let xyz = CIE1931.xyz_from_colorant_fn(&CieIlluminant::D65, |_v| 1.0);
         let d65xyz = CIE1931.xyz_d65().xyz;
         approx::assert_ulps_eq!(
             xyz,
@@ -606,9 +638,44 @@ mod obs_test {
         let xyz = CIE1931
             .xyz(&d65, Some(&crate::colorant::Colorant::white()))
             .set_illuminance(100.0);
-        approx::assert_ulps_eq!(xyz, CIE1931.xyz_from_std_illuminant_x_fn(&d65, |_| 1.0));
+        approx::assert_ulps_eq!(xyz, CIE1931.xyz_from_colorant_fn(&d65, |_| 1.0));
 
         let xyz = CIE1931.xyz(&d65, Some(&crate::colorant::Colorant::black()));
-        approx::assert_ulps_eq!(xyz, CIE1931.xyz_from_std_illuminant_x_fn(&d65, |_| 0.0));
+        approx::assert_ulps_eq!(xyz, CIE1931.xyz_from_colorant_fn(&d65, |_| 0.0));
+    }
+
+    #[test]
+    fn test_xyz_d65_d50() {
+        let cie1931_d65_xyz = crate::observer::CIE1931.xyz_d65();
+        approx::assert_ulps_eq!(
+            cie1931_d65_xyz.values().as_ref(),
+            [95.047, 100.0, 108.883].as_ref(),
+            epsilon = 5E-2
+        );
+
+        let cie1931_d50_xyz = crate::observer::CIE1931.xyz_d50();
+        approx::assert_ulps_eq!(
+            cie1931_d50_xyz.values().as_ref(),
+            [96.421, 100.0, 82.519].as_ref(),
+            epsilon = 5E-2
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "supplemental-observers")]
+    fn test_xyz_d65_d50_cie1964() {
+        let cie1964_d50_xyz = crate::observer::CIE1964.xyz_d50();
+        approx::assert_ulps_eq!(
+            cie1964_d50_xyz.values().as_ref(),
+            [96.720, 100.0, 81.427].as_ref(),
+            epsilon = 5E-2
+        );
+
+        let cie1964_d65_xyz = crate::observer::CIE1964.xyz_d65();
+        approx::assert_ulps_eq!(
+            cie1964_d65_xyz.values().as_ref(),
+            [94.811, 100.0, 107.304].as_ref(),
+            epsilon = 5E-2
+        );
     }
 }
