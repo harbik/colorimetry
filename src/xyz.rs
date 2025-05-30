@@ -266,7 +266,7 @@ impl XYZ {
     /// A `Result` containing the CCT value if the conversion is successful, or an `Error` if it fails.
     ///
     /// # Errors
-    ///
+    /// - `RequiresCIE1931XY`: if the observer is not `CIE1931`. CCT is only defined using the CIE 1931 observer.
     /// - `CCTTemperatureTooHigh`: if `cct` is above 1_000_000 Kelvin.
     /// - `CCTTemperatureTooLow`: if `cct` is below 1000 Kelvin.
     /// - `CCTDuvHighError`: if `duv` is above 0.05.
