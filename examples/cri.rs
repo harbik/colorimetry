@@ -1,7 +1,7 @@
 // to run this example use:
 //  `cargo run --features cie-illuminants,cri --example cri`
 use colored::Colorize;
-use colorimetry::prelude::*;
+use colorimetry::{illuminant::CCT, prelude::*};
 use strum::IntoEnumIterator;
 
 /// Prints the standard illuminants in the library, with their elated color temperature, with
@@ -10,7 +10,7 @@ use strum::IntoEnumIterator;
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     for spc in CieIlluminant::iter() {
         // Calculate CRI parameters
-        let cri: CRI = spc.as_ref().try_into()?;
+        let cri: colorimetry::illuminant::CRI = spc.as_ref().try_into()?;
         let ra = cri.ra();
         let r9 = cri[9];
 

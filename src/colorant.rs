@@ -76,9 +76,9 @@ use crate::{
     error::Error,
     lab::CieLab,
     math::Gaussian,
-    prelude::{Observer, D65, SPECTRUM_WAVELENGTH_RANGE},
+    observer::Observer,
     spectrum::wavelength,
-    spectrum::{wavelengths, Spectrum, NS},
+    spectrum::{wavelengths, Spectrum, NS, SPECTRUM_WAVELENGTH_RANGE},
     traits::{Filter, Light},
 };
 
@@ -191,7 +191,7 @@ impl Colorant {
     /// If illuminant is `None`, the D65 illuminant is used.
     /// If observer is `None`, the CIE 1931 observer is used.
     pub fn cielab(&self, illuminant_opt: Option<&dyn Light>, obs_opt: Option<Observer>) -> CieLab {
-        let illuminant = illuminant_opt.unwrap_or(&D65);
+        let illuminant = illuminant_opt.unwrap_or(&crate::illuminant::D65);
         let obs = obs_opt.unwrap_or_default();
         let xyzn = obs.data().xyz(illuminant, None).set_illuminance(100.0);
         let xyz = obs.data().xyz(illuminant, Some(self));
@@ -236,7 +236,9 @@ where
 
         Values are clamped to a range from 0.0 to 1.0.
         ```rust
-        use colorimetry::prelude::*;
+        use colorimetry::illuminant::D65;
+        use colorimetry::observer::CIE1931;
+        use colorimetry::colorant::Colorant;
 
         // linear filter from 0.0 to 1.0.
         let tilt: Colorant = (|x:f64|x).into();

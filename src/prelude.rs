@@ -31,20 +31,17 @@
 //! - **XYZ Tristimulus**  
 //!   - The `XYZ` type, chromaticity, and conversion helpers.  
 //!
-//! By importing `prelude::*`, you get a comprehensive set of tools for colorimetry tasks—no more
-//! hunting through modules for the right name!
 
-pub use super::cam::*;
-pub use super::colorant::*;
-pub use super::illuminant::*;
-pub use super::lab::*;
-pub use super::math::*;
-pub use super::observer::*;
-pub use super::rgb::*;
-pub use super::spectrum::*;
-pub use super::stimulus::*;
-pub use super::traits::*;
-pub use super::xyz::*;
+pub use super::cam::{CamTransforms, CieCam16, ViewConditions};
+pub use super::colorant::Colorant;
+pub use super::illuminant::{CieIlluminant, Illuminant};
+pub use super::lab::CieLab;
+pub use super::observer::{Observer, CIE1931};
+pub use super::rgb::{Rgb, RgbSpace, WideRgb};
+pub use super::spectrum::Spectrum;
+pub use super::stimulus::Stimulus;
+pub use super::traits::{Filter, Light};
+pub use super::xyz::{Chromaticity, XYZ};
 
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::JsValue;

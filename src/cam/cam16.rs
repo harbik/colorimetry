@@ -279,7 +279,6 @@ const MRGBAINV: Matrix3<f64> = matrix![
 #[cfg(test)]
 mod cam_test {
     use super::*;
-    use crate::prelude::*;
     use approx::assert_abs_diff_eq;
     use nalgebra::Matrix3;
 

@@ -120,7 +120,6 @@ pub static MM_KEY_MAP: LazyLock<BTreeMap<&str, usize>> = LazyLock::new(|| {
 
 #[cfg(test)]
 mod test_munsell_matt {
-    use crate::prelude::*;
 
     #[test]
     fn test_iter() {
@@ -131,7 +130,10 @@ mod test_munsell_matt {
             println!("{i} {key} {lab_d65:?}");
         });
          */
-        let mm = MunsellMattCollection.into_iter().last().unwrap();
+        let mm = crate::colorant::MunsellMattCollection
+            .into_iter()
+            .last()
+            .unwrap();
         assert_eq!(mm.0, "10RP4/12".to_string());
     }
 }

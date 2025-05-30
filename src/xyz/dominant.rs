@@ -125,7 +125,7 @@ impl XYZ {
 
 #[cfg(test)]
 mod xyz_test {
-    use crate::prelude::*;
+    use crate::{math::LineAB, prelude::*};
     use approx::assert_ulps_eq;
 
     #[test]

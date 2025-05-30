@@ -589,7 +589,7 @@ fn sprague(h: f64, v: &[f64]) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::prelude::*;
+    use crate::{illuminant::D65, prelude::*};
     use approx::assert_ulps_eq;
     use std::f64::consts::PI;
 
