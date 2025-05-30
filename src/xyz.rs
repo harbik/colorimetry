@@ -260,10 +260,23 @@ impl XYZ {
         (v2 - v1).hypot(u2 - u1)
     }
 
+    /// Converts the XYZ tristimulus values to a CCT (Correlated Color Temperature) value.
+    ///
+    /// # Returns
+    /// A `Result` containing the CCT value if the conversion is successful, or an `Error` if it fails.
+    ///
+    /// # Errors
+    ///
+    /// - `CCTTemperatureTooHigh`: if `cct` is above 1_000_000 Kelvin.
+    /// - `CCTTemperatureTooLow`: if `cct` is below 1000 Kelvin.
+    /// - `CCTDuvHighError`: if `duv` is above 0.05.
+    /// - `CCTDuvLowError`: if `duv` is below -0.05.
+    ///
     #[cfg(feature = "cct")]
     pub fn cct(self) -> Result<crate::illuminant::CCT, Error> {
         self.try_into()
     }
+    
     /// Converts a set of **XYZ tristimulus values** to **WideRgb values** using the specified RGB space.
     ///
     /// # Arguments
