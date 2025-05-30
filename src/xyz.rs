@@ -276,7 +276,7 @@ impl XYZ {
     pub fn cct(self) -> Result<crate::illuminant::CCT, Error> {
         self.try_into()
     }
-    
+
     /// Converts a set of **XYZ tristimulus values** to **WideRgb values** using the specified RGB space.
     ///
     /// # Arguments
