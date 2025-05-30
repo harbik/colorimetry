@@ -33,7 +33,6 @@ pub use viewconditions::ViewConditions;
 mod cam16;
 pub use crate::cam::cam16::CieCam16;
 
-
 const P1C: f64 = 50_000.0 / 13.0;
 const P3: f64 = 21.0 / 20.0;
 const C16_3: f64 = 1_403.0;
@@ -45,7 +44,6 @@ const UCS_KL: f64 = 1.0;
 const UCS_C1: f64 = 0.007;
 const UCS_C2: f64 = 0.0228;
 use nalgebra::{matrix, Matrix3, SMatrix, Vector3};
-
 
 #[inline]
 pub fn achromatic_rsp(rgb: Vector3<f64>, nbb: f64) -> f64 {

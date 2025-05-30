@@ -27,8 +27,8 @@
 //!
 //! *Methods and internals marked `pub(crate)` have been omitted for brevity.*
 
-use std::f64::consts::PI;
 use super::ViewConditions;
+use std::f64::consts::PI;
 
 use nalgebra::{matrix, vector, Vector3};
 
@@ -363,7 +363,11 @@ mod cam_test {
 
     #[test]
     fn test_m16() {
-        approx::assert_abs_diff_eq!(crate::cam::M16INV * crate::cam::M16, Matrix3::identity(), epsilon = 1E-8);
+        approx::assert_abs_diff_eq!(
+            crate::cam::M16INV * crate::cam::M16,
+            Matrix3::identity(),
+            epsilon = 1E-8
+        );
     }
 
     #[test]
