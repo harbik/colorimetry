@@ -314,7 +314,7 @@ impl Illuminant {
     /// which takes a wavelength domain and spectral data as arguments.
     #[wasm_bindgen(constructor)]
     pub fn new_js(data: &[f64]) -> Result<Illuminant, wasm_bindgen::JsError> {
-        Ok(Illuminant(Spectrum::try_from(cie_data)?))
+        Ok(Illuminant(Spectrum::try_from(data)?))
     }
 
     /// Returns the spectral data values, as a Float64Array containing 401 data
@@ -322,8 +322,8 @@ impl Illuminant {
     /// stepsize of 1 nanometer.
     #[wasm_bindgen(js_name=Values)]
     pub fn values_js(&self) -> Box<[f64]> {
-        let values: &[f64] = self.as_ref();
-        values.into()
+        let values = self.spectrum().values().as_slice().to_vec();
+        values.into_boxed_slice()
     }
 
     /// Calculates the Color Rendering Index values for illuminant spectrum.
@@ -333,8 +333,8 @@ impl Illuminant {
     /// seperately to limit the size of the main web assembly library.
     #[cfg(feature = "cri")]
     #[wasm_bindgen(js_name=cri)]
-    pub fn cri_js(&self) -> Result<crate::cri::CRI, Error> {
-        todo!()
+    pub fn cri_js(&self) -> Result<CRI, Error> {
+        self.cri()
     }
 
     /// Get the CieIlluminant spectrum. Typically you don't need to use the Spectrum itself, as many

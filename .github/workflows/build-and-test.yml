@@ -50,6 +50,20 @@ jobs:
         # features, and will generate errors otherwise.
         run: RUSTDOCFLAGS="--deny warnings" cargo doc --all-features
 
+  build-wasm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install and set correct Rust toolchain version
+        run: rustup override set stable
+
+      - name: Install wasm target
+        run: rustup target add wasm32-unknown-unknown
+
+      - name: Build wasm
+        run: cargo build --target wasm32-unknown-unknown --all-features --locked
+
   # Make sure the library builds with all dependencies downgraded to their
   # oldest versions allowed by the semver spec. This ensures we have not
   # under-specified any dependency
