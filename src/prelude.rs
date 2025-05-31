@@ -45,3 +45,4 @@ pub use super::xyz::{Chromaticity, XYZ};
 
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::JsValue;
+
