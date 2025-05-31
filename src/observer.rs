@@ -552,7 +552,7 @@ mod obs_test {
             for wavelength in observer.data().spectral_locus_wavelength_range() {
                 let xyz = observer.data().xyz_at_wavelength(wavelength).unwrap();
                 for rgbspace in RgbSpace::iter() {
-                    let rgb = xyz.rgb(Some(rgbspace));
+                    let _rgb = xyz.rgb(Some(rgbspace));
                 }
             }
         }

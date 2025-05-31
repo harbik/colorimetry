@@ -106,8 +106,6 @@ impl CieCam16 {
             aw,
             qu,
         } = cam.reference_values();
-        let vcdd = vc.dd();
-        let vcfl = vc.f_l();
         let mut rgb = M16 * xyz_vec;
         rgb.component_mul_assign(&Vector3::from(d_rgb));
         rgb.apply(|v| vc.lum_adapt(v, 0.26, qu));
@@ -182,7 +180,8 @@ impl CieCam16 {
         vc_opt: Option<ViewConditions>,
     ) -> Result<XYZ, Error> {
         let vc = vc_opt.unwrap_or_default();
-        let xyzn = if let Some(white) = white_opt {
+        // TODO: Use this
+        let _xyzn = if let Some(white) = white_opt {
             if white.observer == self.observer() {
                 white.xyz
             } else {
@@ -198,7 +197,7 @@ impl CieCam16 {
             ncb,
             d_rgb,
             aw,
-            qu,
+            qu: _gu,
         } = self.reference_values();
         let d_rgb_vec = Vector3::from(d_rgb);
         let &[lightness, chroma, hue_angle] = self.jch_vec().as_ref();

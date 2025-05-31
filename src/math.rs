@@ -142,7 +142,6 @@ impl LineAB {
     }
 
     pub fn orientation(&self, x: f64, y: f64) -> Orientation {
-        let n = self.nom(x, y);
         match self.nom(x, y) {
             d if d > f64::EPSILON => Orientation::Left,
             d if d < -f64::EPSILON => Orientation::Right,
