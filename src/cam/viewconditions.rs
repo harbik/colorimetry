@@ -102,6 +102,7 @@ impl Default for ViewConditions {
     }
 }
 
+#[allow(dead_code)]
 pub const TM30VC: ViewConditions = ViewConditions {
     yb: 20.0,
     c: 0.69,
@@ -112,6 +113,7 @@ pub const TM30VC: ViewConditions = ViewConditions {
 };
 
 /// Values according to Table 1, record 2, CIE 248:2022
+#[allow(dead_code)]
 pub const CIE_HOME_DISPLAY: ViewConditions = ViewConditions {
     yb: 20.0,
     c: 0.59,

@@ -23,6 +23,7 @@ use crate::{
 pub(crate) const MATT_N: usize = 81;
 pub(crate) const MATT_M: usize = 1269;
 
+#[allow(dead_code)]
 #[wasm_bindgen]
 pub struct MunsellMatt(String, Spectrum);
 

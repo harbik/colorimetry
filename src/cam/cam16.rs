@@ -270,6 +270,7 @@ const M16INV: Matrix3<f64> = matrix![
     -0.01584150, -0.03412294, 1.04996444
 ];
 
+#[allow(dead_code)]
 const MRGBAINV: Matrix3<f64> = matrix![
    460.0/C16_3, 451.0/C16_3, 288.0/C16_3;
    460.0/C16_3, -891.0/C16_3, -261.0/C16_3;
