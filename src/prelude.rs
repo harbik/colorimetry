@@ -42,6 +42,3 @@ pub use super::spectrum::Spectrum;
 pub use super::stimulus::Stimulus;
 pub use super::traits::{Filter, Light};
 pub use super::xyz::{Chromaticity, XYZ};
-
-#[cfg(target_arch = "wasm32")]
-use wasm_bindgen::JsValue;
