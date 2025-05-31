@@ -452,28 +452,27 @@ impl XYZ {
                 "XYZ values should be all positive values".into(),
             ));
         }
-        Ok(XYZ::from_vecs(Vector3::new(x, y, z), None, obs))
+        Ok(XYZ::from_vecs(Vector3::new(x, y, z), obs))
     }
 
     /// Get the XYZ tristimulus value as an array.
-    /// Values of the stimulus, if present, else the illuminant.
     #[wasm_bindgen(js_name=values)]
     pub fn values_js(&self) -> js_sys::Array {
-        let &[x, y, z] = self.xyz.unwrap_or(self.xyzn).as_ref();
+        let &[x, y, z] = self.xyz.as_ref();
         js_sys::Array::of3(&x.into(), &y.into(), &z.into())
     }
 
     /// Get the chromaticity coordinates
     #[wasm_bindgen(js_name=chromaticity)]
     pub fn chromaticity_js(&self) -> js_sys::Array {
-        let [x, y] = self.chromaticity();
+        let [x, y] = self.chromaticity().to_array();
         js_sys::Array::of2(&x.into(), &y.into())
     }
 
-    /// Get the luminous value
-    #[wasm_bindgen(js_name=luminousValue)]
-    pub fn luminous_value_js(&self) -> f64 {
-        self.luminous_value()
+    /// Get the luminous value, Y.
+    #[wasm_bindgen(js_name=y)]
+    pub fn y_js(&self) -> f64 {
+        self.y()
     }
 }
 

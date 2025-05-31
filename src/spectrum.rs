@@ -302,17 +302,6 @@ impl Spectrum {
     ) -> Result<Spectrum, Error> {
         Self::linear_interpolate(wavelengths, data)
     }
-
-    /// Calculates the Color Rendering Index values for illuminant spectrum.
-    ///
-    /// To use this function, first use `await CRI.init()`, which downloads the
-    /// Test Color Samples required for the calculation.  These are downloaded
-    /// seperately to limit the size of the main web assembly library.
-    #[cfg(feature = "cri")]
-    #[wasm_bindgen(js_name=cri)]
-    pub fn cri_js(&self) -> Result<crate::cri::CRI, Error> {
-        todo!()
-    }
 }
 
 /// Multiplication of two spectra using the `*`-operator, typically for a combinations of an
