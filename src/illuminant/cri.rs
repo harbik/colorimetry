@@ -174,7 +174,7 @@ fn uv_kries(cdt: [f64; 2], cdr: [f64; 2], cdti: [f64; 2]) -> [f64; 2] {
 
 #[cfg(test)]
 mod cri_test {
-    use crate::{illuminant::CRI, illuminant::D50, prelude::CieIlluminant};
+    use crate::illuminant::{CRI, D50, CieIlluminant};
 
     #[test]
     fn cri_d50() {
