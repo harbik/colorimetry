@@ -52,6 +52,7 @@ The easiest way to use the objects and functions in this library is through its 
 
 ```rust
     use colorimetry::prelude::*;
+    use colorimetry::illuminant::D65;
 
     // D65 Tristimulus values, using the CIE1931 standard observer by default
     let [x, y, z] = D65.xyz(None).set_illuminance(100.0).values();
@@ -150,6 +151,7 @@ A [`Stimulus`] is used to model pixels in displays, where a combination of red, 
 
 ```rust
     use colorimetry::prelude::*;
+    use colorimetry::spectrum::NS;
 
     // a black hole stimulus spectrum, using NS = 401 zero values
     let black_hole_spectrum = Spectrum::new([0.0; NS]);

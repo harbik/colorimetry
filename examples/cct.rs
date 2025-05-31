@@ -23,7 +23,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
     let chromaticity = Chromaticity::new(args.x, args.y);
     let xyz: XYZ = XYZ::from_chromaticity(chromaticity, None, None)?;
-    let cct: CCT = xyz.try_into()?;
+    let cct: colorimetry::illuminant::CCT = xyz.try_into()?;
     let [t, d] = cct.into();
     let tint = d * 1000.0;
     println!("\n{}\n", "Result".bold().underline());

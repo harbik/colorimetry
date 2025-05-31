@@ -36,7 +36,7 @@ use crate::{
 ///
 /// # Examples
 /// ```rust
-/// use colorimetry::prelude::*;
+/// use colorimetry::illuminant::{Illuminant, CRI};
 ///
 /// // Compute CRI for the D65 illuminant:
 /// let cri: CRI = (&Illuminant::d65()).try_into().unwrap();
@@ -174,12 +174,12 @@ fn uv_kries(cdt: [f64; 2], cdr: [f64; 2], cdti: [f64; 2]) -> [f64; 2] {
 
 #[cfg(test)]
 mod cri_test {
-    use crate::prelude::*;
+    use crate::illuminant::{CieIlluminant, CRI, D50};
 
     #[test]
     fn cri_d50() {
         // should be all 100.0
-        let cri0: CRI = (&D50).try_into().unwrap();
+        let cri0: crate::illuminant::CRI = (&D50).try_into().unwrap();
         // println!("{cri0:?}");
         approx::assert_ulps_eq!(
             cri0.as_ref(),
@@ -192,6 +192,7 @@ mod cri_test {
     #[cfg(feature = "cie-illuminants")]
     fn cri_f1() {
         // should be all 100.0
+
         let cri0: CRI = CieIlluminant::F1.illuminant().try_into().unwrap();
         println!("{cri0:?}");
         // approx::assert_ulps_eq!(cri0.as_ref(), [100.0;crate::cri::N_TCS].as_ref(), epsilon = 0.05);
