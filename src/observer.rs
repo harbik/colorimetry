@@ -70,7 +70,7 @@ use strum_macros::EnumIter;
 */
 #[cfg(not(feature = "supplemental-observers"))]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
-#[derive(Clone, Copy, Default, PartialEq, Eq, Debug, EnumIter)]
+#[derive(Clone, Copy, Default, PartialEq, Eq, Hash, Debug, EnumIter)]
 pub enum Observer {
     #[default]
     Std1931,
@@ -78,7 +78,7 @@ pub enum Observer {
 
 #[cfg(feature = "supplemental-observers")]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
-#[derive(Clone, Copy, Default, PartialEq, Eq, Debug, EnumIter)]
+#[derive(Clone, Copy, Default, PartialEq, Eq, Hash, Debug, EnumIter)]
 pub enum Observer {
     #[default]
     Std1931,
