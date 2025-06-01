@@ -6,8 +6,6 @@
 
  */
 
-use wasm_bindgen::prelude::*;
-
 use crate::{
     colorant::{N_TCS, TCS},
     error::Error,
@@ -16,7 +14,7 @@ use crate::{
     xyz::XYZ,
 };
 
-#[wasm_bindgen]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
 #[derive(Debug, Clone, Copy)]
 /// The **Color Rendering Index (CRI)** for a light source, computed according to CIE 13.3-1995.
 ///
@@ -147,11 +145,6 @@ impl AsRef<[f64]> for CRI {
         &self.0
     }
 }
-
-// JS-WASM Interface code
-#[cfg(target_arch = "wasm32")]
-#[wasm_bindgen]
-impl CRI {}
 
 fn cd(uv60: [f64; 2]) -> [f64; 2] {
     let [u, v] = uv60;

@@ -72,7 +72,6 @@ use crate::{
 use approx::AbsDiffEq;
 use nalgebra::Vector3;
 use std::borrow::Cow;
-use wasm_bindgen::prelude::wasm_bindgen;
 
 /// Represents a color stimulus using Red, Green, and Blue (RGB) values constrained to the `[0.0, 1.0]` range.
 /// Each component is a floating-point value representing the relative intensity of the respective primary color
@@ -102,7 +101,7 @@ use wasm_bindgen::prelude::wasm_bindgen;
 ///   outside this range will result in an error.
 /// - The `observer` field allows for color conversion accuracy under different lighting and viewing conditions,
 ///   enhancing the reliability of transformations to other color spaces such as XYZ.
-#[wasm_bindgen]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Rgb {
     /// The RGB color space the color values are using. Often this is the _sRGB_

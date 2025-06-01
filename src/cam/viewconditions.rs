@@ -1,6 +1,4 @@
-use wasm_bindgen::prelude::wasm_bindgen;
-
-#[wasm_bindgen]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
 #[derive(Clone, Copy, Debug)]
 pub struct ViewConditions {
     /// Degree of Adaptation, if omitted, formula 4.3 of CIE248:2022 is used.``
