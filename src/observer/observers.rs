@@ -7,6 +7,7 @@ use crate::{
 
 pub static CIE1931: ObserverData = ObserverData::new(
     Observer::Std1931,
+    "CIE 1931 2° Standard Observer",
     683.0,
     SMatrix::<f64, 3, NS>::from_array_storage(ArrayStorage([
         [0.001368, 0.000039, 0.006450001],
@@ -416,6 +417,7 @@ pub static CIE1931: ObserverData = ObserverData::new(
 #[cfg(feature = "supplemental-observers")]
 pub static CIE1964: ObserverData = ObserverData::new(
     Observer::Std1964,
+    "CIE 1964 10° Standard Observer",
     683.0,
     SMatrix::<f64, 3, NS>::from_array_storage(ArrayStorage([
         [0.000159952, 0.000017364, 0.000704776],
@@ -825,6 +827,7 @@ pub static CIE1964: ObserverData = ObserverData::new(
 #[cfg(feature = "supplemental-observers")]
 pub static CIE2015: ObserverData = ObserverData::new(
     Observer::Std2015,
+    "CIE 2015 2° cone-fundamental-based observer",
     683.0,
     SMatrix::<f64, 3, NS>::from_array_storage(ArrayStorage([
         [0.0, 0.0, 0.0],
@@ -1257,6 +1260,7 @@ pub static CIE2015: ObserverData = ObserverData::new(
 /// are encountered.
 pub static CIE2015_10: ObserverData = ObserverData::new(
     Observer::Std2015_10,
+    "CIE 2015 10° cone-fundamental-based observer",
     683.0,
     SMatrix::<f64, 3, NS>::from_array_storage(ArrayStorage([
         [0.000000E+00, 0.000000E+00, 0.000000E+00],
