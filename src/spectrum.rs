@@ -61,47 +61,45 @@ impl Spectrum {
         ))
     }
 
-    /**
-    This function maps spectral data with irregular intervals or intervals different than 1
-    nanometer to the standard spectrum as used in this library.
-
-    For domains with a regular interval, the wavelength slice should have a size of two, containing
-    the minimum and maximum wavelength values, both also in units of meters or nanometers.
-
-    For irregular domains, this function requires a slice of wavelengths and a slice of spectral
-    data, both of the same size. The wavelengths can be specified in units of meters or nanometers.
-
-    In case of duplicate wavelength values the last data values is used, so it is impossible to
-    define filters with vertical edges using this method.
-
-    ```rust
-    // Creates a linear gradient filter, with a zero transmission at 380 nanometer, and full
-    // transmission at 780 nanometer. This is an example using a uniform wavelength domain as input.
-    use colorimetry::prelude::*;
-    use approx::assert_ulps_eq;
-    let data = [0.0, 1.0];
-    let wl = [380.0, 780.0];
-    let mut spd = Spectrum::linear_interpolate(&wl, &data).unwrap();
-    assert_ulps_eq!(spd[380], 0.);
-    assert_ulps_eq!(spd[380+100], 0.25);
-    assert_ulps_eq!(spd[380+200], 0.5);
-    assert_ulps_eq!(spd[380+300], 0.75);
-    assert_ulps_eq!(spd[380+400], 1.0);
-
-    // Creates a top hat filter, with slanted angles, using an irregular
-    // wavelength domain.
-    let data = vec![0.0, 1.0, 1.0, 0.0];
-    let wl = vec![480.0, 490.0, 570.0, 580.0];
-    let spd = Spectrum::linear_interpolate(&wl, &data).unwrap();
-    assert_ulps_eq!(spd[380+0], 0.0);
-    assert_ulps_eq!(spd[380+100], 0.0);
-    assert_ulps_eq!(spd[380+110], 1.0);
-    assert_ulps_eq!(spd[380+190], 1.0);
-    assert_ulps_eq!(spd[380+200], 0.0);
-    assert_ulps_eq!(spd[380+300], 0.0);
-    assert_ulps_eq!(spd[380+400], 0.0);
-    ```
-    */
+    /// This function maps spectral data with irregular intervals or intervals different than 1
+    /// nanometer to the standard spectrum as used in this library.
+    ///
+    /// For domains with a regular interval, the wavelength slice should have a size of two, containing
+    /// the minimum and maximum wavelength values, both also in units of meters or nanometers.
+    ///
+    /// For irregular domains, this function requires a slice of wavelengths and a slice of spectral
+    /// data, both of the same size. The wavelengths can be specified in units of meters or nanometers.
+    ///
+    /// In case of duplicate wavelength values the last data values is used, so it is impossible to
+    /// define filters with vertical edges using this method.
+    ///
+    /// ```rust
+    /// // Creates a linear gradient filter, with a zero transmission at 380 nanometer, and full
+    /// // transmission at 780 nanometer. This is an example using a uniform wavelength domain as input.
+    /// use colorimetry::prelude::*;
+    /// use approx::assert_ulps_eq;
+    /// let data = [0.0, 1.0];
+    /// let wl = [380.0, 780.0];
+    /// let mut spd = Spectrum::linear_interpolate(&wl, &data).unwrap();
+    /// assert_ulps_eq!(spd[380], 0.);
+    /// assert_ulps_eq!(spd[380+100], 0.25);
+    /// assert_ulps_eq!(spd[380+200], 0.5);
+    /// assert_ulps_eq!(spd[380+300], 0.75);
+    /// assert_ulps_eq!(spd[380+400], 1.0);
+    ///
+    /// // Creates a top hat filter, with slanted angles, using an irregular
+    /// // wavelength domain.
+    /// let data = vec![0.0, 1.0, 1.0, 0.0];
+    /// let wl = vec![480.0, 490.0, 570.0, 580.0];
+    /// let spd = Spectrum::linear_interpolate(&wl, &data).unwrap();
+    /// assert_ulps_eq!(spd[380+0], 0.0);
+    /// assert_ulps_eq!(spd[380+100], 0.0);
+    /// assert_ulps_eq!(spd[380+110], 1.0);
+    /// assert_ulps_eq!(spd[380+190], 1.0);
+    /// assert_ulps_eq!(spd[380+200], 0.0);
+    /// assert_ulps_eq!(spd[380+300], 0.0);
+    /// assert_ulps_eq!(spd[380+400], 0.0);
+    /// ```
     pub fn linear_interpolate(wavelengths: &[f64], data: &[f64]) -> Result<Self, Error> {
         let data = match wavelengths.len() {
             2 => linterp(wavelengths.try_into().unwrap(), data)?,
@@ -249,57 +247,47 @@ impl Spectrum {
         values.into()
     }
 
-    /**
-    This function maps spectral data with irregular intervals or intervals
-    different than 1 nanometer to the standard spectrum as used in this
-    library.
+    /// This function maps spectral data with irregular intervals or intervals different than 1
+    /// nanometer to the standard spectrum as used in this library.
+    ///
+    /// For domains with a regular interval, the wavelength slice should have a size of two, containing
+    /// the minimum and maximum wavelength values, both also in units of meters or nanometers.
+    ///
+    /// For irregular domains, this function requires a slice of wavelengths and a slice of spectral
+    /// data, both of the same size. The wavelengths can be specified in units of meters or nanometers.
+    ///
+    /// In case of duplicate wavelength values the last data values is used, so it is impossible to
+    /// define filters with vertical edges using this method.
+    ///
+    /// ```rust
+    /// // Creates a linear gradient filter, with a zero transmission at 380 nanometer, and full
+    /// // transmission at 780 nanometer. This is an example using a uniform wavelength domain as input.
+    /// use colorimetry::prelude::*;
+    /// use approx::assert_ulps_eq;
+    /// let data = [0.0, 1.0];
+    /// let wl = [380.0, 780.0];
+    /// let mut spd = Spectrum::linear_interpolate(&wl, &data).unwrap();
+    /// assert_ulps_eq!(spd[380], 0.);
+    /// assert_ulps_eq!(spd[380+100], 0.25);
+    /// assert_ulps_eq!(spd[380+200], 0.5);
+    /// assert_ulps_eq!(spd[380+300], 0.75);
+    /// assert_ulps_eq!(spd[380+400], 1.0);
 
-    For domains with a regular interval, the wavelength slice should have a size
-    of two, containing the minimum and maximum wavelength values, both also in
-    units of meters or nanometers.
-
-    For irregular domains, this function requires a slice of wavelengths and
-    a slice of spectral data, both of the same size. The wavelengths can be
-    specified in units of meters or nanometers.
-
-    In case of duplicate wavelength values the last data values is used, so it
-    is impossible to define filters with vertical edges using this method.
-
-    ```ts, ignore
-    // Creates a linear gradient filter, with a zero transmission at 380
-    // nanometer, and full transmission at 780 nanometer. This is an example
-    // using a uniform wavelength domain as input.
-    use colorimetry as cmt;
-    # use approx::assert_ulps_eq;
-    let data = [0.0, 1.0];
-    let wl = [380.0, 780.0];
-    let mut spd = cmt::Spectrum::linear_interpolate(cmt::Category::Colorant, &wl, &data, None).unwrap().values();
-    assert_ulps_eq!(spd[0], 0.);
-    assert_ulps_eq!(spd[100], 0.25);
-    assert_ulps_eq!(spd[200], 0.5);
-    assert_ulps_eq!(spd[300], 0.75);
-    assert_ulps_eq!(spd[400], 1.0);
-
-    // Creates a top hat filter, with slanted angles, using an irregular
-    // wavelength domain.
-    let data = vec![0.0, 1.0, 1.0, 0.0];
-    let wl = vec![480.0, 490.0, 570.0, 580.0];
-    let spd = cmt::Spectrum::linear_interpolate(cmt::Category::Colorant, &wl, &data, None).unwrap().values();
-    assert_ulps_eq!(spd[0], 0.0);
-    assert_ulps_eq!(spd[100], 0.0);
-    assert_ulps_eq!(spd[110], 1.0);
-    assert_ulps_eq!(spd[190], 1.0);
-    assert_ulps_eq!(spd[200], 0.0);
-    assert_ulps_eq!(spd[300], 0.0);
-    assert_ulps_eq!(spd[400], 0.0);
-    ```
-    */
+    /// // Creates a top hat filter, with slanted angles, using an irregular
+    /// // wavelength domain.
+    /// let data = vec![0.0, 1.0, 1.0, 0.0];
+    /// let wl = vec![480.0, 490.0, 570.0, 580.0];
+    /// let spd = Spectrum::linear_interpolate(&wl, &data).unwrap();
+    /// assert_ulps_eq!(spd[380+0], 0.0);
+    /// assert_ulps_eq!(spd[380+100], 0.0);
+    /// assert_ulps_eq!(spd[380+110], 1.0);
+    /// assert_ulps_eq!(spd[380+190], 1.0);
+    /// assert_ulps_eq!(spd[380+200], 0.0);
+    /// assert_ulps_eq!(spd[380+300], 0.0);
+    /// assert_ulps_eq!(spd[380+400], 0.0);
+    /// ```
     #[wasm_bindgen(js_name=linearInterpolate)]
-    pub fn linear_interpolate_js(
-        wavelengths: &[f64],
-        data: &[f64],
-        total_js: &JsValue,
-    ) -> Result<Spectrum, Error> {
+    pub fn linear_interpolate_js(wavelengths: &[f64], data: &[f64]) -> Result<Spectrum, Error> {
         Self::linear_interpolate(wavelengths, data)
     }
 }
