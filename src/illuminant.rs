@@ -27,7 +27,6 @@ pub use planck::Planck;
 pub use cri::*;
 
 use std::{borrow::Cow, ops::Mul};
-use wasm_bindgen::prelude::*;
 
 use nalgebra::{ArrayStorage, SMatrix, SVector};
 
@@ -41,8 +40,11 @@ use crate::{
 
 use led::led_ohno;
 
+#[cfg(target_arch = "wasm32")]
+mod wasm;
+
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
 #[derive(Clone, Default)]
-#[wasm_bindgen]
 /// # Illuminant
 ///
 /// An illuminant is a spectral power distribution that represents the
@@ -295,55 +297,6 @@ impl Mul<Illuminant> for f64 {
 impl Light for Illuminant {
     fn spectrum(&self) -> Cow<Spectrum> {
         Cow::Borrowed(self.as_ref())
-    }
-}
-
-// JS-WASM Interface code
-#[cfg(target_arch = "wasm32")]
-#[wasm_bindgen]
-impl Illuminant {
-    /// Creates a new Spectrum object, using as input a `Category`, a
-    /// Float64Array with exactly 401 datapoints, and an optional third
-    /// parameter called total, representing the total irradiance, transmission,
-    /// or reflectivity of the values, depending on the category of the
-    /// spectrum. The spectral values should be associated with a wavelength
-    /// domain from 380 to 480 nanometer, with an interval size of 1 nanometer.
-    ///
-    /// If the Spectral data you have uses another wavelength domain and/or a different
-    /// wavelength interval, use the linear or sprague interpolate constructors,
-    /// which takes a wavelength domain and spectral data as arguments.
-    #[wasm_bindgen(constructor)]
-    pub fn new_js(data: &[f64]) -> Result<Illuminant, wasm_bindgen::JsError> {
-        Ok(Illuminant(Spectrum::try_from(data)?))
-    }
-
-    /// Returns the spectral data values, as a Float64Array containing 401 data
-    /// points, over a wavelength domain from 380 t0 780 nanometer, with a
-    /// stepsize of 1 nanometer.
-    #[wasm_bindgen(js_name=Values)]
-    pub fn values_js(&self) -> Box<[f64]> {
-        let values = self.spectrum().values().as_slice().to_vec();
-        values.into_boxed_slice()
-    }
-
-    /// Calculates the Color Rendering Index values for illuminant spectrum.
-    ///
-    /// To use this function, first use `await CRI.init()`, which downloads the
-    /// Test Color Samples required for the calculation.  These are downloaded
-    /// seperately to limit the size of the main web assembly library.
-    #[cfg(feature = "cri")]
-    #[wasm_bindgen(js_name=cri)]
-    pub fn cri_js(&self) -> Result<CRI, Error> {
-        self.cri()
-    }
-
-    /// Get the CieIlluminant spectrum. Typically you don't need to use the Spectrum itself, as many
-    /// methods just accept the CieIlluminant directly.
-    #[wasm_bindgen(js_name=illuminant)]
-    pub fn llluminant_js(stdill: CieIlluminant) -> Self {
-        // need this as wasm_bindgen does not support `impl` on Enum types (yet?).
-        // in Rust use CieIlluminant.spectrum() directly, which also gives a reference instead of a copy.
-        stdill.illuminant().clone()
     }
 }
 
