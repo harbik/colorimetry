@@ -252,8 +252,11 @@ impl ObserverData {
     /// let cie1931_d50_xyz = colorimetry::observer::CIE1931.xyz_d50();
     /// approx::assert_ulps_eq!(cie1931_d50_xyz.values().as_ref(), [96.421, 100.0, 82.519].as_ref(), epsilon = 5E-2);
     ///
+    /// # #[cfg(feature = "supplemental-observers")]
+    /// # {
     /// let cie1964_d50_xyz = colorimetry::observer::CIE1964.xyz_d50();
     /// approx::assert_ulps_eq!(cie1964_d50_xyz.values().as_ref(), [96.720, 100.0, 81.427].as_ref(), epsilon = 5E-2);
+    /// # }
     /// ```
     pub fn xyz_d50(&self) -> XYZ {
         *self.d50.get_or_init(|| {
