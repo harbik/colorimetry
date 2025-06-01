@@ -1,3 +1,4 @@
+use std::fmt;
 use std::sync::OnceLock;
 
 use crate::xyz::Chromaticity;
@@ -82,6 +83,12 @@ impl RgbSpace {
             Self::ADOBE => CieIlluminant::D65,
             Self::DisplayP3 => CieIlluminant::D65,
         }
+    }
+}
+
+impl fmt::Display for RgbSpace {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.name())
     }
 }
 
