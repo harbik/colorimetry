@@ -335,137 +335,143 @@ fn duv_interpolate(u: f64, v: f64, imp: usize, imn: usize, dp: f64, dh: f64) -> 
     dd - d
 }
 
-#[test]
-fn test_ends() {
-    use approx::assert_ulps_eq;
-    // Temperature  at the low end, should pass...
-    let cct0 = CCT::new(1000.0, 0.0).unwrap();
-    let xyz: XYZ = cct0.try_into().unwrap();
-    let cct: CCT = xyz.try_into().unwrap();
-    assert_ulps_eq!(cct, cct0);
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    // Temperature  at the low end, should pass...
-    let cct0 = CCT::new(1E6, 0.0).unwrap();
-    let xyz: XYZ = cct0.try_into().unwrap();
-    let cct: CCT = xyz.try_into().unwrap();
-    assert_ulps_eq!(cct, cct0);
+    #[test]
+    fn test_ends() {
+        use approx::assert_ulps_eq;
+        // Temperature  at the low end, should pass...
+        let cct0 = CCT::new(1000.0, 0.0).unwrap();
+        let xyz: XYZ = cct0.try_into().unwrap();
+        let cct: CCT = xyz.try_into().unwrap();
+        assert_ulps_eq!(cct, cct0);
 
-    // Temperature  at the low end, should pass...
-    let cct0 = CCT::new(1005.0, 0.0).unwrap();
-    let xyz: XYZ = cct0.try_into().unwrap();
-    let cct: CCT = xyz.try_into().unwrap();
-    assert_ulps_eq!(cct, cct0, epsilon = 1E-5);
+        // Temperature  at the low end, should pass...
+        let cct0 = CCT::new(1E6, 0.0).unwrap();
+        let xyz: XYZ = cct0.try_into().unwrap();
+        let cct: CCT = xyz.try_into().unwrap();
+        assert_ulps_eq!(cct, cct0);
 
-    // Temperature  at the low end, should pass...
-    let cct0 = CCT::new(1E6 - 100.0, 0.0).unwrap();
-    let xyz: XYZ = cct0.try_into().unwrap();
-    let cct: CCT = xyz.try_into().unwrap();
-    approx::assert_abs_diff_eq!(cct, cct0, epsilon = 0.2);
-}
+        // Temperature  at the low end, should pass...
+        let cct0 = CCT::new(1005.0, 0.0).unwrap();
+        let xyz: XYZ = cct0.try_into().unwrap();
+        let cct: CCT = xyz.try_into().unwrap();
+        assert_ulps_eq!(cct, cct0, epsilon = 1E-5);
 
-#[test]
-fn test_cct() {
-    // Temperature too low here...
-    let xyz: XYZ = CCT(999.0, 0.0).try_into().unwrap();
-    let cct: Result<CCT, _> = xyz.try_into();
-    assert_eq!(cct, Err(Error::CCTTemperatureTooLow));
-
-    // ... and too high here.
-    let xyz: XYZ = CCT(1E6 + 1.0, 0.0).try_into().unwrap();
-    let cct: Result<CCT, _> = xyz.try_into();
-    assert_eq!(cct, Err(Error::CCTTemperatureTooHigh));
-
-    // DUV too high...
-    let xyz: XYZ = CCT(6000.0, 0.051).try_into().unwrap();
-    let cct: Result<CCT, _> = xyz.try_into();
-    assert_eq!(cct, Err(Error::CCTDuvHighError));
-
-    // and too low here.
-    let xyz: XYZ = CCT(6000.0, -0.051).try_into().unwrap();
-    let cct: Result<CCT, _> = xyz.try_into();
-    assert_eq!(cct, Err(Error::CCTDuvLowError));
-}
-
-// Helper for tests computing the uv prime distance and verifying it's
-// withit acceptable limits.
-fn compute_d_uv(mired: f64, d: f64) -> Option<f64> {
-    let t = 1E6 / mired;
-
-    // Get a CCT to test. Unwrap OK as range restricted above.
-    let cct0 = CCT::new(t, d).unwrap();
-
-    // calculate XYZ0, skip value if not a valid point
-    let Ok(xyz0): Result<XYZ, _> = CCT::new(t, d).unwrap().try_into() else {
-        return None;
-    };
-
-    // calculate the cct to test.
-    let cct: CCT = xyz0.try_into().unwrap();
-
-    // calculate XYZ, should not fail, a CCT and Duv very close to already fetted values.
-    let xyz: XYZ = cct.try_into().unwrap();
-    let d_uv = xyz.uv_prime_distance(&xyz0);
-    Some(d_uv)
-}
-
-// Test round trip random values, and check the difference by distance in uv-prime space.  For a
-// 4096 size table, distances are found to be less than 5.8E-5 over the full range of temperatures
-// (1000K, 1_000_000K) and duv values (-0.05, 0.05). This is a relatively slow test, as it tends
-// to fill the Robertson lookup table fully, with each entry requiring to calculate tristimulus
-// values from a Planckian spectrum. It will speed up when more than ~ 5_000 values are tested,
-// as the table will be completely calculated.
-#[test]
-#[ignore]
-fn test_cct_exhaustive() {
-    const MIRED_START: f64 = 1.0;
-    const MIRED_END: f64 = 1000.0;
-    const MIRED_STEP: f64 = 0.025;
-
-    // Valid d range is supposed to be [-0.05, 0.05]. But for some values of `mired`, a `d`
-    // value close to the extremes can yield an error due to rounding when converting back
-    // and fourth between CCT and XYZ.
-    const D_START: f64 = -0.0499;
-    const D_END: f64 = 0.0499;
-    const D_STEP: f64 = 0.001;
-
-    let mut mired = MIRED_START;
-    while mired < MIRED_END {
-        let mut d = D_START;
-        while d <= D_END {
-            if let Some(d_uv) = compute_d_uv(mired, d) {
-                approx::assert_ulps_eq!(d_uv, 0.0, epsilon = 5.8E-5);
-            }
-            d += D_STEP;
-        }
-        mired += MIRED_STEP;
+        // Temperature  at the low end, should pass...
+        let cct0 = CCT::new(1E6 - 100.0, 0.0).unwrap();
+        let xyz: XYZ = cct0.try_into().unwrap();
+        let cct: CCT = xyz.try_into().unwrap();
+        approx::assert_abs_diff_eq!(cct, cct0, epsilon = 0.2);
     }
-}
 
-/// Test the UV prime distance error at the worst case input values (empirically found).
-#[test]
-fn test_cct_at_max_error() {
-    let mired = 999.757;
-    let d = 0.0005;
+    #[test]
+    fn test_cct() {
+        // Temperature too low here...
+        let xyz: XYZ = CCT(999.0, 0.0).try_into().unwrap();
+        let cct: Result<CCT, _> = xyz.try_into();
+        assert_eq!(cct, Err(Error::CCTTemperatureTooLow));
 
-    let d_uv = compute_d_uv(mired, d).unwrap();
-    approx::assert_ulps_eq!(d_uv, 0.0, epsilon = 5.8E-5);
-}
+        // ... and too high here.
+        let xyz: XYZ = CCT(1E6 + 1.0, 0.0).try_into().unwrap();
+        let cct: Result<CCT, _> = xyz.try_into();
+        assert_eq!(cct, Err(Error::CCTTemperatureTooHigh));
 
-#[test]
-#[cfg(feature = "cie-illuminants")]
-fn f1_test() {
-    let xyz_f1 = CIE1931.xyz_cie_table(&crate::illuminant::cie_illuminant::CieIlluminant::F1, None);
-    // value from CIE Standard CIE15:2004 Table T8.1
-    approx::assert_ulps_eq!(xyz_f1.cct().unwrap().t(), 6430.0, epsilon = 0.5);
-}
+        // DUV too high...
+        let xyz: XYZ = CCT(6000.0, 0.051).try_into().unwrap();
+        let cct: Result<CCT, _> = xyz.try_into();
+        assert_eq!(cct, Err(Error::CCTDuvHighError));
 
-#[test]
-#[cfg(feature = "cie-illuminants")]
-fn f3_1_test() {
-    let xyz_f3_1 = CIE1931.xyz_cie_table(
-        &crate::illuminant::cie_illuminant::CieIlluminant::F3_1,
-        None,
-    );
-    // value from CIE Standard CIE15:2004 Table T8.1
-    approx::assert_ulps_eq!(xyz_f3_1.cct().unwrap().t(), 2932.0, epsilon = 0.5);
+        // and too low here.
+        let xyz: XYZ = CCT(6000.0, -0.051).try_into().unwrap();
+        let cct: Result<CCT, _> = xyz.try_into();
+        assert_eq!(cct, Err(Error::CCTDuvLowError));
+    }
+
+    // Helper for tests computing the uv prime distance and verifying it's
+    // withit acceptable limits.
+    fn compute_d_uv(mired: f64, d: f64) -> Option<f64> {
+        let t = 1E6 / mired;
+
+        // Get a CCT to test. Unwrap OK as range restricted above.
+        let cct0 = CCT::new(t, d).unwrap();
+
+        // calculate XYZ0, skip value if not a valid point
+        let Ok(xyz0): Result<XYZ, _> = CCT::new(t, d).unwrap().try_into() else {
+            return None;
+        };
+
+        // calculate the cct to test.
+        let cct: CCT = xyz0.try_into().unwrap();
+
+        // calculate XYZ, should not fail, a CCT and Duv very close to already fetted values.
+        let xyz: XYZ = cct.try_into().unwrap();
+        let d_uv = xyz.uv_prime_distance(&xyz0);
+        Some(d_uv)
+    }
+
+    // Test round trip random values, and check the difference by distance in uv-prime space.  For a
+    // 4096 size table, distances are found to be less than 5.8E-5 over the full range of temperatures
+    // (1000K, 1_000_000K) and duv values (-0.05, 0.05). This is a relatively slow test, as it tends
+    // to fill the Robertson lookup table fully, with each entry requiring to calculate tristimulus
+    // values from a Planckian spectrum. It will speed up when more than ~ 5_000 values are tested,
+    // as the table will be completely calculated.
+    #[test]
+    #[ignore]
+    fn test_cct_exhaustive() {
+        const MIRED_START: f64 = 1.0;
+        const MIRED_END: f64 = 1000.0;
+        const MIRED_STEP: f64 = 0.025;
+
+        // Valid d range is supposed to be [-0.05, 0.05]. But for some values of `mired`, a `d`
+        // value close to the extremes can yield an error due to rounding when converting back
+        // and fourth between CCT and XYZ.
+        const D_START: f64 = -0.0499;
+        const D_END: f64 = 0.0499;
+        const D_STEP: f64 = 0.001;
+
+        let mut mired = MIRED_START;
+        while mired < MIRED_END {
+            let mut d = D_START;
+            while d <= D_END {
+                if let Some(d_uv) = compute_d_uv(mired, d) {
+                    approx::assert_ulps_eq!(d_uv, 0.0, epsilon = 5.8E-5);
+                }
+                d += D_STEP;
+            }
+            mired += MIRED_STEP;
+        }
+    }
+
+    /// Test the UV prime distance error at the worst case input values (empirically found).
+    #[test]
+    fn test_cct_at_max_error() {
+        let mired = 999.757;
+        let d = 0.0005;
+
+        let d_uv = compute_d_uv(mired, d).unwrap();
+        approx::assert_ulps_eq!(d_uv, 0.0, epsilon = 5.8E-5);
+    }
+
+    #[test]
+    #[cfg(feature = "cie-illuminants")]
+    fn f1_test() {
+        let xyz_f1 =
+            CIE1931.xyz_cie_table(&crate::illuminant::cie_illuminant::CieIlluminant::F1, None);
+        // value from CIE Standard CIE15:2004 Table T8.1
+        approx::assert_ulps_eq!(xyz_f1.cct().unwrap().t(), 6430.0, epsilon = 0.5);
+    }
+
+    #[test]
+    #[cfg(feature = "cie-illuminants")]
+    fn f3_1_test() {
+        let xyz_f3_1 = CIE1931.xyz_cie_table(
+            &crate::illuminant::cie_illuminant::CieIlluminant::F3_1,
+            None,
+        );
+        // value from CIE Standard CIE15:2004 Table T8.1
+        approx::assert_ulps_eq!(xyz_f3_1.cct().unwrap().t(), 2932.0, epsilon = 0.5);
+    }
 }

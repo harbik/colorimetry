@@ -709,15 +709,6 @@ mod tests {
         assert_ulps_eq!(chromaticity.y(), 0.358_51, epsilon = 5E-5);
     }
 
-    #[cfg_attr(test, cfg(feature = "cie-illuminants"))]
-    fn a() {
-        let a: Illuminant = CieIlluminant::A.into();
-        let chromaticity = CIE1931.xyz_from_spectrum(a.as_ref()).chromaticity();
-        // See table T3 CIE15:2004 (calculated with 5nm intervals, instead of 1nm, as used here)
-        assert_ulps_eq!(chromaticity.x(), 0.447_58, epsilon = 5E-5);
-        assert_ulps_eq!(chromaticity.y(), 0.407_45, epsilon = 5E-5);
-    }
-
     #[test]
     fn add_spectra() {
         use approx::assert_ulps_eq;
