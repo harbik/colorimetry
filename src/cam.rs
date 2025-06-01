@@ -1,39 +1,14 @@
-//! # CIECAM16 Color Appearance Model
-//!
-//! This module implements the **CIECAM16** appearance model (CIE 248:2022).  
-//! It converts CIE XYZ tristimulus values into perceptual correlates of lightness (J),  
-//! chroma (C), and hue angle (h) under specified viewing conditions, and supports:
-//! - **Raw “Jab”** coordinates (analogous to CIELAB’s a/b axes) via `jab`  
-//! - **Perceptually uniform “Ja′b′”** coordinates (CAM16-UCS) via `jab_prime`  
-//! - **Inverse transform** back to XYZ with optional new white or viewing conditions via `xyz`.  
-//! - **Chromatic adaptation** using CIECAT02 matrices  
-//! - Utility functions for achromatic response, eccentricity, and more  
-//!
-//! ## Example
-//! ```rust
-//! use colorimetry::cam::CieCam16;
-//! use colorimetry::cam::ViewConditions;
-//! use colorimetry::xyz::XYZ;
-//! use colorimetry::observer::Observer;
-//! use colorimetry::cam::CamTransforms;
-//!
-//! let sample = XYZ::new([60.7, 49.6, 10.3], Observer::Std1931);
-//! let white  = XYZ::new([96.46, 100.0, 108.62], Observer::Std1931);
-//! let vc     = ViewConditions::new(16.0, 1.0, 1.0, 0.69, 40.0, None);
-//!
-//! let cam = CieCam16::from_xyz(sample, white, vc).unwrap();
-//! let jch = cam.jch();
-//! println!("JCh: {:?}", jch);
-//! ```
-
 mod viewconditions;
 pub use viewconditions::ViewConditions;
 
 mod cam16;
 pub use crate::cam::cam16::CieCam16;
 
-use crate::observer::Observer;
-use nalgebra::{matrix, SMatrix, Vector3};
+mod cam02;
+pub use crate::cam::cam02::CieCam02;
+
+use crate::{observer::Observer, xyz::XYZ};
+use nalgebra::{matrix, vector, SMatrix, Vector3};
 use std::f64::consts::PI;
 
 #[derive(Debug)]
@@ -66,13 +41,165 @@ pub struct ReferenceValues {
     qu: f64, // see lum_adapt
 }
 
-pub trait CamTransforms {
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Cam {
+    CieCam02,
+    CieCam16,
+}
+
+impl CamJCh {
     const P1C: f64 = 50_000.0 / 13.0;
     const P3: f64 = 21.0 / 20.0;
     const NOM: f64 = 1.0; // is listed in the standard as (2.0+Self::P3)*460.0/C16_3; // this is 1!! But his is in Luo step 3 as part of nominators
-    const DEN1: f64;
-    const DEN2: f64;
     const RCPR_9: f64 = 1.0 / 0.9;
+    const DEN1: f64 = ((2.0 + Self::P3) * 220.0) / 1403.0;
+    const DEN2: f64 = (Self::P3 * 6300.0 - 27.0) / 1403.0;
+
+    pub fn new(
+        observer: Observer,
+        jch: Vector3<f64>,
+        xyzn: Vector3<f64>,
+        vc: ViewConditions,
+    ) -> Self {
+        Self {
+            observer,
+            jch,
+            xyzn,
+            vc,
+        }
+    }
+
+    pub fn from_xyz(
+        xyz: XYZ,
+        xyzn: XYZ,
+        vc: ViewConditions,
+        cam: Cam,
+    ) -> Result<Self, crate::Error> {
+        if xyz.observer != xyzn.observer {
+            return Err(crate::Error::RequireSameObserver);
+        }
+        let xyz_vec = xyz.xyz;
+        let xyzn_vec = xyzn.xyz;
+
+        let ReferenceValues {
+            n,
+            z,
+            nbb,
+            ncb,
+            d_rgb,
+            aw,
+            qu,
+        } = vc.reference_values(xyzn.xyz, cam);
+        let vcdd = vc.dd();
+        let vcfl = vc.f_l();
+
+        let mut rgb = match cam {
+            Cam::CieCam16 => M16 * xyz_vec,
+            Cam::CieCam02 => MCAT02 * xyz_vec,
+        };
+
+        // rgb_C
+        rgb.component_mul_assign(&Vector3::from(d_rgb));
+
+        // rgb_pw
+        match cam {
+            Cam::CieCam16 => {}
+            Cam::CieCam02 => {
+                rgb = MCAT02INV * rgb;
+                rgb = MHPEINV * rgb;
+            }
+        }
+
+        // rgb_pa
+        rgb.apply(|v| vc.lum_adapt(v, 0.26, qu));
+
+        let ca = rgb[0] - 12.0 / 11.0 * rgb[1] + rgb[2] / 11.0;
+        let cb = (rgb[0] + rgb[1] - 2. * rgb[2]) / 9.0;
+
+        // calculate h in radians
+        let mut h = cb.atan2(ca);
+        if h < 0.0 {
+            h += 2.0 * PI;
+        }
+
+        // calculate J = jj
+        let jj = 100.0 * (achromatic_rsp(rgb, nbb) / aw).powf(vc.c * z);
+
+        // calculate C = cc
+        let et = 0.25f64 * ((h + 2.0).cos() + 3.8);
+        let t = (50000.0 / 13.0 * ncb * vc.nc * et * (ca * ca + cb * cb).sqrt())
+            / (rgb[0] + rgb[1] + 21.0 / 20.0 * rgb[2]);
+        let cc = t.powf(0.9) * (jj / 100.).sqrt() * (1.64 - (0.29f64).powf(n)).powf(0.73);
+
+        Ok(Self {
+            vc,
+            jch: Vector3::new(jj, cc, h * 180.0 / PI),
+            observer: xyz.observer,
+            xyzn: xyzn_vec,
+        })
+    }
+
+    pub fn xyz(
+        &self,
+        opt_xyzn: Option<XYZ>,
+        opt_viewconditions: Option<ViewConditions>,
+        cam: Cam,
+    ) -> Result<XYZ, crate::Error> {
+        let vc = opt_viewconditions.unwrap_or_default();
+        let xyzn = if let Some(white) = opt_xyzn {
+            if white.observer == self.observer {
+                white.xyz
+            } else {
+                return Err(crate::Error::RequireSameObserver);
+            }
+        } else {
+            self.xyzn
+        };
+        let ReferenceValues {
+            n,
+            z,
+            nbb,
+            ncb,
+            d_rgb,
+            aw,
+            qu,
+        } = vc.reference_values(xyzn, cam);
+        let d_rgb_vec = Vector3::from(d_rgb);
+        let &[lightness, chroma, hue_angle] = self.jch.as_ref();
+        let t = (chroma / ((lightness / 100.0).sqrt() * (1.64 - 0.29f64.powf(n)).powf(0.73)))
+            .powf(Self::RCPR_9);
+        let p1 = (Self::P1C * vc.nc * ncb * eccentricity(hue_angle)) / t; // NaN if t=0, but OK, as check on t==0.0 if used
+        let p2 = achromatic_response_from_lightness(aw, vc.c, z, lightness) / nbb + 0.305;
+        let (a, b) = match hue_angle.to_radians().sin_cos() {
+            (_, _) if t.is_nan() || t == 0.0 => (0.0, 0.0),
+            (hs, hc) if hs.abs() >= hc.abs() => {
+                let b = p2 * Self::NOM / (p1 / hs + Self::DEN1 * hc / hs + Self::DEN2);
+                (b * hc / hs, b)
+            }
+            (hs, hc) => {
+                let a = p2 * Self::NOM / (p1 / hc + Self::DEN1 + Self::DEN2 * hs / hc);
+                (a, a * hs / hc)
+            }
+        };
+
+        // rgb_a
+        let m = matrix![ 460.0, 451.0, 288.0; 460.0, -891.0, -261.0; 460.0, -220.0, -6_300.0; ]
+            / 1_403.0;
+        let rgb_p = (m * vector![p2, a, b]).map(|x| inv_cone_adaptation(vc.f_l(), x)); // Step 4 & 5
+        let rgb = rgb_p.component_div(&d_rgb_vec);
+
+        let xyz = match cam {
+            Cam::CieCam16 => M16INV * rgb,
+            Cam::CieCam02 => {
+                let rgb_c = (MCAT02 * MHPEINV * rgb_p).component_div(&d_rgb_vec); // Step 6 & 7
+                MCAT02INV * rgb_c
+            }
+        };
+        Ok(XYZ::from_vecs(xyz, self.observer))
+    }
+}
+
+pub trait CamTransforms {
     const UCS_KL: f64 = 1.0;
     const UCS_C1: f64 = 0.007;
     const UCS_C2: f64 = 0.0228;
@@ -81,37 +208,6 @@ pub trait CamTransforms {
     fn view_conditions(&self) -> &ViewConditions;
     fn observer(&self) -> Observer;
     fn xyzn(&self) -> &Vector3<f64>;
-    fn xyz2cam_rgb(xyz_vec: Vector3<f64>) -> Vector3<f64>;
-
-    fn reference_values(&self) -> ReferenceValues {
-        let vc = self.view_conditions();
-        let mut rgb_w = Self::xyz2cam_rgb(*self.xyzn());
-        let vcd = vc.dd();
-        let yw = self.xyzn()[1];
-        let d_rgb = rgb_w.map(|v| vcd * yw / v + 1.0 - vcd);
-        let n = vc.yb / yw;
-        let z = n.sqrt() + 1.48;
-        let nbb = 0.725 * n.powf(-0.2);
-        let ncb = nbb;
-        rgb_w.component_mul_assign(&Vector3::from(d_rgb));
-        let qu = 150f64.max(rgb_w[0].max(rgb_w[1]).max(rgb_w[2]));
-
-        // rgb_paw
-        rgb_w.apply(|q| vc.lum_adapt(q, 0.26, qu));
-        //        println!("***RGBaw {rgb_w}");
-        let aw = achromatic_rsp(rgb_w, nbb);
-        //        println!("***aw {aw} qu {qu}");
-
-        ReferenceValues {
-            n,
-            z,
-            nbb,
-            ncb,
-            d_rgb: d_rgb.into(),
-            aw,
-            qu,
-        }
-    }
 
     /// Returns the JCh values of the color as an array.
     ///
@@ -208,7 +304,7 @@ pub trait CamTransforms {
 }
 
 #[inline]
-pub fn achromatic_rsp(rgb: Vector3<f64>, nbb: f64) -> f64 {
+fn achromatic_rsp(rgb: Vector3<f64>, nbb: f64) -> f64 {
     (2.0 * rgb[0] + rgb[1] + rgb[2] / 20.0 - 0.305) * nbb
 }
 
@@ -263,4 +359,24 @@ const MCAT02INVLUO: SMatrix<f64, 3, 3> = matrix![
      1.096124, -0.278869, 0.182745;
      0.454369,  0.473533, 0.072098;
     -0.009628, -0.005698, 1.015326;
+];
+
+const M16: SMatrix<f64, 3, 3> = matrix![
+    0.401288, 0.650173, -0.051461;
+    -0.250268, 1.204414, 0.045854;
+    -0.002079, 0.048952, 0.953127
+];
+
+const C16_3: f64 = 1_403.0;
+
+const M16INV: SMatrix<f64, 3, 3> = matrix![
+    1.86206786, -1.01125463, 0.14918677;
+    0.38752654, 0.62144744, -0.00897398;
+    -0.01584150, -0.03412294, 1.04996444
+];
+
+const MRGBAINV: SMatrix<f64, 3, 3> = matrix![
+   460.0/C16_3, 451.0/C16_3, 288.0/C16_3;
+   460.0/C16_3, -891.0/C16_3, -261.0/C16_3;
+   460.0/C16_3, -220.0/C16_3, -6_300.0/C16_3;
 ];

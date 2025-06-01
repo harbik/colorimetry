@@ -1,4 +1,7 @@
+use nalgebra::Vector3;
 use wasm_bindgen::prelude::wasm_bindgen;
+
+use super::{achromatic_rsp, Cam, M16, MCAT02, MCAT02INV, MHPE};
 
 #[wasm_bindgen]
 #[derive(Clone, Copy, Debug)]
@@ -25,6 +28,39 @@ impl ViewConditions {
             c,
             la,
             dopt,
+        }
+    }
+
+    pub fn reference_values(&self, xyzn: Vector3<f64>, cam: Cam) -> super::ReferenceValues {
+        let mut rgb_w = match cam {
+            Cam::CieCam16 => M16 * xyzn,
+            Cam::CieCam02 => MCAT02 * xyzn,
+        };
+
+        let vcd = self.dd();
+        let yw = xyzn[1];
+        let d_rgb = rgb_w.map(|v| vcd * yw / v + 1.0 - vcd);
+        let n = self.yb / yw;
+        let z = n.sqrt() + 1.48;
+        let nbb = 0.725 * n.powf(-0.2);
+        let ncb = nbb;
+        rgb_w.component_mul_assign(&Vector3::from(d_rgb));
+        if cam == Cam::CieCam02 {
+            rgb_w = MCAT02INV * rgb_w;
+            rgb_w = MHPE * rgb_w;
+        }
+        let qu = 150f64.max(rgb_w[0].max(rgb_w[1]).max(rgb_w[2]));
+        rgb_w.apply(|q| self.lum_adapt(q, 0.26, qu));
+        let aw = achromatic_rsp(rgb_w, nbb);
+
+        super::ReferenceValues {
+            n,
+            z,
+            nbb,
+            ncb,
+            d_rgb: d_rgb.into(),
+            aw,
+            qu,
         }
     }
 
