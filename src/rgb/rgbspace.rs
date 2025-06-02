@@ -6,7 +6,6 @@ use crate::{
     rgb::gamma::GammaCurve, rgb::gaussian_filtered_primaries, stimulus::Stimulus,
 };
 use strum_macros::EnumIter;
-use wasm_bindgen::prelude::wasm_bindgen;
 
 // The display P3 red coordinate is outside the CIE 1931 gamut using the CIE 1931 1 nanometer
 // dataset as provided by the CIE.  To still match it, it's desatured it adding white. It also mixes
@@ -15,8 +14,8 @@ const D: f64 = 0.0005620; // Desaturation ratio
 const D65X: f64 = 0.312_738;
 const D65Y: f64 = 0.329_052;
 
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
 #[derive(Debug, Clone, Copy, Default, EnumIter, PartialEq)]
-#[wasm_bindgen]
 /**
 A Light Weight tag, representing an RGB color space.
 Used for example in the RGB value set, to identify the color space being used.

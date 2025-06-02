@@ -1,8 +1,7 @@
 use nalgebra::Vector2;
-use wasm_bindgen::prelude::wasm_bindgen;
 
 /// A chromaticity coordinate with x and y values.
-#[wasm_bindgen]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Chromaticity {
     xy: Vector2<f64>,

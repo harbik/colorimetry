@@ -50,9 +50,8 @@ use nalgebra::Vector3;
 use std::f64::consts::PI;
 
 use crate::{error::Error, prelude::Observer, xyz::XYZ};
-use wasm_bindgen::prelude::wasm_bindgen;
 
-#[wasm_bindgen]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
 #[derive(Debug, Clone, Copy)]
 pub struct CieLab {
     pub(crate) observer: Observer,

@@ -1,5 +1,3 @@
-use wasm_bindgen::JsValue;
-
 #[derive(thiserror::Error, Debug, PartialEq)]
 pub enum Error {
     #[error("{name} should be within in range from {low} to {high}")]
@@ -50,13 +48,15 @@ impl From<&str> for Error {
     }
 }
 
-impl From<JsValue> for Error {
-    fn from(s: JsValue) -> Self {
+#[cfg(target_arch = "wasm32")]
+impl From<wasm_bindgen::JsValue> for Error {
+    fn from(s: wasm_bindgen::JsValue) -> Self {
         Error::ErrorString(s.as_string().expect("Sorry, Unknown Error Encountered"))
     }
 }
 
-impl From<Error> for JsValue {
+#[cfg(target_arch = "wasm32")]
+impl From<Error> for wasm_bindgen::JsValue {
     fn from(value: Error) -> Self {
         value.to_string().into()
     }

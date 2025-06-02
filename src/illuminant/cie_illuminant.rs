@@ -2,14 +2,13 @@
 
 use crate::{illuminant::Illuminant, spectrum::Spectrum, traits::Light};
 use std::borrow::Cow;
-use wasm_bindgen::prelude::*;
 
 macro_rules! std_illuminants {
     ($($val:ident)* [$($cieval:ident)* ]) => {
         // only basic selection
         #[cfg(not(feature="cie-illuminants"))]
         #[allow(non_camel_case_types)]
-        #[wasm_bindgen]
+        #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
         #[derive(Clone, Copy, Debug, strum_macros::Display, strum_macros::EnumIter)]
         pub enum CieIlluminant  {
                 $($val,)*
@@ -50,7 +49,7 @@ macro_rules! std_illuminants {
         /// }
         /// ```
         #[allow(non_camel_case_types)]
-        #[wasm_bindgen]
+        #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
         #[derive(Clone, Debug, Copy, strum_macros::Display, strum_macros::EnumIter)]
         pub enum CieIlluminant  {
                 $($val,)*
