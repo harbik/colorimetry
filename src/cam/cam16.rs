@@ -28,10 +28,9 @@
 //!
 //! *Methods and internals marked `pub(crate)` have been omitted for brevity.*
 
-use super::{CamJCh, CamTransforms, ReferenceValues, ViewConditions};
-use std::f64::consts::PI;
+use super::{CamJCh, CamTransforms, ViewConditions};
 
-use nalgebra::{matrix, vector, Matrix3, Vector3};
+use nalgebra::Vector3;
 
 use crate::{error::Error, observer::Observer, xyz::XYZ};
 
@@ -91,49 +90,8 @@ impl CieCam16 {
     /// # Errors
     /// Returns an error if the XYZ values are not in the same observer system.
     pub fn from_xyz(xyz: XYZ, xyzn: XYZ, vc: ViewConditions) -> Result<Self, Error> {
-        let xyz_vec = xyz.xyz;
-        let xyzn_vec = xyzn.xyz;
-        if xyz.observer != xyzn.observer {
-            return Err(Error::RequireSameObserver);
-        }
-        let cam = Self::new([0.0; 3], xyzn, vc); // early init, so we can use the reference values
-        let ReferenceValues {
-            n,
-            z,
-            nbb,
-            ncb,
-            d_rgb,
-            aw,
-            qu,
-        } = cam.reference_values();
-        let mut rgb = M16 * xyz_vec;
-        rgb.component_mul_assign(&Vector3::from(d_rgb));
-        rgb.apply(|v| vc.lum_adapt(v, 0.26, qu));
-
-        let ca = rgb[0] - 12.0 / 11.0 * rgb[1] + rgb[2] / 11.0;
-        let cb = (rgb[0] + rgb[1] - 2. * rgb[2]) / 9.0;
-
-        // calculate h in radians
-        let mut h = cb.atan2(ca);
-        if h < 0.0 {
-            h += 2.0 * PI;
-        }
-
-        // calculate J = jj
-        let jj = 100.0 * (super::achromatic_rsp(rgb, nbb) / aw).powf(vc.c * z);
-
-        // calculate C = cc
-        let et = 0.25f64 * ((h + 2.0).cos() + 3.8);
-        let t = (50000.0 / 13.0 * ncb * vc.nc * et * (ca * ca + cb * cb).sqrt())
-            / (rgb[0] + rgb[1] + 21.0 / 20.0 * rgb[2]);
-        let cc = t.powf(0.9) * (jj / 100.).sqrt() * (1.64 - (0.29f64).powf(n)).powf(0.73);
-
-        Ok(Self(CamJCh {
-            vc,
-            jch: Vector3::new(jj, cc, h * 180.0 / PI),
-            observer: xyz.observer,
-            xyzn: xyzn_vec,
-        }))
+        let camjch = CamJCh::from_xyz(xyz, xyzn, vc, super::Cam::CieCam16)?;
+        Ok(Self(camjch))
     }
 
     /// Inverse-transform CIECAM16 appearance correlates back to CIE XYZ tristimulus values.
@@ -176,62 +134,15 @@ impl CieCam16 {
     /// ```
     pub fn xyz(
         &self,
-        white_opt: Option<XYZ>,
-        vc_opt: Option<ViewConditions>,
+        opt_xyzn: Option<XYZ>,
+        opt_viewconditions: Option<ViewConditions>,
     ) -> Result<XYZ, Error> {
-        let vc = vc_opt.unwrap_or_default();
-        // TODO: Use this
-        let _xyzn = if let Some(white) = white_opt {
-            if white.observer == self.observer() {
-                white.xyz
-            } else {
-                return Err(Error::RequireSameObserver);
-            }
-        } else {
-            *self.xyzn()
-        };
-        let ReferenceValues {
-            n,
-            z,
-            nbb,
-            ncb,
-            d_rgb,
-            aw,
-            qu: _gu,
-        } = self.reference_values();
-        let d_rgb_vec = Vector3::from(d_rgb);
-        let &[lightness, chroma, hue_angle] = self.jch_vec().as_ref();
-        let t = (chroma / ((lightness / 100.0).sqrt() * (1.64 - 0.29f64.powf(n)).powf(0.73)))
-            .powf(Self::RCPR_9);
-        let p1 = (Self::P1C * vc.nc * ncb * super::eccentricity(hue_angle)) / t; // NaN if t=0, but OK, as check on t==0.0 if used
-        let p2 = super::achromatic_response_from_lightness(aw, vc.c, z, lightness) / nbb + 0.305;
-        let (a, b) = match hue_angle.to_radians().sin_cos() {
-            (_, _) if t.is_nan() || t == 0.0 => (0.0, 0.0),
-            (hs, hc) if hs.abs() >= hc.abs() => {
-                let b = p2 * Self::NOM / (p1 / hs + Self::DEN1 * hc / hs + Self::DEN2);
-                (b * hc / hs, b)
-            }
-            (hs, hc) => {
-                let a = p2 * Self::NOM / (p1 / hc + Self::DEN1 + Self::DEN2 * hs / hc);
-                (a, a * hs / hc)
-            }
-        };
-
-        // rgb_a
-        let m = matrix![ 460.0, 451.0, 288.0; 460.0, -891.0, -261.0; 460.0, -220.0, -6_300.0; ]
-            / 1_403.0;
-        let rgb_p = (m * vector![p2, a, b]).map(|x| super::inv_cone_adaptation(vc.f_l(), x)); // Step 4 & 5
-        let rgb = rgb_p.component_div(&d_rgb_vec);
-
-        let xyz = M16INV * rgb;
-        Ok(XYZ::from_vecs(xyz, self.observer()))
+        self.0
+            .xyz(opt_xyzn, opt_viewconditions, super::Cam::CieCam16)
     }
 }
 
 impl CamTransforms for CieCam16 {
-    const DEN1: f64 = ((2.0 + Self::P3) * 220.0) / C16_3;
-    const DEN2: f64 = (Self::P3 * 6300.0 - 27.0) / C16_3;
-
     /// Returns the JCh appearance correlates of this CieCam16 instance.
     fn jch_vec(&self) -> &Vector3<f64> {
         &self.0.jch
@@ -250,37 +161,16 @@ impl CamTransforms for CieCam16 {
     fn xyzn(&self) -> &Vector3<f64> {
         &self.0.xyzn
     }
-    fn xyz2cam_rgb(xyz_vec: Vector3<f64>) -> Vector3<f64> {
-        M16 * xyz_vec
-    }
 }
 
-const C16_3: f64 = 1_403.0;
-
-const M16: Matrix3<f64> = matrix![
-    0.401288, 0.650173, -0.051461;
-    -0.250268, 1.204414, 0.045854;
-    -0.002079, 0.048952, 0.953127
-];
-
-const M16INV: Matrix3<f64> = matrix![
-    1.86206786, -1.01125463, 0.14918677;
-    0.38752654, 0.62144744, -0.00897398;
-    -0.01584150, -0.03412294, 1.04996444
-];
-
-#[allow(dead_code)]
-const MRGBAINV: Matrix3<f64> = matrix![
-   460.0/C16_3, 451.0/C16_3, 288.0/C16_3;
-   460.0/C16_3, -891.0/C16_3, -261.0/C16_3;
-   460.0/C16_3, -220.0/C16_3, -6_300.0/C16_3;
-];
-
 #[cfg(test)]
-mod cam_test {
-    use super::*;
+mod cam16_test {
     use approx::assert_abs_diff_eq;
     use nalgebra::Matrix3;
+
+    use crate::cam::{CamTransforms, CieCam16, ViewConditions, M16, M16INV};
+    use crate::observer::Observer;
+    use crate::xyz::XYZ;
 
     #[test]
     fn test_m16() {
@@ -307,7 +197,7 @@ mod cam_test {
 }
 
 #[cfg(test)]
-mod round_trip_tests {
+mod cam16_round_trip_tests {
     use crate::prelude::*;
     use approx::assert_abs_diff_eq;
 

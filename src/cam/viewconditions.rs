@@ -1,3 +1,7 @@
+use nalgebra::Vector3;
+
+use super::{Cam, M16, MCAT02, MCAT02INV, MHPE};
+
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
 #[derive(Clone, Copy, Debug)]
 pub struct ViewConditions {
@@ -26,6 +30,44 @@ impl ViewConditions {
         }
     }
 
+    pub fn reference_values(&self, xyzn: Vector3<f64>, cam: Cam) -> super::ReferenceValues {
+        let mut rgb_w = match cam {
+            Cam::CieCam16 => M16 * xyzn,
+            Cam::CieCam02 => MCAT02 * xyzn,
+        };
+
+        let vcd = self.dd();
+        let yw = xyzn[1];
+        let d_rgb = rgb_w.map(|v| vcd * yw / v + 1.0 - vcd);
+        let n = self.yb / yw;
+        let z = n.sqrt() + 1.48;
+        let nbb = 0.725 * n.powf(-0.2);
+        let ncb = nbb;
+        rgb_w.component_mul_assign(&Vector3::from(d_rgb));
+        let qu = 150f64.max(rgb_w[0].max(rgb_w[1]).max(rgb_w[2]));
+        match cam {
+            Cam::CieCam02 => {
+                rgb_w = MCAT02INV * rgb_w;
+                rgb_w = MHPE * rgb_w;
+                rgb_w.apply(|v| self.lum_adapt02(v));
+            }
+            Cam::CieCam16 => {
+                rgb_w.apply(|q| self.lum_adapt16(q, 0.26, qu));
+            }
+        }
+        let aw = super::achromatic_rsp(rgb_w, nbb);
+
+        super::ReferenceValues {
+            n,
+            z,
+            nbb,
+            ncb,
+            d_rgb: d_rgb.into(),
+            aw,
+            qu,
+        }
+    }
+
     #[inline]
     pub fn k(&self) -> f64 {
         1. / (5. * self.la + 1.)
@@ -45,6 +87,11 @@ impl ViewConditions {
         }
     }
 
+    pub fn lum_adapt02(&self, v: &mut f64) {
+        let t = (self.f_l() * *v / 100.).powf(0.42);
+        *v = v.signum() * 400. * t / (27.13 + t) + 0.1;
+    }
+
     /// Hyperbolic post-adaptation response compression function
     ///
     /// As used in CIECAM02 and CAM16
@@ -56,7 +103,7 @@ impl ViewConditions {
     /// CIE recommends to use:
     /// l = 0.26;
     /// u = max(150.0, Rwc, Gwc, Bwc);
-    pub fn lum_adapt(&self, q: &mut f64, ql: f64, qu: f64) {
+    pub fn lum_adapt16(&self, q: &mut f64, ql: f64, qu: f64) {
         let fl = self.f_l();
 
         // CIECAM16 eq 3.4
