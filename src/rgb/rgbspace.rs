@@ -1,3 +1,4 @@
+use std::fmt;
 use std::sync::OnceLock;
 
 use crate::xyz::Chromaticity;
@@ -15,7 +16,7 @@ const D65X: f64 = 0.312_738;
 const D65Y: f64 = 0.329_052;
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
-#[derive(Debug, Clone, Copy, Default, EnumIter, PartialEq)]
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, EnumIter)]
 /**
 A Light Weight tag, representing an RGB color space.
 Used for example in the RGB value set, to identify the color space being used.
@@ -82,6 +83,12 @@ impl RgbSpace {
             Self::ADOBE => CieIlluminant::D65,
             Self::DisplayP3 => CieIlluminant::D65,
         }
+    }
+}
+
+impl fmt::Display for RgbSpace {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.name())
     }
 }
 

@@ -7,7 +7,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     for observer in Observer::iter() {
         let wavelength_range = observer.data().spectral_locus_wavelength_range();
         println!(
-            "Spectral locus for {observer:?} goes from {} to {}",
+            "Spectral locus for {observer} goes from {} to {}",
             wavelength_range.start(),
             wavelength_range.end()
         );

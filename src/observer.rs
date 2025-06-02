@@ -58,7 +58,7 @@ use crate::{
     xyz::XYZ,
 };
 use nalgebra::{Matrix3, SMatrix, Vector3};
-use std::{ops::RangeInclusive, sync::OnceLock};
+use std::{fmt, ops::RangeInclusive, sync::OnceLock};
 use strum_macros::EnumIter;
 
 /**
@@ -70,7 +70,7 @@ use strum_macros::EnumIter;
 */
 #[cfg(not(feature = "supplemental-observers"))]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
-#[derive(Clone, Copy, Default, PartialEq, Eq, Debug, EnumIter)]
+#[derive(Clone, Copy, Default, PartialEq, Eq, Hash, Debug, EnumIter)]
 pub enum Observer {
     #[default]
     Std1931,
@@ -78,7 +78,7 @@ pub enum Observer {
 
 #[cfg(feature = "supplemental-observers")]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
-#[derive(Clone, Copy, Default, PartialEq, Eq, Debug, EnumIter)]
+#[derive(Clone, Copy, Default, PartialEq, Eq, Hash, Debug, EnumIter)]
 pub enum Observer {
     #[default]
     Std1931,
@@ -101,6 +101,12 @@ impl Observer {
             #[cfg(feature = "supplemental-observers")]
             Observer::Std2015_10 => &observers::CIE2015_10,
         }
+    }
+}
+
+impl fmt::Display for Observer {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.data().name().fmt(f)
     }
 }
 
@@ -128,6 +134,7 @@ pub struct ObserverData {
     data: SMatrix<f64, 3, NS>,
     lumconst: f64,
     tag: Observer,
+    name: &'static str,
     d65: OnceLock<XYZ>,
     d50: OnceLock<XYZ>,
 
@@ -142,15 +149,26 @@ impl ObserverData {
     ///
     /// Only visible to the crate itself since it cannot be used nicely from the outside
     /// (since the `tag` is not something anyone else can create new varians of).
-    pub(crate) const fn new(tag: Observer, lumconst: f64, data: SMatrix<f64, 3, NS>) -> Self {
+    pub(crate) const fn new(
+        tag: Observer,
+        name: &'static str,
+        lumconst: f64,
+        data: SMatrix<f64, 3, NS>,
+    ) -> Self {
         Self {
             data,
             lumconst,
             tag,
+            name,
             d65: OnceLock::new(),
             d50: OnceLock::new(),
             spectral_locus_range: OnceLock::new(),
         }
+    }
+
+    /// Returns the name of the observer.
+    pub fn name(&self) -> &'static str {
+        self.name
     }
 
     /// Calulates Tristimulus values for an object implementing the [Light] trait, and an optional [Filter],
