@@ -28,10 +28,9 @@
 //!
 //! *Methods and internals marked `pub(crate)` have been omitted for brevity.*
 
-use super::{CamJCh, CamTransforms, ReferenceValues, ViewConditions, M16};
-use std::f64::consts::PI;
+use super::{CamJCh, CamTransforms, ViewConditions};
 
-use nalgebra::{matrix, vector, Matrix3, Vector3};
+use nalgebra::Vector3;
 
 use crate::{error::Error, observer::Observer, xyz::XYZ};
 
