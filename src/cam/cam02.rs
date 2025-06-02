@@ -203,8 +203,8 @@ mod cam02_test {
         let cam = CieCam02::from_xyz(xyz, xyzn, vc).unwrap();
         let jch = cam.jch_vec();
         let &[j, c, h] = jch.as_ref();
-        assert_abs_diff_eq!(j, 48.0314, epsilon = 1E-4); // C
-        assert_abs_diff_eq!(c, 38.7789, epsilon = 1E-4); // J
+        assert_abs_diff_eq!(j, 48.0314, epsilon = 1E-4); // J
+        assert_abs_diff_eq!(c, 38.7789, epsilon = 1E-4); // C
         assert_abs_diff_eq!(h, 191.0452, epsilon = 1E-4); // h
     }
 }
