@@ -175,82 +175,37 @@ mod cam02_test {
     use crate::observer::Observer;
     use crate::xyz::XYZ;
 
-    #[allow(dead_code)]
-    const XYZ_INPUT: [[f64; 3]; 15] = [
-        [32.99303705846047, 29.78354541906428, 24.515071037854042],
-        [27.48241511817716, 28.89167757559657, 14.910592263946187],
-        [23.913469712496216, 30.438067138979346, 9.899381161299267],
-        [20.4311547181184, 29.486642169154933, 21.250284913332294],
-        [24.98574423368059, 30.844114382827392, 40.35381821323191],
-        [28.207442354433837, 29.78474576287236, 57.81765104719043],
-        [33.323060092938654, 29.370799790330192, 53.15367747713512],
-        [37.626107527256906, 31.336855726617213, 45.37280279205807],
-        [20.596433595499022, 11.245225178493753, 4.337922686757441],
-        [54.887657922763, 58.993832925630215, 11.977493044694228],
-        [12.135550694065532, 20.375920890541646, 15.325625503761742],
-        [6.233905614966848, 6.434592841685199, 27.56972147482798],
-        [58.88091812257271, 57.10907182422783, 41.286188434726306],
-        [9.331908554780478, 11.707306898936274, 5.391125129544149],
-        [34.993066279038636, 32.66859554758218, 24.511680076784856],
-    ];
-
-    // CIECAM02 values, from CIECM02.xls spreadsheet Mark Fairchild
-    const WANT: [[f64; 3]; 15] = [
-        [53.23, 22.8075, 31.506],
-        [51.39, 25.0321, 83.358],
-        [51.68, 43.0726, 115.124],
-        [49.66, 35.8461, 155.119],
-        [51.26, 28.3496, 204.657],
-        [50.72, 36.4188, 249.030],
-        [52.06, 30.2208, 303.630],
-        [54.91, 30.9357, 339.927],
-        [34.37, 79.9067, 21.183],
-        [75.92, 57.9672, 91.775],
-        [39.81, 43.3024, 165.023],
-        [20.45, 58.5320, 239.914],
-        [75.20, 22.5443, 53.830],
-        [30.57, 26.3221, 119.049],
-        [55.79, 22.4111, 40.417],
-    ];
-
     #[test]
     fn test_m16() {
         approx::assert_abs_diff_eq!(M16INV * M16, Matrix3::identity(), epsilon = 1E-8);
     }
 
     #[test]
+    // Worked example from CIECAM02 documentation, CIE159:2004, p. 11
     fn test_worked_example() {
-        // xyzn value Mark Fairchild calculator
-        let xyz_d65 = XYZ::new([96.42, 100.0, 108.52], Observer::Std1931);
-        for (i, &xyz) in XYZ_INPUT.iter().enumerate() {
-            // forward transform (XYZ -> JCh)
-            let xyz = XYZ::new(xyz, Observer::Std1931);
-            let cam = CieCam02::from_xyz(xyz, xyz_d65, ViewConditions::default()).unwrap();
-            let jch = cam.jch_vec();
+        // forward transform (XYZ -> JCh)
+        let xyz = XYZ::new([19.31, 23.93, 10.14], Observer::Std1931);
+        let xyzn = XYZ::new([98.88, 90.0, 32.03], Observer::Std1931);
 
-            // inverse (JCh -> XYZ)
-            let cam_back =
-                CieCam02::new([jch[0], jch[1], jch[2]], xyz_d65, ViewConditions::default());
-            let xyz_back = cam_back.xyz(None, None).unwrap();
+        // Table 4, column 2, CIE 159:2004.
+        // La = 20 cd/m2;
+        let vc = ViewConditions::new(18.0, 1.0, 1.0, 0.69, 20.0, None);
+        let cam = CieCam02::from_xyz(xyz, xyzn, vc).unwrap();
+        let jch = cam.jch_vec();
+        let &[j, c, h] = jch.as_ref();
+        assert_abs_diff_eq!(j, 47.6856, epsilon = 1E-4); // J
+        assert_abs_diff_eq!(c, 36.0527, epsilon = 1E-4); // C
+        assert_abs_diff_eq!(h, 185.3445, epsilon = 1E-4); // h
 
-            // compare JCh values
-            let want_jch = WANT[i];
-            dbg!(jch, want_jch);
-            //  TODO!! This test is currently disabled because the JCh values are not matching
-            //  const EPSILON : f64 = 0.7; // tolerance for JCh values
-            //  assert_abs_diff_eq!(jch[0], want_jch[0], epsilon = EPSILON); // J
-            //  assert_abs_diff_eq!(jch[1], want_jch[1], epsilon = EPSILON); // C
-            //  assert_abs_diff_eq!(jch[2], want_jch[2], epsilon = EPSILON); // h
-
-            // compare original vs. round-tripped XYZ
-            let orig = XYZ::new(xyz.values(), Observer::Std1931);
-            let [x0, y0, z0] = orig.values();
-            let [x1, y1, z1] = xyz_back.values();
-
-            assert_abs_diff_eq!(x0, x1, epsilon = 1e-6);
-            assert_abs_diff_eq!(y0, y1, epsilon = 1e-6);
-            assert_abs_diff_eq!(z0, z1, epsilon = 1e-6);
-        }
+        // Table 4, column 3, CIE 159:2004.
+        // La = 200 cd/m2;
+        let vc = ViewConditions::new(18.0, 1.0, 1.0, 0.69, 200.0, None);
+        let cam = CieCam02::from_xyz(xyz, xyzn, vc).unwrap();
+        let jch = cam.jch_vec();
+        let &[j, c, h] = jch.as_ref();
+        assert_abs_diff_eq!(j, 48.0314, epsilon = 1E-4); // J
+        assert_abs_diff_eq!(c, 38.7789, epsilon = 1E-4); // C
+        assert_abs_diff_eq!(h, 191.0452, epsilon = 1E-4); // h
     }
 }
 
