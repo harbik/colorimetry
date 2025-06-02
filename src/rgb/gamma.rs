@@ -70,11 +70,13 @@ impl GammaCurve {
                 x.powf(1.0 / g)
             }
             3 => {
-                let [g, a, b] = self.p[..] else { panic!() }; // never reached
+                let [_g, _a, _b] = self.p[..] else { panic!() }; // never reached
                 todo!()
             }
             4 => {
-                let [g, a, b, c] = self.p[..] else { panic!() };
+                let [_g, _a, _b, _c] = self.p[..] else {
+                    panic!()
+                };
                 todo!()
             }
             5 => {
@@ -88,7 +90,7 @@ impl GammaCurve {
                 }
             }
             7 => {
-                let [g, a, b, c, d, e, f] = self.p[..] else {
+                let [_g, _a, _b, _c, _d, _e, _f] = self.p[..] else {
                     panic!()
                 };
                 todo!()
