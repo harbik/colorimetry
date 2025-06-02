@@ -90,8 +90,8 @@ impl CamJCh {
             aw,
             qu,
         } = vc.reference_values(xyzn.xyz, cam);
-        let vcdd = vc.dd();
-        let vcfl = vc.f_l();
+        //  let vcdd = vc.dd();
+        //  let vcfl = vc.f_l();
 
         let mut rgb = match cam {
             Cam::CieCam16 => M16 * xyz_vec,
@@ -101,17 +101,17 @@ impl CamJCh {
         // rgb_C
         rgb.component_mul_assign(&Vector3::from(d_rgb));
 
-        // rgb_pw
+        // rgb_pw & rgb_pa
         match cam {
-            Cam::CieCam16 => {}
+            Cam::CieCam16 => {
+                rgb.apply(|v| vc.lum_adapt16(v, 0.26, qu));
+            }
             Cam::CieCam02 => {
                 rgb = MCAT02INV * rgb;
-                rgb = MHPEINV * rgb;
+                rgb = MHPE * rgb;
+                rgb.apply(|v| vc.lum_adapt02(v));
             }
         }
-
-        // rgb_pa
-        rgb.apply(|v| vc.lum_adapt(v, 0.26, qu));
 
         let ca = rgb[0] - 12.0 / 11.0 * rgb[1] + rgb[2] / 11.0;
         let cb = (rgb[0] + rgb[1] - 2. * rgb[2]) / 9.0;
@@ -162,7 +162,7 @@ impl CamJCh {
             ncb,
             d_rgb,
             aw,
-            qu,
+            qu: _,
         } = vc.reference_values(xyzn, cam);
         let d_rgb_vec = Vector3::from(d_rgb);
         let &[lightness, chroma, hue_angle] = self.jch.as_ref();
