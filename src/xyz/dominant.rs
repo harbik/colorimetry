@@ -166,7 +166,7 @@ mod xyz_test {
             let chromaticity = sl.chromaticity();
             let line_u =
                 LineAB::new(chromaticity.to_array(), white_chromaticity.to_array()).unwrap();
-            let ([xi, yi], t, _) = line_t.intersect(&line_u).unwrap();
+            let ([_xi, yi], t, _) = line_t.intersect(&line_u).unwrap();
             if t > 0.0 && t < 1.0 {
                 // see https://en.wikipedia.org/wiki/CIE_1931_color_space#Mixing_colors_specified_with_the_CIE_xy_chromaticity_diagram
                 let b = xyzb.set_illuminance(100.0 * (yb * (yr - yi)));

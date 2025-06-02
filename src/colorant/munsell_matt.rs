@@ -11,7 +11,6 @@
 mod data;
 
 use std::{collections::BTreeMap, sync::LazyLock};
-use wasm_bindgen::prelude::*;
 
 use crate::{
     colorant::munsell_matt::data::{MUNSELL_MATT_DATA, MUNSELL_MATT_KEYS},
@@ -24,7 +23,7 @@ pub(crate) const MATT_N: usize = 81;
 pub(crate) const MATT_M: usize = 1269;
 
 #[allow(dead_code)]
-#[wasm_bindgen]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
 pub struct MunsellMatt(String, Spectrum);
 
 impl MunsellMatt {
@@ -62,11 +61,6 @@ impl MunsellMatt {
         }
     }
 }
-
-// JS-WASM Interface code
-#[cfg(target_arch = "wasm32")]
-#[wasm_bindgen]
-impl MunsellMatt {}
 
 pub struct MunsellMattCollection;
 

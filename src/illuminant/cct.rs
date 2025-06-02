@@ -210,7 +210,6 @@ impl TryFrom<XYZ> for CCT {
         if imlow == 0 {
             // xyz is in the first interval, or above high temperature limit
             let &[ub, vb, m] = robertson_table(imlow);
-            let d = distance_to_line(u, v, ub, vb, m);
             match distance_to_line(u, v, ub, vb, m) {
                 d if ulps_eq!(d, 0.0, epsilon = 1E-10) => {
                     // at low temp limit
@@ -397,17 +396,14 @@ mod tests {
 
         // Get a CCT to test. Unwrap OK as range restricted above.
         let cct0 = CCT::new(t, d).unwrap();
-
         // calculate XYZ0, skip value if not a valid point
-        let Ok(xyz0): Result<XYZ, _> = CCT::new(t, d).unwrap().try_into() else {
-            return None;
-        };
+        let xyz0 = XYZ::try_from(cct0).ok()?;
 
         // calculate the cct to test.
-        let cct: CCT = xyz0.try_into().unwrap();
+        let cct: CCT = CCT::try_from(xyz0).unwrap();
 
         // calculate XYZ, should not fail, a CCT and Duv very close to already fetted values.
-        let xyz: XYZ = cct.try_into().unwrap();
+        let xyz = XYZ::try_from(cct).unwrap();
         let d_uv = xyz.uv_prime_distance(&xyz0);
         Some(d_uv)
     }

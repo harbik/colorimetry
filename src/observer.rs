@@ -60,7 +60,6 @@ use crate::{
 use nalgebra::{Matrix3, SMatrix, Vector3};
 use std::{ops::RangeInclusive, sync::OnceLock};
 use strum_macros::EnumIter;
-use wasm_bindgen::prelude::wasm_bindgen;
 
 /**
    Light-weight identifier added to the `XYZ` and `RGB` datasets,
@@ -70,7 +69,7 @@ use wasm_bindgen::prelude::wasm_bindgen;
    This can be directly used in JavaScript, and has the benefit to be just an index.
 */
 #[cfg(not(feature = "supplemental-observers"))]
-#[wasm_bindgen]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
 #[derive(Clone, Copy, Default, PartialEq, Eq, Debug, EnumIter)]
 pub enum Observer {
     #[default]
@@ -78,7 +77,7 @@ pub enum Observer {
 }
 
 #[cfg(feature = "supplemental-observers")]
-#[wasm_bindgen]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
 #[derive(Clone, Copy, Default, PartialEq, Eq, Debug, EnumIter)]
 pub enum Observer {
     #[default]
@@ -124,7 +123,7 @@ impl Observer {
     It's main purpose is to calculate `XYZ` tristimulus values for a general stimulus,
     in from of a `Spectrum`.
 */
-#[wasm_bindgen]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
 pub struct ObserverData {
     data: SMatrix<f64, 3, NS>,
     lumconst: f64,
@@ -252,8 +251,11 @@ impl ObserverData {
     /// let cie1931_d50_xyz = colorimetry::observer::CIE1931.xyz_d50();
     /// approx::assert_ulps_eq!(cie1931_d50_xyz.values().as_ref(), [96.421, 100.0, 82.519].as_ref(), epsilon = 5E-2);
     ///
+    /// # #[cfg(feature = "supplemental-observers")]
+    /// # {
     /// let cie1964_d50_xyz = colorimetry::observer::CIE1964.xyz_d50();
     /// approx::assert_ulps_eq!(cie1964_d50_xyz.values().as_ref(), [96.720, 100.0, 81.427].as_ref(), epsilon = 5E-2);
+    /// # }
     /// ```
     pub fn xyz_d50(&self) -> XYZ {
         *self.d50.get_or_init(|| {
@@ -485,11 +487,6 @@ impl ObserverData {
     }
 }
 
-// JS-WASM Interface code
-#[cfg(target_arch = "wasm32")]
-#[wasm_bindgen]
-impl ObserverData {}
-
 #[cfg(test)]
 mod obs_test {
 
@@ -552,7 +549,7 @@ mod obs_test {
             for wavelength in observer.data().spectral_locus_wavelength_range() {
                 let xyz = observer.data().xyz_at_wavelength(wavelength).unwrap();
                 for rgbspace in RgbSpace::iter() {
-                    let rgb = xyz.rgb(Some(rgbspace));
+                    let _rgb = xyz.rgb(Some(rgbspace));
                 }
             }
         }

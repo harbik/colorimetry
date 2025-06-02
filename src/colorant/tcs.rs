@@ -36,7 +36,6 @@ pub static TCS: LazyLock<[Colorant; N_TCS]> = LazyLock::new(|| {
 #[test]
 fn tcs_test() {
     use crate::observer::CIE1931;
-    let xyzn = CIE1931.xyz_d65();
     for (i, s) in TCS.iter().enumerate() {
         let xyz = CIE1931.xyz(&crate::illuminant::CieIlluminant::D65, Some(s));
         let [r, g, b]: [u8; 3] = xyz.rgb(Some(crate::rgb::RgbSpace::SRGB)).clamp().into();

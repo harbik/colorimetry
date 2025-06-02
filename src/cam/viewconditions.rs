@@ -1,9 +1,4 @@
-use nalgebra::Vector3;
-use wasm_bindgen::prelude::wasm_bindgen;
-
-use super::{achromatic_rsp, Cam, M16, MCAT02, MCAT02INV, MHPE};
-
-#[wasm_bindgen]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
 #[derive(Clone, Copy, Debug)]
 pub struct ViewConditions {
     /// Degree of Adaptation, if omitted, formula 4.3 of CIE248:2022 is used.``

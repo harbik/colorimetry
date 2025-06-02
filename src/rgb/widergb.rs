@@ -45,9 +45,8 @@ use crate::{
 };
 use approx::AbsDiffEq;
 use nalgebra::Vector3;
-use wasm_bindgen::prelude::wasm_bindgen;
 
-#[wasm_bindgen]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
 #[derive(Debug, Clone, Copy, PartialEq)]
 /// Represents a color stimulus using unconstrained Red, Green, and Blue (RGB) floating-point values
 /// within a device's RGB color space. The values can extend beyond the typical 0.0 to 1.0 range,
