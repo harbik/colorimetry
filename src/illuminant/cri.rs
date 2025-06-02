@@ -174,12 +174,12 @@ fn uv_kries(cdt: [f64; 2], cdr: [f64; 2], cdti: [f64; 2]) -> [f64; 2] {
 
 #[cfg(test)]
 mod cri_test {
-    use crate::illuminant::{CieIlluminant, CRI, D50};
+    use crate::illuminant::{CRI, D50};
 
     #[test]
     fn cri_d50() {
         // should be all 100.0
-        let cri0: crate::illuminant::CRI = (&D50).try_into().unwrap();
+        let cri0: CRI = (&D50).try_into().unwrap();
         // println!("{cri0:?}");
         approx::assert_ulps_eq!(
             cri0.as_ref(),
@@ -191,16 +191,22 @@ mod cri_test {
     #[test]
     #[cfg(feature = "cie-illuminants")]
     fn cri_f1() {
+        use crate::illuminant::CieIlluminant;
         // should be all 100.0
 
         let cri0: CRI = CieIlluminant::F1.illuminant().try_into().unwrap();
         println!("{cri0:?}");
-        // approx::assert_ulps_eq!(cri0.as_ref(), [100.0;crate::cri::N_TCS].as_ref(), epsilon = 0.05);
+        // approx::assert_ulps_eq!(
+        //     cri0.as_ref(),
+        //     [100.0; crate::illuminant::cri::N_TCS].as_ref(),
+        //     epsilon = 0.05
+        // );
     }
 
     #[test]
     #[cfg(feature = "cie-illuminants")]
     fn cri_f3_1() {
+        use crate::illuminant::CieIlluminant;
         // 2932K, check with values as given in CIE15:2004 Table T.8.2
         let cri0: CRI = CieIlluminant::F3_1.illuminant().try_into().unwrap();
         approx::assert_ulps_eq!(
@@ -215,6 +221,7 @@ mod cri_test {
     #[test]
     #[cfg(feature = "cie-illuminants")]
     fn cri_f3_11() {
+        use crate::illuminant::CieIlluminant;
         // 5854K, check with values as given in CIE15:2004 Table T.8.2
         let cri0: CRI = CRI::new(CieIlluminant::F3_11).unwrap();
 

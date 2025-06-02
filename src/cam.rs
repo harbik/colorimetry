@@ -322,39 +322,43 @@ fn inv_cone_adaptation(f_l: f64, x: f64) -> f64 {
     x.signum() * ((100.0 * t.powf(1.0 / 0.42)) / f_l)
 }
 
+#[allow(dead_code)]
 const MCAT02: SMatrix<f64, 3, 3> = matrix![
      0.7328,  0.4296,  -0.1624;
     -0.7036,  1.6975,   0.0061;
      0.0030,  0.0136,   0.9834;
 ];
 
-/**
-   Inverse CIECAT02 Chromatic Adaptation as a Matrix
-*/
+/// Inverse CIECAT02 Chromatic Adaptation as a Matrix
+#[allow(dead_code)]
 const MCAT02INV: SMatrix<f64, 3, 3> = matrix![
     1.096123820835514, 		-0.2788690002182872, 	0.18274517938277304;
     0.45436904197535916,	 0.4735331543074117,	0.0720978037172291;
     -0.009627608738429353, 	-0.005698031216113419,	1.0153256399545427;
 ];
 
+#[allow(dead_code)]
 const MHPE: SMatrix<f64, 3, 3> = matrix![
      0.38971, 0.68898, -0.07868;
     -0.22981, 1.18340,  0.04641;
      0.00000, 0.00000,  1.00000;
 ];
 
+#[allow(dead_code)]
 const MHPEINVLUO: SMatrix<f64, 3, 3> = matrix![
     1.910197, -1.112124,  0.201908;
     0.370950,  0.629054, -0.000008;
     0.000000,  0.000000,  1.000000;
 ];
 
+#[allow(dead_code)]
 const MHPEINV: SMatrix<f64, 3, 3> = matrix![
     1.9101968340520348, -1.1121238927878747,  0.20190795676749937;
     0.3709500882486886,  0.6290542573926132, -0.000008055142184359149;
     0.0,  				 0.0,  				  1.0;
 ];
 
+#[allow(dead_code)]
 const MCAT02INVLUO: SMatrix<f64, 3, 3> = matrix![
      1.096124, -0.278869, 0.182745;
      0.454369,  0.473533, 0.072098;
