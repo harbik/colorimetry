@@ -75,8 +75,12 @@ mod tests {
     use super::CFI;
     use crate::{
         colorant::N_CFI,
-        illuminant::{D65, F1, F12, F2},
+        illuminant::D65,
     };
+
+    #[cfg(feature = "cie-illuminants")]
+    use crate::illuminant::{F1, F12, F2};
+
     use approx::assert_abs_diff_eq;
 
     #[test]
@@ -91,6 +95,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "cie-illuminants")]
     fn test_fl1() {
         let cfi = CFI::new(&F1).unwrap();
         assert_abs_diff_eq!(cfi.cct().t(), 6428.0, epsilon = 3.0); // Rf for DE=1
@@ -99,14 +104,15 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "cie-illuminants")]
     fn test_fl2() {
         let cfi = CFI::new(&F2).unwrap();
         assert_abs_diff_eq!(cfi.cct().t(), 4225.0, epsilon = 1.0); // Rf for DE=1
         assert_abs_diff_eq!(cfi.general_color_fidelity_index(), 70.0, epsilon = 0.5);
-        // Rf for DE=1
     }
 
     #[test]
+    #[cfg(feature = "cie-illuminants")]
     fn test_fl12() {
         let cfi = CFI::new(&F12).unwrap();
         assert_abs_diff_eq!(cfi.cct().t(), 3000.0, epsilon = 1.0); // Rf for DE=1
