@@ -16,7 +16,7 @@ use super::CCT;
 /// # Requirements
 /// - Requires the `cfi` feature to access color evaluation samples (CES) used for testing.
 /// - Requires the `supplemental` feature to use the CIE 1964 observer, which is required in this model. Included when you enable the `cfi` feature.
-/// 
+///
 /// # Overview
 /// The CIE 2017 Colour Fidelity Index (CFI, or **R<sub>f</sub>**) is a modern metric for evaluating how accurately a light source renders colors.
 /// It uses 99 Color Evaluation Samples (CES) that cover a broad range of real-world colors, providing a much more comprehensive assessment
@@ -105,7 +105,7 @@ impl CFI {
     /// match those seen under a reference illuminant. Higher values indicate better color fidelity,
     /// with values close to 100 meaning that colors appear nearly identical to their appearance
     /// under the reference.
-    /// 
+    ///
     /// This value is the main summary statistic of the CIE 2017 Color Fidelity Index,
     /// making it directly comparable to the traditional CRI (**R<sub>a</sub>**) metric, but it is more robust and
     /// accurate, especially for modern light sources.
@@ -123,17 +123,17 @@ impl CFI {
         rf_from_de(sum / N_CFI as f64)
     }
 
-/// Returns the correlated color temperature (CCT) used in the CFI calculation,
-/// which is used to select the appropriate reference illuminant for color fidelity evaluation.
-///
-/// **Note:**  
-/// While the CFI (Color Fidelity Index) itself is calculated using the CIE 1964 10° standard observer,
-/// the CCT is always computed using the CIE 1931 2° standard observer, following the official CIE 224:2017 procedure.
-///
-/// # Returns
-/// * [`CCT`] — A strcuture, containing the correlated color temperature of the test light source,
-///   in Kelvin, and distance to the plancking curve in the CIE1960 UCS chromaticity diagram.
-///
+    /// Returns the correlated color temperature (CCT) used in the CFI calculation,
+    /// which is used to select the appropriate reference illuminant for color fidelity evaluation.
+    ///
+    /// **Note:**  
+    /// While the CFI (Color Fidelity Index) itself is calculated using the CIE 1964 10° standard observer,
+    /// the CCT is always computed using the CIE 1931 2° standard observer, following the official CIE 224:2017 procedure.
+    ///
+    /// # Returns
+    /// * [`CCT`] — A strcuture, containing the correlated color temperature of the test light source,
+    ///   in Kelvin, and distance to the plancking curve in the CIE1960 UCS chromaticity diagram.
+    ///
     pub fn cct(&self) -> CCT {
         self.cct
     }
