@@ -73,10 +73,7 @@ pub fn rf_from_de(de: f64) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::CFI;
-    use crate::{
-        colorant::N_CFI,
-        illuminant::D65,
-    };
+    use crate::{colorant::N_CFI, illuminant::D65};
 
     #[cfg(feature = "cie-illuminants")]
     use crate::illuminant::{F1, F12, F2};
