@@ -19,7 +19,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   distributions and used for filtering.
 - `Planck` struct, with methods for calculating blackbody emission spectra.
 - Add `CieCam02` implementation.
-- Add `CFI` Color Fidelity Index calculations
+- Add `CFI` Color Fidelity Index calculations. with `general_color_fidelity_index` and `special_color_fidelity_indices`.
 
 ### Changed
 - Refactored `physics.rs` with the planck functions and LED functions now moved to the `Illuminant` module,

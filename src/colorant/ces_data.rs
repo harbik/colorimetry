@@ -11,8 +11,8 @@ use std::sync::LazyLock;
 /// The data for these is obtained from the <https:://cie.co.at> site's dataset library, on May 29, 2025.
 /// The dataset uses a 380-780-5nm domain, included below in the 'CFI5' static matrix.
 /// Here the dataset is converted to an array of 99 Spectra, using linear interpolation.
-pub static CFI_DATA: LazyLock<[Colorant; N_CFI]> = LazyLock::new(|| {
-    let s_vec: Vec<Colorant> = CFI5
+pub static CES_DATA: LazyLock<[Colorant; N_CFI]> = LazyLock::new(|| {
+    let s_vec: Vec<Colorant> = CES5
         .column_iter()
         .map(|s| {
             Colorant(
@@ -30,7 +30,7 @@ pub static CFI_DATA: LazyLock<[Colorant; N_CFI]> = LazyLock::new(|| {
     s_vec.try_into().unwrap()
 });
 
-static CFI5: SMatrix<f64, 81, N_CFI> = SMatrix::from_array_storage(ArrayStorage([
+static CES5: SMatrix<f64, 81, N_CFI> = SMatrix::from_array_storage(ArrayStorage([
     [
         0.6359, 0.6359, 0.6359, 0.6359, 0.6359, 0.64015, 0.6454, 0.64888, 0.6507, 0.65147, 0.6508,
         0.64823, 0.644, 0.63825, 0.6301, 0.61895, 0.6063, 0.59361, 0.5802, 0.56548, 0.5515,
