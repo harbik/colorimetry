@@ -50,10 +50,10 @@
 mod munsell_matt;
 
 #[cfg(feature = "cfi")]
-mod cfi;
+mod ces_data;
 
 #[cfg(feature = "cfi")]
-pub use cfi::CFI;
+pub use ces_data::{CES_DATA, N_CFI};
 
 #[cfg(feature = "munsell")]
 pub use munsell_matt::*;

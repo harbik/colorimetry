@@ -18,6 +18,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - `Gaussian` struct, to represent normal distributions as used in this library as spectral
   distributions and used for filtering.
 - `Planck` struct, with methods for calculating blackbody emission spectra.
+- Add `CieCam02` implementation.
+- Add `CFI` Color Fidelity Index calculations. with `general_color_fidelity_index` and `special_color_fidelity_indices`.
 
 ### Changed
 - Refactored `physics.rs` with the planck functions and LED functions now moved to the `Illuminant` module,
@@ -25,6 +27,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Changed `stefan_boltzmann` method name to `total_radiance`.
 - Renamed `ObserverData::xyz_fn_illuminant` to `xyz_from_fn`.
 - Renamed `ObserverData::xyz_from_std_illuminant_x_fn` to `xyz_from_colorant_fn`.
+
 ### Removed
 - Various normal distribution (gaussian) helper functions, now all collected as methods of the `Gaussian` struct.
 - Various Planck's law helper functions, now all collected as methods of the `Planck` struct.

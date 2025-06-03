@@ -1,5 +1,5 @@
 mod viewconditions;
-pub use viewconditions::ViewConditions;
+pub use viewconditions::{ViewConditions, CIE_HOME_DISPLAY, TM30VC};
 
 mod cam16;
 pub use crate::cam::cam16::CieCam16;

@@ -31,7 +31,7 @@ cct = []
 supplemental-observers = []
 cri = ["cct"]
 munsell = []
-cfi = ["cct"]
+cfi = ["cct", "supplemental-observers"]
 
 [dev-dependencies] # for examples and tests
 argmin = "0.10.0"
