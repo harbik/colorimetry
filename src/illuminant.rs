@@ -28,6 +28,8 @@ pub use cri::*;
 
 #[cfg(feature = "cfi")]
 mod cfi;
+
+#[cfg(feature = "cfi")]
 pub use cfi::CFI;
 
 use std::{borrow::Cow, ops::Mul};

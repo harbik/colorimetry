@@ -75,7 +75,7 @@ mod tests {
     use super::CFI;
     use crate::{
         colorant::N_CFI,
-        illuminant::{D65, F1, F2, F12},
+        illuminant::{D65, F1, F12, F2},
     };
     use approx::assert_abs_diff_eq;
 
