@@ -26,6 +26,10 @@ pub use planck::Planck;
 #[cfg(feature = "cri")]
 pub use cri::*;
 
+#[cfg(feature = "cfi")]
+mod cfi;
+pub use cfi::CFI;
+
 use std::{borrow::Cow, ops::Mul};
 
 use nalgebra::{ArrayStorage, SMatrix, SVector};
@@ -130,6 +134,19 @@ impl Illuminant {
             s * p.at_wavelength((i + SPECTRUM_WAVELENGTH_RANGE.start()) as f64 * 1e-9)
         });
         Self(Spectrum(data))
+    }
+
+    pub fn cfi_reference(cct: f64) -> Result<Self, crate::Error> {
+        match cct {
+            c if c < 4000.0 => Ok(Illuminant::planckian(c)),
+            c if c > 5000.0 => Ok(Illuminant::d_illuminant(c)?),
+            _ => {
+                let ill4000 = Illuminant::planckian(4000.0);
+                let ill5000 = Illuminant::d_illuminant(5000.0)?;
+                let f = (cct - 4000.0) / (5000.0 - 4000.0);
+                Ok(Self(f * ill5000.0 + (1.0 - f) * ill4000.0))
+            }
+        }
     }
 
     /// A spectral power distribution for a Light Emitting Diode.

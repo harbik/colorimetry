@@ -53,7 +53,7 @@ mod munsell_matt;
 mod cfi_data;
 
 #[cfg(feature = "cfi")]
-pub use cfi_data::CFI;
+pub use cfi_data::{CFI_DATA, N_CFI};
 
 #[cfg(feature = "munsell")]
 pub use munsell_matt::*;

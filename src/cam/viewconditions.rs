@@ -147,7 +147,6 @@ impl Default for ViewConditions {
     }
 }
 
-#[allow(dead_code)]
 pub const TM30VC: ViewConditions = ViewConditions {
     yb: 20.0,
     c: 0.69,

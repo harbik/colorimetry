@@ -1,5 +1,5 @@
 use nalgebra::{ArrayStorage, SMatrix};
-const N_CFI: usize = 99;
+pub const N_CFI: usize = 99;
 use crate::{
     colorant::Colorant,
     spectrum::{Spectrum, SPECTRUM_WAVELENGTH_RANGE},
@@ -11,13 +11,13 @@ use std::sync::LazyLock;
 /// The data for these is obtained from the <https:://cie.co.at> site's dataset library, on May 29, 2025.
 /// The dataset uses a 380-780-5nm domain, included below in the 'CFI5' static matrix.
 /// Here the dataset is converted to an array of 99 Spectra, using linear interpolation.
-pub static CFI: LazyLock<[Colorant; N_CFI]> = LazyLock::new(|| {
+pub static CFI_DATA: LazyLock<[Colorant; N_CFI]> = LazyLock::new(|| {
     let s_vec: Vec<Colorant> = CFI5
         .column_iter()
         .map(|s| {
             Colorant(
-                Spectrum::linear_interpolate(
-                    &[
+                Spectrum::sprague_interpolate(
+                    [
                         *SPECTRUM_WAVELENGTH_RANGE.start() as f64,
                         *SPECTRUM_WAVELENGTH_RANGE.end() as f64,
                     ],
