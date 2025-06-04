@@ -1674,8 +1674,8 @@ pub static CIE2015_10: ObserverData = ObserverData::new(
 #[cfg(test)]
 mod tests {
     use crate::math::LineAB;
-    use crate::spectrum::SPECTRUM_WAVELENGTH_RANGE;
     use crate::observer::Observer;
+    use crate::spectrum::SPECTRUM_WAVELENGTH_RANGE;
 
     #[test]
     fn cie1931() {

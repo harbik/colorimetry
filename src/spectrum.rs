@@ -494,10 +494,10 @@ fn sprague(h: f64, v: &[f64]) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::observer::Observer::Cie1931;
     use crate::{illuminant::D65, prelude::*};
     use approx::assert_ulps_eq;
     use std::f64::consts::PI;
-    use crate::observer::Observer::Cie1931;
 
     #[test]
     fn test_spectrum_from_rgb() {
