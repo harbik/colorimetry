@@ -4,7 +4,7 @@ use std::{
     ops::{Deref, Mul},
 };
 
-use crate::{observer::ObserverData, rgb::Rgb, spectrum::Spectrum, traits::Light};
+use crate::{observer::Observer, rgb::Rgb, spectrum::Spectrum, traits::Light};
 
 #[derive(Clone)]
 pub struct Stimulus(pub(crate) Spectrum);
@@ -24,8 +24,8 @@ impl Stimulus {
     }
 
     /// Sets the luminance of the stimulus based on the observer data and a luminance value.
-    pub fn set_luminance(mut self, obs: &ObserverData, luminance: f64) -> Self {
-        let y = obs.y_from_spectrum(self.as_ref());
+    pub fn set_luminance(mut self, obs: Observer, luminance: f64) -> Self {
+        let y = obs.data().y_from_spectrum(self.as_ref());
         let l = luminance / y;
         self.0 .0.iter_mut().for_each(|v| *v *= l);
         self

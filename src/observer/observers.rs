@@ -1675,45 +1675,44 @@ pub static CIE2015_10: ObserverData = ObserverData::new(
 mod tests {
     use crate::math::LineAB;
     use crate::spectrum::SPECTRUM_WAVELENGTH_RANGE;
-
-    use super::*;
+    use crate::observer::Observer;
 
     #[test]
     fn cie1931() {
-        test_observer_spectral_locus_wavelength_range(&CIE1931);
+        test_observer_spectral_locus_wavelength_range(Observer::Std1931);
     }
 
     #[cfg(feature = "supplemental-observers")]
     #[test]
     fn cie1964() {
-        test_observer_spectral_locus_wavelength_range(&CIE1964);
+        test_observer_spectral_locus_wavelength_range(Observer::Std1964);
     }
 
     #[cfg(feature = "supplemental-observers")]
     #[test]
     fn cie2015() {
-        test_observer_spectral_locus_wavelength_range(&CIE2015);
+        test_observer_spectral_locus_wavelength_range(Observer::Std2015);
     }
 
     #[cfg(feature = "supplemental-observers")]
     #[test]
     fn cie2015_10() {
-        test_observer_spectral_locus_wavelength_range(&CIE2015_10);
+        test_observer_spectral_locus_wavelength_range(Observer::Std2015_10);
     }
 
     /// Asserts that the `spectral_locus_range` range is correctly set for the observer.
-    fn test_observer_spectral_locus_wavelength_range(observer: &ObserverData) {
+    fn test_observer_spectral_locus_wavelength_range(observer: Observer) {
         let min = spectral_locus_index_min(observer) + SPECTRUM_WAVELENGTH_RANGE.start();
         let max = spectral_locus_index_max(observer) + SPECTRUM_WAVELENGTH_RANGE.start();
         assert!(min >= *SPECTRUM_WAVELENGTH_RANGE.start());
         assert!(max <= *SPECTRUM_WAVELENGTH_RANGE.end());
-        assert_eq!(min..=max, observer.spectral_locus_wavelength_range());
+        assert_eq!(min..=max, observer.data().spectral_locus_wavelength_range());
     }
 
     /// The index value of the blue spectral locus edge.
     ///
     /// Any further spectral locus points will hover around this edge, and will not have a unique wavelength.
-    fn spectral_locus_index_min(observer: &ObserverData) -> usize {
+    fn spectral_locus_index_min(observer: Observer) -> usize {
         const START: usize = 100;
         let spectral_locus_pos_start = spectral_locus_by_index(observer, START).unwrap();
         let mut lp = LineAB::new(spectral_locus_pos_start, [0.33333, 0.33333]).unwrap();
@@ -1739,7 +1738,7 @@ mod tests {
     ///
     /// Any further spectral locus points will hover around this edge.
     #[cfg(test)]
-    pub(crate) fn spectral_locus_index_max(observer: &ObserverData) -> usize {
+    pub(crate) fn spectral_locus_index_max(observer: Observer) -> usize {
         const START: usize = 300;
         let spectral_locus_pos_start = spectral_locus_by_index(observer, START).unwrap();
         let mut lp = LineAB::new(spectral_locus_pos_start, [0.33333, 0.33333]).unwrap();
@@ -1763,8 +1762,9 @@ mod tests {
 
     /// Unrestricted, direct, access to the spectal locus data, in the form of
     /// chromaticity coordinates.
-    fn spectral_locus_by_index(observer: &ObserverData, i: usize) -> Option<[f64; 2]> {
-        let &[x, y, z] = observer.data.get((.., i))?.as_ref();
+    fn spectral_locus_by_index(observer: Observer, i: usize) -> Option<[f64; 2]> {
+        let obsdata = observer.data();
+        let &[x, y, z] = obsdata.data.get((.., i))?.as_ref();
         let s = x + y + z;
         if s != 0.0 {
             Some([x / s, y / s])

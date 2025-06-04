@@ -3,7 +3,7 @@ use std::sync::OnceLock;
 
 use crate::xyz::Chromaticity;
 use crate::{
-    colorant::Colorant, illuminant::CieIlluminant, illuminant::D65, observer::CIE1931,
+    colorant::Colorant, illuminant::CieIlluminant, illuminant::D65, observer::Observer::Std1931,
     rgb::gamma::GammaCurve, rgb::gaussian_filtered_primaries, stimulus::Stimulus,
 };
 use strum_macros::EnumIter;
@@ -149,7 +149,7 @@ impl RgbSpaceData {
             .white
             .illuminant()
             .clone()
-            .set_illuminance(&CIE1931, 100.0)
+            .set_illuminance(Std1931, 100.0)
             .0;
         // RGB primaries defined with reference to CIE1931, and 100 cd/m2.
         let sa = self.primaries.each_ref().map(|v| &v.0 / &white);

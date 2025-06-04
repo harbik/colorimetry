@@ -62,8 +62,7 @@ pub use widergb::WideRgb;
 use crate::{
     colorant::Colorant,
     error::Error,
-    observer::Observer,
-    observer::CIE1931,
+    observer::Observer::{self, Std1931},
     spectrum::Spectrum,
     stimulus::Stimulus,
     traits::{Filter, Light},
@@ -373,16 +372,16 @@ pub fn gaussian_filtered_primaries(
     [
         Stimulus(
             Stimulus(&*Colorant::gaussian(bc, bw).spectrum() * white)
-                .set_luminance(&CIE1931, 100.0)
+                .set_luminance(Std1931, 100.0)
                 .0
                 * f
                 + Stimulus(&*Colorant::gaussian(rc, rw).spectrum() * white)
-                    .set_luminance(&CIE1931, 100.0)
+                    .set_luminance(Std1931, 100.0)
                     .0
                     * (1.0 - f),
         ),
-        Stimulus(&*Colorant::gaussian(gc, gw).spectrum() * white).set_luminance(&CIE1931, 100.0),
-        Stimulus(&*Colorant::gaussian(bc, bw).spectrum() * white).set_luminance(&CIE1931, 100.0),
+        Stimulus(&*Colorant::gaussian(gc, gw).spectrum() * white).set_luminance(Std1931, 100.0),
+        Stimulus(&*Colorant::gaussian(bc, bw).spectrum() * white).set_luminance(Std1931, 100.0),
     ]
 }
 
