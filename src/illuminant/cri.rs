@@ -10,7 +10,7 @@ use crate::{
     colorant::{N_TCS, TCS},
     error::Error,
     illuminant::Illuminant,
-    observer::Observer::Std1931,
+    observer::Observer::Cie1931,
     xyz::XYZ,
 };
 
@@ -91,27 +91,27 @@ impl TryFrom<&Illuminant> for CRI {
     type Error = Error;
 
     fn try_from(illuminant: &Illuminant) -> Result<Self, Self::Error> {
-        let illuminant = &illuminant.clone().set_illuminance(Std1931, 100.0);
+        let illuminant = &illuminant.clone().set_illuminance(Cie1931, 100.0);
         // Calculate Device Under Test (dut) XYZ illuminant and sample values
-        let xyz_dut = Std1931.data().xyz_from_spectrum(illuminant.as_ref());
+        let xyz_dut = Cie1931.data().xyz_from_spectrum(illuminant.as_ref());
         let xyz_dut_samples: [XYZ; N_TCS] = TCS
             .each_ref()
-            .map(|colorant| Std1931.data().xyz(illuminant, Some(colorant)));
+            .map(|colorant| Cie1931.data().xyz(illuminant, Some(colorant)));
 
         // Determine reference color temperarture value
         let cct_dut = xyz_dut.cct()?.t();
         //println!("cct dut {cct_dut}");
         let illuminant_ref = if cct_dut <= 5000.0 {
-            Illuminant::planckian(cct_dut).set_illuminance(Std1931, 100.0)
+            Illuminant::planckian(cct_dut).set_illuminance(Cie1931, 100.0)
         } else {
-            Illuminant::d_illuminant(cct_dut)?.set_illuminance(Std1931, 100.0)
+            Illuminant::d_illuminant(cct_dut)?.set_illuminance(Cie1931, 100.0)
         };
 
         // Calculate the reference illuminant values
-        let xyz_ref = Std1931.data().xyz_from_spectrum(illuminant_ref.as_ref());
+        let xyz_ref = Cie1931.data().xyz_from_spectrum(illuminant_ref.as_ref());
         let xyz_ref_samples: [XYZ; N_TCS] = TCS
             .each_ref()
-            .map(|colorant| Std1931.data().xyz(&illuminant_ref, Some(colorant)));
+            .map(|colorant| Cie1931.data().xyz(&illuminant_ref, Some(colorant)));
 
         let cdt = cd(xyz_dut.uv60());
         let cdr = cd(xyz_ref.uv60());

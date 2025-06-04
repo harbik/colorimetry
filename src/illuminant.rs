@@ -259,7 +259,7 @@ impl Illuminant {
     #[cfg(feature = "cct")]
     pub fn cct(&self) -> Result<cct::CCT, Error> {
         // CIE requires using the CIE1931 observer for calculating the CCT.
-        let xyz = self.xyz(Some(Observer::Std1931));
+        let xyz = self.xyz(Some(Observer::Cie1931));
         cct::CCT::from_xyz(xyz)
     }
 }

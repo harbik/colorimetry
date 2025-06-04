@@ -6,7 +6,7 @@ use crate::{
 };
 
 pub static CIE1931: ObserverData = ObserverData::new(
-    Observer::Std1931,
+    Observer::Cie1931,
     "CIE 1931 2°",
     683.0,
     380..=699,
@@ -417,7 +417,7 @@ pub static CIE1931: ObserverData = ObserverData::new(
 
 #[cfg(feature = "supplemental-observers")]
 pub static CIE1964: ObserverData = ObserverData::new(
-    Observer::Std1964,
+    Observer::Cie1964,
     "CIE 1964 10°",
     683.0,
     380..=701,
@@ -828,7 +828,7 @@ pub static CIE1964: ObserverData = ObserverData::new(
 
 #[cfg(feature = "supplemental-observers")]
 pub static CIE2015: ObserverData = ObserverData::new(
-    Observer::Std2015,
+    Observer::Cie2015,
     "CIE 2015 2°",
     683.0,
     390..=703,
@@ -1262,7 +1262,7 @@ pub static CIE2015: ObserverData = ObserverData::new(
 /// relevant for applications in display technology, lighting design, and colorimetry where larger visual fields
 /// are encountered.
 pub static CIE2015_10: ObserverData = ObserverData::new(
-    Observer::Std2015_10,
+    Observer::Cie2015_10,
     "CIE 2015 10°",
     683.0,
     390..=699,
@@ -1679,25 +1679,25 @@ mod tests {
 
     #[test]
     fn cie1931() {
-        test_observer_spectral_locus_wavelength_range(Observer::Std1931);
+        test_observer_spectral_locus_wavelength_range(Observer::Cie1931);
     }
 
     #[cfg(feature = "supplemental-observers")]
     #[test]
     fn cie1964() {
-        test_observer_spectral_locus_wavelength_range(Observer::Std1964);
+        test_observer_spectral_locus_wavelength_range(Observer::Cie1964);
     }
 
     #[cfg(feature = "supplemental-observers")]
     #[test]
     fn cie2015() {
-        test_observer_spectral_locus_wavelength_range(Observer::Std2015);
+        test_observer_spectral_locus_wavelength_range(Observer::Cie2015);
     }
 
     #[cfg(feature = "supplemental-observers")]
     #[test]
     fn cie2015_10() {
-        test_observer_spectral_locus_wavelength_range(Observer::Std2015_10);
+        test_observer_spectral_locus_wavelength_range(Observer::Cie2015_10);
     }
 
     /// Asserts that the `spectral_locus_range` range is correctly set for the observer.

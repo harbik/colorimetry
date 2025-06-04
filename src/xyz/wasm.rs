@@ -11,9 +11,9 @@ impl XYZ {
     ///
     /// Accepts as arguments
     ///
-    /// - x and y chromaticity coordinates only , using the "Cie::Std1931" observer as default
+    /// - x and y chromaticity coordinates only , using the "Cie::Cie1931" observer as default
     /// - x and y chromaticity coordinates, and standard observer ID as 3rd argument
-    /// - X, Y, and Z tristimulus values, using the "Cie::Std1931" observer as default
+    /// - X, Y, and Z tristimulus values, using the "Cie::Cie1931" observer as default
     /// - X, Y, and Z tristimulus values, and a standard Observer ID as 4th argument
     ///
     /// When only x and y chromaticity coordinates are specified, the luminous
@@ -50,11 +50,11 @@ impl XYZ {
                 x * 100.0 / y,
                 100.0,
                 (1.0 - x - y) * 100.0 / y,
-                Observer::Std1931,
+                Observer::Cie1931,
             ),
             1 => {
                 if opt.get(0).as_f64().is_some() {
-                    (x, y, opt.get(0).as_f64().unwrap(), Observer::Std1931)
+                    (x, y, opt.get(0).as_f64().unwrap(), Observer::Cie1931)
                 } else {
                     let obs = Observer::try_from_js_value(opt.get(0))?;
                     (x * 100.0 / y, 100.0, (1.0 - x - y) * 100.0 / y, obs)

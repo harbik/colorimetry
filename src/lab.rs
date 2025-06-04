@@ -32,7 +32,7 @@
 //! use colorimetry::prelude::*;
 //!
 //! // Convert XYZ to Lab
-//! let xyz = XYZ::new([36.0, 70.0, 12.0], Observer::Std1931);
+//! let xyz = XYZ::new([36.0, 70.0, 12.0], Observer::Cie1931);
 //! let white = CIE1931.xyz_d65(); // Reference white point (D65 illuminant)
 //! let lab1 = CieLab::from_xyz(xyz, white).unwrap();
 //!
@@ -118,8 +118,8 @@ impl CieLab {
     /// ```
     /// use colorimetry::prelude::*;
     ///
-    /// let xyz1 = XYZ::new([36.0, 70.0, 12.0], Observer::Std1931);
-    /// let xyz2 = XYZ::new([35.0, 71.0, 11.0], Observer::Std1931);
+    /// let xyz1 = XYZ::new([36.0, 70.0, 12.0], Observer::Cie1931);
+    /// let xyz2 = XYZ::new([35.0, 71.0, 11.0], Observer::Cie1931);
     /// let xyzn = CIE1931.xyz_d65(); // Reference white point (D65 illuminant)
     /// let lab1 = CieLab::from_xyz(xyz1, xyzn).unwrap();
     /// let lab2 = CieLab::from_xyz(xyz2, xyzn).unwrap();

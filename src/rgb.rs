@@ -23,7 +23,7 @@
 //!   - `Rgb::from_u8(r, g, b, …)` / `Rgb::from_u16(r, g, b, …)` — byte- or word-based input  
 //! - **Color Space & Observer**  
 //!   Optionally supply a standard observer (e.g. CIE1931 or CIE2015) and an RGB color
-//!   space (e.g. sRGB, AdobeRGB). Defaults are Std1931 + sRGB.
+//!   space (e.g. sRGB, AdobeRGB). Defaults are Cie1931 + sRGB.
 //!
 //! ## Conversions
 //!
@@ -62,7 +62,7 @@ pub use widergb::WideRgb;
 use crate::{
     colorant::Colorant,
     error::Error,
-    observer::Observer::{self, Std1931},
+    observer::Observer::{self, Cie1931},
     spectrum::Spectrum,
     stimulus::Stimulus,
     traits::{Filter, Light},
@@ -122,7 +122,7 @@ impl Rgb {
     /// - `r`: Red component, in the range from 0.0 to 1.0
     /// - `g`: Green component, in the range from 0.0 to 1.0
     /// - `b`: Blue component, in the range from 0.0 to 1.0
-    /// - `observer`: Optional observer, defaults to `Observer::Std1931`
+    /// - `observer`: Optional observer, defaults to `Observer::Cie1931`
     /// - `space`: Optional RGB color space, defaults to `RgbSpace::SRGB`
     /// # Returns
     /// A new `Rgb` instance with the specified RGB values and color space.
@@ -152,7 +152,7 @@ impl Rgb {
     /// Construct a RGB instance from red, green, and blue u8 values in the range from 0 to 255.
     ///
     /// When using online RGB data, when observer and color space or color profile are not explicititely specfied,
-    /// `Observer::Std1931`, and `RgbSpace::SRGB` are implied, and those are the defaults here too.
+    /// `Observer::Cie1931`, and `RgbSpace::SRGB` are implied, and those are the defaults here too.
     pub fn from_u8(
         r_u8: u8,
         g_u8: u8,
@@ -171,7 +171,7 @@ impl Rgb {
     /// Construct a RGB instance from red, green, and blue u16 values in the range from 0 to 1.
     ///
     /// When using online RGB data, when observer and color space or color profile are not explicititely specfied,
-    /// `Observer::Std1931`, and `RgbSpace::SRGB` are implied, and those are the defaults here too.
+    /// `Observer::Cie1931`, and `RgbSpace::SRGB` are implied, and those are the defaults here too.
     pub fn from_u16(
         r_u16: u16,
         g_u16: u16,
@@ -372,16 +372,16 @@ pub fn gaussian_filtered_primaries(
     [
         Stimulus(
             Stimulus(&*Colorant::gaussian(bc, bw).spectrum() * white)
-                .set_luminance(Std1931, 100.0)
+                .set_luminance(Cie1931, 100.0)
                 .0
                 * f
                 + Stimulus(&*Colorant::gaussian(rc, rw).spectrum() * white)
-                    .set_luminance(Std1931, 100.0)
+                    .set_luminance(Cie1931, 100.0)
                     .0
                     * (1.0 - f),
         ),
-        Stimulus(&*Colorant::gaussian(gc, gw).spectrum() * white).set_luminance(Std1931, 100.0),
-        Stimulus(&*Colorant::gaussian(bc, bw).spectrum() * white).set_luminance(Std1931, 100.0),
+        Stimulus(&*Colorant::gaussian(gc, gw).spectrum() * white).set_luminance(Cie1931, 100.0),
+        Stimulus(&*Colorant::gaussian(bc, bw).spectrum() * white).set_luminance(Cie1931, 100.0),
     ]
 }
 

@@ -39,7 +39,7 @@ impl Stimulus {
             r_u8,
             g_u8,
             b_u8,
-            Some(crate::observer::Observer::Std1931),
+            Some(crate::observer::Observer::Cie1931),
             Some(crate::rgb::RgbSpace::SRGB),
         );
         rgb.into()
