@@ -3,43 +3,125 @@
 
 A Rust library for color modeling in illumination and engineering projects, with early JavaScript/WebAssembly support.
 Algorithms follow standards from the CIE, ICC, and IES.
-It intends to provide a comprehensive framework for spectral colorimetry:
+It intends to provide a comprehensive framework for spectral colorimetry.
 
-- **Standard `Spectrum` representation**  
-  - All spectra—illuminants, filters, surface reflectance, or stimuli—are defined on a **fixed internal grid** of **401 samples** spanning **380 nm to 780 nm** in **1 nm** increments, using the [`Spectrum`] object.  
-  - Leverages the [`nalgebra`] **linear-algebra library** for efficient vector and matrix operations on spectral data, providing high-performance processing and access to advanced mathematical routines.  
-  - Imports measurements from **arbitrary or irregular** wavelength grids by resampling onto the internal grid using configurable interpolation methods (linear or Sprague–Karup), with optional **smoothing** for oversampled datasets.  
+# Usage
+To use this library in a Rust application, run the command:
+ ```bash
+    cargo add colorimetry
+```
+or add this line to the dependencies in your Cargo.toml file:
+```toml
+    colorimetry = "0.0.6"
+```
 
-- **Built-in spectral datasets**  
-  - **Munsell** color book (Munsell feature)
-  - **CRI TCS** (Test Color Samples, with cri feature)
+# Examples
+<details>
+<summary>Tristimulus Values</summary>
 
-- **Generate spectral distributions** from analytical models
-  - **Planck’s law** for blackbody radiators  
-  - **Gaussian functions** for custom filter shapes  
-  - **RGB channel mixtures** to approximate display pixel spectra
+```rust
+    use colorimetry::prelude::*;
+    use colorimetry::illuminant::D65;
+    use approx::assert_abs_diff_eq as check;
 
-- **CIE standard [Colorimetric Observers]** each represented in the [`Observer`] instance.
-  Calculate associated tristimulus values [`XYZ`] for spectral entities.
-  - **CIE 1931 2º**,
-  - **CIE 1964 10º**,
-  - **CIE 2015 2º**,
-  - **CIE 2015 10º**,
+    // D65 Tristimulus values, using the CIE1931 standard observer by default
+    let xyz_d65 = D65.xyz(None).set_illuminance(100.0);
+
+    let [x, y, z] = xyz_d65.values();
+    check!([x, y, z].as_ref(), [95.04, 100.0, 108.86].as_ref(),  epsilon = 5E-3);
+
+    # #[cfg(feature = "supplemental-observers")]
+    # {
+    // bring in the 2015‐10º observer only if that feature is enabled
+    use colorimetry::observer::Observer::Std2015_10;
+
+    // D65 Tristimulus values using the CIE2015 10º observer
+    let xyz_d65_10 = D65
+        .xyz(Some(Std2015_10))
+        .set_illuminance(100.0);
+
+    let [x_10, y_10, z_10] = xyz_d65_10.values();
+    check!([x_10, y_10, z_10].as_ref(), [94.72, 100.0, 107.143].as_ref(), epsilon = 5E-3);
+    # }
+```
+</details>
+
+<details>
+<summary>Correlated Color Temperature</summary>
+
+```rust
+    use colorimetry::prelude::*;
+    # #[cfg(feature="cie-illuminants")]
+    use colorimetry::illuminant::A;
+    use approx::assert_abs_diff_eq as check;
+
+    // Calculate CCT and Duv for the A illuminant
+    // Requires `cct`, and `cie-illuminants` features
+    # #[cfg(all(feature="cct", feature="cie-illuminants"))]
+    let [cct, duv] = A.cct().unwrap().values();
+    # #[cfg(all(feature="cct", feature="cie-illuminants"))]
+    check!([cct, duv].as_ref(), [2855.4977, 0.0].as_ref(),  epsilon = 5E-4);
+```
+</details>
+
+<details>
+<summary>Color Fidelity Index</summary>
+
+Here is an example calculating the general color fidelity index of the CIE F2 illuminant:
+```rust
+    use colorimetry::prelude::*;
+    # #[cfg(feature="cie-illuminants")]
+    use colorimetry::illuminant::F2;
+    use approx::assert_abs_diff_eq as check;
+
+    // Calculate the Color Fidelity Index of the CIE F2 standard illuminant
+    // Requires `cfi`, and `cie-illuminants` features
+    # #[cfg(all(feature="cfi", feature="cie-illuminants"))]
+    let cf_f2 = F2.cfi().unwrap();
+    # #[cfg(all(feature="cfi", feature="cie-illuminants"))]
+    let cf = cf_f2.general_color_fidelity_index();
+    # #[cfg(all(feature="cfi", feature="cie-illuminants"))]
+    check!(cf, 70.3,  epsilon = 1E-1);
+```
+</details>
 
 
-- **Spectrally based RGB Color Spaces** with transformation matrices between [`Rgb`] and [`XYZ`] values for all color spaces and observers
-  - **sRGB**
-  - **Adobe RGB**
-  - **DisplayP3**
+# Features
 
+- [`Spectrum`] Standard fixed grid spectral representation, over a wavelength domain from 380 to 780 nanometers with 1 nanometer intervals.
+- Transformations from irregular spectral data using [`Spectrum::linear_interpolate`] and [`Spectrum::sprague_interpolate`] interpolation, and optional smoothing using a Gaussian filter [`Spectrum::smooth`].
+- Uses [`nalgebra`] vector/matrix definitions, for fast integration and transformations with access to a large set of algorithms.
+- Generate spectral distributions from analytical models
+  - [`Illuminant::planckian`] Planck’s law for blackbody radiators  
+  - [`Illuminant::led`] Spectral power distribution of a LED
+  - [`Colorant::gaussian`] Gaussian color filters
+  - [`Stimulus::from_rgb`] Specral distribution of an RGB color pixel using Gaussian spectral primaries.
+- CIE Standard Illuminants
+  - Daylight Illuminants: [`D65`], [`D50`]
+  - Incandescent lamp: [`A`]
+  - Fluorescent standard lamps: [`F1`], [`F2`], [`F3`], [`F4`], [`F5`], [`F6`], [`F7`], [`F8`], [`F9`], [`F10`], [`F11`], [`F12`] fluorescent lamps
+  - Extended set of Fluorescent lamps: [`F3_1`], [`F3_2`], [`F3_3`], [`F3_4`], [`F3_5`], [`F3_6`], [`F3_7`], [`F3_8`], [`F3_9`], [`F3_10`], [`F3_11`], [`F3_12`], [`F3_13`], [`F3_14`], [`F3_15`]
+  - Standard LED Illuminants: [`LED_B1`], [`LED_B2`], [`LED_B3`], [`LED_B4`], [`LED_B5`], [`LED_BH1`], [`LED_RGB1`], [`LED_V1`]
+- Illuminant metrics
+  - Correlated color temperature [`CCT`], including distance to blackbody locus for indication of its tint
+  - Color rendering index [`CRI`],
+  - Color fidelity index [`CFI`].
+- Advanced color (appearance) models
+  - [`CieLab`],
+  - [`CieCam02`]
+  - [`CieCam16`]
+- <u>Spectral based red, green, and blue color spaces</u>, with support for non-CIE1931 observers, and generic transformations between  [`Rgb`] and [`XYZ`] color models:
+  - sRGB
+  - Adobe RGB
+  - DisplayP3
+- <u>CIE Standard Observers</u> support (see [`Observer`] and [`ObserverData`]) with transformations to [`XYZ`] tristimulus values;
+  - CIE 1931 2º,
+  - CIE 1964 10º,
+  - CIE 2015 2º,
+  - CIE 2015 10º,
+- Color Difference Metrics
 
-- **Advanced color models**
-  -  **[CIELAB]**
-  -  **[CIECAM16]**
-
-
-## Installation
-
+# Usage
 To use this library in a Rust application, run the command:
  ```bash
     cargo add colorimetry
@@ -62,11 +144,94 @@ The easiest way to use the objects and functions in this library is through its 
     approx::assert_ulps_eq!(z, 108.86, epsilon = 5E-3);
 ```
 
+# Flags
+
+- `supplemental-observers` (enabled by default)
+- `cie-illuminants`
+- `munsell` Include reflection spectra for Munsell colors.
+- `cct`
+  Calculates correlated color temperatures (CCT) for illuminants.
+  Generates a 4096-entry lookup table (each entry containing three `f64` values).
+  Memory is reserved at compile time but computed on demand.
+  (Included automatically if the `cri` feature is enabled).
+- `cri`
+  Enables Color Rendering Index (CRI) calculations, providing Ra and R1–R14 values for illuminants.  
+  Loads an additional 14 test color sample spectra.
+
+<details>
+<summary>How to enable a feature?</summary>
+
+To enable a feature, such as `cri` and `munsell`, use 
+
+```bash
+cargo add colorimetry -F cri,munsell
+```
+or
+```bash
+cargo add colorimetry --features cri,munsell
+```
+
+Alternatively, configure features manually in your `Cargo.toml`:
+
+```toml
+colorimetry = { version = "0.0.6", features = ["cri", "munsell"] }
+```
+
+</details>
+
+## License
+All content &copy;2025 Harbers Bik LLC, and licensed under either of
+
+ * Apache License, Version 2.0
+   ([LICENSE-APACHE](LICENSE-APACHE) or <http://www.apache.org/licenses/LICENSE-2.0>)
+ * MIT license
+   [LICENSE-MIT](LICENSE-MIT) or <http://opensource.org/licenses/MIT>
+
+at your option.
+
+## Contribution
+
+Unless you explicitly state otherwise, any Contribution intentionally submitted
+for inclusion in the Work by you, as defined in the Apache-2.0 license, shall be
+dual licensed as above, without any additional terms or conditions.
+
+# Spectral Data
+All spectra—illuminants, filters, surface reflectance, or stimuli—are defined on a fixed internal grid of 401 samples spanning 380 nm to 780 nm in 1 nm increments, using the [`Spectrum`] object, and the [`nalgebra`] linear-algebra library.
+This allows for efficient vector and matrix operations on spectral data, and provides access to advanced mathematical routines.  
+
+For importing measurements from **arbitrary or irregular** wavelength grids, data can be resampling using interpolation methods (linear or Sprague–Karup), with optional **smoothing** for oversampled datasets.  
+
+Being a spectral colorimetry library, it contains predefined spectral datasets, and facilities to generate spectral data from parameters.
+
+Data sets which are contained within the library are implemented are:
+- measurements of the **Munsell** color book patches (using the `munsell` featurej),
+- the - **CRI TCS** (Test Color Samples, with `cri` feature), 
+- and the 99 **TM30/CFI CES** test color samples (`cfi` feature).
+
+Furthermore the library contains all the **CIE Illuminants** such as:
+- **D65** and **D50** daylight illuminants,
+- the fluorescent **Fx**, **F3x**-series,
+- and the ***LEDxx** series.
+
+Besides predefined datasets, spectral data can be generated from models, such as **Planckian** thermal emitters and **LED
+
+
+
+
+- **Advanced color models**
+  -  **[CIELAB]**
+  -  **[CIECAM16]**
+
+
+## Installation
+
+
 
 ## Features
 
 This library includes a range of spectral data collections, with only a minimal set enabled by default.  
 Additional functionality can be activated using Cargo feature flags.
+
 
 
 <details>
@@ -88,56 +253,6 @@ cargo add colorimetry --no-default-features
 
 </details>
 
-<details>
-<summary><strong>Optional Features</strong></summary>
-
-- **`munsell`**  
-  Include reflection spectra for Munsell colors.
-
-- **`cct`**  
-  _Included automatically if the `cri` feature is enabled._
-  Calculates correlated color temperatures (CCT) for illuminants.
-  Generates a 4096-entry lookup table (each entry containing three `f64` values).
-  Memory is reserved at compile time but computed on demand.
-
-- **`cri`**  
-  Enables Color Rendering Index (CRI) calculations, providing Ra and R1–R14 values for illuminants.  
-  Loads an additional 14 test color sample spectra.
-
-</details>
-
-<details>
-<summary><strong>Enable Features</strong></summary>
-
-To enable a feature, such as `cri` and `munsell`, use 
-
-```bash
-cargo add colorimetry -F cri,munsell
-```
-or
-```bash
-cargo add colorimetry --features cri,munsell
-```
-
-Alternatively, configure features manually in your `Cargo.toml`:
-
-```toml
-colorimetry = { version = "0.0.6", features = ["cri", "munsell"] }
-```
-
-</details>
-
-## Concepts and Examples
-
-- While the core data structure of the library is [`Spectrum`], all colorimetric models operate on higher-level abstractions such as [`Illuminant`], [`Colorant`], and [`Stimulus`], each encapsulating spectral data in a way that aligns with standard colorimetric principles.
-- Depending on the spectral type, the library provides specialized methods—for example:
-  - Correlated color temperature **CCT** and color rendering index **CRI** calculations for `Illuminant`s.
-  - **CIELAB** and **CIECAM** color appearance model computations for `Colorant`s.
-  - **RGB** conversions and colorimetric projections for [`Stimulus`] data.
-- As a first step in almost any colorimetric model, [Colorimetric Observers] are used to compute the tristimulus values (X, Y, Z), which indirectly represent the responses of the eye's cone receptors to external optical stimuli.
-The library includes multiple CIE standard observers as [`Observer`] instances.
-- Advanced color models such as **CIELAB** and **CIECAM** build on these tristimulus values to describe our color perceptions—how we see color—taking into account the state of visual adaptation and viewing conditions.
-- These models also enable the estimation of perceived color differences between stimuli, making it possible to compare how colors appear across displays, printed materials, and real-world objects.
 
 ## Spectral Distributions
 
@@ -244,16 +359,6 @@ To get an `Illuminant` from your spectral data, first create a `Spectrum`, for e
 
 The following standard illuminants are available in the library using the _cie-illuminants_ feature, which is enabled by default.
 
-- **Daylight** (_always included_):  
-  [`D65`], [`D50`]
-- **Incandescent Lamps** (_cie-illuminants_):  
-  [`A`]
-- **Fluorescent Lamps** (_cie-illuminants_):  
-  [`F1`], [`F2`], [`F3`], [`F4`], [`F5`], [`F6`], [`F7`], [`F8`], [`F9`], [`F10`], [`F11`], [`F12`]
-- **Fluorescent Lamps, F3 Series** (_cie_illuminants_):  
-  [`F3_1`], [`F3_2`], [`F3_3`], [`F3_4`], [`F3_5`], [`F3_6`], [`F3_7`], [`F3_8`], [`F3_9`], [`F3_10`], [`F3_11`], [`F3_12`], [`F3_13`], [`F3_14`], [`F3_15`]
-- **LED Lamps** (_cie_illuminants_):   
-  [`LED_B1`], [`LED_B2`], [`LED_B3`], [`LED_B4`], [`LED_B5`], [`LED_BH1`], [`LED_RGB1`], [`LED_V1`]
 
 </details>
 
@@ -458,29 +563,20 @@ With the **`supplemental-observers`** feature enabled, the library also includes
 - [`CIE2015`] and [`CIE2015_10`] cone fundamentals–based observers (CIE 170-2:2015).
 
 
-## License
-All content &copy;2025 Harbers Bik LLC, and licensed under either of
-
- * Apache License, Version 2.0
-   ([LICENSE-APACHE](LICENSE-APACHE) or <http://www.apache.org/licenses/LICENSE-2.0>)
- * MIT license
-   [LICENSE-MIT](LICENSE-MIT) or <http://opensource.org/licenses/MIT>
-
-at your option.
-
-## Contribution
-
-Unless you explicitly state otherwise, any Contribution intentionally submitted
-for inclusion in the Work by you, as defined in the Apache-2.0 license, shall be
-dual licensed as above, without any additional terms or conditions.
 
 
 [`nalgebra`]:https://docs.rs/nalgebra/latest/nalgebra/ 
 [`Spectrum`]: https://docs.rs/colorimetry/latest/colorimetry/spectrum/struct.Spectrum.html
 [`Spectrum::linear_interpolate`]: https://docs.rs/colorimetry/latest/colorimetry/spectrum/struct.Spectrum.html#method.linear_interpolate
 [`Spectrum::sprague_interpolate`]: https://docs.rs/colorimetry/latest/colorimetry/spectrum/struct.Spectrum.html#method.sprague_interpolate
+[`Spectrum::smooth`]: https://docs.rs/colorimetry/latest/colorimetry/spectrum/struct.Spectrum.html#method.smooth
 [`Illuminant`]: https://docs.rs/colorimetry/latest/colorimetry/illuminant/struct.Illuminant.html
+[`Illuminant::planckian`]: https://docs.rs/colorimetry/latest/colorimetry/illuminant/struct.Illuminant.html#method.planckian
+[`Illuminant::led`]: https://docs.rs/colorimetry/latest/colorimetry/illuminant/struct.Illuminant.html#method.led
+[`CCT`]: https://docs.rs/colorimetry/latest/colorimetry/illuminant/struct.CCT.html
+[`CRI`]: https://docs.rs/colorimetry/latest/colorimetry/illuminant/struct.CRI.html
 [`Colorant`]: https://docs.rs/colorimetry/latest/colorimetry/colorant/struct.Colorant.html
+[`Colorant::gaussian`]: https://docs.rs/colorimetry/latest/colorimetry/colorant/struct.Colorant.html#method.gaussian
 [`Stimulus`]: https://docs.rs/colorimetry/latest/colorimetry/stimulus/struct.Stimulus.html
 [`Stimulus::from_srgb`]: https://docs.rs/colorimetry/latest/colorimetry/stimulus/struct.Stimulus.html#method.from_srgb
 [`Stimulus::from_rgb`]: https://docs.rs/colorimetry/latest/colorimetry/stimulus/struct.Stimulus.html#method.from_rgb
