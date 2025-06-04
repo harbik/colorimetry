@@ -278,7 +278,7 @@ pub trait CamTransforms {
     ///
     /// # Errors
     /// Returns an error if the observers of the two colors do not match.
-    fn de_cam(&self, other: &Self) -> Result<f64, crate::Error> {
+    fn de_ucs(&self, other: &Self) -> Result<f64, crate::Error> {
         if self.observer() != other.observer() {
             return Err(crate::Error::RequireSameObserver);
         }

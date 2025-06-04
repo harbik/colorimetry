@@ -106,10 +106,9 @@ Here is an example calculating the general color fidelity index of the CIE F2 il
   - Correlated color temperature [`CCT`], including distance to blackbody locus for indication of its tint
   - Color rendering index [`CRI`],
   - Color fidelity index [`CFI`].
-- Advanced color (appearance) models
-  - [`CieLab`],
-  - [`CieCam02`]
-  - [`CieCam16`]
+- Advanced color (appearance) models:
+  - [`CieLab`], [`CieCam02`] and [`CieCam16`]
+  - Color Difference Methods: [`CieLab::ciede`], [`CieLab::ciede200`], [`CieCam02::de_ucs`], and [`CieCam16::de_ucs`].
 - <u>Spectral based red, green, and blue color spaces</u>, with support for non-CIE1931 observers, and generic transformations between  [`Rgb`] and [`XYZ`] color models:
   - sRGB
   - Adobe RGB
@@ -573,6 +572,9 @@ With the **`supplemental-observers`** feature enabled, the library also includes
 [`Illuminant`]: https://docs.rs/colorimetry/latest/colorimetry/illuminant/struct.Illuminant.html
 [`Illuminant::planckian`]: https://docs.rs/colorimetry/latest/colorimetry/illuminant/struct.Illuminant.html#method.planckian
 [`Illuminant::led`]: https://docs.rs/colorimetry/latest/colorimetry/illuminant/struct.Illuminant.html#method.led
+[`CieLab`]: https://docs.rs/colorimetry/latest/colorimetry/lab/struct.CieLab.html
+[`CieCam02`]: https://docs.rs/colorimetry/latest/colorimetry/cam/struct.CieCam02.html
+[`CieCam16`]: https://docs.rs/colorimetry/latest/colorimetry/cam/struct.CieCam16.html
 [`CCT`]: https://docs.rs/colorimetry/latest/colorimetry/illuminant/struct.CCT.html
 [`CRI`]: https://docs.rs/colorimetry/latest/colorimetry/illuminant/struct.CRI.html
 [`Colorant`]: https://docs.rs/colorimetry/latest/colorimetry/colorant/struct.Colorant.html
@@ -591,8 +593,6 @@ With the **`supplemental-observers`** feature enabled, the library also includes
 [`XYZ`]: https://docs.rs/colorimetry/latest/colorimetry/xyz/struct.XYZ.html
 [`Rgb`]: https://docs.rs/colorimetry/latest/colorimetry/rgb/struct.RGB.html
 [`WideRgb`]: https://docs.rs/colorimetry/latest/colorimetry/widergb/struct.WideRgb.html
-[CIECAM16]: https://docs.rs/colorimetry/latest/colorimetry/cam/struct.CieCam16.html
-[CIELAB]: https://docs.rs/colorimetry/latest/colorimetry/lab/struct.CieLab.html
 [`RgbSpace`]: https://docs.rs/colorimetry/latest/colorimetry/rgbspace/enum.RgbSpace.html
 [`RgbSpaceData`]: https://docs.rs/colorimetry/latest/colorimetry/rgbspace/struct.RgbSpaceData.html
 
