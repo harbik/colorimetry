@@ -80,13 +80,13 @@ difference metrics, compared to the CRI’s use of only 8 samples.
 
 Below is an example calculation of the general Color Fidelity Index for the CIE F2 illuminant:
 
-```rust,ignore
+```rust
     use colorimetry::prelude::*;
-    # #[cfg(feature="cie-illuminants")]
+    # #[cfg(feature = "cie-illuminants")]
     use colorimetry::illuminant::F2;
     use approx::assert_abs_diff_eq as check;
 
-    # #[cfg(all(feature="cfi", feature="cie-illuminants"))] 
+    # #[cfg(all(feature = "cfi", feature = "cie-illuminants"))]
     # {
     // Calculate the Color Fidelity Index of the CIE F2 standard illuminant
     // Requires `cfi`, and `cie-illuminants` features
