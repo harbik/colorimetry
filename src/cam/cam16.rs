@@ -155,10 +155,10 @@ impl CieCam16 {
     ///
     /// # Errors
     /// Returns an error if the observers of the two colors do not match.
-    /// 
+    ///
     /// # References
     /// - [Comprehensive color solutions: CAM16, CAT16, and CAM16-UCS](https://www.researchgate.net/publication/318152296_Comprehensive_color_solutions_CAM16_CAT16_and_CAM16-UCS/)
-    /// 
+    ///
     pub fn de_ucs(&self, other: &Self) -> Result<f64, crate::Error> {
         if self.observer() != other.observer() {
             return Err(crate::Error::RequireSameObserver);
@@ -166,7 +166,7 @@ impl CieCam16 {
 
         let jabp1 = self.jab_prime();
         let jabp2 = other.jab_prime();
-        let de_ucs_prime = Self::delta_e_prime_from_jabp( jabp1.as_ref(), jabp2.as_ref(),);
+        let de_ucs_prime = Self::delta_e_prime_from_jabp(jabp1.as_ref(), jabp2.as_ref());
         Ok(1.41 * de_ucs_prime.powf(0.63))
     }
 }
@@ -223,8 +223,6 @@ mod cam16_test {
         let xyz_rev = cam.xyz(None, Some(vc)).unwrap();
         assert_abs_diff_eq!(xyz, xyz_rev, epsilon = 1E-4);
     }
-
-
 }
 
 #[cfg(test)]

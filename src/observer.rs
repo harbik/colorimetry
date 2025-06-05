@@ -113,7 +113,7 @@ impl Observer {
         self.data().name()
     }
 
-    pub fn xyz( &self, light: &dyn Light, filter: Option<&dyn Filter>) -> XYZ {
+    pub fn xyz(&self, light: &dyn Light, filter: Option<&dyn Filter>) -> XYZ {
         self.data().xyz(light, filter)
     }
 }
