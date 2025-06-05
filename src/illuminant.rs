@@ -208,7 +208,7 @@ impl Illuminant {
 
     #[cfg(feature = "cfi")]
     pub fn cfi(&self) -> Result<CFI, Error> {
-        Ok(CFI::new(self)?)
+        CFI::new(self)
     }
 
     /// Creates a CIE D Illuminant with a correlated color temperature (CCT) in Kelvin.
