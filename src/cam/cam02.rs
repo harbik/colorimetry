@@ -17,8 +17,8 @@
 //! use colorimetry::cam::CamTransforms;
 //! use colorimetry::observer::Observer;
 //!
-//! let sample = XYZ::new([60.7, 49.6, 10.3], Observer::Std1931);
-//! let white  = XYZ::new([96.46, 100.0, 108.62], Observer::Std1931);
+//! let sample = XYZ::new([60.7, 49.6, 10.3], Observer::Cie1931);
+//! let white  = XYZ::new([96.46, 100.0, 108.62], Observer::Cie1931);
 //! let vc     = ViewConditions::new(16.0, 1.0, 1.0, 0.69, 40.0, None);
 //!
 //! let cam = CieCam02::from_xyz(sample, white, vc).unwrap();
@@ -123,8 +123,8 @@ impl CieCam02 {
     /// use colorimetry::xyz::XYZ;
     /// use colorimetry::observer::Observer;
     /// // Original CAM16 instance:
-    /// let sample_xyz = XYZ::new([60.7, 49.6, 10.3], Observer::Std1931);
-    /// let white_xyz  = XYZ::new([96.46, 100.0, 108.62], Observer::Std1931);
+    /// let sample_xyz = XYZ::new([60.7, 49.6, 10.3], Observer::Cie1931);
+    /// let white_xyz  = XYZ::new([96.46, 100.0, 108.62], Observer::Cie1931);
     /// let vc     = ViewConditions::new(16.0, 1.0, 1.0, 0.69, 40.0, None);
     /// let cam = CieCam02::from_xyz(sample_xyz, white_xyz, vc).unwrap();
     ///
@@ -132,7 +132,7 @@ impl CieCam02 {
     /// let back_to_xyz = cam.xyz(None, None).unwrap();
     ///
     /// // Inverse with a new white point:
-    /// let new_white = XYZ::new([95.0, 100.0, 108.0], Observer::Std1931);
+    /// let new_white = XYZ::new([95.0, 100.0, 108.0], Observer::Cie1931);
     /// let adapted_xyz = cam.xyz(Some(new_white), None).unwrap();
     /// ```
     pub fn xyz(
@@ -184,8 +184,8 @@ mod cam02_test {
     // Worked example from CIECAM02 documentation, CIE159:2004, p. 11
     fn test_worked_example() {
         // forward transform (XYZ -> JCh)
-        let xyz = XYZ::new([19.31, 23.93, 10.14], Observer::Std1931);
-        let xyzn = XYZ::new([98.88, 90.0, 32.03], Observer::Std1931);
+        let xyz = XYZ::new([19.31, 23.93, 10.14], Observer::Cie1931);
+        let xyzn = XYZ::new([98.88, 90.0, 32.03], Observer::Cie1931);
 
         // Table 4, column 2, CIE 159:2004.
         // La = 20 cd/m2;
@@ -241,7 +241,7 @@ mod cam02_round_trip_tests {
 
         for &xyz_arr in samples {
             // forward transform (XYZ -> JCh)
-            let xyz = XYZ::new(xyz_arr, Observer::Std1931);
+            let xyz = XYZ::new(xyz_arr, Observer::Cie1931);
             let xyz_d65 = CIE1931.xyz_d65();
             let cam = CieCam02::from_xyz(xyz, xyz_d65, ViewConditions::default()).unwrap();
             let jch = cam.jch();
@@ -251,7 +251,7 @@ mod cam02_round_trip_tests {
             let xyz_back = cam_back.xyz(None, None).unwrap();
 
             // compare original vs. round-tripped XYZ
-            let orig = XYZ::new(xyz_arr, Observer::Std1931);
+            let orig = XYZ::new(xyz_arr, Observer::Cie1931);
             let [x0, y0, z0] = orig.values();
             let [x1, y1, z1] = xyz_back.values();
 

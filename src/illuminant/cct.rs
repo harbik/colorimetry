@@ -185,7 +185,7 @@ impl TryFrom<XYZ> for CCT {
     type Error = Error;
 
     fn try_from(xyz: XYZ) -> Result<Self, Self::Error> {
-        if xyz.observer != Observer::Std1931 {
+        if xyz.observer != Observer::Cie1931 {
             return Err(Error::RequiresCIE1931XYZ);
         }
         let [u, v] = xyz.uv60();

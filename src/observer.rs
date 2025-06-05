@@ -72,7 +72,7 @@ use strum_macros::EnumIter;
 #[derive(Clone, Copy, Default, PartialEq, Eq, Hash, Debug, EnumIter)]
 pub enum Observer {
     #[default]
-    Std1931,
+    Cie1931,
 }
 
 #[cfg(feature = "supplemental-observers")]
@@ -80,10 +80,10 @@ pub enum Observer {
 #[derive(Clone, Copy, Default, PartialEq, Eq, Hash, Debug, EnumIter)]
 pub enum Observer {
     #[default]
-    Std1931,
-    Std1964,
-    Std2015,
-    Std2015_10,
+    Cie1931,
+    Cie1964,
+    Cie2015,
+    Cie2015_10,
 }
 
 impl Observer {
@@ -92,13 +92,13 @@ impl Observer {
     */
     pub fn data(&self) -> &'static ObserverData {
         match self {
-            Observer::Std1931 => &observers::CIE1931,
+            Observer::Cie1931 => &observers::CIE1931,
             #[cfg(feature = "supplemental-observers")]
-            Observer::Std1964 => &observers::CIE1964,
+            Observer::Cie1964 => &observers::CIE1964,
             #[cfg(feature = "supplemental-observers")]
-            Observer::Std2015 => &observers::CIE2015,
+            Observer::Cie2015 => &observers::CIE2015,
             #[cfg(feature = "supplemental-observers")]
-            Observer::Std2015_10 => &observers::CIE2015_10,
+            Observer::Cie2015_10 => &observers::CIE2015_10,
         }
     }
 }
@@ -571,7 +571,7 @@ mod obs_test {
         let d65xyz = CIE1931.xyz_d65().xyz;
         approx::assert_ulps_eq!(
             xyz,
-            crate::xyz::XYZ::from_vecs(d65xyz, crate::observer::Observer::Std1931)
+            crate::xyz::XYZ::from_vecs(d65xyz, crate::observer::Observer::Cie1931)
         );
     }
 

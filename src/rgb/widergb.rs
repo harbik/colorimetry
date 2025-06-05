@@ -71,7 +71,7 @@ impl WideRgb {
     /// - `r`: Red component, any f64 value
     /// - `g`: Green component, any f64 value
     /// - `b`: Blue component, any f64 value
-    /// - `observer`: Optional observer, defaults to `Observer::Std1931`
+    /// - `observer`: Optional observer, defaults to `Observer::Cie1931`
     /// - `space`: Optional RGB color space, defaults to `RgbSpace::SRGB`
     /// # Returns
     /// A new `WideRgb` instance with the specified RGB values and color space.

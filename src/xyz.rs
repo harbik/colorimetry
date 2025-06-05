@@ -83,7 +83,7 @@ impl XYZ {
     /// # Arguments
     /// - `chromaticity` – A `Chromaticity` struct containing the x and y coordinates.  
     /// - `l` – Optional luminous value (Y). Defaults to `100.0` if `None`, and is used to scale X and Z.  
-    /// - `observer` – Optional color-matching standard observer. Defaults to `Observer::Std1931` if `None`.
+    /// - `observer` – Optional color-matching standard observer. Defaults to `Observer::Cie1931` if `None`.
     ///
     /// # Errors
     /// - Returns `CmtError::InvalidChromaticityValues` if `x + y > 1.0 + ε`, since that cannot represent a valid chromaticity.
@@ -137,7 +137,7 @@ impl XYZ {
     /// ```
     /// use colorimetry::{xyz::XYZ, observer::Observer};
     ///
-    /// let xyz = XYZ::new([95.1, 95.0, 27.0], Observer::Std1931);
+    /// let xyz = XYZ::new([95.1, 95.0, 27.0], Observer::Cie1931);
     /// assert_eq!(xyz.x(), 95.1);
     /// ```
     pub fn x(&self) -> f64 {
@@ -153,7 +153,7 @@ impl XYZ {
     /// ```
     /// use colorimetry::{xyz::XYZ, observer::Observer};
     ///
-    /// let xyz = XYZ::new([95.1, 95.0, 27.0], Observer::Std1931);
+    /// let xyz = XYZ::new([95.1, 95.0, 27.0], Observer::Cie1931);
     /// assert_eq!(xyz.y(), 95.0);
     /// ```
     pub fn y(&self) -> f64 {
@@ -164,7 +164,7 @@ impl XYZ {
     /// ```
     /// use colorimetry::{xyz::XYZ, observer::Observer};
     ///
-    /// let xyz = XYZ::new([95.1, 95.0, 27.0], Observer::Std1931);
+    /// let xyz = XYZ::new([95.1, 95.0, 27.0], Observer::Cie1931);
     /// assert_eq!(xyz.z(), 27.0);
     /// ```
     pub fn z(&self) -> f64 {
@@ -195,10 +195,10 @@ impl XYZ {
     /// const D65A: [f64;3] = [95.04, 100.0, 108.86];
     ///
     /// let d65_xyz = CIE1931.xyz(&CieIlluminant::D65, None).set_illuminance(100.0);
-    /// assert_ulps_eq!(d65_xyz, XYZ::new(D65A, Observer::Std1931), epsilon = 1E-2);
+    /// assert_ulps_eq!(d65_xyz, XYZ::new(D65A, Observer::Cie1931), epsilon = 1E-2);
     ///
     /// let d65_xyz_sample = CIE1931.xyz(&CieIlluminant::D65, Some(&Colorant::white()));
-    /// assert_ulps_eq!(d65_xyz_sample, XYZ::new(D65A, Observer::Std1931), epsilon = 1E-2);
+    /// assert_ulps_eq!(d65_xyz_sample, XYZ::new(D65A, Observer::Cie1931), epsilon = 1E-2);
     /// ```
     pub fn set_illuminance(mut self, illuminance: f64) -> Self {
         if self.xyz.y > f64::EPSILON && illuminance > f64::EPSILON {
@@ -400,7 +400,7 @@ mod xyz_test {
 
     #[test]
     fn test_rgb_roundtrip() {
-        let rgb_blue = WideRgb::new(0.0, 0.0, 1.0, Some(Observer::Std1931), Some(RgbSpace::SRGB));
+        let rgb_blue = WideRgb::new(0.0, 0.0, 1.0, Some(Observer::Cie1931), Some(RgbSpace::SRGB));
         let xyz_blue = rgb_blue.xyz();
         let xy_blue = xyz_blue.chromaticity().to_array();
         assert_ulps_eq!(xy_blue.as_ref(), [0.15, 0.06].as_ref(), epsilon = 1E-5);
@@ -412,21 +412,21 @@ mod xyz_test {
     fn ulps_xyz_test() {
         use approx::assert_ulps_eq;
         use nalgebra::Vector3;
-        let xyz0 = XYZ::from_vecs(Vector3::zeros(), Observer::Std1931);
+        let xyz0 = XYZ::from_vecs(Vector3::zeros(), Observer::Cie1931);
 
-        let xyz1 = XYZ::from_vecs(Vector3::new(0.0, 0.0, f64::EPSILON), Observer::Std1931);
+        let xyz1 = XYZ::from_vecs(Vector3::new(0.0, 0.0, f64::EPSILON), Observer::Cie1931);
         assert_ulps_eq!(xyz0, xyz1, epsilon = 1E-5);
 
         let xyz2 = XYZ::from_vecs(
             Vector3::new(0.0, 0.0, 2.0 * f64::EPSILON),
-            Observer::Std1931,
+            Observer::Cie1931,
         );
         approx::assert_ulps_ne!(xyz0, xyz2);
 
         // different observer
         #[cfg(feature = "supplemental-observers")]
         {
-            let xyz3 = XYZ::from_vecs(Vector3::zeros(), Observer::Std1964);
+            let xyz3 = XYZ::from_vecs(Vector3::zeros(), Observer::Cie1964);
             approx::assert_ulps_ne!(xyz0, xyz3);
         }
     }

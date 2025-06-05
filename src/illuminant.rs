@@ -38,7 +38,7 @@ use nalgebra::{ArrayStorage, SMatrix, SVector};
 
 use crate::{
     error::Error,
-    observer::{Observer, ObserverData},
+    observer::Observer,
     spectrum::{wavelength, wavelengths, Spectrum, NS, SPECTRUM_WAVELENGTH_RANGE},
     traits::Light,
     xyz::XYZ,
@@ -183,8 +183,8 @@ impl Illuminant {
 
     /// Sets the illuminance of the illuminant spectrum, which is expressed lumen per square meter,
     /// also referred to as lux.
-    pub fn set_illuminance(mut self, obs: &ObserverData, illuminance: f64) -> Self {
-        let y = obs.y_from_spectrum(self.as_ref());
+    pub fn set_illuminance(mut self, obs: Observer, illuminance: f64) -> Self {
+        let y = obs.data().y_from_spectrum(self.as_ref());
         let l = illuminance / y;
         self.0 .0.iter_mut().for_each(|v| *v *= l);
         self
@@ -192,8 +192,8 @@ impl Illuminant {
 
     /// Calculates the illuminance of the illuminant spectrum, which is expressed in lumen per square meter,
     /// also referred to as lux.
-    pub fn illuminance(&self, obs: &ObserverData) -> f64 {
-        obs.y_from_spectrum(self.as_ref())
+    pub fn illuminance(&self, obs: Observer) -> f64 {
+        obs.data().y_from_spectrum(self.as_ref())
     }
 
     /// Calculates the Color Rendering Index values for illuminant spectrum.
@@ -259,7 +259,7 @@ impl Illuminant {
     #[cfg(feature = "cct")]
     pub fn cct(&self) -> Result<cct::CCT, Error> {
         // CIE requires using the CIE1931 observer for calculating the CCT.
-        let xyz = self.xyz(Some(Observer::Std1931));
+        let xyz = self.xyz(Some(Observer::Cie1931));
         cct::CCT::from_xyz(xyz)
     }
 }
