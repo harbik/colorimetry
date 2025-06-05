@@ -140,6 +140,35 @@ impl CieCam16 {
         self.0
             .xyz(opt_xyzn, opt_viewconditions, super::Cam::CieCam16)
     }
+
+    /// Calculates the CIECAM16-UCS ΔE′ (prime) color difference between two colors.
+    ///
+    /// This method converts each color to its CAM16-UCS Ja′b′ coordinates and then computes the
+    /// Euclidean distance, and applies a non-linear transformation to closely matches perceived
+    /// color differences.
+    ///
+    /// # Parameters
+    /// - `other`: The `CieCam16` instance to compare against.
+    ///
+    /// # Returns
+    /// The ΔE′ value as an `f64`, representing the perceptual color difference.
+    ///
+    /// # Errors
+    /// Returns an error if the observers of the two colors do not match.
+    ///
+    /// # References
+    /// - [Comprehensive color solutions: CAM16, CAT16, and CAM16-UCS](https://www.researchgate.net/publication/318152296_Comprehensive_color_solutions_CAM16_CAT16_and_CAM16-UCS/)
+    ///
+    pub fn de_ucs(&self, other: &Self) -> Result<f64, crate::Error> {
+        if self.observer() != other.observer() {
+            return Err(crate::Error::RequireSameObserver);
+        }
+
+        let jabp1 = self.jab_prime();
+        let jabp2 = other.jab_prime();
+        let de_ucs_prime = Self::delta_e_prime_from_jabp(jabp1.as_ref(), jabp2.as_ref());
+        Ok(1.41 * de_ucs_prime.powf(0.63))
+    }
 }
 
 impl CamTransforms for CieCam16 {

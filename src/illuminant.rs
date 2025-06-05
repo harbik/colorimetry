@@ -206,6 +206,11 @@ impl Illuminant {
         self.try_into()
     }
 
+    #[cfg(feature = "cfi")]
+    pub fn cfi(&self) -> Result<CFI, Error> {
+        CFI::new(self)
+    }
+
     /// Creates a CIE D Illuminant with a correlated color temperature (CCT) in Kelvin.
     /// # Errors
     /// - CmtError::OutOfRange when the cct argument is below 4000 or above 25000 Kelvin.

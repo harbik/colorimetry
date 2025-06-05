@@ -24,7 +24,7 @@ Used for example in the RGB value set, to identify the color space being used.
 pub enum RgbSpace {
     #[default]
     SRGB,
-    ADOBE,
+    Adobe,
     DisplayP3,
 }
 
@@ -33,7 +33,7 @@ impl RgbSpace {
     pub fn name(&self) -> &'static str {
         match self {
             Self::SRGB => "sRGB",
-            Self::ADOBE => "Adobe RGB",
+            Self::Adobe => "Adobe RGB",
             Self::DisplayP3 => "Display P3",
         }
     }
@@ -46,7 +46,7 @@ impl RgbSpace {
     pub fn data(&self) -> &RgbSpaceData {
         match self {
             Self::SRGB => RgbSpaceData::srgb(),
-            Self::ADOBE => RgbSpaceData::adobe_rgb(),
+            Self::Adobe => RgbSpaceData::adobe_rgb(),
             Self::DisplayP3 => RgbSpaceData::display_p3(),
         }
     }
@@ -71,7 +71,7 @@ impl RgbSpace {
         ];
         match self {
             Self::SRGB => SRGB_PRIMARIES,
-            Self::ADOBE => ADOBE_PRIMARIES,
+            Self::Adobe => ADOBE_PRIMARIES,
             Self::DisplayP3 => DISPLAY_P3_PRIMARIES,
         }
     }
@@ -80,7 +80,7 @@ impl RgbSpace {
     pub fn white(&self) -> CieIlluminant {
         match self {
             Self::SRGB => CieIlluminant::D65,
-            Self::ADOBE => CieIlluminant::D65,
+            Self::Adobe => CieIlluminant::D65,
             Self::DisplayP3 => CieIlluminant::D65,
         }
     }

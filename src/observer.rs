@@ -101,6 +101,21 @@ impl Observer {
             Observer::Cie2015_10 => &observers::CIE2015_10,
         }
     }
+
+    pub fn xyz_at_wavelength(&self, wavelength: usize) -> Result<XYZ, Error> {
+        self.data().xyz_at_wavelength(wavelength)
+    }
+
+    pub fn spectral_locus_wavelength_range(&self) -> RangeInclusive<usize> {
+        self.data().spectral_locus_wavelength_range()
+    }
+    pub fn name(&self) -> &'static str {
+        self.data().name()
+    }
+
+    pub fn xyz(&self, light: &dyn Light, filter: Option<&dyn Filter>) -> XYZ {
+        self.data().xyz(light, filter)
+    }
 }
 
 impl fmt::Display for Observer {
