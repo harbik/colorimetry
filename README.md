@@ -101,7 +101,7 @@ Below is an example calculation of the general Color Fidelity Index for the CIE 
 <summary>Chromaticity Diagram's Spectral Locus</summary>
 The spectral locus is the boundary in a chromaticity diagram that encloses all perceivable,
 physically realizable colors. Due to its shape, it is sometimes informally referred to as the
-“horseshoe.”
+"horseshoe."
 
 Below, we compute the chromaticity coordinates that define the spectral locus.
 ```rust
