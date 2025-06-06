@@ -1,3 +1,33 @@
+//! Spectral Power Distributions for Visible Light Stimuli
+//! ======================================================
+//!
+//! This module defines the [`Stimulus`] struct, which represents the spectral power
+//! distribution of a visible light stimulus—such as a pixel on a screen—using a [`Spectrum`].
+//!
+//! A `Stimulus` is typically constructed from RGB values using `from_srgb` or `from_rgb`,
+//! mapping them to a linear combination of spectral primaries defined by a color space
+//! (e.g., sRGB with Gaussian-filtered components). These spectral primaries allow for
+//! physically-informed color calculations that are observer-aware.
+//!
+//! Unlike traditional RGB or XYZ values, a `Stimulus` retains full spectral detail,
+//! enabling colorimetric computations for arbitrary [`Observer`] types,
+//! not just the standard CIE 1931 observer.
+//!
+//! ## Features
+//! - Convert RGB values into spectral representations.
+//! - Scale to a target luminance using real observer sensitivity curves.
+//! - Integrates with the [`Light`] trait for uniform handling of illuminants and reflectances.
+//!
+//! ## When to Use `Stimulus`
+//! Use `Stimulus` when:
+//! - You need to model light with spectral fidelity.
+//! - You want to convert RGB colors to spectra for metamerism studies or non-standard observers.
+//! - You need to simulate how different humans perceive color.
+//!
+//! [`Spectrum`]: crate::spectrum::Spectrum
+//! [`Observer`]: crate::observer::Observer
+//! [`Light`]: crate::traits::Light
+
 use std::{
     borrow::Cow,
     iter::Sum,
@@ -25,7 +55,7 @@ impl Stimulus {
 
     /// Sets the luminance of the stimulus based on the observer data and a luminance value.
     pub fn set_luminance(mut self, obs: Observer, luminance: f64) -> Self {
-        let y = obs.data().y_from_spectrum(self.as_ref());
+        let y = obs.y_from_spectrum(self.as_ref());
         let l = luminance / y;
         self.0 .0.iter_mut().for_each(|v| *v *= l);
         self
@@ -79,7 +109,7 @@ impl Sum for Stimulus {
 impl From<Rgb> for Stimulus {
     fn from(rgb: Rgb) -> Self {
         let prim = &rgb.space.data().primaries;
-        let rgb2xyz = rgb.observer.data().rgb2xyz(rgb.space);
+        let rgb2xyz = rgb.observer.rgb2xyz(rgb.space);
         let yrgb = rgb2xyz.row(1);
         rgb.rgb
             .iter()

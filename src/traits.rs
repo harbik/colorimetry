@@ -1,3 +1,31 @@
+//! Traits for spectrally-defined light sources and partially absorbing media
+//! =========================================================================
+//!
+//! This module defines two key traits:
+//!
+//! - [`Light`]: a trait for anything that emits and can be described by a spectral power distribution.
+//! - [`Filter`]: a trait for anything that (partially) absorbs light spectra, such as dyes and pigments.
+//!
+//! The [`Light`] trait is primarily used to represent illuminants or display pixel emissions,
+//! providing tristimulus values for a given [`Observer`] through spectral integration.
+//! This enables color calculations that are not limited to the CIE 1931 standard observer,
+//! allowing modeling for animal vision, wide-field observers, or custom visual systems.
+//!
+//! You can implement `Light` for types that contain or can generate a [`Spectrum`].
+//! For standard illuminants like D65, the trait is often implemented using lookup tables
+//! or hard-coded spectral curves via the [`Illuminant`] type.
+//!
+//! ## Conversion
+//! Any `Light` can be converted into an [`Illuminant`] using the `From` implementation.
+//!
+//! ## Related Types
+//! - [`Spectrum`]: Represents sampled spectral data across wavelengths.
+//! - [`Observer`]: Encapsulates color matching functions for various observers.
+//! - [`Illuminant`]: Represents standard light sources such as D65 or A.
+//!
+//! [`Spectrum`]: crate::spectrum::Spectrum
+//! [`Observer`]: crate::observer::Observer
+//! [`Illuminant`]: crate::illuminant::Illuminant
 use std::borrow::Cow;
 
 use crate::{illuminant::Illuminant, observer::Observer, spectrum::Spectrum, xyz::XYZ};
@@ -17,7 +45,7 @@ pub trait Light {
     /// The illuminance value is optional, and if not provided, the actual luminous values in the
     /// spectrum are used.
     fn xyzn(&self, observer: Observer, y: Option<f64>) -> XYZ {
-        let xyz = observer.data().xyz_from_spectrum(&self.spectrum());
+        let xyz = observer.xyz_from_spectrum(&self.spectrum());
         if let Some(illuminance) = y {
             xyz.set_illuminance(illuminance)
         } else {

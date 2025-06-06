@@ -1,4 +1,5 @@
-//! # Spectral Reflectance/Transmission Functions for Filters and Surface Colors
+//! Spectral Reflectance/Transmission Functions for Filters and Surface Colors
+//! ==========================================================================
 //!
 //! The **Colorant** module defines spectral **reflectance/transmission filters** (colorants or color patches),
 //! represented as `Spectrum` values in the range [0.0…1.0] over 380 nm…780 nm at 1 nm steps (401 samples).
@@ -193,8 +194,8 @@ impl Colorant {
     pub fn cielab(&self, illuminant_opt: Option<&dyn Light>, obs_opt: Option<Observer>) -> CieLab {
         let illuminant = illuminant_opt.unwrap_or(&crate::illuminant::D65);
         let obs = obs_opt.unwrap_or_default();
-        let xyzn = obs.data().xyz(illuminant, None).set_illuminance(100.0);
-        let xyz = obs.data().xyz(illuminant, Some(self));
+        let xyzn = obs.xyz(illuminant, None).set_illuminance(100.0);
+        let xyz = obs.xyz(illuminant, Some(self));
         // unwrap is safe here, as we know the illuminant and observer are valid
         CieLab::from_xyz(xyz, xyzn).unwrap()
     }
@@ -237,17 +238,17 @@ where
         Values are clamped to a range from 0.0 to 1.0.
         ```rust
         use colorimetry::illuminant::D65;
-        use colorimetry::observer::CIE1931;
+        use colorimetry::observer::Observer::Cie1931;
         use colorimetry::colorant::Colorant;
 
         // linear filter from 0.0 to 1.0.
         let tilt: Colorant = (|x:f64|x).into();
-        let xy = CIE1931.xyz(&D65, Some(&tilt)).chromaticity().to_array();
+        let xy = Cie1931.xyz(&D65, Some(&tilt)).chromaticity().to_array();
         approx::assert_abs_diff_eq!(xy.as_ref(), [0.4066, 0.4049].as_ref(), epsilon = 1E-4);
 
         // parabolic filter
         let parabolic: Colorant = (|x:f64|1.0 - 4.0 * (x - 0.5).powi(2)).into();
-        let xy = CIE1931.xyz(&D65, Some(&parabolic)).chromaticity().to_array();
+        let xy = Cie1931.xyz(&D65, Some(&parabolic)).chromaticity().to_array();
         approx::assert_abs_diff_eq!(xy.as_ref(), [0.3466, 0.3862].as_ref(), epsilon = 1E-4);
         ```
     */

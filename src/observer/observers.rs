@@ -5,7 +5,7 @@ use crate::{
     spectrum::NS,
 };
 
-pub static CIE1931: ObserverData = ObserverData::new(
+pub(super) static CIE1931: ObserverData = ObserverData::new(
     Observer::Cie1931,
     "CIE 1931 2°",
     683.0,
@@ -416,7 +416,7 @@ pub static CIE1931: ObserverData = ObserverData::new(
 );
 
 #[cfg(feature = "supplemental-observers")]
-pub static CIE1964: ObserverData = ObserverData::new(
+pub(super) static CIE1964: ObserverData = ObserverData::new(
     Observer::Cie1964,
     "CIE 1964 10°",
     683.0,
@@ -827,7 +827,7 @@ pub static CIE1964: ObserverData = ObserverData::new(
 );
 
 #[cfg(feature = "supplemental-observers")]
-pub static CIE2015: ObserverData = ObserverData::new(
+pub(super) static CIE2015: ObserverData = ObserverData::new(
     Observer::Cie2015,
     "CIE 2015 2°",
     683.0,
@@ -1261,7 +1261,7 @@ pub static CIE2015: ObserverData = ObserverData::new(
 /// This dataset is intended for spectral color calculations involving wider visual fields and is especially
 /// relevant for applications in display technology, lighting design, and colorimetry where larger visual fields
 /// are encountered.
-pub static CIE2015_10: ObserverData = ObserverData::new(
+pub(super) static CIE2015_10: ObserverData = ObserverData::new(
     Observer::Cie2015_10,
     "CIE 2015 10°",
     683.0,
@@ -1706,7 +1706,7 @@ mod tests {
         let max = spectral_locus_index_max(observer) + SPECTRUM_WAVELENGTH_RANGE.start();
         assert!(min >= *SPECTRUM_WAVELENGTH_RANGE.start());
         assert!(max <= *SPECTRUM_WAVELENGTH_RANGE.end());
-        assert_eq!(min..=max, observer.data().spectral_locus_wavelength_range());
+        assert_eq!(min..=max, observer.spectral_locus_wavelength_range());
     }
 
     /// The index value of the blue spectral locus edge.

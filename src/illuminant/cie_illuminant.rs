@@ -88,7 +88,7 @@ impl Light for CieIlluminant {
         observer: crate::observer::Observer,
         illuminance: Option<f64>,
     ) -> crate::xyz::XYZ {
-        observer.data().xyz_cie_table(self, illuminance)
+        observer.xyz_cie_table(self, illuminance)
     }
 
     fn spectrum(&self) -> Cow<'_, Spectrum> {

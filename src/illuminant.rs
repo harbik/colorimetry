@@ -123,7 +123,7 @@ impl Illuminant {
     /// # use approx::assert_ulps_eq;
     ///
     /// let p3000 = Illuminant::planckian(3000.0);
-    /// let xyz = CIE1931.xyz(&p3000, None);
+    /// let xyz = Cie1931.xyz(&p3000, None);
     /// let chromaticity = xyz.chromaticity();
     /// assert_ulps_eq!(chromaticity.x(), 0.436_935, epsilon = 1E-6);
     /// assert_ulps_eq!(chromaticity.y(), 0.404_083, epsilon = 1E-6);
@@ -184,7 +184,7 @@ impl Illuminant {
     /// Sets the illuminance of the illuminant spectrum, which is expressed lumen per square meter,
     /// also referred to as lux.
     pub fn set_illuminance(mut self, obs: Observer, illuminance: f64) -> Self {
-        let y = obs.data().y_from_spectrum(self.as_ref());
+        let y = obs.y_from_spectrum(self.as_ref());
         let l = illuminance / y;
         self.0 .0.iter_mut().for_each(|v| *v *= l);
         self
@@ -193,7 +193,7 @@ impl Illuminant {
     /// Calculates the illuminance of the illuminant spectrum, which is expressed in lumen per square meter,
     /// also referred to as lux.
     pub fn illuminance(&self, obs: Observer) -> f64 {
-        obs.data().y_from_spectrum(self.as_ref())
+        obs.y_from_spectrum(self.as_ref())
     }
 
     /// Calculates the Color Rendering Index values for illuminant spectrum.
@@ -253,7 +253,7 @@ impl Illuminant {
     /// none is provided.
     pub fn xyz(&self, obs_opt: Option<Observer>) -> XYZ {
         let obs = obs_opt.unwrap_or_default();
-        obs.data().xyz_from_spectrum(&self.0)
+        obs.xyz_from_spectrum(&self.0)
     }
 
     /// Calculate the correlated color temperature (CCT) of the illuminant.
@@ -326,10 +326,11 @@ impl Light for Illuminant {
 
 #[test]
 fn test_d_illuminant() {
+    use crate::observer::Observer::Cie1931;
     use crate::prelude::*;
     let s = Illuminant::d_illuminant(6504.0).unwrap();
-    let xyz = CIE1931.xyz_from_spectrum(s.as_ref()).set_illuminance(100.0);
-    approx::assert_ulps_eq!(xyz, CIE1931.xyz_d65(), epsilon = 2E-2);
+    let xyz = Cie1931.xyz_from_spectrum(s.as_ref()).set_illuminance(100.0);
+    approx::assert_ulps_eq!(xyz, Cie1931.xyz_d65(), epsilon = 2E-2);
 }
 
 #[test]
@@ -347,7 +348,7 @@ fn test_xyz() {
     let s = *Illuminant::d_illuminant(6504.0).unwrap().as_ref().values();
     let illuminant = Illuminant(Spectrum::from(s));
     let xyz = illuminant.xyz(None).set_illuminance(100.0);
-    approx::assert_ulps_eq!(xyz, CIE1931.xyz_d65(), epsilon = 2E-2);
+    approx::assert_ulps_eq!(xyz, Observer::Cie1931.xyz_d65(), epsilon = 2E-2);
 }
 
 const CIE_D_S_LEN: usize = 81;

@@ -227,6 +227,7 @@ mod cam16_test {
 
 #[cfg(test)]
 mod cam16_round_trip_tests {
+    use crate::observer::Observer::Cie1931;
     use crate::prelude::*;
     use approx::assert_abs_diff_eq;
 
@@ -252,8 +253,8 @@ mod cam16_round_trip_tests {
 
         for &xyz_arr in samples {
             // forward transform (XYZ -> JCh)
-            let xyz = XYZ::new(xyz_arr, Observer::Cie1931);
-            let xyz_d65 = CIE1931.xyz_d65();
+            let xyz = XYZ::new(xyz_arr, Cie1931);
+            let xyz_d65 = Cie1931.xyz_d65();
             let cam = CieCam16::from_xyz(xyz, xyz_d65, ViewConditions::default()).unwrap();
             let jch = cam.jch();
 
@@ -262,7 +263,7 @@ mod cam16_round_trip_tests {
             let xyz_back = cam_back.xyz(None, None).unwrap();
 
             // compare original vs. round-tripped XYZ
-            let orig = XYZ::new(xyz_arr, Observer::Cie1931);
+            let orig = XYZ::new(xyz_arr, Cie1931);
             let [x0, y0, z0] = orig.values();
             let [x1, y1, z1] = xyz_back.values();
 

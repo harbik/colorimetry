@@ -1,5 +1,5 @@
 use crate::math::distance;
-use crate::observer::CIE1964;
+use crate::observer::Observer::Cie1964;
 use crate::{
     cam::{CamTransforms, CieCam02, TM30VC},
     colorant::{CES_DATA, N_CFI},
@@ -51,16 +51,16 @@ impl CFI {
         let cct = illuminant.cct()?;
         let ref_illuminant = Illuminant::cfi_reference(cct.t())?;
         let vc = TM30VC;
-        let xyzn_r = CIE1964.xyz(&ref_illuminant, None).set_illuminance(100.0);
-        let xyzn_t = CIE1964.xyz(illuminant, None).set_illuminance(100.0);
+        let xyzn_r = Cie1964.xyz(&ref_illuminant, None).set_illuminance(100.0);
+        let xyzn_t = Cie1964.xyz(illuminant, None).set_illuminance(100.0);
         let mut jabp_ts = [[0f64; 3]; N_CFI];
         let mut jabp_rs = [[0f64; 3]; N_CFI];
         for (i, cfi_ces) in CES_DATA.iter().enumerate() {
-            let xyz_t = CIE1964.xyz(illuminant, Some(cfi_ces));
+            let xyz_t = Cie1964.xyz(illuminant, Some(cfi_ces));
             let jabp_t = CieCam02::from_xyz(xyz_t, xyzn_t, vc)?.jab_prime();
             jabp_ts[i] = jabp_t;
 
-            let xyz_r = CIE1964.xyz(&ref_illuminant, Some(cfi_ces));
+            let xyz_r = Cie1964.xyz(&ref_illuminant, Some(cfi_ces));
             let jabp_r = CieCam02::from_xyz(xyz_r, xyzn_r, vc)?.jab_prime();
             jabp_rs[i] = jabp_r;
         }

@@ -1,4 +1,5 @@
-//!  CIE color appearance models (CIECAM02 and CIECAM16).
+//! CIE color appearance models (CIECAM02 and CIECAM16).
+//! ====================================================
 //!
 //! This module provides structures and functions to convert between CIEXYZ tristimulus values
 //! and the perceptual correlates of human color vision. It includes:

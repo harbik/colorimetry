@@ -21,7 +21,7 @@
 //! - **CIELab & Delta-E**  
 //!   - `CieLab` and color-difference formulas (Euclidean ΔE*ab, CIEDE2000).  
 //! - **Observers**  
-//!   - Standard observers (CIE1931, CIE1964, CIE2015 cone fundamentals).  
+//!   - Standard observers CIE1931
 //! - **Physics**  
 //!   - Radiometric constants (Planck’s law, Stefan–Boltzmann), Gaussian helpers, wavelength converters.  
 //! - **RGB Color**  
@@ -36,7 +36,7 @@ pub use super::cam::{CamTransforms, CieCam16, ViewConditions};
 pub use super::colorant::Colorant;
 pub use super::illuminant::{CieIlluminant, Illuminant};
 pub use super::lab::CieLab;
-pub use super::observer::{Observer, CIE1931};
+pub use super::observer::{Observer, Observer::Cie1931};
 pub use super::rgb::{Rgb, RgbSpace, WideRgb};
 pub use super::spectrum::Spectrum;
 pub use super::stimulus::Stimulus;

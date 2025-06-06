@@ -1,4 +1,5 @@
-//! # Standard Observers
+//! Standard Observers
+//! ==================
 //!
 //! In color science, we model how humans perceive light using “standard observers”—mathematical averages of real people’s color responses. Here’s the gist:
 //!
@@ -44,8 +45,6 @@
 
 mod observers;
 
-pub use observers::*;
-
 use crate::{
     error::Error,
     illuminant::{CieIlluminant, Planck},
@@ -60,13 +59,66 @@ use nalgebra::{Matrix3, SMatrix, Vector3};
 use std::{fmt, ops::RangeInclusive, sync::OnceLock};
 use strum_macros::EnumIter;
 
-/**
-   Light-weight identifier added to the `XYZ` and `RGB` datasets,
-   representing the colorimetric standard observer used.
+///     A data structure to define Standard Observers, such as the CIE 1931 2º and
+///     the CIE 2015 standard observers.
+///
+///     These are defined in the form of the three color matching functions,
+///     typically denoted by $\hat{x}(\lamda)$,$\hat{y}{\lambda}$, and $\hat{z}(\lambda)$.
+///     Traditionally, the CIE1931 Colorimetric Standard Observer is used almost exclusively,
+///     but is known to be not a good representation of human vision in the blue region of the
+///     spectrum. We also know now that the way you see color varies with age, and your healty,
+///     and that not everyone sees to same color.
+///
+///     In this library colors are represented by spectral distributions, to allow color modelling
+///     with newer, and better standard observers, such as the CIE2015 Observer, derived from
+///     the sensitivities of the cones in the retina of your eye, the biological color receptors
+///     of light.
+///
+///     It's main purpose is to calculate `XYZ` tristimulus values for a general stimulus,
+///     in from of a `Spectrum`.
+struct ObserverData {
+    data: SMatrix<f64, 3, NS>,
+    lumconst: f64,
+    tag: Observer,
+    name: &'static str,
+    d65: OnceLock<XYZ>,
+    d50: OnceLock<XYZ>,
 
-   No data included here, which would be the Rust way, but that does not work with wasm-bindgen.
-   This can be directly used in JavaScript, and has the benefit to be just an index.
-*/
+    /// The range of indices for which the spectral locus of this observer returns unique
+    /// chromaticity coordinates. See documentation for the
+    /// [`ObserverData::spectral_locus_wavelength_range`] method for details.
+    spectral_locus_range: RangeInclusive<usize>,
+}
+
+impl ObserverData {
+    /// Creates a new `ObserverData` object, with the given color matching functions.
+    ///
+    /// Only visible to the crate itself since it cannot be used nicely from the outside
+    /// (since the `tag` is not something anyone else can create new varians of).
+    const fn new(
+        tag: Observer,
+        name: &'static str,
+        lumconst: f64,
+        spectral_locus_range: RangeInclusive<usize>,
+        data: SMatrix<f64, 3, NS>,
+    ) -> Self {
+        Self {
+            data,
+            lumconst,
+            tag,
+            name,
+            d65: OnceLock::new(),
+            d50: OnceLock::new(),
+            spectral_locus_range,
+        }
+    }
+}
+
+/// Light-weight identifier added to the `XYZ` and `RGB` datasets,
+///    representing the colorimetric standard observer used.
+///
+///    No data included here, which would be the Rust way, but that does not work with wasm-bindgen.
+///    This can be directly used in JavaScript, and has the benefit to be just an index.
 #[cfg(not(feature = "supplemental-observers"))]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
 #[derive(Clone, Copy, Default, PartialEq, Eq, Hash, Debug, EnumIter)]
@@ -87,10 +139,8 @@ pub enum Observer {
 }
 
 impl Observer {
-    /**
-       Get a reference to the data for the specified `Observer`.
-    */
-    pub fn data(&self) -> &'static ObserverData {
+    /// Get a reference to the data for the specified `Observer`.
+    fn data(&self) -> &'static ObserverData {
         match self {
             Observer::Cie1931 => &observers::CIE1931,
             #[cfg(feature = "supplemental-observers")]
@@ -102,96 +152,9 @@ impl Observer {
         }
     }
 
-    pub fn xyz_at_wavelength(&self, wavelength: usize) -> Result<XYZ, Error> {
-        self.data().xyz_at_wavelength(wavelength)
-    }
-
-    pub fn spectral_locus_wavelength_range(&self) -> RangeInclusive<usize> {
-        self.data().spectral_locus_wavelength_range()
-    }
-    pub fn name(&self) -> &'static str {
-        self.data().name()
-    }
-
-    pub fn xyz(&self, light: &dyn Light, filter: Option<&dyn Filter>) -> XYZ {
-        self.data().xyz(light, filter)
-    }
-
-    pub fn rgb2xyz(&self, rgbspace: RgbSpace) -> Matrix3<f64> {
-        self.data().rgb2xyz(rgbspace)
-    }
-
-    pub fn xyz2rgb(&self, rgbspace: RgbSpace) -> Matrix3<f64> {
-        self.data().xyz2rgb(rgbspace)
-    }
-}
-
-impl fmt::Display for Observer {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.data().name().fmt(f)
-    }
-}
-
-/**
-    A data structure to define Standard Observers, such as the CIE 1931 2º and
-    the CIE 2015 standard observers.
-
-    These are defined in the form of the three color matching functions,
-    typically denoted by $\hat{x}(\lamda)$,$\hat{y}{\lambda}$, and $\hat{z}(\lambda)$.
-    Traditionally, the CIE1931 Colorimetric Standard Observer is used almost exclusively,
-    but is known to be not a good representation of human vision in the blue region of the
-    spectrum. We also know now that the way you see color varies with age, and your healty,
-    and that not everyone sees to same color.
-
-    In this library colors are represented by spectral distributions, to allow color modelling
-    with newer, and better standard observers, such as the CIE2015 Observer, derived from
-    the sensitivities of the cones in the retina of your eye, the biological color receptors
-    of light.
-
-    It's main purpose is to calculate `XYZ` tristimulus values for a general stimulus,
-    in from of a `Spectrum`.
-*/
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
-pub struct ObserverData {
-    data: SMatrix<f64, 3, NS>,
-    lumconst: f64,
-    tag: Observer,
-    name: &'static str,
-    d65: OnceLock<XYZ>,
-    d50: OnceLock<XYZ>,
-
-    /// The range of indices for which the spectral locus of this observer returns unique
-    /// chromaticity coordinates. See documentation for the
-    /// [`ObserverData::spectral_locus_wavelength_range`] method for details.
-    spectral_locus_range: RangeInclusive<usize>,
-}
-
-impl ObserverData {
-    /// Creates a new `ObserverData` object, with the given color matching functions.
-    ///
-    /// Only visible to the crate itself since it cannot be used nicely from the outside
-    /// (since the `tag` is not something anyone else can create new varians of).
-    pub(crate) const fn new(
-        tag: Observer,
-        name: &'static str,
-        lumconst: f64,
-        spectral_locus_range: RangeInclusive<usize>,
-        data: SMatrix<f64, 3, NS>,
-    ) -> Self {
-        Self {
-            data,
-            lumconst,
-            tag,
-            name,
-            d65: OnceLock::new(),
-            d50: OnceLock::new(),
-            spectral_locus_range,
-        }
-    }
-
     /// Returns the name of the observer.
     pub fn name(&self) -> &'static str {
-        self.name
+        self.data().name
     }
 
     /// Calulates Tristimulus values for an object implementing the [Light] trait, and an optional [Filter],
@@ -204,7 +167,7 @@ impl ObserverData {
     /// As a light, it is the light emitted from the pixel, as a filter it is the RGB-composite
     /// filter which is applied to the underlying standard illuminant of color space.
     pub fn xyz(&self, light: &dyn Light, filter: Option<&dyn Filter>) -> XYZ {
-        let xyzn = light.xyzn(self.tag, None);
+        let xyzn = light.xyzn(self.data().tag, None);
         if let Some(flt) = filter {
             let s = *light.spectrum() * *flt.spectrum();
             let xyz = self.xyz_from_spectrum(&s);
@@ -224,13 +187,13 @@ impl ObserverData {
 
     */
     pub fn xyz_from_spectrum(&self, spectrum: &Spectrum) -> XYZ {
-        let xyz = self.data * spectrum.0 * self.lumconst;
-        XYZ::from_vecs(xyz, self.tag)
+        let xyz = self.data().data * spectrum.0 * self.data().lumconst;
+        XYZ::from_vecs(xyz, self.data().tag)
     }
 
     /// Calculates the lumimous value or Y tristimulus value for a general spectrum.
     pub fn y_from_spectrum(&self, spectrum: &Spectrum) -> f64 {
-        (self.data.row(1) * spectrum.0 * self.lumconst)[(0, 0)]
+        (self.data().data.row(1) * spectrum.0 * self.data().lumconst)[(0, 0)]
     }
 
     /// Returns the observer's color matching function (CMF) data as an [XYZ] tristimulus
@@ -245,10 +208,11 @@ impl ObserverData {
             return Err(Error::WavelengthOutOfRange);
         };
         let &[x, y, z] = self
+            .data()
             .data
             .column(wavelength - SPECTRUM_WAVELENGTH_RANGE.start())
             .as_ref();
-        Ok(XYZ::from_vecs(Vector3::new(x, y, z), self.tag))
+        Ok(XYZ::from_vecs(Vector3::new(x, y, z), self.data().tag))
     }
 
     /// Tristimulus values for the Standard Illuminants in this library.
@@ -266,40 +230,16 @@ impl ObserverData {
     }
 
     /// XYZ tristimulus values for the CIE standard daylight illuminant D65 (buffered).
-    ///
-    /// # Examples
-    /// ```
-    /// // Test data from [CIE 15:2018](https://cie.co.at/publications/colorimetry-4th-edition) for test data
-    /// use colorimetry::{xyz::XYZ, illuminant::CieIlluminant};
-    ///
-    /// let cie1931_d65_xyz = colorimetry::observer::CIE1931.xyz_d65();
-    /// approx::assert_ulps_eq!(cie1931_d65_xyz.values().as_ref(), [95.047, 100.0, 108.883].as_ref(), epsilon = 5E-2);
-    /// ```
     pub fn xyz_d65(&self) -> XYZ {
-        *self.d65.get_or_init(|| {
+        *self.data().d65.get_or_init(|| {
             self.xyz_from_spectrum(CieIlluminant::D65.illuminant().as_ref())
                 .set_illuminance(100.0)
         })
     }
 
     /// XYZ tristimulus values for the CIE standard daylight illuminant D50 (buffered).
-    ///
-    /// # Examples
-    /// ```ignore
-    /// // Test data from [CIE 15:2018](https://cie.co.at/publications/colorimetry-4th-edition) for test data
-    /// use colorimetry::{xyz::XYZ, illuminant::CieIlluminant};
-    ///
-    /// let cie1931_d50_xyz = colorimetry::observer::CIE1931.xyz_d50();
-    /// approx::assert_ulps_eq!(cie1931_d50_xyz.values().as_ref(), [96.421, 100.0, 82.519].as_ref(), epsilon = 5E-2);
-    ///
-    /// # #[cfg(feature = "supplemental-observers")]
-    /// # {
-    /// let cie1964_d50_xyz = colorimetry::observer::CIE1964.xyz_d50();
-    /// approx::assert_ulps_eq!(cie1964_d50_xyz.values().as_ref(), [96.720, 100.0, 81.427].as_ref(), epsilon = 5E-2);
-    /// # }
-    /// ```
     pub fn xyz_d50(&self) -> XYZ {
-        *self.d50.get_or_init(|| {
+        *self.data().d50.get_or_init(|| {
             self.xyz_from_spectrum(CieIlluminant::D50.illuminant().as_ref())
                 .set_illuminance(100.0)
         })
@@ -322,15 +262,6 @@ impl ObserverData {
         self.xyz_from_fn(|l| p.slope_at_wavelength(to_wavelength(l, 0.0, 1.0)))
     }
 
-    /// Calculates the L*a*b* CIELAB D65 values of a Colorant, using D65 as an illuminant.
-    /// Accepts a Colorant Spectrum only.
-    /// Returns f64::NAN's otherwise.
-    pub fn lab_d65(&self, filter: &dyn Filter) -> CieLab {
-        let xyz = self.xyz(&CieIlluminant::D65, Some(filter));
-        let xyzn = self.xyz_d65();
-        CieLab::from_xyz(xyz, xyzn).unwrap()
-    }
-
     /// Calculates the L*a*b* CIELAB D50 values of a Colorant, using D65 as an illuminant.
     /// Accepts a Colorant Spectrum only.
     /// Returns f64::NAN's otherwise.
@@ -340,25 +271,13 @@ impl ObserverData {
         CieLab::from_xyz(xyz, xyzn).unwrap()
     }
 
-    /// Returns the wavelength range (in nanometer) for the _horse shoe_,
-    /// the boundary of the area of all physical colors in a chromiticity diagram,
-    /// for this observer.
-    ///
-    /// Spectral locus points tend to freeze, or even fold back to lower wavelength
-    /// values at the blue and red perimeter ends. This can be quite anoying, for
-    /// example when trying to calculate dominant wavelength, or when creating
-    /// plots.
-    /// See Wikipedia's [CIE 1931 Color Space](https://en.wikipedia.org/wiki/CIE_1931_color_space).
-    ///
-    /// To help with the above problem, this method returns the wavelength range
-    /// for which the spectral locus points are unique, meaning
-    /// each wavelength has a chromaticity coordinate different from the wavelength
-    /// below or above it.
-    ///
-    /// To get the tristimulus values of the spectral locus, use
-    /// [`xyz_at_wavelength`](Self::xyz_at_wavelength).
-    pub fn spectral_locus_wavelength_range(&self) -> RangeInclusive<usize> {
-        self.spectral_locus_range.clone()
+    /// Calculates the L*a*b* CIELAB D65 values of a Colorant, using D65 as an illuminant.
+    /// Accepts a Colorant Spectrum only.
+    /// Returns f64::NAN's otherwise.
+    pub fn lab_d65(&self, filter: &dyn Filter) -> CieLab {
+        let xyz = self.xyz(&CieIlluminant::D65, Some(filter));
+        let xyzn = self.xyz_d65();
+        CieLab::from_xyz(xyz, xyzn).unwrap()
     }
 
     /// Calculates the RGB to XYZ matrix, for a particular color space.
@@ -386,6 +305,27 @@ impl ObserverData {
         self.rgb2xyz(rgbspace).try_inverse().unwrap()
     }
 
+    /// Returns the wavelength range (in nanometer) for the _horse shoe_,
+    /// the boundary of the area of all physical colors in a chromiticity diagram,
+    /// for this observer.
+    ///
+    /// Spectral locus points tend to freeze, or even fold back to lower wavelength
+    /// values at the blue and red perimeter ends. This can be quite anoying, for
+    /// example when trying to calculate dominant wavelength, or when creating
+    /// plots.
+    /// See Wikipedia's [CIE 1931 Color Space](https://en.wikipedia.org/wiki/CIE_1931_color_space).
+    ///
+    /// To help with the above problem, this method returns the wavelength range
+    /// for which the spectral locus points are unique, meaning
+    /// each wavelength has a chromaticity coordinate different from the wavelength
+    /// below or above it.
+    ///
+    /// To get the tristimulus values of the spectral locus, use
+    /// [`xyz_at_wavelength`](Self::xyz_at_wavelength).
+    pub fn spectral_locus_wavelength_range(&self) -> RangeInclusive<usize> {
+        self.data().spectral_locus_range.clone()
+    }
+
     /// Calculates the XYZ tristimulus values for a spectrum defined by a function.
     ///
     /// The input function `f` should accept a floating-point value in the range `[0.0, 1.0]`,
@@ -403,6 +343,7 @@ impl ObserverData {
     /// - For colorants, use [`xyz_from_colorant_fn`](Self::xyz_from_colorant_fn).
     pub fn xyz_from_fn(&self, f: impl Fn(f64) -> f64) -> XYZ {
         let xyz = self
+            .data()
             .data
             .column_iter()
             .enumerate()
@@ -411,7 +352,7 @@ impl ObserverData {
             });
         XYZ {
             xyz,
-            observer: self.tag,
+            observer: self.data().tag,
         }
     }
 
@@ -427,20 +368,21 @@ impl ObserverData {
     /// and converting the resulting value to RGB values.
     /// ```
     /// use colorimetry::prelude::*;
-    /// let rgb: [u8;3] = CIE1931.xyz_from_colorant_fn(&CieIlluminant::D65, |x|x).rgb(None).clamp().into();
+    /// let rgb: [u8;3] = Cie1931.xyz_from_colorant_fn(&CieIlluminant::D65, |x|x).rgb(None).clamp().into();
     /// assert_eq!(rgb, [212, 171, 109]);
     /// ```
     /// Linear low pass filter, with a value of 1.0 for a wavelength of 380nm, and a value of 0.0 for 780nm,
     /// and converting the resulting value to RGB values.
     /// ```
     /// use colorimetry::prelude::*;
-    /// let rgb: [u8;3] = CIE1931.xyz_from_colorant_fn(&CieIlluminant::D65, |x|1.0-x).rgb(None).clamp().into();
+    /// let rgb: [u8;3] = Cie1931.xyz_from_colorant_fn(&CieIlluminant::D65, |x|1.0-x).rgb(None).clamp().into();
     /// assert_eq!(rgb, [158, 202, 237]);
     /// ```
     pub fn xyz_from_colorant_fn(&self, illuminant: &CieIlluminant, f: impl Fn(f64) -> f64) -> XYZ {
         let ill = illuminant.illuminant();
         let xyzn = self.xyz_cie_table(illuminant, None);
         let xyz = self
+            .data()
             .data
             .column_iter()
             .zip(ill.0 .0.iter())
@@ -450,17 +392,25 @@ impl ObserverData {
             });
         let scale = 100.0 / xyzn.xyz.y;
         XYZ {
-            xyz: xyz * self.lumconst * scale,
-            observer: self.tag,
+            xyz: xyz * self.data().lumconst * scale,
+            observer: self.data().tag,
         }
+    }
+}
+
+impl fmt::Display for Observer {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.name().fmt(f)
     }
 }
 
 #[cfg(test)]
 mod obs_test {
 
-    use super::Observer;
-    use crate::prelude::{CieIlluminant, CIE1931};
+    #[cfg(feature = "supplemental-observers")]
+    use super::Observer::Cie1964;
+    use super::{Observer, Observer::Cie1931};
+    use crate::illuminant::CieIlluminant;
     use crate::rgb::RgbSpace;
     use crate::spectrum::SPECTRUM_WAVELENGTH_RANGE;
     use crate::xyz::XYZ;
@@ -469,15 +419,15 @@ mod obs_test {
 
     #[test]
     fn test_cie1931_spectral_locus_min_max() {
-        let wavelength_lange = CIE1931.spectral_locus_wavelength_range();
-        let chromaticity = CIE1931
+        let wavelength_lange = Cie1931.spectral_locus_wavelength_range();
+        let chromaticity = Cie1931
             .xyz_at_wavelength(*wavelength_lange.start())
             .unwrap()
             .chromaticity();
         assert_ulps_eq!(chromaticity.x(), 0.17411, epsilon = 1E-5);
         assert_ulps_eq!(chromaticity.y(), 0.00496, epsilon = 1E-5);
 
-        let chromaticity = CIE1931
+        let chromaticity = Cie1931
             .xyz_at_wavelength(*wavelength_lange.end())
             .unwrap()
             .chromaticity();
@@ -489,7 +439,7 @@ mod obs_test {
     #[test]
     fn test_spectral_locus_full() {
         for observer in Observer::iter() {
-            let wavelength_range = observer.data().spectral_locus_wavelength_range();
+            let wavelength_range = observer.spectral_locus_wavelength_range();
 
             // Basic sanity checking of the spectral locus wavelength range values
             assert!(wavelength_range.start() >= SPECTRUM_WAVELENGTH_RANGE.start());
@@ -498,7 +448,7 @@ mod obs_test {
 
             // Check that xyz_at_wavelength returns sane values in the allowed range
             for wavelength in wavelength_range {
-                let xyz = observer.data().xyz_at_wavelength(wavelength).unwrap();
+                let xyz = observer.xyz_at_wavelength(wavelength).unwrap();
                 let chromaticity = xyz.chromaticity();
                 assert!((0.0..=1.0).contains(&chromaticity.x()));
                 assert!((0.0..=1.0).contains(&chromaticity.y()));
@@ -515,8 +465,8 @@ mod obs_test {
     fn test_spectral_locus_to_rgb() {
         for observer in Observer::iter() {
             eprintln!("Testing observer {:?}", observer);
-            for wavelength in observer.data().spectral_locus_wavelength_range() {
-                let xyz = observer.data().xyz_at_wavelength(wavelength).unwrap();
+            for wavelength in observer.spectral_locus_wavelength_range() {
+                let xyz = observer.xyz_at_wavelength(wavelength).unwrap();
                 for rgbspace in RgbSpace::iter() {
                     let _rgb = xyz.rgb(Some(rgbspace));
                 }
@@ -540,7 +490,7 @@ mod obs_test {
             0.4124564, 0.3575761, 0.1804375, 0.2126729, 0.7151522, 0.0721750, 0.0193339, 0.1191920,
             0.9503041,
         );
-        let got = CIE1931.rgb2xyz(crate::rgb::RgbSpace::SRGB);
+        let got = Cie1931.rgb2xyz(crate::rgb::RgbSpace::SRGB);
         approx::assert_ulps_eq!(want, got, epsilon = 3E-4);
     }
 
@@ -552,7 +502,7 @@ mod obs_test {
             3.2404542, -1.5371385, -0.4985314, -0.9692660, 1.8760108, 0.0415560, 0.0556434,
             -0.2040259, 1.0572252,
         );
-        let got = CIE1931.xyz2rgb(crate::rgb::RgbSpace::SRGB);
+        let got = Cie1931.xyz2rgb(crate::rgb::RgbSpace::SRGB);
         approx::assert_ulps_eq!(want, got, epsilon = 3E-4);
     }
 
@@ -575,13 +525,13 @@ mod obs_test {
     fn test_planckian_locus() {
         // see https://www.waveformlighting.com/tech/calculate-cie-1931-xy-coordinates-from-cct
         // for test data (not clear what CMF domain they use)
-        let xy = CIE1931
+        let xy = Cie1931
             .xyz_planckian_locus(3000.0)
             .chromaticity()
             .to_array();
         approx::assert_abs_diff_eq!(&xy.as_ref(), &[0.43693, 0.40407].as_ref(), epsilon = 2E-5);
 
-        let xy = CIE1931
+        let xy = Cie1931
             .xyz_planckian_locus(6500.0)
             .chromaticity()
             .to_array();
@@ -590,8 +540,8 @@ mod obs_test {
 
     #[test]
     fn test_xyz_from_illuminant_x_fn() {
-        let xyz = CIE1931.xyz_from_colorant_fn(&CieIlluminant::D65, |_v| 1.0);
-        let d65xyz = CIE1931.xyz_d65().xyz;
+        let xyz = Cie1931.xyz_from_colorant_fn(&CieIlluminant::D65, |_v| 1.0);
+        let d65xyz = Cie1931.xyz_d65().xyz;
         approx::assert_ulps_eq!(
             xyz,
             crate::xyz::XYZ::from_vecs(d65xyz, crate::observer::Observer::Cie1931)
@@ -601,25 +551,25 @@ mod obs_test {
     #[test]
     fn test_xyz_of_sample_with_standard_illuminant() {
         use crate::prelude::CieIlluminant::D65 as d65;
-        let xyz = CIE1931
+        let xyz = Cie1931
             .xyz(&d65, Some(&crate::colorant::Colorant::white()))
             .set_illuminance(100.0);
-        approx::assert_ulps_eq!(xyz, CIE1931.xyz_from_colorant_fn(&d65, |_| 1.0));
+        approx::assert_ulps_eq!(xyz, Cie1931.xyz_from_colorant_fn(&d65, |_| 1.0));
 
-        let xyz = CIE1931.xyz(&d65, Some(&crate::colorant::Colorant::black()));
-        approx::assert_ulps_eq!(xyz, CIE1931.xyz_from_colorant_fn(&d65, |_| 0.0));
+        let xyz = Cie1931.xyz(&d65, Some(&crate::colorant::Colorant::black()));
+        approx::assert_ulps_eq!(xyz, Cie1931.xyz_from_colorant_fn(&d65, |_| 0.0));
     }
 
     #[test]
     fn test_xyz_d65_d50() {
-        let cie1931_d65_xyz = crate::observer::CIE1931.xyz_d65();
+        let cie1931_d65_xyz = Cie1931.xyz_d65();
         approx::assert_ulps_eq!(
             cie1931_d65_xyz.values().as_ref(),
             [95.047, 100.0, 108.883].as_ref(),
             epsilon = 5E-2
         );
 
-        let cie1931_d50_xyz = crate::observer::CIE1931.xyz_d50();
+        let cie1931_d50_xyz = Cie1931.xyz_d50();
         approx::assert_ulps_eq!(
             cie1931_d50_xyz.values().as_ref(),
             [96.421, 100.0, 82.519].as_ref(),
@@ -630,14 +580,14 @@ mod obs_test {
     #[test]
     #[cfg(feature = "supplemental-observers")]
     fn test_xyz_d65_d50_cie1964() {
-        let cie1964_d50_xyz = crate::observer::CIE1964.xyz_d50();
+        let cie1964_d50_xyz = Cie1964.xyz_d50();
         approx::assert_ulps_eq!(
             cie1964_d50_xyz.values().as_ref(),
             [96.720, 100.0, 81.427].as_ref(),
             epsilon = 5E-2
         );
 
-        let cie1964_d65_xyz = crate::observer::CIE1964.xyz_d65();
+        let cie1964_d65_xyz = Cie1964.xyz_d65();
         approx::assert_ulps_eq!(
             cie1964_d65_xyz.values().as_ref(),
             [94.811, 100.0, 107.304].as_ref(),
