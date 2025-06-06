@@ -1,5 +1,5 @@
-//! Tristimulus Values
-//! ==================
+//! Tristimulus Values Calculations and Models
+//! ==========================================
 //!
 //! The `xyz` module provides core types and operations for working with CIE tristimulus values (X,
 //! Y, Z) and chromaticity in Rust.  

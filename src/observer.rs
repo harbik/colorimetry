@@ -1,4 +1,5 @@
-//! # Standard Observers
+//! Standard Observers
+//! ==================
 //!
 //! In color science, we model how humans perceive light using “standard observers”—mathematical averages of real people’s color responses. Here’s the gist:
 //!
@@ -58,13 +59,67 @@ use nalgebra::{Matrix3, SMatrix, Vector3};
 use std::{fmt, ops::RangeInclusive, sync::OnceLock};
 use strum_macros::EnumIter;
 
-/**
-   Light-weight identifier added to the `XYZ` and `RGB` datasets,
-   representing the colorimetric standard observer used.
+///     A data structure to define Standard Observers, such as the CIE 1931 2º and
+///     the CIE 2015 standard observers.
+///
+///     These are defined in the form of the three color matching functions,
+///     typically denoted by $\hat{x}(\lamda)$,$\hat{y}{\lambda}$, and $\hat{z}(\lambda)$.
+///     Traditionally, the CIE1931 Colorimetric Standard Observer is used almost exclusively,
+///     but is known to be not a good representation of human vision in the blue region of the
+///     spectrum. We also know now that the way you see color varies with age, and your healty,
+///     and that not everyone sees to same color.
+///
+///     In this library colors are represented by spectral distributions, to allow color modelling
+///     with newer, and better standard observers, such as the CIE2015 Observer, derived from
+///     the sensitivities of the cones in the retina of your eye, the biological color receptors
+///     of light.
+///
+///     It's main purpose is to calculate `XYZ` tristimulus values for a general stimulus,
+///     in from of a `Spectrum`.
 
-   No data included here, which would be the Rust way, but that does not work with wasm-bindgen.
-   This can be directly used in JavaScript, and has the benefit to be just an index.
-*/
+struct ObserverData {
+    data: SMatrix<f64, 3, NS>,
+    lumconst: f64,
+    tag: Observer,
+    name: &'static str,
+    d65: OnceLock<XYZ>,
+    d50: OnceLock<XYZ>,
+
+    /// The range of indices for which the spectral locus of this observer returns unique
+    /// chromaticity coordinates. See documentation for the
+    /// [`ObserverData::spectral_locus_wavelength_range`] method for details.
+    spectral_locus_range: RangeInclusive<usize>,
+}
+
+impl ObserverData {
+    /// Creates a new `ObserverData` object, with the given color matching functions.
+    ///
+    /// Only visible to the crate itself since it cannot be used nicely from the outside
+    /// (since the `tag` is not something anyone else can create new varians of).
+    const fn new(
+        tag: Observer,
+        name: &'static str,
+        lumconst: f64,
+        spectral_locus_range: RangeInclusive<usize>,
+        data: SMatrix<f64, 3, NS>,
+    ) -> Self {
+        Self {
+            data,
+            lumconst,
+            tag,
+            name,
+            d65: OnceLock::new(),
+            d50: OnceLock::new(),
+            spectral_locus_range,
+        }
+    }
+}
+
+/// Light-weight identifier added to the `XYZ` and `RGB` datasets,
+///    representing the colorimetric standard observer used.
+///
+///    No data included here, which would be the Rust way, but that does not work with wasm-bindgen.
+///    This can be directly used in JavaScript, and has the benefit to be just an index.
 #[cfg(not(feature = "supplemental-observers"))]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
 #[derive(Clone, Copy, Default, PartialEq, Eq, Hash, Debug, EnumIter)]
@@ -85,10 +140,8 @@ pub enum Observer {
 }
 
 impl Observer {
-    /**
-       Get a reference to the data for the specified `Observer`.
-    */
-    pub(crate) fn data(&self) -> &'static ObserverData {
+    /// Get a reference to the data for the specified `Observer`.
+    fn data(&self) -> &'static ObserverData {
         match self {
             Observer::Cie1931 => &observers::CIE1931,
             #[cfg(feature = "supplemental-observers")]
@@ -111,7 +164,8 @@ impl Observer {
         if !SPECTRUM_WAVELENGTH_RANGE.contains(&wavelength) {
             return Err(Error::WavelengthOutOfRange);
         };
-        let &[x, y, z] = self.data()
+        let &[x, y, z] = self
+            .data()
             .data
             .column(wavelength - SPECTRUM_WAVELENGTH_RANGE.start())
             .as_ref();
@@ -134,7 +188,7 @@ impl Observer {
 
     /// Returns the name of the observer.
     pub fn name(&self) -> &'static str {
-        &self.data().name
+        self.data().name
     }
 
     /// Calulates Tristimulus values for an object implementing the [Light] trait, and an optional [Filter],
@@ -165,7 +219,6 @@ impl Observer {
                 .set_illuminance(100.0)
         })
     }
-
 
     /// XYZ tristimulus values for the CIE standard daylight illuminant D50 (buffered).
     pub fn xyz_d50(&self) -> XYZ {
@@ -344,7 +397,6 @@ impl Observer {
             observer: self.data().tag,
         }
     }
-
 }
 
 impl fmt::Display for Observer {
@@ -353,69 +405,12 @@ impl fmt::Display for Observer {
     }
 }
 
-/**
-    A data structure to define Standard Observers, such as the CIE 1931 2º and
-    the CIE 2015 standard observers.
-
-    These are defined in the form of the three color matching functions,
-    typically denoted by $\hat{x}(\lamda)$,$\hat{y}{\lambda}$, and $\hat{z}(\lambda)$.
-    Traditionally, the CIE1931 Colorimetric Standard Observer is used almost exclusively,
-    but is known to be not a good representation of human vision in the blue region of the
-    spectrum. We also know now that the way you see color varies with age, and your healty,
-    and that not everyone sees to same color.
-
-    In this library colors are represented by spectral distributions, to allow color modelling
-    with newer, and better standard observers, such as the CIE2015 Observer, derived from
-    the sensitivities of the cones in the retina of your eye, the biological color receptors
-    of light.
-
-    It's main purpose is to calculate `XYZ` tristimulus values for a general stimulus,
-    in from of a `Spectrum`.
-*/
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
-pub(crate) struct ObserverData {
-    data: SMatrix<f64, 3, NS>,
-    lumconst: f64,
-    tag: Observer,
-    name: &'static str,
-    d65: OnceLock<XYZ>,
-    d50: OnceLock<XYZ>,
-
-    /// The range of indices for which the spectral locus of this observer returns unique
-    /// chromaticity coordinates. See documentation for the
-    /// [`ObserverData::spectral_locus_wavelength_range`] method for details.
-    spectral_locus_range: RangeInclusive<usize>,
-}
-
-impl ObserverData {
-    /// Creates a new `ObserverData` object, with the given color matching functions.
-    ///
-    /// Only visible to the crate itself since it cannot be used nicely from the outside
-    /// (since the `tag` is not something anyone else can create new varians of).
-    pub(crate) const fn new(
-        tag: Observer,
-        name: &'static str,
-        lumconst: f64,
-        spectral_locus_range: RangeInclusive<usize>,
-        data: SMatrix<f64, 3, NS>,
-    ) -> Self {
-        Self {
-            data,
-            lumconst,
-            tag,
-            name,
-            d65: OnceLock::new(),
-            d50: OnceLock::new(),
-            spectral_locus_range,
-        }
-    }
-
-}
-
 #[cfg(test)]
 mod obs_test {
 
-    use super::{Observer, Observer::Cie1931, Observer::Cie1964};
+    use super::{Observer, Observer::Cie1931};
+    #[cfg(feature = "supplemental-observers")]
+    use super::Observer::Cie1964;
     use crate::illuminant::CieIlluminant;
     use crate::rgb::RgbSpace;
     use crate::spectrum::SPECTRUM_WAVELENGTH_RANGE;

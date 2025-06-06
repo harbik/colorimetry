@@ -295,10 +295,10 @@ fn delta_e_ciede2000(lab1: Vector3<f64>, lab2: Vector3<f64>) -> f64 {
 
 #[cfg(test)]
 mod tests {
+    use crate::observer::Observer::Cie1931;
     use crate::prelude::*;
     use approx::assert_abs_diff_eq;
     use nalgebra::vector;
-    use crate::observer::Observer::Cie1931;
 
     #[test]
     fn delta_e_ciede2000_example1() {

@@ -227,9 +227,9 @@ mod cam16_test {
 
 #[cfg(test)]
 mod cam16_round_trip_tests {
+    use crate::observer::Observer::Cie1931;
     use crate::prelude::*;
     use approx::assert_abs_diff_eq;
-    use crate::observer::Observer::Cie1931;
 
     #[test]
     fn xyz_jch_xyz_round_trip() {
@@ -254,7 +254,7 @@ mod cam16_round_trip_tests {
         for &xyz_arr in samples {
             // forward transform (XYZ -> JCh)
             let xyz = XYZ::new(xyz_arr, Cie1931);
-            let xyz_d65 =Cie1931.xyz_d65();
+            let xyz_d65 = Cie1931.xyz_d65();
             let cam = CieCam16::from_xyz(xyz, xyz_d65, ViewConditions::default()).unwrap();
             let jch = cam.jch();
 

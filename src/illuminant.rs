@@ -326,8 +326,8 @@ impl Light for Illuminant {
 
 #[test]
 fn test_d_illuminant() {
-    use crate::prelude::*;
     use crate::observer::Observer::Cie1931;
+    use crate::prelude::*;
     let s = Illuminant::d_illuminant(6504.0).unwrap();
     let xyz = Cie1931.xyz_from_spectrum(s.as_ref()).set_illuminance(100.0);
     approx::assert_ulps_eq!(xyz, Cie1931.xyz_d65(), epsilon = 2E-2);

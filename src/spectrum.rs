@@ -1,4 +1,5 @@
-//! # Basis for Spectral Data Representations
+//! Basis for Spectral Data Representations
+//! =======================================
 //!
 //! The field of Colorimetry uses mathematical models to describe the sensations in our mind which we
 //! call color.  These models are based the spectral composition of stimuli, essentially rays of light

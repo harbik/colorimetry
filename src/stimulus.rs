@@ -1,3 +1,33 @@
+//! Spectral Power Distributions for Visible Light Stimuli
+//! ======================================================
+//!
+//! This module defines the [`Stimulus`] struct, which represents the spectral power
+//! distribution of a visible light stimulus—such as a pixel on a screen—using a [`Spectrum`].
+//!
+//! A `Stimulus` is typically constructed from RGB values using `from_srgb` or `from_rgb`,
+//! mapping them to a linear combination of spectral primaries defined by a color space
+//! (e.g., sRGB with Gaussian-filtered components). These spectral primaries allow for
+//! physically-informed color calculations that are observer-aware.
+//!
+//! Unlike traditional RGB or XYZ values, a `Stimulus` retains full spectral detail,
+//! enabling colorimetric computations for arbitrary [`Observer`] types,
+//! not just the standard CIE 1931 observer.
+//!
+//! ## Features
+//! - Convert RGB values into spectral representations.
+//! - Scale to a target luminance using real observer sensitivity curves.
+//! - Integrates with the [`Light`] trait for uniform handling of illuminants and reflectances.
+//!
+//! ## When to Use `Stimulus`
+//! Use `Stimulus` when:
+//! - You need to model light with spectral fidelity.
+//! - You want to convert RGB colors to spectra for metamerism studies or non-standard observers.
+//! - You need to simulate how different humans perceive color.
+//!
+//! [`Spectrum`]: crate::spectrum::Spectrum
+//! [`Observer`]: crate::observer::Observer
+//! [`Light`]: crate::traits::Light
+
 use std::{
     borrow::Cow,
     iter::Sum,

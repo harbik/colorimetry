@@ -1,4 +1,5 @@
-//! # Spectral Reflectance/Transmission Functions for Filters and Surface Colors
+//! Spectral Reflectance/Transmission Functions for Filters and Surface Colors
+//! ==========================================================================
 //!
 //! The **Colorant** module defines spectral **reflectance/transmission filters** (colorants or color patches),
 //! represented as `Spectrum` values in the range [0.0…1.0] over 380 nm…780 nm at 1 nm steps (401 samples).
