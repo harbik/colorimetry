@@ -6,36 +6,24 @@ use super::{Cam, M16, MCAT02, MCAT02INV, MHPE};
 #[derive(Clone, Copy, Debug)]
 /// CIECAM viewing conditions.
 ///
-/// This struct encapsulates the parameters
-/// needed to model how colors are perceived under specific environmental settings
-/// according to the CIECAM02 and CIECAM16 specifications.  
-///
 /// The ViewConditions as recommended by CIE248:2022 are provided for various scenarios as constants, and are included as:
-/// 1) [`CIE248_CABINET`] Viewing a surface in a cabinet
-/// 2) [`CIE248_HOME_SCREEN`] Viewing a self-luminous display at home
-/// 3) [`CIE248_PROJECTED_DARK`] Viewing projected images in a darkened room
-/// 4) [`CIE248_OFFICE_SCREEN`] Viewing a self-luminous display under office illumination
+/// - [`CIE248_CABINET`] Viewing a surface in a cabinet
+/// - [`CIE248_HOME_SCREEN`] Viewing a self-luminous display at home
+/// - [`CIE248_PROJECTED_DARK`] Viewing projected images in a darkened room
+/// - [`CIE248_OFFICE_SCREEN`] Viewing a self-luminous display under office illumination
 ///  
-/// - `ViewConditions`: Describes the observer’s viewing environment, including:
-///   - `yb` (relative background luminance, as a fraction of the white point’s Y value)  
-///   - `f` (surround factor, representing the degree of adaptation)  
-///   - `nc` (chromatic induction factor)  
-///   - `c` (impact of surround on chroma/contrast)  
-///   - `la` (adapting luminance in cd/m²)  
-///   - `dopt` (optional precomputed degree of adaptation; if `None`, it’s derived from `f` and `la` using CIE248:2022 formula 4.3)  
-//
+/// The TM30 and Color Fidelity ViewConditions are provided as [`TM30VC`].
 pub struct ViewConditions {
-    /// Degree of Adaptation, if omitted, formula 4.3 of CIE248:2022 is used.``
-    pub dopt: Option<f64>,
+    dopt: Option<f64>,
 
-    pub f: f64,
+    f: f64,
 
     /// Adaptation Luminance, in cd/m2.
     /// La = Lw/5, with Lw: luminance of a perfect white object
-    pub la: f64,
-    pub nc: f64,
-    pub yb: f64,
-    pub c: f64,
+    la: f64,
+    nc: f64,
+    yb: f64,
+    c: f64,
 }
 
 impl ViewConditions {
@@ -48,6 +36,31 @@ impl ViewConditions {
             la,
             dopt,
         }
+    }
+    
+    ///  Impact of surround on chroma/contrast  
+    pub fn c(&self) -> f64 {
+        self.c
+    }
+
+    ///  Chromatic induction factor
+    pub fn nc(&self) -> f64 {
+        self.nc
+    }
+
+    ///  Adapting luminance in cd/m²  
+    pub fn la(&self) -> f64 {
+        self.la
+    }
+
+    ///  relative background luminance, as a fraction of the white point’s Y value  
+    pub fn yb(&self) -> f64 {
+        self.yb
+    }
+
+    ///  surround factor, representing the degree of adaptation 
+    pub fn f(&self) -> f64 {
+        self.f
     }
 
     pub fn reference_values(&self, xyzn: Vector3<f64>, cam: Cam) -> super::ReferenceValues {
@@ -99,6 +112,7 @@ impl ViewConditions {
         k.powi(4) * self.la + (1. - k.powi(4)).powi(2) / 10. * (5.0 * self.la).powf(1. / 3.)
     }
 
+    /// Degree of Adaptation, if omitted, formula 4.3 of CIE248:2022 is used.``
     pub fn dd(&self) -> f64 {
         if let Some(d) = self.dopt {
             d.clamp(0.0, 1.0)

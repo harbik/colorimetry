@@ -153,11 +153,11 @@ impl CamJCh {
         }
 
         // calculate J = jj
-        let jj = 100.0 * (achromatic_rsp(rgb, nbb) / aw).powf(vc.c * z);
+        let jj = 100.0 * (achromatic_rsp(rgb, nbb) / aw).powf(vc.c() * z);
 
         // calculate C = cc
         let et = 0.25f64 * ((h + 2.0).cos() + 3.8);
-        let t = (50000.0 / 13.0 * ncb * vc.nc * et * (ca * ca + cb * cb).sqrt())
+        let t = (50000.0 / 13.0 * ncb * vc.nc() * et * (ca * ca + cb * cb).sqrt())
             / (rgb[0] + rgb[1] + 21.0 / 20.0 * rgb[2]);
         let cc = t.powf(0.9) * (jj / 100.).sqrt() * (1.64 - (0.29f64).powf(n)).powf(0.73);
 
@@ -198,8 +198,8 @@ impl CamJCh {
         let &[lightness, chroma, hue_angle] = self.jch.as_ref();
         let t = (chroma / ((lightness / 100.0).sqrt() * (1.64 - 0.29f64.powf(n)).powf(0.73)))
             .powf(Self::RCPR_9);
-        let p1 = (Self::P1C * vc.nc * ncb * eccentricity(hue_angle)) / t; // NaN if t=0, but OK, as check on t==0.0 if used
-        let p2 = achromatic_response_from_lightness(aw, vc.c, z, lightness) / nbb + 0.305;
+        let p1 = (Self::P1C * vc.nc() * ncb * eccentricity(hue_angle)) / t; // NaN if t=0, but OK, as check on t==0.0 if used
+        let p2 = achromatic_response_from_lightness(aw, vc.c(), z, lightness) / nbb + 0.305;
         let (a, b) = match hue_angle.to_radians().sin_cos() {
             (_, _) if t.is_nan() || t == 0.0 => (0.0, 0.0),
             (hs, hc) if hs.abs() >= hc.abs() => {
