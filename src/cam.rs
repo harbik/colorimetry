@@ -1,5 +1,35 @@
+//!  CIE color appearance models (CIECAM02 and CIECAM16).
+//!
+//! This module provides structures and functions to convert between CIEXYZ tristimulus values
+//! and the perceptual correlates of human color vision. It includes:
+//!
+//! - `ViewConditions`: Defines the environment under which color is observed, including
+//!   surround, adapting luminance, and background luminance.
+//! - `CieCam02` and `CieCam16`: High-level implementations of the CIECAM02 and CIECAM16
+//!   appearance models both build on top of the `CamJCh` structure and use the `CamTransforms` trait for implementing most of their methods.
+//! - `CamJCh`: Internal data structure holding Lightness (J), Chroma (C), and hue angle (h),
+//!   along with observer, reference white, and viewing conditions.
+//! - `ReferenceValues`: Precomputed factors (e.g., `n,` `z,` `nbb,` `ncb,` `d_rgb,` `aw,` `qu`)
+//!   that depends only on the reference white and view conditions. These values are reused across
+//!   multiple color conversions to improve performance.
+//! - `Cam`: Enum distinguishing between the CIECAM02 and CIECAM16 variants when performing
+//!   forward or inverse transforms.
+//! - `CamTransforms` trait: Common interface for extracting JCh coordinates, computing raw Jab,
+//!   and deriving CAM-UCS coordinates (`J′a′b′`), plus a method to calculate ΔE′ color differences.
+//!
+//! Additionally, this module provides helper functions for:
+//! - Achromatic response calculation (`achromatic_rsp` and `achromatic_response_from_lightness`)
+//! - Hue eccentricity factor (`eccentricity`)
+//! - Inverse cone adaptation function (`inv_cone_adaptation`)
+//! - Matrices for chromatic adaptation (MCAT02, MCAT02INV, MHPE, MHPEINV, M16, M16INV).
+//!
+//! For more details on each structure and function, refer to their documentation comments.
+
 mod viewconditions;
-pub use viewconditions::{ViewConditions, CIE_HOME_DISPLAY, TM30VC};
+pub use viewconditions::{
+    ViewConditions, CIE248_CABINET, CIE248_HOME_SCREEN, CIE248_OFFICE_SCREEN,
+    CIE248_PROJECTED_DARK, TM30VC,
+};
 
 mod cam16;
 pub use crate::cam::cam16::CieCam16;
@@ -123,11 +153,15 @@ impl CamJCh {
         }
 
         // calculate J = jj
-        let jj = 100.0 * (achromatic_rsp(rgb, nbb) / aw).powf(vc.c * z);
+        let jj = 100.0 * (achromatic_rsp(rgb, nbb) / aw).powf(vc.impact_of_surround() * z);
 
         // calculate C = cc
         let et = 0.25f64 * ((h + 2.0).cos() + 3.8);
-        let t = (50000.0 / 13.0 * ncb * vc.nc * et * (ca * ca + cb * cb).sqrt())
+        let t = (50000.0 / 13.0
+            * ncb
+            * vc.chromatic_induction_factor()
+            * et
+            * (ca * ca + cb * cb).sqrt())
             / (rgb[0] + rgb[1] + 21.0 / 20.0 * rgb[2]);
         let cc = t.powf(0.9) * (jj / 100.).sqrt() * (1.64 - (0.29f64).powf(n)).powf(0.73);
 
@@ -168,8 +202,10 @@ impl CamJCh {
         let &[lightness, chroma, hue_angle] = self.jch.as_ref();
         let t = (chroma / ((lightness / 100.0).sqrt() * (1.64 - 0.29f64.powf(n)).powf(0.73)))
             .powf(Self::RCPR_9);
-        let p1 = (Self::P1C * vc.nc * ncb * eccentricity(hue_angle)) / t; // NaN if t=0, but OK, as check on t==0.0 if used
-        let p2 = achromatic_response_from_lightness(aw, vc.c, z, lightness) / nbb + 0.305;
+        let p1 = (Self::P1C * vc.chromatic_induction_factor() * ncb * eccentricity(hue_angle)) / t; // NaN if t=0, but OK, as check on t==0.0 if used
+        let p2 = achromatic_response_from_lightness(aw, vc.impact_of_surround(), z, lightness)
+            / nbb
+            + 0.305;
         let (a, b) = match hue_angle.to_radians().sin_cos() {
             (_, _) if t.is_nan() || t == 0.0 => (0.0, 0.0),
             (hs, hc) if hs.abs() >= hc.abs() => {
@@ -185,7 +221,8 @@ impl CamJCh {
         // rgb_a
         let m = matrix![ 460.0, 451.0, 288.0; 460.0, -891.0, -261.0; 460.0, -220.0, -6_300.0; ]
             / 1_403.0;
-        let rgb_p = (m * vector![p2, a, b]).map(|x| inv_cone_adaptation(vc.f_l(), x)); // Step 4 & 5
+        let rgb_p = (m * vector![p2, a, b])
+            .map(|x| inv_cone_adaptation(vc.luminance_level_adaptation_factor(), x)); // Step 4 & 5
         let rgb = rgb_p.component_div(&d_rgb_vec);
 
         let xyz = match cam {
@@ -227,7 +264,7 @@ pub trait CamTransforms {
     fn jab(&self) -> [f64; 3] {
         let &[jj, cc, h] = self.jch_vec().as_ref();
         let vc = self.view_conditions();
-        let m = cc * vc.f_l().powf(0.25);
+        let m = cc * vc.luminance_level_adaptation_factor().powf(0.25);
         let mprime = 1.0 / Self::UCS_C2 * (1.0 + Self::UCS_C2 * m).ln();
         [
             (1.0 + 100.0 * Self::UCS_C1) * jj / (1.0 + Self::UCS_C1 * jj),
@@ -251,7 +288,7 @@ pub trait CamTransforms {
     fn jab_prime(&self) -> [f64; 3] {
         let &[jj, cc, h] = self.jch_vec().as_ref();
         let vc = self.view_conditions();
-        let m = cc * vc.f_l().powf(0.25);
+        let m = cc * vc.luminance_level_adaptation_factor().powf(0.25);
         let mprime = 1.0 / Self::UCS_C2 * (1.0 + Self::UCS_C2 * m).ln();
         [
             (1.0 + 100.0 * Self::UCS_C1) * jj / (1.0 + Self::UCS_C1 * jj),
