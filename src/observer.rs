@@ -156,7 +156,7 @@ impl Observer {
     pub fn name(&self) -> &'static str {
         self.data().name
     }
-    
+
     /// Calulates Tristimulus values for an object implementing the [Light] trait, and an optional [Filter],
     /// filtering the light.
     ///
@@ -304,7 +304,6 @@ impl Observer {
         // unwrap: only used with library color spaces
         self.rgb2xyz(rgbspace).try_inverse().unwrap()
     }
-
 
     /// Returns the wavelength range (in nanometer) for the _horse shoe_,
     /// the boundary of the area of all physical colors in a chromiticity diagram,
