@@ -76,7 +76,6 @@ use strum_macros::EnumIter;
 ///
 ///     It's main purpose is to calculate `XYZ` tristimulus values for a general stimulus,
 ///     in from of a `Spectrum`.
-
 struct ObserverData {
     data: SMatrix<f64, 3, NS>,
     lumconst: f64,
@@ -408,9 +407,9 @@ impl fmt::Display for Observer {
 #[cfg(test)]
 mod obs_test {
 
-    use super::{Observer, Observer::Cie1931};
     #[cfg(feature = "supplemental-observers")]
     use super::Observer::Cie1964;
+    use super::{Observer, Observer::Cie1931};
     use crate::illuminant::CieIlluminant;
     use crate::rgb::RgbSpace;
     use crate::spectrum::SPECTRUM_WAVELENGTH_RANGE;
