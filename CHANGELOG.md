@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - `Planck` struct, with methods for calculating blackbody emission spectra.
 - Add `CieCam02` implementation, with same methods as CieCam16.
 - Add `CFI` Color Fidelity Index calculations. with `general_color_fidelity_index` and `special_color_fidelity_indices`.
+- Add standard CIECAM viewing conditions as recommended by CIE248 as constants.
 
 ### Changed
 - Refactored `physics.rs` with the planck functions and LED functions now moved to the `Illuminant` module,
@@ -29,6 +30,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Renamed `ObserverData::xyz_from_std_illuminant_x_fn` to `xyz_from_colorant_fn`.
 - Replaced all instances of `&ObserverData` in the public API with `Observer`, which is an `enum`, to avoid confusion between the use of `ObserverData` and `Observer`.
 - Renamed `CieCam16::ciede2016` to `de_ucs`.
+- Replaced all instances of `&RgbSpace` in the API with `RgbSpace`, as both were used inconsistently.
 
 ### Removed
 - Various normal distribution (gaussian) helper functions, now all collected as methods of the `Gaussian` struct.
