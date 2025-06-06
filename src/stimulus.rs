@@ -25,7 +25,7 @@ impl Stimulus {
 
     /// Sets the luminance of the stimulus based on the observer data and a luminance value.
     pub fn set_luminance(mut self, obs: Observer, luminance: f64) -> Self {
-        let y = obs.data().y_from_spectrum(self.as_ref());
+        let y = obs.y_from_spectrum(self.as_ref());
         let l = luminance / y;
         self.0 .0.iter_mut().for_each(|v| *v *= l);
         self
@@ -79,7 +79,7 @@ impl Sum for Stimulus {
 impl From<Rgb> for Stimulus {
     fn from(rgb: Rgb) -> Self {
         let prim = &rgb.space.data().primaries;
-        let rgb2xyz = rgb.observer.data().rgb2xyz(rgb.space);
+        let rgb2xyz = rgb.observer.rgb2xyz(rgb.space);
         let yrgb = rgb2xyz.row(1);
         rgb.rgb
             .iter()

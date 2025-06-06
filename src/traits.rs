@@ -17,7 +17,7 @@ pub trait Light {
     /// The illuminance value is optional, and if not provided, the actual luminous values in the
     /// spectrum are used.
     fn xyzn(&self, observer: Observer, y: Option<f64>) -> XYZ {
-        let xyz = observer.data().xyz_from_spectrum(&self.spectrum());
+        let xyz = observer.xyz_from_spectrum(&self.spectrum());
         if let Some(illuminance) = y {
             xyz.set_illuminance(illuminance)
         } else {

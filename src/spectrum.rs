@@ -503,13 +503,13 @@ mod tests {
     fn test_spectrum_from_rgb() {
         let white: Stimulus = Rgb::new(1.0, 1.0, 1.0, None, None).unwrap().into();
         approx::assert_ulps_eq!(
-            CIE1931.xyz_from_spectrum(&white),
-            CIE1931.xyz_d65().set_illuminance(100.0),
+            Cie1931.xyz_from_spectrum(&white),
+            Cie1931.xyz_d65().set_illuminance(100.0),
             epsilon = 1E-6
         );
         let red = Stimulus::from_srgb(255, 0, 0);
         assert_ulps_eq!(
-            CIE1931
+            Cie1931
                 .xyz_from_spectrum(&red)
                 .chromaticity()
                 .to_array()
@@ -528,11 +528,11 @@ mod tests {
 
     #[test]
     fn test_chromaticity() {
-        let xyz0 = CIE1931.xyz_from_spectrum(D65.as_ref());
+        let xyz0 = Cie1931.xyz_from_spectrum(D65.as_ref());
         let [x0, y0] = xyz0.chromaticity().to_array();
 
         let d65 = D65.clone().set_illuminance(Cie1931, 100.0);
-        let xyz = CIE1931.xyz_from_spectrum(d65.as_ref());
+        let xyz = Cie1931.xyz_from_spectrum(d65.as_ref());
         let [x, y] = xyz.chromaticity().to_array();
 
         assert_ulps_eq!(x0, x);
@@ -586,7 +586,7 @@ mod tests {
 
     #[test]
     fn ee() {
-        let chromaticity = CIE1931
+        let chromaticity = Cie1931
             .xyz_from_spectrum(
                 Illuminant::equal_energy()
                     .set_illuminance(Cie1931, 100.0)
@@ -599,7 +599,7 @@ mod tests {
 
     #[test]
     fn d65() {
-        let chromaticity = CIE1931
+        let chromaticity = Cie1931
             .xyz_from_spectrum(Illuminant::d65().set_illuminance(Cie1931, 100.0).as_ref())
             .chromaticity();
         // See table T3 CIE15:2004 (calculated with 5nm intervals, instead of 1nm, as used here)
@@ -617,7 +617,7 @@ mod tests {
 
     #[test]
     fn d50() {
-        let chromaticity = CIE1931
+        let chromaticity = Cie1931
             .xyz_from_spectrum(Illuminant::d50().set_illuminance(Cie1931, 100.0).as_ref())
             .chromaticity();
         // See table T3 CIE15:2004 (calculated with 5nm intervals, instead of 1nm, as used here)

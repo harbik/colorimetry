@@ -42,7 +42,7 @@ use std::sync::OnceLock;
 use approx::{ulps_eq, AbsDiffEq, RelativeEq, UlpsEq};
 
 use crate::{
-    error::Error, math::distance_to_line, observer::Observer, observer::CIE1931, xyz::XYZ,
+    error::Error, math::distance_to_line, observer::Observer, observer::Observer::Cie1931, xyz::XYZ,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -258,10 +258,10 @@ impl TryFrom<CCT> for XYZ {
 /// These are the coordinates of the blackbody locus at temperature T, and it's line normal,
 /// which is the slope of the curve at that point rotated by 90º.
 fn iso_temp_line(t: f64) -> [f64; 3] {
-    let xyz = CIE1931.xyz_planckian_locus(t);
+    let xyz = Cie1931.xyz_planckian_locus(t);
     let [x, y, z] = xyz.values();
     let [u, v] = xyz.uv60();
-    let [dx, dy, dz] = CIE1931.xyz_planckian_locus_slope(t).values();
+    let [dx, dy, dz] = Cie1931.xyz_planckian_locus_slope(t).values();
     let sigma = x + 15.0 * y + 3.0 * z;
     let dsigma = dx + 15.0 * dy + 3.0 * dz;
     let den = 6.0 * y * dsigma - 6.0 * dy * sigma;
@@ -455,7 +455,7 @@ mod tests {
     #[cfg(feature = "cie-illuminants")]
     fn f1_test() {
         let xyz_f1 =
-            CIE1931.xyz_cie_table(&crate::illuminant::cie_illuminant::CieIlluminant::F1, None);
+            Cie1931.xyz_cie_table(&crate::illuminant::cie_illuminant::CieIlluminant::F1, None);
         // value from CIE Standard CIE15:2004 Table T8.1
         approx::assert_ulps_eq!(xyz_f1.cct().unwrap().t(), 6430.0, epsilon = 0.5);
     }
@@ -463,7 +463,7 @@ mod tests {
     #[test]
     #[cfg(feature = "cie-illuminants")]
     fn f3_1_test() {
-        let xyz_f3_1 = CIE1931.xyz_cie_table(
+        let xyz_f3_1 = Cie1931.xyz_cie_table(
             &crate::illuminant::cie_illuminant::CieIlluminant::F3_1,
             None,
         );

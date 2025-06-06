@@ -193,8 +193,8 @@ impl Colorant {
     pub fn cielab(&self, illuminant_opt: Option<&dyn Light>, obs_opt: Option<Observer>) -> CieLab {
         let illuminant = illuminant_opt.unwrap_or(&crate::illuminant::D65);
         let obs = obs_opt.unwrap_or_default();
-        let xyzn = obs.data().xyz(illuminant, None).set_illuminance(100.0);
-        let xyz = obs.data().xyz(illuminant, Some(self));
+        let xyzn = obs.xyz(illuminant, None).set_illuminance(100.0);
+        let xyz = obs.xyz(illuminant, Some(self));
         // unwrap is safe here, as we know the illuminant and observer are valid
         CieLab::from_xyz(xyz, xyzn).unwrap()
     }

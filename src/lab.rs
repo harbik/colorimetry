@@ -298,6 +298,7 @@ mod tests {
     use crate::prelude::*;
     use approx::assert_abs_diff_eq;
     use nalgebra::vector;
+    use crate::observer::Observer::Cie1931;
 
     #[test]
     fn delta_e_ciede2000_example1() {
@@ -488,7 +489,7 @@ mod tests {
             ),
         ];
 
-        let xyz_d65 = CIE1931.xyz_d65();
+        let xyz_d65 = Cie1931.xyz_d65();
         for &(lab1_arr, lab2_arr, expected) in cases {
             let lab1 = CieLab::new(lab1_arr, xyz_d65);
             let lab2 = CieLab::new(lab2_arr, xyz_d65);

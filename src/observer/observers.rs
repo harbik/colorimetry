@@ -1706,7 +1706,7 @@ mod tests {
         let max = spectral_locus_index_max(observer) + SPECTRUM_WAVELENGTH_RANGE.start();
         assert!(min >= *SPECTRUM_WAVELENGTH_RANGE.start());
         assert!(max <= *SPECTRUM_WAVELENGTH_RANGE.end());
-        assert_eq!(min..=max, observer.data().spectral_locus_wavelength_range());
+        assert_eq!(min..=max, observer.spectral_locus_wavelength_range());
     }
 
     /// The index value of the blue spectral locus edge.

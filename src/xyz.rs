@@ -300,7 +300,7 @@ impl XYZ {
         let space = space.unwrap_or_default();
         let xyz = self.xyz;
         let d = xyz.map(|v| v / 100.0); // normalize to 1.0
-        let data = self.observer.data().xyz2rgb(space) * d;
+        let data = self.observer.xyz2rgb(space) * d;
         WideRgb {
             space,
             observer: self.observer,
@@ -382,7 +382,7 @@ mod xyz_test {
 
     #[test]
     fn xyz_d65_test() {
-        let d65 = CIE1931.xyz_d65();
+        let d65 = Cie1931.xyz_d65();
         let xyz: [f64; 3] = d65.into();
         println!("{xyz:?}");
         assert_ulps_eq!(

@@ -214,7 +214,7 @@ mod cam02_round_trip_tests {
     use crate::{
         cam::CieCam02,
         cam::{CamTransforms, ViewConditions},
-        observer::{Observer, CIE1931},
+        observer::{Observer, Observer::Cie1931},
         xyz::XYZ,
     };
     use approx::assert_abs_diff_eq;
@@ -242,7 +242,7 @@ mod cam02_round_trip_tests {
         for &xyz_arr in samples {
             // forward transform (XYZ -> JCh)
             let xyz = XYZ::new(xyz_arr, Observer::Cie1931);
-            let xyz_d65 = CIE1931.xyz_d65();
+            let xyz_d65 = Cie1931.xyz_d65();
             let cam = CieCam02::from_xyz(xyz, xyz_d65, ViewConditions::default()).unwrap();
             let jch = cam.jch();
 

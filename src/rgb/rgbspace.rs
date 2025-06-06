@@ -257,6 +257,7 @@ impl RgbSpaceData {
 #[cfg(test)]
 mod rgbspace_tests {
     use crate::prelude::*;
+    use Observer::Cie1931;
     use approx::assert_ulps_eq;
     use strum::IntoEnumIterator;
 
@@ -271,7 +272,7 @@ mod rgbspace_tests {
 
             let iter = primaries_chromaticity.into_iter().zip(primaries_colorants);
             for (chromaticity, colorant) in iter {
-                let computed_chromaticity = CIE1931
+                let computed_chromaticity = Cie1931
                     .xyz_from_spectrum(&colorant.spectrum())
                     .chromaticity();
                 assert_ulps_eq!(
