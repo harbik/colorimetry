@@ -19,7 +19,7 @@ or add this line to the dependencies in your Cargo.toml file:
 
 # Examples
 <details>
-<summary>Tristimulus Values</summary>
+<summary><i>Tristimulus Values</i></summary>
 This example calculates the XYZ tristimulus values of the D65 illuminant for both the CIE 1931 2º standard observer and the CIE 2015 10º observer.
 
 ```rust
@@ -47,11 +47,10 @@ This example calculates the XYZ tristimulus values of the D65 illuminant for bot
 </details>
 
 <details>
-<summary>Correlated Color Temperature</summary>
+<summary><i>Correlated Color Temperature</i></summary>
 The correlated color temperature (CCT) of an illuminant, typically expressed in kelvin (K),
 describes whether a light source appears warm (low CCT) or cool (high CCT). It is a key parameter
-for characterizing the visual appearance of white light.
-
+for characterizing the visual appearance of white light .
 This example calculates both the correlated color temperature and the deviation from the Planckian
 locus, often referred to as the tint.
 
@@ -71,13 +70,12 @@ locus, often referred to as the tint.
 </details>
 
 <details>
-<summary>Color Fidelity Index</summary>
+<summary><i>Color Fidelity Index</i></summary>
 The CIE has announced that the Color Fidelity Index (CFI) will replace the Color Rendering Index
 (CRI) as the standard metric for evaluating color rendering. Both indices aim to quantify how
 accurately a light source reproduces the colors of illuminated objects. However, the CFI offers a
 significant improvement in accuracy by using 99 reference color samples and more advanced color
 difference metrics, compared to the CRI’s use of only 8 samples.
-
 Below is an example calculation of the general Color Fidelity Index for the CIE F2 illuminant:
 
 ```rust
@@ -98,12 +96,12 @@ Below is an example calculation of the general Color Fidelity Index for the CIE 
 </details>
 
 <details>
-<summary>Chromaticity Diagram's Spectral Locus</summary>
+<summary><i>Chromaticity Diagram's Spectral Locus</i></summary>
 The spectral locus is the boundary in a chromaticity diagram that encloses all perceivable,
 physically realizable colors. Due to its shape, it is sometimes informally referred to as the
 "horseshoe."
-
 Below, we compute the chromaticity coordinates that define the spectral locus.
+
 ```rust
     use colorimetry::observer::Observer::Cie1931;
     let mut locus = Vec::new();
@@ -115,6 +113,49 @@ Below, we compute the chromaticity coordinates that define the spectral locus.
         locus.push([wavelength as f64, chromaticity.x(), chromaticity.y()]);
     }
     println!("{locus:?}");
+```
+</details>
+
+<details>
+<summary><i>XYZ/RGB Transformation Matrices, for any Observer</i></summary>
+This is usually done with the CIE 1931 Standard Observer, but this library supports any observer—as long as both the color space and the data use the same one.  
+Instead of fixed XYZ values, it computes conversions from the spectral definitions of the primaries to be able to do so.
+Here, we compute transformation matrices for the `DisplayP3` color space using both the `Cie1931` and `Cie2015` observers.  
+
+```rust
+    use approx::assert_abs_diff_eq as check;
+    use colorimetry::observer::Observer;
+    use colorimetry::rgb::RgbSpace::DisplayP3;
+
+    let xyz2rgb_31 = Observer::Cie1931.xyz2rgb(DisplayP3);
+    let want31 = nalgebra::Matrix3::new(
+         2.4933, -0.9313,	-0.4027,
+        -0.8298,  1.7629,	 0.0236,
+         0.0355, -0.076,	 0.9574
+    );
+    check!(xyz2rgb_31, want31, epsilon=5E-4);
+
+    let rgb2xyz_31 = Observer::Cie1931.rgb2xyz(DisplayP3);
+    let want31inv = nalgebra::Matrix3::new(
+        0.4866, 0.2656, 0.1981,
+        0.2291, 0.6917, 0.0792,
+        0.0001, 0.0451, 1.0433,
+
+    );
+    check!(rgb2xyz_31, want31inv, epsilon=5E-4);
+    # #[cfg(feature = "supplemental-observers")]
+    # {
+    // requires `supplemental-observers` 
+    use colorimetry::observer::Observer::Cie2015;
+
+    let xyz2rgb_15 = Cie2015.xyz2rgb(DisplayP3);
+    let want15 = nalgebra::Matrix3::new(
+        2.5258,  -1.0009,	-0.3649,
+        -0.9006,   1.8546,	-0.0011,
+        0.0279,  -0.0574,	 0.95874
+    );
+    check!(xyz2rgb_15, want15, epsilon=5E-4);
+    # }
 ```
 </details>
 
@@ -139,9 +180,9 @@ Below, we compute the chromaticity coordinates that define the spectral locus.
   - LED: [`LED_B1`], [`LED_B2`], [`LED_B3`], [`LED_B4`], [`LED_B5`], [`LED_BH1`], [`LED_RGB1`], [`LED_V1`]
 
 - Illuminant metrics:  
-  - [`CCT`] Correlated color temperature, including distance to the blackbody locus for tint indication  
-  - [`CRI`] Color rendering index  
-  - [`CFI`] Color fidelity index
+  - [`CCT`] Correlated color temperature, including distance to the blackbody locus for tint indication[^1]
+  - [`CRI`] Color rendering index[^2]  
+  - [`CFI`] Color fidelity index[^3]
 
 - Advanced color (appearance) models:  
   - [`CieLab`], [`CieCam02`], [`CieCam16`]  
@@ -157,24 +198,30 @@ Below, we compute the chromaticity coordinates that define the spectral locus.
   - [`Observer::Cie2015`] the CIE 2015 2º cone fundamentals-based observer  
   - [`Observer::Cie2015_10`] the CIE 2015 10º cone fundamentals-based observer
 
-# Flags
+# Feature Flags
 
 - `supplemental-observers`  
   Adds addiational observers such as `Cie1964`, `Cie2015`, and `Cie2015_10`. Enabled by default.
+
+
 - `cie-illuminants`  
+  The `D65` and `D50` illuminants are always included - if you want to use one of the other CIE illuminants, set this feature flag.
 - `munsell`  
   Include reflection spectra for Munsell colors.
+
 - `cct`  
   Calculates correlated color temperatures (CCT) for illuminants.
   Generates a 4096-entry lookup table (each entry containing three `f64` values).
   Memory is reserved at compile time but computed on demand.
   (Included automatically if the `cri` feature is enabled).
+
 - `cri`  
   Enables Color Rendering Index (CRI) calculations, providing Ra and R1–R14 values for illuminants.  
   Loads an additional 14 test color sample spectra.
+
 - `cfi`  
-  Enables Color Fidelity Index (CRI) calculations, providing R<sub>f</sub> and R<sub>f,1</sub>–R<sub>f,14</sub> values for illuminants.  
-  Loads an additional 14 test color sample spectra.
+  Enables Color Fidelity Index (CRI) calculations, providing R<sub>f</sub> and R<sub>f,1</sub>–R<sub>f,99</sub> values for illuminants.  
+  Loads the 99 CES test color sample spectra.
 
 <details>
 <summary>How to enable a feature?</summary>
@@ -198,12 +245,12 @@ colorimetry = { version = "0.0.6", features = ["cri", "munsell"] }
 </details>
 
 ## License
-All content &copy;2025 Harbers Bik LLC, and licensed under either of
+All content &copy;2025 Harbers Bik LLC, and licensed under either of the
 
- * Apache License, Version 2.0
-   ([LICENSE-APACHE](LICENSE-APACHE) or <http://www.apache.org/licenses/LICENSE-2.0>)
+ * Apache License, Version 2.0,
+   ([LICENSE-APACHE](LICENSE-APACHE) or <http://www.apache.org/licenses/LICENSE-2.0>), or the
  * MIT license
-   [LICENSE-MIT](LICENSE-MIT) or <http://opensource.org/licenses/MIT>
+   [LICENSE-MIT](LICENSE-MIT) or <http://opensource.org/licenses/MIT>,
 
 at your option.
 
@@ -296,6 +343,6 @@ dual licensed as above, without any additional terms or conditions.
 [`LED_RGB1`]: https://docs.rs/colorimetry/latest/colorimetry/data/illuminants/static.LED_RGB1.html 
 [`LED_V1`]: https://docs.rs/colorimetry/latest/colorimetry/data/illuminants/static.LED_V1.html 
 
-[^1]: “ColorChecker” is a registered trademark of X-Rite, Incorporated
-[^2]: CIE 13.3-1995: Method of Measuring and Specifying Colour Rendering Properties of Light Sources* (Commission Internationale de l'Éclairage, 1995).
-[^3]: Commission Internationale de l'Éclairage. (2004). *CIE 015:2004: Colorimetry* (3rd ed.). Vienna: CIE.
+[^1]: Commission Internationale de l'Éclairage. (2004). *CIE 015:2004: Colorimetry* (3rd ed.). Vienna.
+[^2]: Commission Internationale de l'Éclairage, (1995). *CIE 13.3-1995: Method of Measuring and Specifying Colour Rendering Properties of Light Sources*, Vienna..
+[^3]: Commission Internationale de l'Éclairage. (2017). *CIE 224:2017: Colour Fidelity Index for accurate scientific use*. Vienna.

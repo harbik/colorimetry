@@ -116,6 +116,14 @@ impl Observer {
     pub fn xyz(&self, light: &dyn Light, filter: Option<&dyn Filter>) -> XYZ {
         self.data().xyz(light, filter)
     }
+
+    pub fn rgb2xyz(&self, rgbspace: RgbSpace) -> Matrix3<f64> {
+        self.data().rgb2xyz(rgbspace)
+    }
+
+    pub fn xyz2rgb(&self, rgbspace: RgbSpace) -> Matrix3<f64> {
+        self.data().xyz2rgb(rgbspace)
+    }
 }
 
 impl fmt::Display for Observer {
@@ -354,7 +362,7 @@ impl ObserverData {
     }
 
     /// Calculates the RGB to XYZ matrix, for a particular color space.
-    pub fn rgb2xyz(&self, rgbspace: &RgbSpace) -> Matrix3<f64> {
+    pub fn rgb2xyz(&self, rgbspace: RgbSpace) -> Matrix3<f64> {
         let space = rgbspace.data();
         let mut rgb2xyz = Matrix3::from_iterator(
             space
@@ -375,7 +383,7 @@ impl ObserverData {
     /// Calculates the XYZ to RGB matrix, for a particular color space.
     pub fn xyz2rgb(&self, rgbspace: RgbSpace) -> Matrix3<f64> {
         // unwrap: only used with library color spaces
-        self.rgb2xyz(&rgbspace).try_inverse().unwrap()
+        self.rgb2xyz(rgbspace).try_inverse().unwrap()
     }
 
     /// Calculates the XYZ tristimulus values for a spectrum defined by a function.
@@ -532,7 +540,7 @@ mod obs_test {
             0.4124564, 0.3575761, 0.1804375, 0.2126729, 0.7151522, 0.0721750, 0.0193339, 0.1191920,
             0.9503041,
         );
-        let got = CIE1931.rgb2xyz(&crate::rgb::RgbSpace::SRGB);
+        let got = CIE1931.rgb2xyz(crate::rgb::RgbSpace::SRGB);
         approx::assert_ulps_eq!(want, got, epsilon = 3E-4);
     }
 

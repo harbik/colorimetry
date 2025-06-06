@@ -217,7 +217,7 @@ impl Rgb {
     /// Converts the RGB value to a tri-stimulus XYZ value
     pub fn xyz(&self) -> XYZ {
         const YW: f64 = 100.0;
-        let xyz = self.observer.data().rgb2xyz(&self.space) * self.rgb;
+        let xyz = self.observer.data().rgb2xyz(self.space) * self.rgb;
         XYZ {
             observer: self.observer,
             xyz: xyz.map(|v| v * YW),
@@ -249,7 +249,7 @@ impl Light for Rgb {
     /// - The observer's data is used to apply luminance scaling, enhancing perceptual accuracy.
     fn spectrum(&self) -> Cow<Spectrum> {
         let prim = &self.space.data().primaries;
-        let rgb2xyz = self.observer.data().rgb2xyz(&self.space);
+        let rgb2xyz = self.observer.data().rgb2xyz(self.space);
         let yrgb = rgb2xyz.row(1);
         //        self.rgb.iter().zip(yrgb.iter()).zip(prim.iter()).map(|((v,w),s)|*v * *w * &s.0).sum()
         let s = self
@@ -306,7 +306,7 @@ impl Filter for Rgb {
     ///   that can be combined with any illuminant to produce a specific stimulus.
     fn spectrum(&self) -> Cow<Spectrum> {
         let prim = self.space.data().primaries_as_colorants();
-        let rgb2xyz = self.observer.data().rgb2xyz(&self.space);
+        let rgb2xyz = self.observer.data().rgb2xyz(self.space);
         let yrgb = rgb2xyz.row(1);
         let s = self
             .rgb

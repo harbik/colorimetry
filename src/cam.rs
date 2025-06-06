@@ -1,5 +1,32 @@
+//!  CIE color appearance models (CIECAM02 and CIECAM16).
+//!
+//! This module provides structures and functions to convert between CIEXYZ tristimulus values
+//! and the perceptual correlates of human color vision. It includes:
+//!
+//! - `ViewConditions`: Defines the environment under which color is observed, including
+//!   surround, adapting luminance, and background luminance.
+//! - `CieCam02` and `CieCam16`: High-level implementations of the CIECAM02 and CIECAM16
+//!   appearance models both build on top of the `CamJCh` structure and use the `CamTransforms` trait for implementing most of their methods.
+//! - `CamJCh`: Internal data structure holding Lightness (J), Chroma (C), and hue angle (h),
+//!   along with observer, reference white, and viewing conditions.
+//! - `ReferenceValues`: Precomputed factors (e.g., `n,` `z,` `nbb,` `ncb,` `d_rgb,` `aw,` `qu`)
+//! That depends only on the reference white and view conditions. These values are reused across
+//!   multiple color conversions to improve performance.
+//! - `Cam`: Enum distinguishing between the CIECAM02 and CIECAM16 variants when performing
+//!   forward or inverse transforms.
+//! - `CamTransforms` trait: Common interface for extracting JCh coordinates, computing raw Jab,
+//!   and deriving CAM-UCS coordinates (`J′a′b′`), plus a method to calculate ΔE′ color differences.
+//!
+//! Additionally, this module provides helper functions for:
+//! - Achromatic response calculation (`achromatic_rsp` and `achromatic_response_from_lightness`)
+//! - Hue eccentricity factor (`eccentricity`)
+//! - Inverse cone adaptation function (`inv_cone_adaptation`)
+//! - Matrices for chromatic adaptation (MCAT02, MCAT02INV, MHPE, MHPEINV, M16, M16INV).
+//!
+//! For more details on each structure and function, refer to their documentation comments.
+
 mod viewconditions;
-pub use viewconditions::{ViewConditions, CIE_HOME_DISPLAY, TM30VC};
+pub use viewconditions::{ViewConditions, TM30VC, CIE248_CABINET, CIE248_OFFICE_SCREEN, CIE248_HOME_SCREEN, CIE248_PROJECTED_DARK};
 
 mod cam16;
 pub use crate::cam::cam16::CieCam16;

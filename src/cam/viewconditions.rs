@@ -4,6 +4,26 @@ use super::{Cam, M16, MCAT02, MCAT02INV, MHPE};
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
 #[derive(Clone, Copy, Debug)]
+/// CIECAM viewing conditions.
+///
+/// This struct encapsulates the parameters
+/// needed to model how colors are perceived under specific environmental settings
+/// according to the CIECAM02 and CIECAM16 specifications.  
+///
+/// The ViewConditions as recommended by CIE248:2022 are provided for various scenarios as constants, and are included as:
+/// 1) [`CIE248_CABINET`] Viewing a surface in a cabinet 
+/// 2) [`CIE248_HOME_SCREEN`] Viewing a self-luminous display at home
+/// 3) [`CIE248_PROJECTED_DARK`] Viewing projected images in a darkened room
+/// 4) [`CIE248_OFFICE_SCREEN`] Viewing a self-luminous display under office illumination
+///  
+/// - `ViewConditions`: Describes the observer’s viewing environment, including:
+///   - `yb` (relative background luminance, as a fraction of the white point’s Y value)  
+///   - `f` (surround factor, representing the degree of adaptation)  
+///   - `nc` (chromatic induction factor)  
+///   - `c` (impact of surround on chroma/contrast)  
+///   - `la` (adapting luminance in cd/m²)  
+///   - `dopt` (optional precomputed degree of adaptation; if `None`, it’s derived from `f` and `la` using CIE248:2022 formula 4.3)  
+// 
 pub struct ViewConditions {
     /// Degree of Adaptation, if omitted, formula 4.3 of CIE248:2022 is used.``
     pub dopt: Option<f64>,
@@ -147,6 +167,8 @@ impl Default for ViewConditions {
     }
 }
 
+/// ViewConditions as used for TM30 and Color FIdelity Calculations
+/// (ANSI/TM-30-20-2020)
 pub const TM30VC: ViewConditions = ViewConditions {
     yb: 20.0,
     c: 0.69,
@@ -156,13 +178,68 @@ pub const TM30VC: ViewConditions = ViewConditions {
     dopt: Some(1.0),
 };
 
-/// Values according to Table 1, record 2, CIE 248:2022
-#[allow(dead_code)]
-pub const CIE_HOME_DISPLAY: ViewConditions = ViewConditions {
-    yb: 20.0,
-    c: 0.59,
-    nc: 0.9,
-    f: 0.8,
-    la: 16.0,
+/// Values according to Table 1, CIE 248:2022
+///    
+/// 1) Surface colour evaluation in a color viewing cabinet
+///
+///   – Adopted white point: Viewing-cabinet white ⇒ Yₙ = 318.3 cd·m⁻²  
+///   – Adaptation luminance: L_A = 63.7 cd·m⁻²  
+///   – Surround: Average ⇒ (f = 1.0, c = 0.69, nc = 1.0)  
+///   – Surround ratio: S_R = 1 ⇒ background luminance Y_b = 1 × 318.3 = 318.3 cd·m⁻²
+///
+pub const CIE248_CABINET: ViewConditions = ViewConditions {
+    yb: 318.3,      // = 1 × 318.3
+    f: 1.0,         // “average” surround
+    nc: 1.0,        // “average” surround
+    c: 0.69,        // “average” surround
+    la: 63.7,       // adaptation luminance (cd·m⁻²)
+    dopt: None,     // let the library compute D via CIE248:2022
+};
+
+/// 2) Viewing a self-luminous display at home
+///
+///   – Adopted white point: between display white and ambient white ⇒ Yₙ = 80 cd·m⁻²  
+///   – Adaptation luminance: L_A = 16 cd·m⁻²  
+///   – Surround: Dim ⇒ (f = 0.9, c = 0.59, nc = 0.9)  
+///   – Surround ratio: S_R = 0.15 ⇒ Y_b = 0.15 × 80 = 12 cd·m⁻²
+///
+pub const CIE248_HOME_SCREEN: ViewConditions = ViewConditions {
+    yb: 12.0,       // = 0.15 × 80
+    f: 0.9,         // “dim” surround
+    nc: 0.9,        // “dim” surround
+    c: 0.59,        // “dim” surround
+    la: 16.0,       // adaptation luminance (cd·m⁻²)
+    dopt: None,
+};
+
+/// 3) Viewing projected images in a darkened room
+///
+///   – Adopted white point: between projector white and ambient white ⇒ Yₙ = 150 cd·m⁻²  
+///   – Adaptation luminance: L_A = 30 cd·m⁻²  
+///   – Surround: Dark ⇒ (f = 0.8, c = 0.525, nc = 0.8)  
+///   – Surround ratio: S_R = 0 ⇒ Y_b = 0 × 150 = 0 cd·m⁻²
+///
+pub const CIE248_PROJECTED_DARK: ViewConditions = ViewConditions {
+    yb: 0.0,        // = 0 × 150
+    f: 0.8,         // “dark” surround
+    nc: 0.8,        // “dark” surround
+    c: 0.525,       // “dark” surround
+    la: 30.0,       // adaptation luminance (cd·m⁻²)
+    dopt: None,
+};
+
+/// 4) Viewing a self-luminous display under office illumination
+///
+///   – Adopted white point: between display white and office white ⇒ Yₙ = 80 cd·m⁻²  
+///   – Adaptation luminance: L_A = 16 cd·m⁻²  
+///   – Surround: Average ⇒ (f = 1.0, c = 0.69, nc = 1.0)  
+///   – Surround ratio: S_R = 2 ⇒ Y_b = 2 × 80 = 160 cd·m⁻²
+///
+pub const  CIE248_OFFICE_SCREEN: ViewConditions = ViewConditions {
+    yb: 160.0,      // = 2 × 80
+    f: 1.0,         // “average” surround
+    nc: 1.0,        // “average” surround
+    c: 0.69,        // “average” surround
+    la: 16.0,       // adaptation luminance (cd·m⁻²)
     dopt: None,
 };
