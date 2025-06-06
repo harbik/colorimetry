@@ -19,7 +19,8 @@ or add this line to the dependencies in your Cargo.toml file:
 
 # Examples
 <details>
-<summary><i>Tristimulus Values</i></summary>
+<summary><i>Calculate Tristimulus Values for Illuminants</i></summary>
+
 This example calculates the XYZ tristimulus values of the D65 illuminant for both the CIE 1931 2º standard observer and the CIE 2015 10º observer.
 
 ```rust
@@ -48,7 +49,8 @@ This example calculates the XYZ tristimulus values of the D65 illuminant for bot
 </details>
 
 <details>
-<summary><i>Correlated Color Temperature</i></summary>
+<summary><i>Calculate Correlated Color Temperature and Tint</i></summary>
+
 The correlated color temperature (CCT) of an illuminant, typically expressed in kelvin (K),
 describes whether a light source appears warm (low CCT) or cool (high CCT). It is a key parameter
 for characterizing the visual appearance of white light .
@@ -71,7 +73,8 @@ locus, often referred to as the tint.
 </details>
 
 <details>
-<summary><i>Color Fidelity Index</i></summary>
+<summary><i>Calculate Color Fidelity Index for Illuminants</i></summary>
+
 The CIE has announced that the Color Fidelity Index (CFI) will replace the Color Rendering Index
 (CRI) as the standard metric for evaluating color rendering. Both indices aim to quantify how
 accurately a light source reproduces the colors of illuminated objects. However, the CFI offers a
@@ -97,7 +100,9 @@ Below is an example calculation of the general Color Fidelity Index for the CIE 
 </details>
 
 <details>
-<summary><i>Chromaticity Diagram's Spectral Locus</i></summary>
+
+<summary><i>Calculate Spectral Locus to Plot in Diagrams</i></summary>
+
 The spectral locus is the boundary in a chromaticity diagram that encloses all perceivable,
 physically realizable colors. Due to its shape, it is sometimes informally referred to as the
 "horseshoe."
@@ -118,7 +123,7 @@ Below, we compute the chromaticity coordinates that define the spectral locus.
 </details>
 
 <details>
-<summary><i>XYZ/RGB Transformation Matrices, for any Observer</i></summary>
+<summary><i>Calculate XYZ/RGB Transformation Matrices, for any Observer, for use in Color Profiles</i></summary>
 This is usually done with the CIE 1931 Standard Observer, but this library supports any observer—as long as both the color space and the data use the same one.  
 Instead of fixed XYZ values, it computes conversions from the spectral definitions of the primaries to be able to do so.
 Here, we compute transformation matrices for the `DisplayP3` color space using both the `Cie1931` and `Cie2015` observers.  
