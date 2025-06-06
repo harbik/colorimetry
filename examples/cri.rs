@@ -15,7 +15,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let r9 = cri[9];
 
         // Calculate Correlated Color Temperature
-        let xyz = CIE1931.xyz(&spc, None);
+        let xyz = Cie1931.xyz(&spc, None);
         let cct: CCT = xyz.try_into()?;
         let [t, d] = cct.into();
         let tint = d * 1000.0;

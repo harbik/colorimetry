@@ -26,7 +26,7 @@ impl CostFunction for Gauss {
 
     fn cost(&self, param: &Self::Param) -> Result<Self::Output, argmin::core::Error> {
         let [l, w] = param.clone().try_into().unwrap();
-        let param_chromaticity = CIE1931
+        let param_chromaticity = Cie1931
             .xyz(&CieIlluminant::D65, Some(&Colorant::gaussian(l, w)))
             .chromaticity();
         //  println!("({l},{w}) cost: {xt:.4}, {yt:.4}");
@@ -60,7 +60,7 @@ impl CostFunction for GaussWithAnchor {
 
     fn cost(&self, param: &Self::Param) -> Result<Self::Output, argmin::core::Error> {
         let [l, w, c]: [f64; 3] = param.clone().try_into().unwrap();
-        let r = CIE1931
+        let r = Cie1931
             .xyz(&CieIlluminant::D65, Some(&Colorant::gaussian(l, w)))
             .set_illuminance(100.0);
         let t = c * self.anchor + (1.0 - c) * r;
@@ -76,7 +76,7 @@ fn gauss(space: RgbSpace, rgb_channel_i: usize) -> Result<Vec<f64>, String> {
     let d = space.white();
     let problem = Gauss::new(xyz, d);
 
-    let l = xyz.dominant_wavelength(CIE1931.xyz_d65()).unwrap();
+    let l = xyz.dominant_wavelength(Cie1931.xyz_d65()).unwrap();
     let w = 40.0;
 
     let solver = NelderMead::new(vec![vec![l, w], vec![l + 5.0, w], vec![l, w + 5.0]]);
@@ -106,7 +106,7 @@ fn gauss_with_anchor(space: RgbSpace, i: usize, j: usize) -> Result<Vec<f64>, St
     let problem = GaussWithAnchor::new(xyz, xyzb, d);
 
     // start parameters
-    let l = xyz.dominant_wavelength(CIE1931.xyz_d65()).unwrap();
+    let l = xyz.dominant_wavelength(Cie1931.xyz_d65()).unwrap();
     let w = 40.0;
     let c = 0.1;
 

@@ -44,8 +44,6 @@
 
 mod observers;
 
-pub use observers::*;
-
 use crate::{
     error::Error,
     illuminant::{CieIlluminant, Planck},
@@ -90,7 +88,7 @@ impl Observer {
     /**
        Get a reference to the data for the specified `Observer`.
     */
-    pub fn data(&self) -> &'static ObserverData {
+    pub(crate) fn data(&self) -> &'static ObserverData {
         match self {
             Observer::Cie1931 => &observers::CIE1931,
             #[cfg(feature = "supplemental-observers")]
@@ -205,6 +203,12 @@ impl Observer {
         self.xyz_from_fn(|l| p.at_wavelength(to_wavelength(l, 0.0, 1.0)))
     }
 
+    /// The slope of the Plancking locus as a (dX/dT, dY/dT, dZ/dT) contained in
+    /// a XYZ object.
+    pub fn xyz_planckian_locus_slope(&self, cct: f64) -> XYZ {
+        let p = Planck::new(cct);
+        self.xyz_from_fn(|l| p.slope_at_wavelength(to_wavelength(l, 0.0, 1.0)))
+    }
 
     /// Calculates the RGB to XYZ matrix, for a particular color space.
     pub fn rgb2xyz(&self, rgbspace: RgbSpace) -> Matrix3<f64> {
@@ -312,14 +316,14 @@ impl Observer {
     /// and converting the resulting value to RGB values.
     /// ```
     /// use colorimetry::prelude::*;
-    /// let rgb: [u8;3] = CIE1931.xyz_from_colorant_fn(&CieIlluminant::D65, |x|x).rgb(None).clamp().into();
+    /// let rgb: [u8;3] = Cie1931.xyz_from_colorant_fn(&CieIlluminant::D65, |x|x).rgb(None).clamp().into();
     /// assert_eq!(rgb, [212, 171, 109]);
     /// ```
     /// Linear low pass filter, with a value of 1.0 for a wavelength of 380nm, and a value of 0.0 for 780nm,
     /// and converting the resulting value to RGB values.
     /// ```
     /// use colorimetry::prelude::*;
-    /// let rgb: [u8;3] = CIE1931.xyz_from_colorant_fn(&CieIlluminant::D65, |x|1.0-x).rgb(None).clamp().into();
+    /// let rgb: [u8;3] = Cie1931.xyz_from_colorant_fn(&CieIlluminant::D65, |x|1.0-x).rgb(None).clamp().into();
     /// assert_eq!(rgb, [158, 202, 237]);
     /// ```
     pub fn xyz_from_colorant_fn(&self, illuminant: &CieIlluminant, f: impl Fn(f64) -> f64) -> XYZ {

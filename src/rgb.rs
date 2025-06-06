@@ -287,8 +287,8 @@ impl Filter for Rgb {
     /// let spectrum = Filter::spectrum(&rgb);
     ///
     /// // Compare with the CIE D65 reference white point
-    /// let d65: XYZ = CIE1931.xyz(&CieIlluminant::D65, Some(&rgb));
-    /// let xyz_d65 = CIE1931.xyz_d65();
+    /// let d65: XYZ = Cie1931.xyz(&CieIlluminant::D65, Some(&rgb));
+    /// let xyz_d65 = Cie1931.xyz_d65();
     /// approx::assert_ulps_eq!(d65, xyz_d65, epsilon = 1e-2);
     /// ```
     ///
