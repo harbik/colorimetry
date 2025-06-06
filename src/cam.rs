@@ -153,11 +153,15 @@ impl CamJCh {
         }
 
         // calculate J = jj
-        let jj = 100.0 * (achromatic_rsp(rgb, nbb) / aw).powf(vc.c() * z);
+        let jj = 100.0 * (achromatic_rsp(rgb, nbb) / aw).powf(vc.impact_of_surround() * z);
 
         // calculate C = cc
         let et = 0.25f64 * ((h + 2.0).cos() + 3.8);
-        let t = (50000.0 / 13.0 * ncb * vc.nc() * et * (ca * ca + cb * cb).sqrt())
+        let t = (50000.0 / 13.0
+            * ncb
+            * vc.chromatic_induction_factor()
+            * et
+            * (ca * ca + cb * cb).sqrt())
             / (rgb[0] + rgb[1] + 21.0 / 20.0 * rgb[2]);
         let cc = t.powf(0.9) * (jj / 100.).sqrt() * (1.64 - (0.29f64).powf(n)).powf(0.73);
 
@@ -198,8 +202,10 @@ impl CamJCh {
         let &[lightness, chroma, hue_angle] = self.jch.as_ref();
         let t = (chroma / ((lightness / 100.0).sqrt() * (1.64 - 0.29f64.powf(n)).powf(0.73)))
             .powf(Self::RCPR_9);
-        let p1 = (Self::P1C * vc.nc() * ncb * eccentricity(hue_angle)) / t; // NaN if t=0, but OK, as check on t==0.0 if used
-        let p2 = achromatic_response_from_lightness(aw, vc.c(), z, lightness) / nbb + 0.305;
+        let p1 = (Self::P1C * vc.chromatic_induction_factor() * ncb * eccentricity(hue_angle)) / t; // NaN if t=0, but OK, as check on t==0.0 if used
+        let p2 = achromatic_response_from_lightness(aw, vc.impact_of_surround(), z, lightness)
+            / nbb
+            + 0.305;
         let (a, b) = match hue_angle.to_radians().sin_cos() {
             (_, _) if t.is_nan() || t == 0.0 => (0.0, 0.0),
             (hs, hc) if hs.abs() >= hc.abs() => {
@@ -215,7 +221,8 @@ impl CamJCh {
         // rgb_a
         let m = matrix![ 460.0, 451.0, 288.0; 460.0, -891.0, -261.0; 460.0, -220.0, -6_300.0; ]
             / 1_403.0;
-        let rgb_p = (m * vector![p2, a, b]).map(|x| inv_cone_adaptation(vc.f_l(), x)); // Step 4 & 5
+        let rgb_p = (m * vector![p2, a, b])
+            .map(|x| inv_cone_adaptation(vc.luminance_level_adaptation_factor(), x)); // Step 4 & 5
         let rgb = rgb_p.component_div(&d_rgb_vec);
 
         let xyz = match cam {
@@ -257,7 +264,7 @@ pub trait CamTransforms {
     fn jab(&self) -> [f64; 3] {
         let &[jj, cc, h] = self.jch_vec().as_ref();
         let vc = self.view_conditions();
-        let m = cc * vc.f_l().powf(0.25);
+        let m = cc * vc.luminance_level_adaptation_factor().powf(0.25);
         let mprime = 1.0 / Self::UCS_C2 * (1.0 + Self::UCS_C2 * m).ln();
         [
             (1.0 + 100.0 * Self::UCS_C1) * jj / (1.0 + Self::UCS_C1 * jj),
@@ -281,7 +288,7 @@ pub trait CamTransforms {
     fn jab_prime(&self) -> [f64; 3] {
         let &[jj, cc, h] = self.jch_vec().as_ref();
         let vc = self.view_conditions();
-        let m = cc * vc.f_l().powf(0.25);
+        let m = cc * vc.luminance_level_adaptation_factor().powf(0.25);
         let mprime = 1.0 / Self::UCS_C2 * (1.0 + Self::UCS_C2 * m).ln();
         [
             (1.0 + 100.0 * Self::UCS_C1) * jj / (1.0 + Self::UCS_C1 * jj),

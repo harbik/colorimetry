@@ -37,29 +37,29 @@ impl ViewConditions {
             dopt,
         }
     }
-    
+
     ///  Impact of surround on chroma/contrast  
-    pub fn c(&self) -> f64 {
+    pub fn impact_of_surround(&self) -> f64 {
         self.c
     }
 
     ///  Chromatic induction factor
-    pub fn nc(&self) -> f64 {
+    pub fn chromatic_induction_factor(&self) -> f64 {
         self.nc
     }
 
     ///  Adapting luminance in cd/m²  
-    pub fn la(&self) -> f64 {
+    pub fn adapting_luminance(&self) -> f64 {
         self.la
     }
 
     ///  relative background luminance, as a fraction of the white point’s Y value  
-    pub fn yb(&self) -> f64 {
+    pub fn relative_background_luminance(&self) -> f64 {
         self.yb
     }
 
-    ///  surround factor, representing the degree of adaptation 
-    pub fn f(&self) -> f64 {
+    ///  surround factor, representing the degree of adaptation
+    pub fn surround_factor(&self) -> f64 {
         self.f
     }
 
@@ -69,7 +69,7 @@ impl ViewConditions {
             Cam::CieCam02 => MCAT02 * xyzn,
         };
 
-        let vcd = self.dd();
+        let vcd = self.degree_of_adaptation();
         let yw = xyzn[1];
         let d_rgb = rgb_w.map(|v| vcd * yw / v + 1.0 - vcd);
         let n = self.yb / yw;
@@ -107,13 +107,13 @@ impl ViewConditions {
     }
 
     #[inline]
-    pub fn f_l(&self) -> f64 {
+    pub fn luminance_level_adaptation_factor(&self) -> f64 {
         let k = self.k();
         k.powi(4) * self.la + (1. - k.powi(4)).powi(2) / 10. * (5.0 * self.la).powf(1. / 3.)
     }
 
     /// Degree of Adaptation, if omitted, formula 4.3 of CIE248:2022 is used.``
-    pub fn dd(&self) -> f64 {
+    pub fn degree_of_adaptation(&self) -> f64 {
         if let Some(d) = self.dopt {
             d.clamp(0.0, 1.0)
         } else {
@@ -122,7 +122,7 @@ impl ViewConditions {
     }
 
     pub fn lum_adapt02(&self, v: &mut f64) {
-        let t = (self.f_l() * *v / 100.).powf(0.42);
+        let t = (self.luminance_level_adaptation_factor() * *v / 100.).powf(0.42);
         *v = v.signum() * 400. * t / (27.13 + t) + 0.1;
     }
 
@@ -138,7 +138,7 @@ impl ViewConditions {
     /// l = 0.26;
     /// u = max(150.0, Rwc, Gwc, Bwc);
     pub fn lum_adapt16(&self, q: &mut f64, ql: f64, qu: f64) {
-        let fl = self.f_l();
+        let fl = self.luminance_level_adaptation_factor();
 
         // CIECAM16 eq 3.4
         let f = |q: f64| -> f64 {
