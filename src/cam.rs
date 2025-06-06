@@ -10,7 +10,7 @@
 //! - `CamJCh`: Internal data structure holding Lightness (J), Chroma (C), and hue angle (h),
 //!   along with observer, reference white, and viewing conditions.
 //! - `ReferenceValues`: Precomputed factors (e.g., `n,` `z,` `nbb,` `ncb,` `d_rgb,` `aw,` `qu`)
-//! That depends only on the reference white and view conditions. These values are reused across
+//!   that depends only on the reference white and view conditions. These values are reused across
 //!   multiple color conversions to improve performance.
 //! - `Cam`: Enum distinguishing between the CIECAM02 and CIECAM16 variants when performing
 //!   forward or inverse transforms.
@@ -26,7 +26,10 @@
 //! For more details on each structure and function, refer to their documentation comments.
 
 mod viewconditions;
-pub use viewconditions::{ViewConditions, TM30VC, CIE248_CABINET, CIE248_OFFICE_SCREEN, CIE248_HOME_SCREEN, CIE248_PROJECTED_DARK};
+pub use viewconditions::{
+    ViewConditions, CIE248_CABINET, CIE248_HOME_SCREEN, CIE248_OFFICE_SCREEN,
+    CIE248_PROJECTED_DARK, TM30VC,
+};
 
 mod cam16;
 pub use crate::cam::cam16::CieCam16;

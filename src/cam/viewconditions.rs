@@ -11,7 +11,7 @@ use super::{Cam, M16, MCAT02, MCAT02INV, MHPE};
 /// according to the CIECAM02 and CIECAM16 specifications.  
 ///
 /// The ViewConditions as recommended by CIE248:2022 are provided for various scenarios as constants, and are included as:
-/// 1) [`CIE248_CABINET`] Viewing a surface in a cabinet 
+/// 1) [`CIE248_CABINET`] Viewing a surface in a cabinet
 /// 2) [`CIE248_HOME_SCREEN`] Viewing a self-luminous display at home
 /// 3) [`CIE248_PROJECTED_DARK`] Viewing projected images in a darkened room
 /// 4) [`CIE248_OFFICE_SCREEN`] Viewing a self-luminous display under office illumination
@@ -23,7 +23,7 @@ use super::{Cam, M16, MCAT02, MCAT02INV, MHPE};
 ///   - `c` (impact of surround on chroma/contrast)  
 ///   - `la` (adapting luminance in cd/m²)  
 ///   - `dopt` (optional precomputed degree of adaptation; if `None`, it’s derived from `f` and `la` using CIE248:2022 formula 4.3)  
-// 
+//
 pub struct ViewConditions {
     /// Degree of Adaptation, if omitted, formula 4.3 of CIE248:2022 is used.``
     pub dopt: Option<f64>,
@@ -188,12 +188,12 @@ pub const TM30VC: ViewConditions = ViewConditions {
 ///   – Surround ratio: S_R = 1 ⇒ background luminance Y_b = 1 × 318.3 = 318.3 cd·m⁻²
 ///
 pub const CIE248_CABINET: ViewConditions = ViewConditions {
-    yb: 318.3,      // = 1 × 318.3
-    f: 1.0,         // “average” surround
-    nc: 1.0,        // “average” surround
-    c: 0.69,        // “average” surround
-    la: 63.7,       // adaptation luminance (cd·m⁻²)
-    dopt: None,     // let the library compute D via CIE248:2022
+    yb: 318.3,  // = 1 × 318.3
+    f: 1.0,     // “average” surround
+    nc: 1.0,    // “average” surround
+    c: 0.69,    // “average” surround
+    la: 63.7,   // adaptation luminance (cd·m⁻²)
+    dopt: None, // let the library compute D via CIE248:2022
 };
 
 /// 2) Viewing a self-luminous display at home
@@ -204,11 +204,11 @@ pub const CIE248_CABINET: ViewConditions = ViewConditions {
 ///   – Surround ratio: S_R = 0.15 ⇒ Y_b = 0.15 × 80 = 12 cd·m⁻²
 ///
 pub const CIE248_HOME_SCREEN: ViewConditions = ViewConditions {
-    yb: 12.0,       // = 0.15 × 80
-    f: 0.9,         // “dim” surround
-    nc: 0.9,        // “dim” surround
-    c: 0.59,        // “dim” surround
-    la: 16.0,       // adaptation luminance (cd·m⁻²)
+    yb: 12.0, // = 0.15 × 80
+    f: 0.9,   // “dim” surround
+    nc: 0.9,  // “dim” surround
+    c: 0.59,  // “dim” surround
+    la: 16.0, // adaptation luminance (cd·m⁻²)
     dopt: None,
 };
 
@@ -220,11 +220,11 @@ pub const CIE248_HOME_SCREEN: ViewConditions = ViewConditions {
 ///   – Surround ratio: S_R = 0 ⇒ Y_b = 0 × 150 = 0 cd·m⁻²
 ///
 pub const CIE248_PROJECTED_DARK: ViewConditions = ViewConditions {
-    yb: 0.0,        // = 0 × 150
-    f: 0.8,         // “dark” surround
-    nc: 0.8,        // “dark” surround
-    c: 0.525,       // “dark” surround
-    la: 30.0,       // adaptation luminance (cd·m⁻²)
+    yb: 0.0,  // = 0 × 150
+    f: 0.8,   // “dark” surround
+    nc: 0.8,  // “dark” surround
+    c: 0.525, // “dark” surround
+    la: 30.0, // adaptation luminance (cd·m⁻²)
     dopt: None,
 };
 
@@ -235,11 +235,11 @@ pub const CIE248_PROJECTED_DARK: ViewConditions = ViewConditions {
 ///   – Surround: Average ⇒ (f = 1.0, c = 0.69, nc = 1.0)  
 ///   – Surround ratio: S_R = 2 ⇒ Y_b = 2 × 80 = 160 cd·m⁻²
 ///
-pub const  CIE248_OFFICE_SCREEN: ViewConditions = ViewConditions {
-    yb: 160.0,      // = 2 × 80
-    f: 1.0,         // “average” surround
-    nc: 1.0,        // “average” surround
-    c: 0.69,        // “average” surround
-    la: 16.0,       // adaptation luminance (cd·m⁻²)
+pub const CIE248_OFFICE_SCREEN: ViewConditions = ViewConditions {
+    yb: 160.0, // = 2 × 80
+    f: 1.0,    // “average” surround
+    nc: 1.0,   // “average” surround
+    c: 0.69,   // “average” surround
+    la: 16.0,  // adaptation luminance (cd·m⁻²)
     dopt: None,
 };
