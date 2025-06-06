@@ -192,13 +192,8 @@ mod test_munsell_matt {
     #[test]
     fn test_match_ciecam16() {
         let colorant = crate::colorant::MunsellMatt::try_new("10RP4/12").unwrap();
-        let (key, delta_e) = MunsellMattCollection::match_ciecam16(
-            &colorant,
-            None,
-            None,
-            Some(Cie1931),
-        )
-        .unwrap();
+        let (key, delta_e) =
+            MunsellMattCollection::match_ciecam16(&colorant, None, None, Some(Cie1931)).unwrap();
         assert_eq!(key, "10RP4/12");
         approx::assert_abs_diff_eq!(delta_e, 0.0, epsilon = 1e-6);
     }
@@ -206,13 +201,7 @@ mod test_munsell_matt {
     #[test]
     fn test_match_r9() {
         let r9 = &crate::colorant::tcs::TCS[8];
-        let (key, delta_e) = MunsellMattCollection::match_ciecam16(
-            r9,
-            None,
-            None,
-            None,
-        )
-        .unwrap();
+        let (key, delta_e) = MunsellMattCollection::match_ciecam16(r9, None, None, None).unwrap();
         assert_eq!(key, "5R4/14");
         approx::assert_abs_diff_eq!(delta_e, 3.0, epsilon = 5e-2);
     }
