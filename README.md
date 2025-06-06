@@ -36,6 +36,7 @@ This example calculates the XYZ tristimulus values of the D65 illuminant for bot
     # #[cfg(feature = "supplemental-observers")]
     # {
     // D65 Tristimulus values using the CIE2015 10º observer
+    // This requires the `supplemental-observers` feature (enabled by default)
     let xyz_d65_10 = D65
         .xyz(Some(Observer::Cie2015_10))
         .set_illuminance(100.0);

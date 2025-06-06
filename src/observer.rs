@@ -152,6 +152,50 @@ impl Observer {
         }
     }
 
+    /// Returns the name of the observer.
+    pub fn name(&self) -> &'static str {
+        self.data().name
+    }
+    
+    /// Calulates Tristimulus values for an object implementing the [Light] trait, and an optional [Filter],
+    /// filtering the light.
+    ///
+    /// The Light trait is implemented by [`CieIlluminant`] and [Illuminant](crate::illuminant::Illuminant).
+    ///
+    /// [`Colorant`](crate::colorant::Colorant) implments the [`Filter`] trait.
+    /// [`Rgb`](crate::rgb::Rgb), which represents a display pixel, implements both in this library.
+    /// As a light, it is the light emitted from the pixel, as a filter it is the RGB-composite
+    /// filter which is applied to the underlying standard illuminant of color space.
+    pub fn xyz(&self, light: &dyn Light, filter: Option<&dyn Filter>) -> XYZ {
+        let xyzn = light.xyzn(self.data().tag, None);
+        if let Some(flt) = filter {
+            let s = *light.spectrum() * *flt.spectrum();
+            let xyz = self.xyz_from_spectrum(&s);
+            let scale = 100.0 / xyzn.xyz.y;
+            xyz * scale
+        } else {
+            xyzn
+        }
+    }
+
+    /**
+        Calculates Tristimulus valus, in form of an [XYZ] object of a general spectrum.
+        If a reference white is given (rhs), it will copy its tristimulus value, and the spectrum
+        is interpreted as a stimulus, being a combination of an illuminant with a colorant.
+        If no reference white is given, the spectrum is interpreted as an illuminant.
+        This method produces the raw XYZ data, not normalized to 100.0
+
+    */
+    pub fn xyz_from_spectrum(&self, spectrum: &Spectrum) -> XYZ {
+        let xyz = self.data().data * spectrum.0 * self.data().lumconst;
+        XYZ::from_vecs(xyz, self.data().tag)
+    }
+
+    /// Calculates the lumimous value or Y tristimulus value for a general spectrum.
+    pub fn y_from_spectrum(&self, spectrum: &Spectrum) -> f64 {
+        (self.data().data.row(1) * spectrum.0 * self.data().lumconst)[(0, 0)]
+    }
+
     /// Returns the observer's color matching function (CMF) data as an [XYZ] tristimulus
     /// value for the given wavelength.
     ///
@@ -185,32 +229,6 @@ impl Observer {
         }
     }
 
-    /// Returns the name of the observer.
-    pub fn name(&self) -> &'static str {
-        self.data().name
-    }
-
-    /// Calulates Tristimulus values for an object implementing the [Light] trait, and an optional [Filter],
-    /// filtering the light.
-    ///
-    /// The Light trait is implemented by [`CieIlluminant`] and [Illuminant](crate::illuminant::Illuminant).
-    ///
-    /// [`Colorant`](crate::colorant::Colorant) implments the [`Filter`] trait.
-    /// [`Rgb`](crate::rgb::Rgb), which represents a display pixel, implements both in this library.
-    /// As a light, it is the light emitted from the pixel, as a filter it is the RGB-composite
-    /// filter which is applied to the underlying standard illuminant of color space.
-    pub fn xyz(&self, light: &dyn Light, filter: Option<&dyn Filter>) -> XYZ {
-        let xyzn = light.xyzn(self.data().tag, None);
-        if let Some(flt) = filter {
-            let s = *light.spectrum() * *flt.spectrum();
-            let xyz = self.xyz_from_spectrum(&s);
-            let scale = 100.0 / xyzn.xyz.y;
-            xyz * scale
-        } else {
-            xyzn
-        }
-    }
-
     /// XYZ tristimulus values for the CIE standard daylight illuminant D65 (buffered).
     pub fn xyz_d65(&self) -> XYZ {
         *self.data().d65.get_or_init(|| {
@@ -225,6 +243,23 @@ impl Observer {
             self.xyz_from_spectrum(CieIlluminant::D50.illuminant().as_ref())
                 .set_illuminance(100.0)
         })
+    }
+
+    /// Calculates XYZ tristimulus values for a Planckian emitter for this
+    /// observer. The `to_wavelength`` function is used, as planck functions
+    /// requires the wavelength to be in units of meters, and the
+    /// `xyz_from_illuminant_as_fn` uses functions over a domain from 0.0 to
+    /// 1.0.
+    pub fn xyz_planckian_locus(&self, cct: f64) -> XYZ {
+        let p = Planck::new(cct);
+        self.xyz_from_fn(|l| p.at_wavelength(to_wavelength(l, 0.0, 1.0)))
+    }
+
+    /// The slope of the Plancking locus as a (dX/dT, dY/dT, dZ/dT) contained in
+    /// a XYZ object.
+    pub fn xyz_planckian_locus_slope(&self, cct: f64) -> XYZ {
+        let p = Planck::new(cct);
+        self.xyz_from_fn(|l| p.slope_at_wavelength(to_wavelength(l, 0.0, 1.0)))
     }
 
     /// Calculates the L*a*b* CIELAB D50 values of a Colorant, using D65 as an illuminant.
@@ -243,23 +278,6 @@ impl Observer {
         let xyz = self.xyz(&CieIlluminant::D65, Some(filter));
         let xyzn = self.xyz_d65();
         CieLab::from_xyz(xyz, xyzn).unwrap()
-    }
-
-    /// Calculates XYZ tristimulus values for a Planckian emitter for this
-    /// observer. The `to_wavelength`` function is used, as planck functions
-    /// requires the wavelength to be in units of meters, and the
-    /// `xyz_from_illuminant_as_fn` uses functions over a domain from 0.0 to
-    /// 1.0.
-    pub fn xyz_planckian_locus(&self, cct: f64) -> XYZ {
-        let p = Planck::new(cct);
-        self.xyz_from_fn(|l| p.at_wavelength(to_wavelength(l, 0.0, 1.0)))
-    }
-
-    /// The slope of the Plancking locus as a (dX/dT, dY/dT, dZ/dT) contained in
-    /// a XYZ object.
-    pub fn xyz_planckian_locus_slope(&self, cct: f64) -> XYZ {
-        let p = Planck::new(cct);
-        self.xyz_from_fn(|l| p.slope_at_wavelength(to_wavelength(l, 0.0, 1.0)))
     }
 
     /// Calculates the RGB to XYZ matrix, for a particular color space.
@@ -287,23 +305,6 @@ impl Observer {
         self.rgb2xyz(rgbspace).try_inverse().unwrap()
     }
 
-    /**
-        Calculates Tristimulus valus, in form of an [XYZ] object of a general spectrum.
-        If a reference white is given (rhs), it will copy its tristimulus value, and the spectrum
-        is interpreted as a stimulus, being a combination of an illuminant with a colorant.
-        If no reference white is given, the spectrum is interpreted as an illuminant.
-        This method produces the raw XYZ data, not normalized to 100.0
-
-    */
-    pub fn xyz_from_spectrum(&self, spectrum: &Spectrum) -> XYZ {
-        let xyz = self.data().data * spectrum.0 * self.data().lumconst;
-        XYZ::from_vecs(xyz, self.data().tag)
-    }
-
-    /// Calculates the lumimous value or Y tristimulus value for a general spectrum.
-    pub fn y_from_spectrum(&self, spectrum: &Spectrum) -> f64 {
-        (self.data().data.row(1) * spectrum.0 * self.data().lumconst)[(0, 0)]
-    }
 
     /// Returns the wavelength range (in nanometer) for the _horse shoe_,
     /// the boundary of the area of all physical colors in a chromiticity diagram,
