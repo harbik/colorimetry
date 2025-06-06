@@ -199,6 +199,7 @@ mod test_munsell_matt {
     }
 
     #[test]
+    #[cfg(feature = "cri")]
     fn test_match_r9() {
         let r9 = &crate::colorant::tcs::TCS[8];
         let (key, delta_e) = MunsellMattCollection::match_ciecam16(r9, None, None, None).unwrap();
