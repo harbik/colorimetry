@@ -1,5 +1,9 @@
+# Colorimetry
 
 ![Build Status](https://github.com/harbik/colorimetry/actions/workflows/build-and-test.yml/badge.svg)
+
+<!-- cargo-rdme start -->
+
 
 This is a Rust library for working with color and light — great for projects in lighting, imaging, or anything that needs accurate color handling.
 It includes tools to simulate how colors look under different lights, convert between color spaces, and follow well-known standards from groups like the CIE, ICC, and IES.
@@ -7,17 +11,17 @@ You can use it to build lighting tools, visualize spectra, or get the right tran
 
 It also has early support for JavaScript and WebAssembly, so you can run it in the browser, and use it with JavaScript Runtimes such as Deno.
 
-# Usage
+## Usage
 To use this library in a Rust application, run the command:
  ```bash
     cargo add colorimetry
 ```
 or add this line to the dependencies in your Cargo.toml file:
-```toml
+```text
     colorimetry = "0.0.6"
 ```
 
-# Examples
+## Examples
 <details>
 <summary><i>Calculate Tristimulus Values for Illuminants</i></summary>
 
@@ -34,8 +38,6 @@ This example calculates the XYZ tristimulus values of the D65 illuminant for bot
     let [x, y, z] = xyz_d65.values();
     check!([x, y, z].as_ref(), [95.04, 100.0, 108.86].as_ref(),  epsilon = 5E-3);
 
-    # #[cfg(feature = "supplemental-observers")]
-    # {
     // D65 Tristimulus values using the CIE2015 10º observer
     // This requires the `supplemental-observers` feature (enabled by default)
     let xyz_d65_10 = D65
@@ -43,8 +45,7 @@ This example calculates the XYZ tristimulus values of the D65 illuminant for bot
         .set_illuminance(100.0);
 
     let [x_10, y_10, z_10] = xyz_d65_10.values();
-    check!([x_10, y_10, z_10].as_ref(), [94.72, 100.0, 107.143].as_ref(), epsilon = 5E-3);
-    # }
+   check!([x_10, y_10, z_10].as_ref(), [94.72, 100.0, 107.143].as_ref(), epsilon = 5E-3);
 ```
 </details>
 
@@ -59,15 +60,12 @@ locus, often referred to as the tint.
 
 ```rust
     use colorimetry::prelude::*;
-    # #[cfg(feature="cie-illuminants")]
     use colorimetry::illuminant::A;
     use approx::assert_abs_diff_eq as check;
 
     // Calculate CCT and Duv for the A illuminant
     // Requires `cct`, and `cie-illuminants` features
-    # #[cfg(all(feature="cct", feature="cie-illuminants"))]
     let [cct, duv] = A.cct().unwrap().values();
-    # #[cfg(all(feature="cct", feature="cie-illuminants"))]
     check!([cct, duv].as_ref(), [2855.4977, 0.0].as_ref(),  epsilon = 5E-4);
 ```
 </details>
@@ -84,18 +82,14 @@ Below is an example calculation of the general Color Fidelity Index for the CIE 
 
 ```rust
     use colorimetry::prelude::*;
-    # #[cfg(feature = "cie-illuminants")]
     use colorimetry::illuminant::F2;
     use approx::assert_abs_diff_eq as check;
 
-    # #[cfg(all(feature = "cfi", feature = "cie-illuminants"))]
-    # {
     // Calculate the Color Fidelity Index of the CIE F2 standard illuminant
     // Requires `cfi`, and `cie-illuminants` features
     let cf_f2 = F2.cfi().unwrap();
     let cf = cf_f2.general_color_fidelity_index();
     check!(cf, 70.3,  epsilon = 1E-1);
-    # }
 ```
 </details>
 
@@ -149,8 +143,6 @@ Here, we compute transformation matrices for the `DisplayP3` color space using b
 
     );
     check!(rgb2xyz_31, want31inv, epsilon=5E-4);
-    # #[cfg(feature = "supplemental-observers")]
-    # {
     // requires `supplemental-observers` 
     use colorimetry::observer::Observer::Cie2015;
 
@@ -161,7 +153,6 @@ Here, we compute transformation matrices for the `DisplayP3` color space using b
         0.0279,  -0.0574,	 0.95874
     );
     check!(xyz2rgb_15, want15, epsilon=5E-4);
-    # }
 ```
 </details>
 
@@ -175,8 +166,6 @@ The closest match identified is Munsell "5R 5/14", a vivid red hue, with a color
 In practical terms, a ΔE of 3 is considered a close match—just at the threshold where most observers might start to notice a difference under controlled viewing conditions.
 
 ```rust
-    # #[cfg(all(feature= "cri", feature = "supplemental-observers", feature = "munsell"))]
-    # {
     use approx::assert_abs_diff_eq as check;
     use colorimetry::observer::Observer::Cie2015_10;
     use colorimetry::colorant::MunsellCollection;
@@ -192,11 +181,10 @@ In practical terms, a ΔE of 3 is considered a close match—just at the thresho
     .unwrap();
     assert_eq!(key, "5R4/14");
     check!(delta_e, 3.0, epsilon = 5e-2);
-    # }
 ```
 </details>
 
-# Features
+## Features
 
 - [`Spectrum`] Standard fixed-grid spectral representation over a wavelength range from 380 to 780 nanometers, with 1-nanometer intervals.  
   - Uses [`nalgebra`] vector and matrix types for fast integration and transformations, with access to a wide range of numerical algorithms.  
@@ -235,7 +223,7 @@ In practical terms, a ΔE of 3 is considered a close match—just at the thresho
   - [`Observer::Cie2015`] the CIE 2015 2º cone fundamentals-based observer  
   - [`Observer::Cie2015_10`] the CIE 2015 10º cone fundamentals-based observer
 
-# Feature Flags
+## Feature Flags
 
 - `supplemental-observers`  
   Adds addiational observers such as `Cie1964`, `Cie2015`, and `Cie2015_10`. Enabled by default.
@@ -281,7 +269,7 @@ colorimetry = { version = "0.0.6", features = ["cri", "munsell"] }
 
 </details>
 
-## License
+### License
 All content &copy;2025 Harbers Bik LLC, and licensed under either of the
 
  * Apache License, Version 2.0,
@@ -291,7 +279,7 @@ All content &copy;2025 Harbers Bik LLC, and licensed under either of the
 
 at your option.
 
-## Contribution
+### Contribution
 
 Unless you explicitly state otherwise, any Contribution intentionally submitted
 for inclusion in the Work by you, as defined in the Apache-2.0 license, shall be
@@ -380,6 +368,8 @@ dual licensed as above, without any additional terms or conditions.
 [`LED_RGB1`]: https://docs.rs/colorimetry/latest/colorimetry/data/illuminants/static.LED_RGB1.html 
 [`LED_V1`]: https://docs.rs/colorimetry/latest/colorimetry/data/illuminants/static.LED_V1.html 
 
-[^1]: Commission Internationale de l'Éclairage. (2004). *CIE 015:2004: Colorimetry* (3rd ed.). Vienna.
-[^2]: Commission Internationale de l'Éclairage, (1995). *CIE 13.3-1995: Method of Measuring and Specifying Colour Rendering Properties of Light Sources*, Vienna..
-[^3]: Commission Internationale de l'Éclairage. (2017). *CIE 224:2017: Colour Fidelity Index for accurate scientific use*. Vienna.
+[^1]: Commission Internationale de l'Éclairage. (2004). *CIE 015:2004: Colorimetry* (3rd ed.). Vienna.  
+[^2]: Commission Internationale de l'Éclairage, (1995). *CIE 13.3-1995: Method of Measuring and Specifying Colour Rendering Properties of Light Sources*, Vienna.  
+[^3]: Commission Internationale de l'Éclairage. (2017). *CIE 224:2017: Colour Fidelity Index for accurate scientific use*. Vienna.  
+
+<!-- cargo-rdme end -->
