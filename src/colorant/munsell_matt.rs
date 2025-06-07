@@ -42,8 +42,8 @@ impl MunsellMatt {
             .collect::<Vec<f64>>()
             .try_into()
             .unwrap();
-        let spectrum = Spectrum::linear_interpolate(
-            &[
+        let spectrum = Spectrum::sprague_interpolate(
+            [
                 *SPECTRUM_WAVELENGTH_RANGE.start() as f64,
                 *SPECTRUM_WAVELENGTH_RANGE.end() as f64,
             ],
