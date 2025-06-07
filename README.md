@@ -165,6 +165,37 @@ Here, we compute transformation matrices for the `DisplayP3` color space using b
 ```
 </details>
 
+<details>
+<summary><i>Find the closest spectral match in the Munsell Color Book</i></summary>
+
+This example finds the best matching color in the Munsell Color Book for a given sample—in this case, the R9 test color used in the CRI color rendering method.
+It uses the `CieCam16::de_ucs` color difference metric and the `Cie2015_10` standard observer to calculate perceptual similarity.
+
+The closest match identified is Munsell "5R 5/14", a vivid red hue, with a color difference of just 3 ΔE.  
+In practical terms, a ΔE of 3 is considered a close match—just at the threshold where most observers might start to notice a difference under controlled viewing conditions.
+
+```rust
+    # #[cfg(all(feature= "cri", feature = "supplemental-observers", feature = "munsell"))]
+    # {
+    use approx::assert_abs_diff_eq as check;
+    use colorimetry::observer::Observer::Cie2015_10;
+    use colorimetry::colorant::MunsellCollection;
+    use colorimetry::colorant::TCS;
+
+    let cri_r9 = &TCS[8];
+    let (key, delta_e) = MunsellCollection::match_ciecam16(
+        cri_r9,
+        None,
+        None,
+        Some(Cie2015_10),
+    )
+    .unwrap();
+    assert_eq!(key, "5R4/14");
+    check!(delta_e, 3.0, epsilon = 5e-2);
+    # }
+```
+</details>
+
 # Features
 
 - [`Spectrum`] Standard fixed-grid spectral representation over a wavelength range from 380 to 780 nanometers, with 1-nanometer intervals.  

@@ -48,16 +48,16 @@
 //!
 
 #[cfg(feature = "munsell")]
-mod munsell_matt;
+mod munsell;
+
+#[cfg(feature = "munsell")]
+pub use munsell::*;
 
 #[cfg(feature = "cfi")]
 mod ces_data;
 
 #[cfg(feature = "cfi")]
 pub use ces_data::{CES_DATA, N_CFI};
-
-#[cfg(feature = "munsell")]
-pub use munsell_matt::*;
 
 #[cfg(feature = "cri")]
 mod tcs;
