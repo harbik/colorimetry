@@ -48,10 +48,10 @@
 //!
 
 #[cfg(feature = "munsell")]
-mod munsell_matt;
+mod munsell;
 
 #[cfg(feature = "munsell")]
-pub use munsell_matt::*;
+pub use munsell::*;
 
 #[cfg(feature = "cfi")]
 mod ces_data;

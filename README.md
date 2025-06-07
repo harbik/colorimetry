@@ -179,11 +179,11 @@ In practical terms, a ΔE of 3 is considered a close match—just at the thresho
     # {
     use approx::assert_abs_diff_eq as check;
     use colorimetry::observer::Observer::Cie2015_10;
-    use colorimetry::colorant::MunsellMattCollection;
+    use colorimetry::colorant::MunsellCollection;
     use colorimetry::colorant::TCS;
 
     let cri_r9 = &TCS[8];
-    let (key, delta_e) = MunsellMattCollection::match_ciecam16(
+    let (key, delta_e) = MunsellCollection::match_ciecam16(
         cri_r9,
         None,
         None,

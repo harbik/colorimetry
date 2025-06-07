@@ -1,12 +1,16 @@
-//! Munsell Matt Spectral Data
+//! Munsell Spectral Data
 //!
-//! Data derived from data measured by a team from the University of Eastern Finland, using a Perkin-Elmer lambda 9 UV/VIS/NIR spectrofotometer,
-//! for 1269 matt Munsell chips.
-//! The original spectral data ranges from 380 to 800, with steps of 1nm, but here this dataset was reduced to a range from 380 to 780nm,
-//! with steps of 5nm, by averaging, to improve calculation speed, and reduce program size.
-//! These are measured data, for the specific Munsell chips, and by no means can be considered to be the nominal, or average spectral distribution
-//! for all Munsell chips: please use it as an approximate representation, with unknown spectral deviation from the avarge reflection spectra of Munsell
-//! chips.
+//! This dataset contains spectral measurements of 1,269 matte Munsell color chips,
+//! captured by a team from the University of Eastern Finland using a Perkin-Elmer Lambda 9 UV/VIS/NIR spectrophotometer.
+//!
+//! The original measurements span wavelengths from 380 nm to 800 nm at 1 nm intervals.
+//! For improved performance and reduced data size, the dataset presented here has been downsampled to 5 nm intervals,
+//! covering the range from 380 nm to 780 nm. This was done by averaging the original data.
+//!
+//! Please note that these are empirical measurements of specific physical Munsell chips,
+//! and should not be considered nominal or representative of the entire Munsell color system.
+//! Spectral deviations from the average reflectance of Munsell colors are unknown,
+//! so use this dataset as an approximate reference only.
 
 mod data;
 
@@ -14,7 +18,7 @@ use std::{collections::BTreeMap, sync::LazyLock};
 
 use crate::{
     cam::{CieCam16, ViewConditions},
-    colorant::munsell_matt::data::{MUNSELL_MATT_DATA, MUNSELL_MATT_KEYS},
+    colorant::munsell::data::{MUNSELL_MATT_DATA, MUNSELL_MATT_KEYS},
     error::Error,
     illuminant::D65,
     observer,
@@ -27,9 +31,18 @@ pub(crate) const MATT_N: usize = 81;
 pub(crate) const MATT_M: usize = 1269;
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
-pub struct MunsellMatt(String, Spectrum);
+/// A measured Munsell color sample, including its name and spectral reflectance data.
+///
+/// Each instance of `Munsell` represents one matte Munsell chip, identified by a string key
+/// (e.g., `"5R 5/14"`), and its corresponding reflectance spectrum sampled at 1 nm intervals
+/// from 380 nm to 780 nm. The spectral data is interpolated using Sprague’s method.
+///
+/// Note: These are empirical measurements of specific chips, and by no means represent typical
+/// values. Please use this dataset as an approximate reference only.
+///
+pub struct Munsell(String, Spectrum);
 
-impl MunsellMatt {
+impl Munsell {
     /// Get MunsellMatt Spectral data by index.
     ///
     /// Index value should be in the range from 0..1269. This will panic if a larger number is
@@ -50,13 +63,13 @@ impl MunsellMatt {
             &data,
         )
         .unwrap();
-        MunsellMatt(key.to_string(), spectrum)
+        Munsell(key.to_string(), spectrum)
     }
 
     /// Try to find the spectral data for the given key.
     ///
     /// Fails if the key is not found.
-    pub fn try_new(key: impl AsRef<str>) -> Result<MunsellMatt, Error> {
+    pub fn try_new(key: impl AsRef<str>) -> Result<Munsell, Error> {
         if let Some(&i) = MM_KEY_MAP.get(key.as_ref()) {
             Ok(Self::new(i))
         } else {
@@ -64,10 +77,18 @@ impl MunsellMatt {
         }
     }
 
+    /// Returns the key for this Munsell chip.
+    /// This key is a string identifier that uniquely represents the Munsell chip,
+    /// typically in the format "Hue Value/Chroma" (e.g., "5R 5/14").
     pub fn key(&self) -> &str {
         &self.0
     }
 
+    /// Returns the spectral reflectance data for this Munsell chip.
+    /// The spectrum is represented as a `Spectrum` object, which contains the reflectance values
+    /// at specific wavelengths (from 380 nm to 780 nm).
+    /// This data can be used for color matching, spectral analysis, or other applications
+    /// that require precise spectral information.
     pub fn spectrum(&self) -> &Spectrum {
         &self.1
     }
@@ -76,14 +97,33 @@ impl MunsellMatt {
 /// Collection of all Munsell Matt chips.
 /// This collection can be iterated over to access each Munsell Matt chip's spectral data.
 /// It provides a convenient way to access all available Munsell Matt chips for spectral analysis or color matching tasks.  
-pub struct MunsellMattCollection;
+pub struct MunsellCollection;
 
-impl MunsellMattCollection {
+impl MunsellCollection {
     /// Returns the number of Munsell Matt chips in the collection.
     pub fn len() -> usize {
         MATT_M
     }
 
+    /// Finds the Munsell chip that best matches a given colorant using the CIECAM16-UCS color appearance model.
+    ///
+    /// This method compares the provided `colorant` against all matte Munsell samples and
+    /// returns the key of the closest match along with the ΔE (color difference) value.
+    ///
+    /// The `colorant` must implement the [`Filter`] trait to provide spectral data.
+    ///
+    /// # Optional Parameters
+    /// - `opt_illuminant`: The light source used for comparison. Defaults to D65 if `None`.
+    /// - `opt_vc`: The viewing conditions (e.g., surround, luminance). Defaults to standard values if `None`.
+    /// - `opt_observer`: The standard observer for XYZ conversion. Defaults to CIE 1931 if `None`.
+    ///
+    /// # Returns
+    /// A `Result` containing:
+    /// - `Ok((key, delta_e))`: the key of the closest Munsell chip and the corresponding color difference.
+    /// - `Err`: if an error occurs during the color appearance transformation or ΔE computation.
+    ///
+    /// # Errors
+    /// Returns an error if any step of the CIECAM16 transformation or UCS distance calculation fails.
     pub fn match_ciecam16(
         colorant: &dyn Filter,
         opt_illuminant: Option<&Illuminant>,
@@ -99,7 +139,7 @@ impl MunsellMattCollection {
         let tgt_cam = CieCam16::from_xyz(xyz, xyzn, vc)?;
         let mut best_key = String::new();
         let mut best_delta_e = f64::MAX;
-        for mm in MunsellMattCollection.into_iter() {
+        for mm in MunsellCollection.into_iter() {
             let xyz_mm = observer.xyz(illuminant, Some(&mm));
             let cam_mm = CieCam16::from_xyz(xyz_mm, xyzn, vc)?;
             let delta_e = tgt_cam.de_ucs(&cam_mm)?;
@@ -112,14 +152,14 @@ impl MunsellMattCollection {
     }
 }
 
-pub struct MunsellMattIterator(usize);
+pub struct MunsellIterator(usize);
 
-impl Iterator for MunsellMattIterator {
-    type Item = MunsellMatt;
+impl Iterator for MunsellIterator {
+    type Item = Munsell;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.0 < MATT_M {
-            let mm = MunsellMatt::new(self.0);
+            let mm = Munsell::new(self.0);
             self.0 += 1;
             Some(mm)
         } else {
@@ -132,21 +172,21 @@ impl Iterator for MunsellMattIterator {
     }
 }
 
-impl ExactSizeIterator for MunsellMattIterator {}
+impl ExactSizeIterator for MunsellIterator {}
 
-impl IntoIterator for MunsellMattCollection {
-    type Item = MunsellMatt;
+impl IntoIterator for MunsellCollection {
+    type Item = Munsell;
 
-    type IntoIter = MunsellMattIterator;
+    type IntoIter = MunsellIterator;
 
     fn into_iter(self) -> Self::IntoIter {
-        MunsellMattIterator(0)
+        MunsellIterator(0)
     }
 }
 
 /// This implements the `Filter` trait, allowing it to be used in spectral calculations.
 /// It provides access to the spectrum of a specific Munsell Matt chip, which can be used for color matching or other spectral analysis tasks.
-impl Filter for MunsellMatt {
+impl Filter for Munsell {
     fn spectrum(&self) -> std::borrow::Cow<'_, Spectrum> {
         (&self.1).into()
     }
@@ -168,12 +208,12 @@ pub static MM_KEY_MAP: LazyLock<BTreeMap<&str, usize>> = LazyLock::new(|| {
 });
 
 #[cfg(test)]
-mod test_munsell_matt {
-    use super::MunsellMattCollection;
+mod test_munsell {
+    use super::MunsellCollection;
     use crate::observer::Observer::Cie1931;
     #[test]
     fn test_iter() {
-        MunsellMattCollection
+        MunsellCollection
             .into_iter()
             .enumerate()
             .for_each(|(i, m)| {
@@ -182,7 +222,7 @@ mod test_munsell_matt {
                 println!("{i} {key} {lab_d65:?}");
             });
 
-        let mm = crate::colorant::MunsellMattCollection
+        let mm = crate::colorant::MunsellCollection
             .into_iter()
             .last()
             .unwrap();
@@ -191,9 +231,9 @@ mod test_munsell_matt {
 
     #[test]
     fn test_match_ciecam16() {
-        let colorant = crate::colorant::MunsellMatt::try_new("10RP4/12").unwrap();
+        let colorant = crate::colorant::Munsell::try_new("10RP4/12").unwrap();
         let (key, delta_e) =
-            MunsellMattCollection::match_ciecam16(&colorant, None, None, Some(Cie1931)).unwrap();
+            MunsellCollection::match_ciecam16(&colorant, None, None, Some(Cie1931)).unwrap();
         assert_eq!(key, "10RP4/12");
         approx::assert_abs_diff_eq!(delta_e, 0.0, epsilon = 1e-6);
     }
@@ -202,7 +242,7 @@ mod test_munsell_matt {
     #[cfg(feature = "cri")]
     fn test_match_r9() {
         let r9 = &crate::colorant::tcs::TCS[8];
-        let (key, delta_e) = MunsellMattCollection::match_ciecam16(r9, None, None, None).unwrap();
+        let (key, delta_e) = MunsellCollection::match_ciecam16(r9, None, None, None).unwrap();
         assert_eq!(key, "5R4/14");
         approx::assert_abs_diff_eq!(delta_e, 3.0, epsilon = 5e-2);
     }
