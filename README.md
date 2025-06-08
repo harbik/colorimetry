@@ -122,7 +122,7 @@ Here, we compute transformation matrices for the `DisplayP3` color space using b
     let xyz2rgb_31 = Observer::Cie1931.xyz2rgb(DisplayP3);
         //  2.4933, -0.9313, -0.4027,
         // -0.8298,  1.7629,  0.0236,
-        //  0.0355, -0.076,	  0.9574
+        //  0.0355, -0.076,   0.9574
 
     let rgb2xyz_31 = Observer::Cie1931.rgb2xyz(DisplayP3);
         // 0.4866, 0.2656, 0.1981,
@@ -133,9 +133,9 @@ Here, we compute transformation matrices for the `DisplayP3` color space using b
     use colorimetry::observer::Observer::Cie2015;
 
     let xyz2rgb_15 = Cie2015.xyz2rgb(DisplayP3);
-       //  2.5258,  -1.0009,	-0.3649,
-       // -0.9006,   1.8546,	-0.0011,
-       //  0.0279,  -0.0574,	 0.95874
+        //  2.5258,  -1.0009, -0.3649,
+        // -0.9006,   1.8546, -0.0011,
+        //  0.0279,  -0.0574,  0.95874
 ```
 </details>
 
