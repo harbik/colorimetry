@@ -1,0 +1,34 @@
+# .github/workflows/rdme-check.yml  (or merge the job into an existing Rust CI file)
+name: rdme-check
+
+on:
+  pull_request:               # block PRs with a stale README
+    paths: ["**/*.rs", "README.md", "Cargo.toml"]
+  push:                        # keep main from drifting too
+    branches: ["main"]
+
+jobs:
+  rdme:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # 1. Install (or pin) the Rust toolchain
+      - uses: dtolnay/rust-toolchain@stable   # or @nightly / specific version
+
+      # 2. (Optional) speed up subsequent runs
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      # 3. Install cargo-rdme once for the runner
+      - name: Install cargo-rdme
+        run: cargo install cargo-rdme --locked
+
+      # 4. Fail if README.md is not generated from rustdoc
+      - name: Verify README is up to date
+        run: cargo rdme --check
