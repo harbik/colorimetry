@@ -193,7 +193,7 @@ impl Observer {
     ///
     /// # Arguments
     /// * `light` - A reference to an object implementing the [Light] trait, such as [`CieIlluminant`].
-    /// * `filter` - A reference to an object implementing the [Filter] trait, such as [`Colorant`].
+    /// * `filter` - A reference to an object implementing the [Filter] trait, such as `Colorant`.
     ///
     /// # Returns
     /// * `CieLab` - The computed CIELAB color representation for the light and filter combination.
