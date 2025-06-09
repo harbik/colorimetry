@@ -14,19 +14,15 @@ use super::{Cam, M16, MCAT02, MCAT02INV, MHPE};
 ///  
 /// The TM30 and Color Fidelity ViewConditions are provided as [`TM30VC`].
 pub struct ViewConditions {
-    dopt: Option<f64>,
-
-    f: f64,
-
     /// Adaptation Luminance, in cd/m2.
     /// La = Lw/5, with Lw: luminance of a perfect white object
     la: f64,
-    nc: f64,
-
     // The Y value of the “grey surround” immediately around the stimulus, expressed in the same scale as Yw.
     yb: f64,
-
     c: f64,
+    nc: f64,
+    f: f64,
+    dopt: Option<f64>,
 }
 
 impl ViewConditions {
@@ -78,6 +74,13 @@ impl ViewConditions {
             nc: 0.8,
             f: 0.8,
             dopt: None,
+        }
+    }
+
+    pub fn set_degree_of_adaptation(&self, d: f64) -> ViewConditions {
+        ViewConditions {
+            dopt: Some(d.clamp(0.0, 1.0)),
+            ..*self
         }
     }
 

@@ -124,7 +124,7 @@ impl CieLab {
     pub fn set_white_luminance(mut self, luminance: f64) -> CieLab {
         // Adjust the reference white to the new luminance
         let scale = luminance / self.xyzn.y;
-        self.xyzn = self.xyzn * scale;
+        self.xyzn *= scale;
         self
     }
 
