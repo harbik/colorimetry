@@ -125,7 +125,7 @@ impl CieCam02 {
     /// // Original CAM16 instance:
     /// let sample_xyz = XYZ::new([60.7, 49.6, 10.3], Observer::Cie1931);
     /// let white_xyz  = XYZ::new([96.46, 100.0, 108.62], Observer::Cie1931);
-    /// let vc     = ViewConditions::new(16.0, 1.0, 1.0, 0.69, 40.0, None);
+    /// let vc = ViewConditions::new(40.0, 16.0, 0.69, 1.0, 1.0, None);
     /// let cam = CieCam02::from_xyz(sample_xyz, white_xyz, vc).unwrap();
     ///
     /// // Inverse under same conditions:
@@ -189,7 +189,7 @@ mod cam02_test {
 
         // Table 4, column 2, CIE 159:2004.
         // La = 20 cd/m2;
-        let vc = ViewConditions::new(18.0, 1.0, 1.0, 0.69, 20.0, None);
+        let vc = ViewConditions::new(20.0, 18.0, 0.69, 1.0, 1.0, None);
         let cam = CieCam02::from_xyz(xyz, xyzn, vc).unwrap();
         let jch = cam.jch_vec();
         let &[j, c, h] = jch.as_ref();
@@ -199,7 +199,7 @@ mod cam02_test {
 
         // Table 4, column 3, CIE 159:2004.
         // La = 200 cd/m2;
-        let vc = ViewConditions::new(18.0, 1.0, 1.0, 0.69, 200.0, None);
+        let vc = ViewConditions::new(200.0, 18.0, 0.69, 1.0, 1.0, None);
         let cam = CieCam02::from_xyz(xyz, xyzn, vc).unwrap();
         let jch = cam.jch_vec();
         let &[j, c, h] = jch.as_ref();

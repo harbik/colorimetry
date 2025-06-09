@@ -46,12 +46,12 @@
 mod observers;
 
 use crate::{
+    cam::{CieCam02, CieCam16, ViewConditions},
     error::Error,
     illuminant::{CieIlluminant, Planck},
     lab::CieLab,
     rgb::RgbSpace,
-    spectrum::to_wavelength,
-    spectrum::{Spectrum, NS, SPECTRUM_WAVELENGTH_RANGE},
+    spectrum::{to_wavelength, Spectrum, NS, SPECTRUM_WAVELENGTH_RANGE},
     traits::{Filter, Light},
     xyz::XYZ,
 };
@@ -157,6 +157,14 @@ impl Observer {
         self.data().name
     }
 
+    fn xyz_and_xyzn(&self, light: &dyn Light, filter: &dyn Filter) -> [XYZ; 2] {
+        let xyzn = light.xyzn(self.data().tag, None);
+        let s = *light.spectrum() * *filter.spectrum();
+        let xyz = self.xyz_from_spectrum(&s);
+        let scale = 100.0 / xyzn.xyz.y;
+        [xyz * scale, xyzn * scale]
+    }
+
     /// Calulates Tristimulus values for an object implementing the [Light] trait, and an optional [Filter],
     /// filtering the light.
     ///
@@ -176,6 +184,47 @@ impl Observer {
         } else {
             xyzn
         }
+    }
+
+    /// Calculates the L*a*b* CIELAB values for a light source and filter combination.
+    /// This method is used to compute the color appearance of a light source
+    /// when filtered by a colorant or filter.
+    /// It returns the CIELAB values normalized to a white reference luminance of 100.0,
+    ///
+    /// # Arguments
+    /// * `light` - A reference to an object implementing the [Light] trait, such as [`CieIlluminant`].
+    /// * `filter` - A reference to an object implementing the [Filter] trait, such as [`Colorant`].
+    ///
+    /// # Returns
+    /// * `CieLab` - The computed CIELAB color representation for the light and filter combination.
+    pub fn lab(&self, light: &dyn Light, filter: &dyn Filter) -> CieLab {
+        let [xyz, xyzn] = self.xyz_and_xyzn(light, filter);
+        // unwrap OK as we are using only one observer (self) here
+        CieLab::from_xyz(xyz, xyzn).unwrap()
+    }
+
+    /// Calculates the L*a*b* CIELAB D65 values of a Colorant, using D65 as an illuminant.
+    /// Convenience method for `lab` with D65 illuminant, and using an illuminance value of 100.0.
+    pub fn lab_d65(&self, filter: &dyn Filter) -> CieLab {
+        self.lab(&crate::illuminant::D65, filter)
+    }
+
+    /// Calculates the L*a*b* CIELAB D50 values of a Colorant, using D50 as an illuminant.
+    /// Convenience method for `lab` with D50 illuminant, and using an illuminance value of 100.0.
+    pub fn lab_d50(&self, filter: &dyn Filter) -> CieLab {
+        self.lab(&crate::illuminant::D50, filter)
+    }
+
+    pub fn ciecam16(&self, light: &dyn Light, filter: &dyn Filter, vc: ViewConditions) -> CieCam16 {
+        let [xyz, xyzn] = self.xyz_and_xyzn(light, filter);
+        // unwrap OK as we are using only one observer (self) here
+        CieCam16::from_xyz(xyz, xyzn, vc).unwrap()
+    }
+
+    pub fn ciecam02(&self, light: &dyn Light, filter: &dyn Filter, vc: ViewConditions) -> CieCam02 {
+        let [xyz, xyzn] = self.xyz_and_xyzn(light, filter);
+        // unwrap OK as we are using only one observer (self) here
+        CieCam02::from_xyz(xyz, xyzn, vc).unwrap()
     }
 
     /**
@@ -262,24 +311,6 @@ impl Observer {
         self.xyz_from_fn(|l| p.slope_at_wavelength(to_wavelength(l, 0.0, 1.0)))
     }
 
-    /// Calculates the L*a*b* CIELAB D50 values of a Colorant, using D65 as an illuminant.
-    /// Accepts a Colorant Spectrum only.
-    /// Returns f64::NAN's otherwise.
-    pub fn lab_d50(&self, filter: &dyn Filter) -> CieLab {
-        let xyz = self.xyz(&CieIlluminant::D50, Some(filter));
-        let xyzn = self.xyz_d50();
-        CieLab::from_xyz(xyz, xyzn).unwrap()
-    }
-
-    /// Calculates the L*a*b* CIELAB D65 values of a Colorant, using D65 as an illuminant.
-    /// Accepts a Colorant Spectrum only.
-    /// Returns f64::NAN's otherwise.
-    pub fn lab_d65(&self, filter: &dyn Filter) -> CieLab {
-        let xyz = self.xyz(&CieIlluminant::D65, Some(filter));
-        let xyzn = self.xyz_d65();
-        CieLab::from_xyz(xyz, xyzn).unwrap()
-    }
-
     /// Calculates the RGB to XYZ matrix, for a particular color space.
     pub fn rgb2xyz(&self, rgbspace: RgbSpace) -> Matrix3<f64> {
         let space = rgbspace.data();
@@ -303,6 +334,10 @@ impl Observer {
     pub fn xyz2rgb(&self, rgbspace: RgbSpace) -> Matrix3<f64> {
         // unwrap: only used with library color spaces
         self.rgb2xyz(rgbspace).try_inverse().unwrap()
+    }
+
+    pub fn rgb(&self, rgbspace: RgbSpace) -> Matrix3<f64> {
+        self.rgb2xyz(rgbspace)
     }
 
     /// Returns the wavelength range (in nanometer) for the _horse shoe_,
@@ -368,14 +403,16 @@ impl Observer {
     /// and converting the resulting value to RGB values.
     /// ```
     /// use colorimetry::prelude::*;
-    /// let rgb: [u8;3] = Cie1931.xyz_from_colorant_fn(&CieIlluminant::D65, |x|x).rgb(None).clamp().into();
+    /// use colorimetry::rgb::RgbSpace::SRGB;
+    /// let rgb: [u8;3] = Cie1931.xyz_from_colorant_fn(&CieIlluminant::D65, |x|x).rgb(SRGB).clamp().into();
     /// assert_eq!(rgb, [212, 171, 109]);
     /// ```
     /// Linear low pass filter, with a value of 1.0 for a wavelength of 380nm, and a value of 0.0 for 780nm,
     /// and converting the resulting value to RGB values.
     /// ```
     /// use colorimetry::prelude::*;
-    /// let rgb: [u8;3] = Cie1931.xyz_from_colorant_fn(&CieIlluminant::D65, |x|1.0-x).rgb(None).clamp().into();
+    /// use colorimetry::rgb::RgbSpace::SRGB;
+    /// let rgb: [u8;3] = Cie1931.xyz_from_colorant_fn(&CieIlluminant::D65, |x|1.0-x).rgb(SRGB).clamp().into();
     /// assert_eq!(rgb, [158, 202, 237]);
     /// ```
     pub fn xyz_from_colorant_fn(&self, illuminant: &CieIlluminant, f: impl Fn(f64) -> f64) -> XYZ {
@@ -468,7 +505,7 @@ mod obs_test {
             for wavelength in observer.spectral_locus_wavelength_range() {
                 let xyz = observer.xyz_at_wavelength(wavelength).unwrap();
                 for rgbspace in RgbSpace::iter() {
-                    let _rgb = xyz.rgb(Some(rgbspace));
+                    let _rgb = xyz.rgb(rgbspace);
                 }
             }
         }

@@ -296,8 +296,7 @@ impl XYZ {
     /// - `WideRgb::compress()`
     ///
     /// These methods will change the color which will be less saturated, and less bright as the orignial color.
-    pub fn rgb(&self, space: Option<RgbSpace>) -> WideRgb {
-        let space = space.unwrap_or_default();
+    pub fn rgb(&self, space: RgbSpace) -> WideRgb {
         let xyz = self.xyz;
         let d = xyz.map(|v| v / 100.0); // normalize to 1.0
         let data = self.observer.xyz2rgb(space) * d;
@@ -400,11 +399,12 @@ mod xyz_test {
 
     #[test]
     fn test_rgb_roundtrip() {
+        use crate::rgb::RgbSpace::SRGB;
         let rgb_blue = WideRgb::new(0.0, 0.0, 1.0, Some(Observer::Cie1931), Some(RgbSpace::SRGB));
         let xyz_blue = rgb_blue.xyz();
         let xy_blue = xyz_blue.chromaticity().to_array();
         assert_ulps_eq!(xy_blue.as_ref(), [0.15, 0.06].as_ref(), epsilon = 1E-5);
-        let rgbb = xyz_blue.rgb(None);
+        let rgbb = xyz_blue.rgb(SRGB);
         assert_ulps_eq!(rgbb, rgb_blue);
     }
 
