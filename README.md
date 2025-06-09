@@ -165,6 +165,21 @@ In practical terms, a ΔE of 3 is considered a close match—just at the thresho
 ```
 </details>
 
+<details>
+<summary><strong>Match a paint color to a <i>sRGB</i> display value under realistic viewing conditions</strong></summary>
+
+This example matches the Munsell paint chip “7.5 BG 7/8”—a light teal—to its nearest <i>sRGB</i>
+equivalent value under conditions that mimic real-world viewing. Instead of the traditional <i>CIE
+1931 2°</i> observer, we use the <i>CIE 2015 10° observer</i>, which better represents how paint
+colours appear at on a wall. We'll assume the paint is illuminated with the warm-white <i>LED_B2</i>
+standard illuminant (≈ 3000 K). Taken together, the display color matches what you’d see on
+a freshly painted wall.
+
+```rust
+    // requires `supplemental-observers`, and `munsell` features
+```
+</details>
+
 ## Features
 
 - [`Spectrum`] Standard fixed-grid spectral representation over a wavelength range from 380 to 780 nanometers, with 1-nanometer intervals.
