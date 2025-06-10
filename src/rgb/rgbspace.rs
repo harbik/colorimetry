@@ -15,12 +15,11 @@ const D: f64 = 0.0005620; // Desaturation ratio
 const D65X: f64 = 0.312_738;
 const D65Y: f64 = 0.329_052;
 
+/// A Light Weight tag, representing an RGB color space.
+/// Used for example in the RGB value set, to identify the color space being used.
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, EnumIter)]
-/**
-A Light Weight tag, representing an RGB color space.
-Used for example in the RGB value set, to identify the color space being used.
- */
+#[non_exhaustive]
 pub enum RgbSpace {
     #[default]
     SRGB,

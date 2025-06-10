@@ -1,4 +1,5 @@
 #[derive(thiserror::Error, Debug, PartialEq)]
+#[non_exhaustive]
 pub enum Error {
     #[error("{name} should be within in range from {low} to {high}")]
     OutOfRange { name: String, low: f64, high: f64 },

@@ -77,6 +77,7 @@ pub struct ReferenceValues {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Cam {
     CieCam02,
     CieCam16,

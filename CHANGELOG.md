@@ -38,6 +38,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Replaced all instances of `&RgbSpace` in the API with `RgbSpace`, as both were used inconsistently.
 - Updated inline code comments for clarity in color conversion routines and view‐condition constructors.
 - Refined README section layout and wording to better guide users through the new spectral examples.
+- Mark all enums that add variants when cargo features are enabled as `#[non_exhaustive]`.
+  This includes `Observer` and `CieIlluminant`.
+- Mark all enums that might get new variants in future non-API breaking releases as
+  `#[non_exhaustive]`. This includes `RgbSpace`, `Cam` and `Error`.
 
 ### Removed
 - Various normal distribution (gaussian) helper functions, now all collected as methods of the `Gaussian` struct.

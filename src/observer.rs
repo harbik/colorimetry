@@ -122,6 +122,7 @@ impl ObserverData {
 #[cfg(not(feature = "supplemental-observers"))]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
 #[derive(Clone, Copy, Default, PartialEq, Eq, Hash, Debug, EnumIter)]
+#[non_exhaustive]
 pub enum Observer {
     #[default]
     Cie1931,
@@ -130,6 +131,7 @@ pub enum Observer {
 #[cfg(feature = "supplemental-observers")]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
 #[derive(Clone, Copy, Default, PartialEq, Eq, Hash, Debug, EnumIter)]
+#[non_exhaustive]
 pub enum Observer {
     #[default]
     Cie1931,
