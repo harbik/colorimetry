@@ -10,6 +10,7 @@ macro_rules! std_illuminants {
         #[allow(non_camel_case_types)]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
         #[derive(Clone, Copy, Debug, strum_macros::Display, strum_macros::EnumIter)]
+        #[non_exhaustive]
         pub enum CieIlluminant  {
                 $($val,)*
         }
@@ -51,6 +52,7 @@ macro_rules! std_illuminants {
         #[allow(non_camel_case_types)]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
         #[derive(Clone, Debug, Copy, strum_macros::Display, strum_macros::EnumIter)]
+        #[non_exhaustive]
         pub enum CieIlluminant  {
                 $($val,)*
                 $($cieval,)*
