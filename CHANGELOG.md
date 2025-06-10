@@ -14,6 +14,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## Unreleased
 
 
+### Documentation
+
 ### Added
 - `Gaussian` struct, to represent normal distributions as used in this library as spectral
   distributions and used for filtering.
@@ -21,6 +23,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Add `CieCam02` implementation, with same methods as CieCam16.
 - Add `CFI` Color Fidelity Index calculations. with `general_color_fidelity_index` and `special_color_fidelity_indices`.
 - Add standard CIECAM viewing conditions as recommended by CIE248 as constants.
+- _Spectral RGB matching example_ to convert spectral reflectance into sRGB values using the CIE 2015 10° observer. 
+- New helper functions in the `cam` module (and submodules `cam02`, `cam16`, `viewconditions`) for spectral color appearance calculations and surround presets.
+- A comprehensive spectral _color management example_ in `README.md`, demonstrating matching the Munsell paint chip <i>5 BG 5/8</i> to its sRGB equivalent (LED_B2 illuminant, CIE 2015 10° observer).  [oai_citation:3‡github.com](https://github.com/harbik/colorimetry/pull/92/files)  
 
 ### Changed
 - Refactored `physics.rs` with the planck functions and LED functions now moved to the `Illuminant` module,
@@ -31,6 +36,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Replaced all instances of `&ObserverData` in the public API with `Observer`, which is an `enum`, to avoid confusion between the use of `ObserverData` and `Observer`.
 - Renamed `CieCam16::ciede2016` to `de_ucs`.
 - Replaced all instances of `&RgbSpace` in the API with `RgbSpace`, as both were used inconsistently.
+- Updated inline code comments for clarity in color conversion routines and view‐condition constructors.
+- Refined README section layout and wording to better guide users through the new spectral examples.
 
 ### Removed
 - Various normal distribution (gaussian) helper functions, now all collected as methods of the `Gaussian` struct.

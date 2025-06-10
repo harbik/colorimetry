@@ -38,7 +38,7 @@ fn tcs_test() {
     use crate::observer::Observer::Cie1931;
     for (i, s) in TCS.iter().enumerate() {
         let xyz = Cie1931.xyz(&crate::illuminant::CieIlluminant::D65, Some(s));
-        let [r, g, b]: [u8; 3] = xyz.rgb(Some(crate::rgb::RgbSpace::SRGB)).clamp().into();
+        let [r, g, b]: [u8; 3] = xyz.rgb(crate::rgb::RgbSpace::SRGB).clamp().into();
         println!("{:2} ({r:3},{g:3},{b:3})", i + 1);
     }
 }

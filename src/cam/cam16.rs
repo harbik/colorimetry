@@ -32,7 +32,12 @@ use super::{CamJCh, CamTransforms, ViewConditions};
 
 use nalgebra::Vector3;
 
-use crate::{error::Error, observer::Observer, xyz::XYZ};
+use crate::{
+    error::Error,
+    observer::Observer,
+    rgb::{RgbSpace, WideRgb},
+    xyz::XYZ,
+};
 
 /// CIECAM16 Color Appearance Model
 ///
@@ -141,6 +146,15 @@ impl CieCam16 {
             .xyz(opt_xyzn, opt_viewconditions, super::Cam::CieCam16)
     }
 
+    pub fn rgb(
+        &self,
+        rgbspace: RgbSpace,
+        opt_viewconditions: Option<ViewConditions>,
+    ) -> Result<WideRgb, Error> {
+        self.0
+            .rgb(rgbspace, opt_viewconditions, super::Cam::CieCam16)
+    }
+
     /// Calculates the CIECAM16-UCS ΔE′ (prime) color difference between two colors.
     ///
     /// This method converts each color to its CAM16-UCS Ja′b′ coordinates and then computes the
@@ -211,7 +225,7 @@ mod cam16_test {
         // see section 7 CIE 248:2022
         let xyz = XYZ::new([60.70, 49.60, 10.29], Observer::Cie1931);
         let xyzn = XYZ::new([96.46, 100.0, 108.62], Observer::Cie1931);
-        let vc = ViewConditions::new(16.0, 1.0, 1.0, 0.69, 40.0, None);
+        let vc = ViewConditions::new(40.0, 16.0, 0.69, 1.0, 1.0, None);
         let cam = CieCam16::from_xyz(xyz, xyzn, vc).unwrap();
         let &[j, c, h] = cam.jch_vec().as_ref();
         //println!("J:\t{j:?}\nC:\t{c:?}\nh:\t{h:?}");
@@ -271,5 +285,39 @@ mod cam16_round_trip_tests {
             assert_abs_diff_eq!(y0, y1, epsilon = 1e-6);
             assert_abs_diff_eq!(z0, z1, epsilon = 1e-6);
         }
+    }
+}
+
+#[cfg(test)]
+mod rgb_test {
+    #[test]
+    #[cfg(all(
+        feature = "supplemental-observers",
+        feature = "munsell",
+        feature = "cie-illuminants"
+    ))]
+    fn rgb_match() {
+        use crate::{
+            cam::{ViewConditions, CIE248_HOME_SCREEN},
+            colorant::Munsell,
+            illuminant::LED_B2,
+            observer::Observer::{Cie1931, Cie2015_10},
+            rgb::RgbSpace::SRGB,
+        };
+
+        let paint = Munsell::try_new("5BG5/8").unwrap();
+        let vc = ViewConditions::average_surround(6.0);
+        let cam_paint = Cie2015_10.ciecam16(&LED_B2, &paint, vc);
+        let rgb_2015 = cam_paint
+            .rgb(SRGB, Some(CIE248_HOME_SCREEN))
+            .unwrap()
+            .compress();
+
+        // Use spectral representation of the Cie2015_10 RGB pixel
+        // to convert to CIE1931
+        let xyz_1931 = Cie1931.xyz(&rgb_2015, None);
+        let rgb_1931 = xyz_1931.rgb(SRGB).compress();
+        let [r, g, b]: [u8; 3] = rgb_1931.into();
+        assert!(r == 0 && g == 113 && b == 138);
     }
 }

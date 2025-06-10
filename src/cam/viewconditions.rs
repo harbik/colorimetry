@@ -14,20 +14,38 @@ use super::{Cam, M16, MCAT02, MCAT02INV, MHPE};
 ///  
 /// The TM30 and Color Fidelity ViewConditions are provided as [`TM30VC`].
 pub struct ViewConditions {
-    dopt: Option<f64>,
-
-    f: f64,
-
     /// Adaptation Luminance, in cd/m2.
     /// La = Lw/5, with Lw: luminance of a perfect white object
     la: f64,
-    nc: f64,
+    // The Y value of the “grey surround” immediately around the stimulus, expressed in the same scale as Yw.
     yb: f64,
     c: f64,
+    nc: f64,
+    f: f64,
+    dopt: Option<f64>,
 }
 
 impl ViewConditions {
-    pub fn new(yb: f64, f: f64, nc: f64, c: f64, la: f64, dopt: Option<f64>) -> ViewConditions {
+    /// Creates a new instance of `ViewConditions`.
+    ///
+    /// # Arguments
+    /// * `la` - Adaptation luminance in cd/m².
+    /// * `yb` - Relative background luminance, as a fraction of the white point’s Yn (cd/m²) value. Typically yb = 20, if Yn = 100.
+    /// * `c` - Impact of surround on chroma/contrast.
+    /// * `nc` - Chromatic induction factor.
+    /// * `f` - Surround factor, representing the degree of adaptation.
+    /// * `dopt` - Degree of adaptation, if omitted, formula 4.3 of CIE248:2022 is used.
+    ///
+    /// # Returns
+    /// A new instance of `ViewConditions`.
+    pub const fn new(
+        la: f64,
+        yb: f64,
+        c: f64,
+        nc: f64,
+        f: f64,
+        dopt: Option<f64>,
+    ) -> ViewConditions {
         ViewConditions {
             yb,
             f,
@@ -35,6 +53,102 @@ impl ViewConditions {
             c,
             la,
             dopt,
+        }
+    }
+    /// Creates a new `ViewConditions` instance with average surround settings,
+    /// as defined in CIE 248:2022.
+    ///
+    /// # Arguments
+    /// * `la` – Adaptation luminance in cd/m².
+    ///
+    /// # Returns
+    /// A `ViewConditions` configured for an average surround environment.
+    ///
+    /// # Notes
+    /// The average surround condition corresponds to a surround ratio greater than, as specified in
+    /// Annex B of CIE 248:2022. It is typically used in controlled environments such as color viewing
+    /// cabinets, where lighting is consistent and neutral.  This can also be used for general lighting
+    /// applications, looking at a color patch not lit by a spot light.
+    ///
+    /// This method sets `c = 0.69`, `nc = 1.0`, and `f = 1.0`, in line with CIE 248:2022
+    /// recommendations for average surround viewing conditions.
+    pub const fn average_surround(la: f64) -> ViewConditions {
+        ViewConditions {
+            la,
+            yb: 20.0,
+            c: 0.69,
+            nc: 1.0,
+            f: 1.0,
+            dopt: None,
+        }
+    }
+
+    /// Creates a new `ViewConditions` instance with dim surround settings,
+    /// as defined in CIE 248:2022.
+    ///
+    /// # Arguments
+    /// * `la` – Adaptation luminance in cd/m².
+    ///
+    /// # Returns
+    /// A `ViewConditions` configured for a dim surround environment.
+    ///
+    /// # Notes
+    /// The dim surround condition corresponds to a surround ratio between 0.0 and 0.2,
+    /// as described in Annex B of CIE 248:2022. It is typically used for viewing
+    /// self-luminous displays in home settings.
+    ///
+    /// For example, if a display emits 80 cd/m² (white luminance), and the background wall
+    /// is illuminated to about 30 lux—roughly 10 cd/m²—the surround ratio is 10 / 80 = 0.125,
+    /// which falls within the dim range.
+    ///
+    /// This method sets `c = 0.59`, `nc = 0.9`, and `f = 0.9`, following the dim surround
+    /// parameters specified by CIE 248:2022 for color appearance modeling.
+    pub const fn dim_surround(la: f64) -> ViewConditions {
+        ViewConditions {
+            la,
+            yb: 20.0,
+            c: 0.59,
+            nc: 0.9,
+            f: 0.9,
+            dopt: None,
+        }
+    }
+
+    /// Creates a new `ViewConditions` instance with dark surround settings,
+    /// as defined in CIE 248:2022.
+    ///
+    /// # Arguments
+    /// * `la` – Adaptation luminance in cd/m².
+    ///
+    /// # Returns
+    /// A `ViewConditions` configured for a dark surround environment.
+    ///
+    /// # Notes
+    /// The dark surround condition corresponds to a surround ratio approaching zero, as described in
+    /// Annex B of CIE 248:2022.  This setting is used for viewing projected or cinematic images in
+    /// darkened rooms where ambient luminance is minimal.
+    ///
+    /// For example, if the display luminance is 80 cd/m² and the room walls appear black, with a
+    /// luminance less than 1 cd/m² of luminance, the surround ratio would be around 0.0125.
+    ///
+    /// This method sets `c = 0.525`, `nc = 0.8`, and `f = 0.8`,
+    /// matching the parameters recommended by CIE 248:2022
+    /// for color appearance modeling in dark environments.
+    pub const fn dark_surround(la: f64) -> ViewConditions {
+        ViewConditions {
+            la,
+            yb: 20.0,
+            c: 0.525,
+            nc: 0.8,
+            f: 0.8,
+            dopt: None,
+        }
+    }
+
+    pub fn set_degree_of_adaptation(&self, d: f64) -> ViewConditions {
+        ViewConditions {
+            dopt: Some(d.clamp(0.0, 1.0)),
+            ..*self
         }
     }
 
@@ -53,7 +167,7 @@ impl ViewConditions {
         self.la
     }
 
-    ///  relative background luminance, as a fraction of the white point’s Y value  
+    ///  relative background luminance, as a fraction of the white point’s Yn (cd/m2) value  
     pub fn relative_background_luminance(&self) -> f64 {
         self.yb
     }
@@ -170,90 +284,31 @@ impl ViewConditions {
 
 impl Default for ViewConditions {
     fn default() -> Self {
-        Self {
-            yb: 20.0,
-            c: 0.69,
-            nc: 1.0,
-            f: 1.0,
-            la: 100.0,
-            dopt: None,
-        }
+        Self::average_surround(100.0)
     }
 }
 
 /// ViewConditions as used for TM30 and Color FIdelity Calculations
 /// (ANSI/TM-30-20-2020)
-pub const TM30VC: ViewConditions = ViewConditions {
-    yb: 20.0,
-    c: 0.69,
-    nc: 1.0,
-    f: 1.0,
-    la: 100.0,
-    dopt: Some(1.0),
-};
+pub const TM30VC: ViewConditions = ViewConditions::new(100.0, 20.0, 0.69, 1.0, 1.0, Some(1.0));
 
 /// Values according to Table 1, CIE 248:2022
 ///    
-/// 1) Surface colour evaluation in a color viewing cabinet
-///
-///   – Adopted white point: Viewing-cabinet white ⇒ Yₙ = 318.3 cd·m⁻²  
-///   – Adaptation luminance: L_A = 63.7 cd·m⁻²  
-///   – Surround: Average ⇒ (f = 1.0, c = 0.69, nc = 1.0)  
-///   – Surround ratio: S_R = 1 ⇒ background luminance Y_b = 1 × 318.3 = 318.3 cd·m⁻²
-///
-pub const CIE248_CABINET: ViewConditions = ViewConditions {
-    yb: 318.3,  // = 1 × 318.3
-    f: 1.0,     // “average” surround
-    nc: 1.0,    // “average” surround
-    c: 0.69,    // “average” surround
-    la: 63.7,   // adaptation luminance (cd·m⁻²)
-    dopt: None, // let the library compute D via CIE248:2022
-};
+pub const CIE248_CABINET: ViewConditions = ViewConditions::average_surround(
+    63.7, // adaptation luminance (cd·m⁻²) = 0.2 * Lw (perfect white object)
+);
 
 /// 2) Viewing a self-luminous display at home
-///
-///   – Adopted white point: between display white and ambient white ⇒ Yₙ = 80 cd·m⁻²  
-///   – Adaptation luminance: L_A = 16 cd·m⁻²  
-///   – Surround: Dim ⇒ (f = 0.9, c = 0.59, nc = 0.9)  
-///   – Surround ratio: S_R = 0.15 ⇒ Y_b = 0.15 × 80 = 12 cd·m⁻²
-///
-pub const CIE248_HOME_SCREEN: ViewConditions = ViewConditions {
-    yb: 12.0, // = 0.15 × 80
-    f: 0.9,   // “dim” surround
-    nc: 0.9,  // “dim” surround
-    c: 0.59,  // “dim” surround
-    la: 16.0, // adaptation luminance (cd·m⁻²)
-    dopt: None,
-};
+pub const CIE248_HOME_SCREEN: ViewConditions = ViewConditions::dim_surround(
+    16.0, // adaptation luminance (cd·m⁻²)
+);
 
 /// 3) Viewing projected images in a darkened room
-///
-///   – Adopted white point: between projector white and ambient white ⇒ Yₙ = 150 cd·m⁻²  
-///   – Adaptation luminance: L_A = 30 cd·m⁻²  
-///   – Surround: Dark ⇒ (f = 0.8, c = 0.525, nc = 0.8)  
-///   – Surround ratio: S_R = 0 ⇒ Y_b = 0 × 150 = 0 cd·m⁻²
-///
-pub const CIE248_PROJECTED_DARK: ViewConditions = ViewConditions {
-    yb: 0.0,  // = 0 × 150
-    f: 0.8,   // “dark” surround
-    nc: 0.8,  // “dark” surround
-    c: 0.525, // “dark” surround
-    la: 30.0, // adaptation luminance (cd·m⁻²)
-    dopt: None,
-};
+pub const CIE248_PROJECTED_DARK: ViewConditions = ViewConditions::dark_surround(
+    30.0, // adaptation luminance (cd·m⁻²)
+);
 
 /// 4) Viewing a self-luminous display under office illumination
-///
-///   – Adopted white point: between display white and office white ⇒ Yₙ = 80 cd·m⁻²  
-///   – Adaptation luminance: L_A = 16 cd·m⁻²  
-///   – Surround: Average ⇒ (f = 1.0, c = 0.69, nc = 1.0)  
-///   – Surround ratio: S_R = 2 ⇒ Y_b = 2 × 80 = 160 cd·m⁻²
-///
-pub const CIE248_OFFICE_SCREEN: ViewConditions = ViewConditions {
-    yb: 160.0, // = 2 × 80
-    f: 1.0,    // “average” surround
-    nc: 1.0,   // “average” surround
-    c: 0.69,   // “average” surround
-    la: 16.0,  // adaptation luminance (cd·m⁻²)
-    dopt: None,
-};
+pub const CIE248_OFFICE_SCREEN: ViewConditions = ViewConditions::average_surround(
+    16.0, // adaptation luminance (cd·m⁻²)
+);

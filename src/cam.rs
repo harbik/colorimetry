@@ -38,7 +38,11 @@ pub use crate::cam::cam16::CieCam16;
 mod cam02;
 pub use crate::cam::cam02::CieCam02;
 
-use crate::{observer::Observer, xyz::XYZ};
+use crate::{
+    observer::Observer,
+    rgb::{RgbSpace, WideRgb},
+    xyz::XYZ,
+};
 use nalgebra::{matrix, vector, SMatrix, Vector3};
 use std::f64::consts::PI;
 
@@ -51,7 +55,7 @@ pub struct CamJCh {
     /// Correlates of Lightness, Chroma, and hue-angle
     jch: Vector3<f64>,
 
-    /// Tristimulus values of the reference white beng use
+    /// Tristimulus values of the reference white being use
     xyzn: Vector3<f64>,
 
     /// Viewing Conditions
@@ -234,6 +238,19 @@ impl CamJCh {
             }
         };
         Ok(XYZ::from_vecs(xyz, self.observer))
+    }
+
+    pub fn rgb(
+        &self,
+        rgbspace: RgbSpace,
+        opt_viewconditions: Option<ViewConditions>,
+        cam: Cam,
+    ) -> Result<WideRgb, crate::Error> {
+        let viewconditions = opt_viewconditions.unwrap_or_default();
+        let observer = self.observer;
+        let xyzn = observer.xyz(&rgbspace.white(), None).set_illuminance(100.0);
+        let xyz = self.xyz(Some(xyzn), Some(viewconditions), cam)?;
+        Ok(xyz.rgb(rgbspace))
     }
 }
 
