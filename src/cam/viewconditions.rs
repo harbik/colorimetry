@@ -145,6 +145,10 @@ impl ViewConditions {
         }
     }
 
+    /// Sets the degree of adaptation.
+    /// This method allows you to specify the degree of adaptation directly.
+    /// The value should be between 0.0 and 1.0, where 0.0 represents no adaptation
+    /// and 1.0 represents full adaptation.
     pub fn set_degree_of_adaptation(&self, d: f64) -> ViewConditions {
         ViewConditions {
             dopt: Some(d.clamp(0.0, 1.0)),

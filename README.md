@@ -21,28 +21,29 @@ or add this line to the dependencies in your Cargo.toml file:
 ```
 
 ## Examples
+
 <details>
 <summary><strong>Calculate Tristimulus Values for Illuminants</strong></summary>
 
 This example calculates the XYZ tristimulus values of the D65 illuminant for both the CIE 1931 2º standard observer and the CIE 2015 10º observer.
 
 ```rust
-use colorimetry::illuminant::D65;
+  use colorimetry::illuminant::D65;
 
-// D65 Tristimulus values, using the CIE1931 standard observer by default
-let xyz_d65 = D65.xyz(None).set_illuminance(100.0);
+  // D65 Tristimulus values, using the CIE1931 standard observer by default
+  let xyz_d65 = D65.xyz(None).set_illuminance(100.0);
 
-let [x, y, z] = xyz_d65.values();
-// [95.04, 100.0, 108.86]
+  let [x, y, z] = xyz_d65.values();
+  // [95.04, 100.0, 108.86]
 
-// D65 Tristimulus values using the CIE2015 10º observer
-// This requires the `supplemental-observers` feature (enabled by default)
-use colorimetry::observer::Observer::Cie2015_10;
-let xyz_d65_10 = D65
+  // D65 Tristimulus values using the CIE2015 10º observer
+  // This requires the `supplemental-observers` feature (enabled by default)
+  use colorimetry::observer::Observer::Cie2015_10;
+  let xyz_d65_10 = D65
     .xyz(Some(Cie2015_10)).set_illuminance(100.0);
 
-let [x_10, y_10, z_10] = xyz_d65_10.values();
-//[94.72, 100.0, 107.143]
+  let [x_10, y_10, z_10] = xyz_d65_10.values();
+  //[94.72, 100.0, 107.143]
 ```
 </details>
 
@@ -56,12 +57,12 @@ This example calculates both the correlated color temperature and the deviation 
 locus, often referred to as the tint.
 
 ```rust
-use colorimetry::illuminant::A;
+  use colorimetry::illuminant::A;
 
-// Calculate CCT and Duv for the A illuminant
-// Requires `cct`, and `cie-illuminants` features
-let [cct, duv] = A.cct().unwrap().values();
-// [2855.4977, 0.0]
+  // Calculate CCT and Duv for the A illuminant
+  // Requires `cct`, and `cie-illuminants` features
+  let [cct, duv] = A.cct().unwrap().values();
+  // [2855.4977, 0.0]
 ```
 </details>
 
@@ -76,13 +77,13 @@ difference metrics, compared to the CRI’s use of only 8 samples.
 Below is an example calculation of the general Color Fidelity Index for the CIE F2 illuminant:
 
 ```rust
-use colorimetry::illuminant::F2;
+  use colorimetry::illuminant::F2;
 
-// Calculate the Color Fidelity Index of the CIE F2 standard illuminant
-// Requires `cfi`, and `cie-illuminants` features
-let cf_f2 = F2.cfi().unwrap();
-let cf = cf_f2.general_color_fidelity_index();
-// 70.3
+  // Calculate the Color Fidelity Index of the CIE F2 standard illuminant
+  // Requires `cfi`, and `cie-illuminants` features
+  let cf_f2 = F2.cfi().unwrap();
+  let cf = cf_f2.general_color_fidelity_index();
+  // 70.3
 ```
 </details>
 
@@ -96,46 +97,47 @@ physically realizable colors. Due to its shape, it is sometimes informally refer
 Below, we compute the chromaticity coordinates that define the spectral locus.
 
 ```rust
-use colorimetry::observer::Observer::Cie1931;
-let mut locus = Vec::new();
-let wavelength_range = Cie1931.spectral_locus_wavelength_range();
-for wavelength in wavelength_range {
+  use colorimetry::observer::Observer::Cie1931;
+  let mut locus = Vec::new();
+  let wavelength_range = Cie1931.spectral_locus_wavelength_range();
+  for wavelength in wavelength_range {
     // unwrap OK because nm is in range
     let xyz = Cie1931.xyz_at_wavelength(wavelength).unwrap();
     let chromaticity = xyz.chromaticity();
     locus.push([wavelength as f64, chromaticity.x(), chromaticity.y()]);
-}
-println!("{locus:?}");
+  }
+  println!("{locus:?}");
 ```
 </details>
 
 <details>
 <summary><strong>Calculate XYZ/RGB Transformation Matrices, for any Observer, for use in Color Profiles</strong></summary>
+
 This is usually done with the CIE 1931 Standard Observer, but this library supports any observer—as long as both the color space and the data use the same one.
 Instead of fixed XYZ values, it computes conversions from the spectral definitions of the primaries to be able to do so.
 Here, we compute transformation matrices for the `DisplayP3` color space using both the `Cie1931` and `Cie2015` observers.
 
 ```rust
-use colorimetry::observer::Observer;
-use colorimetry::rgb::RgbSpace::DisplayP3;
+  use colorimetry::observer::Observer;
+  use colorimetry::rgb::RgbSpace::DisplayP3;
 
-let xyz2rgb_31 = Observer::Cie1931.xyz2rgb(DisplayP3);
-//  2.4933, -0.9313, -0.4027,
-// -0.8298,  1.7629,  0.0236,
-//  0.0355, -0.076,   0.9574
+  let xyz2rgb_31 = Observer::Cie1931.xyz2rgb(DisplayP3);
+  //  2.4933, -0.9313, -0.4027,
+  // -0.8298,  1.7629,  0.0236,
+  //  0.0355, -0.076,   0.9574
 
-let rgb2xyz_31 = Observer::Cie1931.rgb2xyz(DisplayP3);
-// 0.4866, 0.2656, 0.1981,
-// 0.2291, 0.6917, 0.0792,
-// 0.0001, 0.0451, 1.0433,
+  let rgb2xyz_31 = Observer::Cie1931.rgb2xyz(DisplayP3);
+  // 0.4866, 0.2656, 0.1981,
+  // 0.2291, 0.6917, 0.0792,
+  // 0.0001, 0.0451, 1.0433,
 
-// requires `supplemental-observers`
-use colorimetry::observer::Observer::Cie2015;
+  // requires `supplemental-observers`
+  use colorimetry::observer::Observer::Cie2015;
 
-let xyz2rgb_15 = Cie2015.xyz2rgb(DisplayP3);
-//  2.5258,  -1.0009, -0.3649,
-// -0.9006,   1.8546, -0.0011,
-//  0.0279,  -0.0574,  0.95874
+  let xyz2rgb_15 = Cie2015.xyz2rgb(DisplayP3);
+  //  2.5258,  -1.0009, -0.3649,
+  // -0.9006,   1.8546, -0.0011,
+  //  0.0279,  -0.0574,  0.95874
 ```
 </details>
 
@@ -149,19 +151,18 @@ The closest match identified is Munsell "5R 5/14", a vivid red hue, with a color
 In practical terms, a ΔE of 3 is considered a close match—just at the threshold where most observers might start to notice a difference under controlled viewing conditions.
 
 ```rust
-// requires `cri`, `supplemental-observers`, and `munsell` features
-use colorimetry::observer::Observer::Cie2015_10;
-use colorimetry::colorant::{MunsellCollection, TCS};
+  // requires `cri`, `supplemental-observers`, and `munsell` features
+  use colorimetry::observer::Observer::Cie2015_10;
+  use colorimetry::colorant::{MunsellCollection, TCS};
 
-let cri_r9 = &TCS[8];
-let (key, delta_e) = MunsellCollection::match_ciecam16(
+  let cri_r9 = &TCS[8];
+  let (key, delta_e) = MunsellCollection::match_ciecam16(
     cri_r9,
     None,
     None,
     Some(Cie2015_10),
-)
-.unwrap();
-// ("5R4/14", 3.0)
+  ).unwrap();
+  // ("5R4/14", 3.0)
 ```
 </details>
 
@@ -181,40 +182,40 @@ which more accurately reflects how paint colors appear on walls. The illuminatio
 what you'd actually see on a freshly painted surface.
 
 ```rust
-// requires `supplemental-observers`, and `munsell` features
-use colorimetry::{
+  // requires `supplemental-observers`, and `munsell` features
+  use colorimetry::{
     cam::{ViewConditions, CIE248_HOME_SCREEN},
     colorant::Munsell,
     illuminant::LED_B2,
     observer::Observer::{Cie1931, Cie2015_10},
     rgb::RgbSpace::SRGB,
-};
+  };
 
-let paint = Munsell::try_new("5BG5/8").unwrap();
-let vc = ViewConditions::average_surround(6.0);
-let cam_paint = Cie2015_10.ciecam16(&LED_B2, &paint, vc);
-let rgb_2015 = cam_paint
+  let paint = Munsell::try_new("5BG5/8").unwrap();
+  let vc = ViewConditions::average_surround(6.0);
+  let cam_paint = Cie2015_10.ciecam16(&LED_B2, &paint, vc);
+  let rgb_2015 = cam_paint
     .rgb(SRGB, Some(CIE248_HOME_SCREEN))
     .unwrap()
     .compress();
 
-// Use a spectral representation of the Cie2015_10 RGB pixel, using the `Rgb`'s Light trait,
-// and calculate its XYZ tristimulus and RGB values for the CIE 1931 standard observer, the
-// observer
-// required for the sRGB color space.
-let xyz_1931 = Cie1931.xyz(&rgb_2015, None);
-let rgb_1931 = xyz_1931.rgb(SRGB).compress();
-let [r, g, b]: [u8; 3] = rgb_1931.into();
-//  (0, 113, 138)
+  // Use a spectral representation of the Cie2015_10 RGB pixel, using the `Rgb`'s Light trait,
+  // and calculate its XYZ tristimulus and RGB values for the CIE 1931 standard observer, the
+  // observer
+  // required for the sRGB color space.
+  let xyz_1931 = Cie1931.xyz(&rgb_2015, None);
+  let rgb_1931 = xyz_1931.rgb(SRGB).compress();
+  let [r, g, b]: [u8; 3] = rgb_1931.into();
+  //  (0, 113, 138)
 ```
 </details>
 
-## Features
+## Capabilities
 
-- [`Spectrum`] Standard fixed-grid spectral representation over a wavelength range from 380 to 780 nanometers, with 1-nanometer intervals.
-  - Uses [`nalgebra`] vector and matrix types for fast integration and transformations, with access to a wide range of numerical algorithms.
+- Uses a Standard fixed-grid spectral representation [`Spectrum`], with a wavelength domain ranging from 380 to 780 nanometers, with 1-nanometer intervals, ensuring high precision in capturing fine spectral details critical for accurate colorimetry calculations.
+  - Uses [`nalgebra`] vector and matrix types for fast integration and transformations, chosen for its high performance, numerical stability, and compatibility with other mathematical libraries.
   - Supports interpolation from irregular spectral data using [`Spectrum::linear_interpolate`] and [`Spectrum::sprague_interpolate`].
-  - Optional smoothing using a Gaussian filter via [`Spectrum::smooth`].
+  - Optional smoothing using a Gaussian filter via [`Spectrum::smooth`], which is typically used to reduce noise in spectral data or to smooth out irregularities in measured spectra for better analysis.
 
 - Generate spectral distributions from analytical models:
   - [`Illuminant::planckian`] Planck’s law for blackbody radiators
@@ -222,37 +223,41 @@ let [r, g, b]: [u8; 3] = rgb_1931.into();
   - [`Colorant::gaussian`] Gaussian color filters
   - [`Stimulus::from_rgb`] Spectral distribution of an RGB color pixel using Gaussian spectral primaries
 
-- CIE Standard Illuminants:
+- Includes Spectral Representations CIE Standard Illuminants (optional):
   - Daylight: [`D65`], [`D50`]
   - Incandescent: [`A`]
   - Fluorescent: [`F1`], [`F2`], [`F3`], [`F4`], [`F5`], [`F6`], [`F7`], [`F8`], [`F9`], [`F10`], [`F11`], [`F12`]
   - Extended fluorescent set: [`F3_1`], [`F3_2`], [`F3_3`], [`F3_4`], [`F3_5`], [`F3_6`], [`F3_7`], [`F3_8`], [`F3_9`], [`F3_10`], [`F3_11`], [`F3_12`], [`F3_13`], [`F3_14`], [`F3_15`]
   - LED: [`LED_B1`], [`LED_B2`], [`LED_B3`], [`LED_B4`], [`LED_B5`], [`LED_BH1`], [`LED_RGB1`], [`LED_V1`]
 
-- Illuminant metrics:
+- Includes Various Colorant Collections (optional):
+    - Munsell Color System [`MunsellCollection`], with over 1,000 colors
+    - Test Color Samples [`TCS`], including the 14 test colors used for Color Rendering Index calculations
+    - Color Evaluation Samples [`CES`], a set of 99 test colors used in the Color Fidelity Index (CFI) calculations
+
+- Calculate Illuminant metrics:
   - [`CCT`] Correlated color temperature, including distance to the blackbody locus for tint indication[^1]
   - [`CRI`] Color rendering index[^2]
   - [`CFI`] Color fidelity index[^3]
 
-- Advanced color (appearance) models:
+- Use Advanced color (appearance) models:
   - [`CieLab`], [`CieCam02`], [`CieCam16`]
   - Color difference methods: [`CieLab::ciede`], [`CieLab::ciede2000`], [`CieCam02::de_ucs`], [`CieCam16::de_ucs`]
 
-- Spectrally based RGB color spaces, with support for non-CIE 1931 observers and generic transformations between [`Rgb`] and [`XYZ`]:
+- Work with Spectrally based RGB color spaces, with support for non-CIE 1931 observers and generic transformations between [`Rgb`] and [`XYZ`]:
   - RGB Color Spaces [`RgbSpace::SRGB`],  [`RgbSpace::Adobe`], [`RgbSpace::DisplayP3`]
   - Define RGB colors using spectral primaries, allowing switching observers
 
-- Multiple CIE Standard Observers (see [`Observer`]), with transformations to [`XYZ`]:
+- Includes Multiple CIE Standard Observers (see [`Observer`]), with transformations to [`XYZ`]:
   - [`Observer::Cie1931`] the CIE 1931 2º standard observer
-  - [`Observer::Cie1964`] the CIE 1964 10º standard observer
-  - [`Observer::Cie2015`] the CIE 2015 2º cone fundamentals-based observer
-  - [`Observer::Cie2015_10`] the CIE 2015 10º cone fundamentals-based observer
+  - [`Observer::Cie1964`] the CIE 1964 10º standard observer (optional, enabled by default)1
+  - [`Observer::Cie2015`] the CIE 2015 2º cone fundamentals-based observer (optional, enabled by default)
+  - [`Observer::Cie2015_10`] the CIE 2015 10º cone fundamentals-based observer (optional, enabled by default)
 
-## Feature Flags
+## Features
 
 - `supplemental-observers`
   Adds addiational observers such as `Cie1964`, `Cie2015`, and `Cie2015_10`. Enabled by default.
-
 
 - `cie-illuminants`
   The `D65` and `D50` illuminants are always included - if you want to use one of the other CIE illuminants, set this feature flag.
@@ -354,6 +359,12 @@ dual licensed as above, without any additional terms or conditions.
 [`RgbSpace::DisplayP3`]: https://docs.rs/colorimetry/latest/colorimetry/rgb/enum.RgbSpace.html#variant.DisplayP3
 [`RgbSpaceData`]: https://docs.rs/colorimetry/latest/colorimetry/rgbspace/struct.RgbSpaceData.html
 
+[`CES`]: https://docs.rs/colorimetry/latest/colorimetry/colorant/static.CES.html
+[`TCS`]: https://docs.rs/colorimetry/latest/colorimetry/colorant/static.TCS.html
+[`MunsellCollection`]: https://docs.rs/colorimetry/latest/colorimetry/colorant/struct.MunsellCollection.html
+[`Munsell`]: https://docs.rs/colorimetry/latest/colorimetry/colorant/struct.Munsell.html
+
+[`D65`]: https://docs.rs/colorimetry/latest/colorimetry/illuminant/static.D65.html
 [`D50`]: https://docs.rs/colorimetry/latest/colorimetry/illuminant/static.D50.html
 [`D65`]: https://docs.rs/colorimetry/latest/colorimetry/illuminant/static.D65.html
 [`A`]: https://docs.rs/colorimetry/latest/colorimetry/illuminant/static.A.html

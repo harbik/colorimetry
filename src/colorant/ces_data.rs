@@ -11,7 +11,7 @@ use std::sync::LazyLock;
 /// The data for these is obtained from the <https:://cie.co.at> site's dataset library, on May 29, 2025.
 /// The dataset uses a 380-780-5nm domain, included below in the 'CFI5' static matrix.
 /// Here the dataset is converted to an array of 99 Spectra, using linear interpolation.
-pub static CES_DATA: LazyLock<Box<[Colorant; N_CFI]>> = LazyLock::new(|| {
+pub static CES: LazyLock<Box<[Colorant; N_CFI]>> = LazyLock::new(|| {
     let s_vec: Vec<Colorant> = CES5
         .column_iter()
         .map(|s| {

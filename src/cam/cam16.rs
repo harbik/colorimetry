@@ -146,6 +146,7 @@ impl CieCam16 {
             .xyz(opt_xyzn, opt_viewconditions, super::Cam::CieCam16)
     }
 
+    /// Converts the CieCam16 instance to RGB in the specified RGB color space.
     pub fn rgb(
         &self,
         rgbspace: RgbSpace,

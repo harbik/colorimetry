@@ -2,7 +2,7 @@ use crate::math::distance;
 use crate::observer::Observer::Cie1964;
 use crate::{
     cam::{CamTransforms, CieCam02, TM30VC},
-    colorant::{CES_DATA, N_CFI},
+    colorant::{CES, N_CFI},
     illuminant::Illuminant,
 };
 
@@ -55,7 +55,7 @@ impl CFI {
         let xyzn_t = Cie1964.xyz(illuminant, None).set_illuminance(100.0);
         let mut jabp_ts = [[0f64; 3]; N_CFI];
         let mut jabp_rs = [[0f64; 3]; N_CFI];
-        for (i, cfi_ces) in CES_DATA.iter().enumerate() {
+        for (i, cfi_ces) in CES.iter().enumerate() {
             let xyz_t = Cie1964.xyz(illuminant, Some(cfi_ces));
             let jabp_t = CieCam02::from_xyz(xyz_t, xyzn_t, vc)?.jab_prime();
             jabp_ts[i] = jabp_t;
