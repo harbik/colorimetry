@@ -57,7 +57,7 @@ pub use munsell::*;
 mod ces_data;
 
 #[cfg(feature = "cfi")]
-pub use ces_data::{CES_DATA, N_CFI};
+pub use ces_data::{CES, N_CFI};
 
 #[cfg(feature = "cri")]
 mod tcs;

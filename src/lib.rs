@@ -403,7 +403,7 @@ dual licensed as above, without any additional terms or conditions.
 [`RgbSpace::DisplayP3`]: https://docs.rs/colorimetry/latest/colorimetry/rgb/enum.RgbSpace.html#variant.DisplayP3
 [`RgbSpaceData`]: https://docs.rs/colorimetry/latest/colorimetry/rgbspace/struct.RgbSpaceData.html
 
-[`CES`]: https://docs.rs/colorimetry/latest/colorimetry/colorant/static.CES_DATA.html
+[`CES`]: https://docs.rs/colorimetry/latest/colorimetry/colorant/static.CES.html
 [`TCS`]: https://docs.rs/colorimetry/latest/colorimetry/colorant/static.TCS.html
 [`MunsellCollection`]: https://docs.rs/colorimetry/latest/colorimetry/colorant/struct.MunsellCollection.html
 [`Munsell`]: https://docs.rs/colorimetry/latest/colorimetry/colorant/struct.Munsell.html
