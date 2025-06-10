@@ -128,6 +128,50 @@ impl WideRgb {
         }
     }
 
+    /// Returns whether or not this Wide RGB instance is within the RGB gamut or not.
+    ///
+    /// Being in gamut means all color channel values are in the range [0.0, 1.0].
+    ///
+    /// ```rust
+    /// # use colorimetry::rgb::WideRgb;
+    ///
+    /// let in_gamut = WideRgb::new(1.0, 0.2, 0.8, None, None);
+    /// assert!(in_gamut.is_in_gamut());
+    ///
+    /// let out_of_gamut = WideRgb::new(1.2, -0.5, 0.8, None, None);
+    /// assert!(!out_of_gamut.is_in_gamut());
+    /// ```
+    pub fn is_in_gamut(&self) -> bool {
+        self.values().iter().all(|v| (0.0..=1.0).contains(v))
+    }
+
+    /// Returns itself as an [`Rgb`] instance with all channel values unchanged, if this wide RGB
+    /// instance is in the RGB gamut (all channel values within the `[0.0, 1.0]` range).
+    /// If this wide RGB instance is out-of-gamut, `None` is returned.
+    ///
+    /// ```rust
+    /// # use colorimetry::rgb::WideRgb;
+    ///
+    /// let wide_rgb = WideRgb::new(1.0, 0.2, 0.8, None, None);
+    /// let rgb = wide_rgb.to_rgb().unwrap();
+    /// assert_eq!(rgb.values(), wide_rgb.values());
+    ///
+    /// // A `WideRgb` value with out-of-gamut components.
+    /// let wide_rgb = WideRgb::new(1.2, -0.5, 0.8, None, None);
+    /// assert!(wide_rgb.to_rgb().is_none());
+    /// ```
+    pub fn to_rgb(self) -> Option<Rgb> {
+        if self.is_in_gamut() {
+            Some(Rgb {
+                rgb: self.rgb,
+                observer: self.observer,
+                space: self.space,
+            })
+        } else {
+            None
+        }
+    }
+
     /// Converts a `WideRgb` value to a valid `Rgb` value by clamping red, green, and blue values to the range [0, 1].
     ///
     /// ```rust
