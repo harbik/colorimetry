@@ -16,6 +16,7 @@ or add this line to the dependencies in your Cargo.toml file:
 ```
 
 # Examples
+
 <details>
 <summary><strong>Calculate Tristimulus Values for Illuminants</strong></summary>
 
@@ -123,6 +124,7 @@ Below, we compute the chromaticity coordinates that define the spectral locus.
 
 <details>
 <summary><strong>Calculate XYZ/RGB Transformation Matrices, for any Observer, for use in Color Profiles</strong></summary>
+
 This is usually done with the CIE 1931 Standard Observer, but this library supports any observer—as long as both the color space and the data use the same one.
 Instead of fixed XYZ values, it computes conversions from the spectral definitions of the primaries to be able to do so.
 Here, we compute transformation matrices for the `DisplayP3` color space using both the `Cie1931` and `Cie2015` observers.
@@ -252,12 +254,12 @@ what you'd actually see on a freshly painted surface.
 ```
 </details>
 
-# Features
+# Capabilities
 
-- [`Spectrum`] Standard fixed-grid spectral representation over a wavelength range from 380 to 780 nanometers, with 1-nanometer intervals.
-  - Uses [`nalgebra`] vector and matrix types for fast integration and transformations, with access to a wide range of numerical algorithms.
+- Uses a Standard fixed-grid spectral representation [`Spectrum`], with a wavelength domain ranging from 380 to 780 nanometers, with 1-nanometer intervals, ensuring high precision in capturing fine spectral details critical for accurate colorimetry calculations.
+  - Uses [`nalgebra`] vector and matrix types for fast integration and transformations, chosen for its high performance, numerical stability, and compatibility with other mathematical libraries.
   - Supports interpolation from irregular spectral data using [`Spectrum::linear_interpolate`] and [`Spectrum::sprague_interpolate`].
-  - Optional smoothing using a Gaussian filter via [`Spectrum::smooth`].
+  - Optional smoothing using a Gaussian filter via [`Spectrum::smooth`], which is typically used to reduce noise in spectral data or to smooth out irregularities in measured spectra for better analysis.
 
 - Generate spectral distributions from analytical models:
   - [`Illuminant::planckian`] Planck’s law for blackbody radiators
@@ -265,37 +267,41 @@ what you'd actually see on a freshly painted surface.
   - [`Colorant::gaussian`] Gaussian color filters
   - [`Stimulus::from_rgb`] Spectral distribution of an RGB color pixel using Gaussian spectral primaries
 
-- CIE Standard Illuminants:
+- Includes Spectral Representations CIE Standard Illuminants (optional):
   - Daylight: [`D65`], [`D50`]
   - Incandescent: [`A`]
   - Fluorescent: [`F1`], [`F2`], [`F3`], [`F4`], [`F5`], [`F6`], [`F7`], [`F8`], [`F9`], [`F10`], [`F11`], [`F12`]
   - Extended fluorescent set: [`F3_1`], [`F3_2`], [`F3_3`], [`F3_4`], [`F3_5`], [`F3_6`], [`F3_7`], [`F3_8`], [`F3_9`], [`F3_10`], [`F3_11`], [`F3_12`], [`F3_13`], [`F3_14`], [`F3_15`]
   - LED: [`LED_B1`], [`LED_B2`], [`LED_B3`], [`LED_B4`], [`LED_B5`], [`LED_BH1`], [`LED_RGB1`], [`LED_V1`]
 
-- Illuminant metrics:
+- Includes Various Colorant Collections (optional):
+    - Munsell Color System [`MunsellCollection`], with over 1,000 colors
+    - Test Color Samples [`TCS`], including the 14 test colors used for Color Rendering Index calculations
+    - Color Evaluation Samples [`CES`], a set of 99 test colors used in the Color Fidelity Index (CFI) calculations
+
+- Calculate Illuminant metrics:
   - [`CCT`] Correlated color temperature, including distance to the blackbody locus for tint indication[^1]
   - [`CRI`] Color rendering index[^2]
   - [`CFI`] Color fidelity index[^3]
 
-- Advanced color (appearance) models:
+- Use Advanced color (appearance) models:
   - [`CieLab`], [`CieCam02`], [`CieCam16`]
   - Color difference methods: [`CieLab::ciede`], [`CieLab::ciede2000`], [`CieCam02::de_ucs`], [`CieCam16::de_ucs`]
 
-- Spectrally based RGB color spaces, with support for non-CIE 1931 observers and generic transformations between [`Rgb`] and [`XYZ`]:
+- Work with Spectrally based RGB color spaces, with support for non-CIE 1931 observers and generic transformations between [`Rgb`] and [`XYZ`]:
   - RGB Color Spaces [`RgbSpace::SRGB`],  [`RgbSpace::Adobe`], [`RgbSpace::DisplayP3`]
   - Define RGB colors using spectral primaries, allowing switching observers
 
-- Multiple CIE Standard Observers (see [`Observer`]), with transformations to [`XYZ`]:
+- Includes Multiple CIE Standard Observers (see [`Observer`]), with transformations to [`XYZ`]:
   - [`Observer::Cie1931`] the CIE 1931 2º standard observer
-  - [`Observer::Cie1964`] the CIE 1964 10º standard observer
-  - [`Observer::Cie2015`] the CIE 2015 2º cone fundamentals-based observer
-  - [`Observer::Cie2015_10`] the CIE 2015 10º cone fundamentals-based observer
+  - [`Observer::Cie1964`] the CIE 1964 10º standard observer (optional, enabled by default)1
+  - [`Observer::Cie2015`] the CIE 2015 2º cone fundamentals-based observer (optional, enabled by default)
+  - [`Observer::Cie2015_10`] the CIE 2015 10º cone fundamentals-based observer (optional, enabled by default)
 
-# Feature Flags
+# Features
 
 - `supplemental-observers`
   Adds addiational observers such as `Cie1964`, `Cie2015`, and `Cie2015_10`. Enabled by default.
-
 
 - `cie-illuminants`
   The `D65` and `D50` illuminants are always included - if you want to use one of the other CIE illuminants, set this feature flag.
@@ -397,6 +403,12 @@ dual licensed as above, without any additional terms or conditions.
 [`RgbSpace::DisplayP3`]: https://docs.rs/colorimetry/latest/colorimetry/rgb/enum.RgbSpace.html#variant.DisplayP3
 [`RgbSpaceData`]: https://docs.rs/colorimetry/latest/colorimetry/rgbspace/struct.RgbSpaceData.html
 
+[`CES`]: https://docs.rs/colorimetry/latest/colorimetry/colorant/static.CES_DATA.html
+[`TCS`]: https://docs.rs/colorimetry/latest/colorimetry/colorant/static.TCS.html
+[`MunsellCollection`]: https://docs.rs/colorimetry/latest/colorimetry/colorant/struct.MunsellCollection.html
+[`Munsell`]: https://docs.rs/colorimetry/latest/colorimetry/colorant/struct.Munsell.html
+
+[`D65`]: https://docs.rs/colorimetry/latest/colorimetry/illuminant/static.D65.html
 [`D50`]: https://docs.rs/colorimetry/latest/colorimetry/illuminant/static.D50.html
 [`D65`]: https://docs.rs/colorimetry/latest/colorimetry/illuminant/static.D65.html
 [`A`]: https://docs.rs/colorimetry/latest/colorimetry/illuminant/static.A.html
