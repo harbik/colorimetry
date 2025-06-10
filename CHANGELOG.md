@@ -44,6 +44,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   This includes `Observer` and `CieIlluminant`.
 - Mark all enums that might get new variants in future non-API breaking releases as
   `#[non_exhaustive]`. This includes `RgbSpace`, `Cam` and `Error`.
+- Renamed `CES_DATA` to `CES`
 
 ### Removed
 - Various normal distribution (gaussian) helper functions, now all collected as methods of the `Gaussian` struct.
