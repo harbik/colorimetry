@@ -297,11 +297,13 @@ mod rgb_test {
         feature = "cie-illuminants"
     ))]
     fn rgb_match() {
-        use crate::cam::{ViewConditions, CIE248_HOME_SCREEN};
-        use crate::colorant::Munsell;
-        use crate::illuminant::LED_B2;
-        use crate::observer::Observer::{Cie1931, Cie2015_10};
-        use crate::rgb::RgbSpace::SRGB;
+        use crate::{
+            cam::{ViewConditions, CIE248_HOME_SCREEN},
+            colorant::Munsell,
+            illuminant::LED_B2,
+            observer::Observer::{Cie1931, Cie2015_10},
+            rgb::RgbSpace::SRGB,
+        };
 
         let paint = Munsell::try_new("5BG5/8").unwrap();
         let vc = ViewConditions::average_surround(6.0);
@@ -316,7 +318,6 @@ mod rgb_test {
         let xyz_1931 = Cie1931.xyz(&rgb_2015, None);
         let rgb_1931 = xyz_1931.rgb(SRGB).compress();
         let [r, g, b]: [u8; 3] = rgb_1931.into();
-        dbg!(r, g, b);
-        // let rgb_traditional = Cie1931.rgb()
+        assert!(r == 0 && g == 113 && b == 138);
     }
 }

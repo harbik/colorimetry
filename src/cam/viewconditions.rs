@@ -26,6 +26,18 @@ pub struct ViewConditions {
 }
 
 impl ViewConditions {
+    /// Creates a new instance of `ViewConditions`.
+    ///
+    /// # Arguments
+    /// * `la` - Adaptation luminance in cd/m².
+    /// * `yb` - Relative background luminance, as a fraction of the white point’s Yn (cd/m²) value. Typically yb = 20, if Yn = 100.
+    /// * `c` - Impact of surround on chroma/contrast.
+    /// * `nc` - Chromatic induction factor.
+    /// * `f` - Surround factor, representing the degree of adaptation.
+    /// * `dopt` - Degree of adaptation, if omitted, formula 4.3 of CIE248:2022 is used.
+    ///
+    /// # Returns
+    /// A new instance of `ViewConditions`.
     pub const fn new(
         la: f64,
         yb: f64,
@@ -43,7 +55,23 @@ impl ViewConditions {
             dopt,
         }
     }
-
+    /// Creates a new `ViewConditions` instance with average surround settings,
+    /// as defined in CIE 248:2022.
+    ///
+    /// # Arguments
+    /// * `la` – Adaptation luminance in cd/m².
+    ///
+    /// # Returns
+    /// A `ViewConditions` configured for an average surround environment.
+    ///
+    /// # Notes
+    /// The average surround condition corresponds to a surround ratio greater than, as specified in
+    /// Annex B of CIE 248:2022. It is typically used in controlled environments such as color viewing
+    /// cabinets, where lighting is consistent and neutral.  This can also be used for general lighting
+    /// applications, looking at a color patch not lit by a spot light.
+    ///
+    /// This method sets `c = 0.69`, `nc = 1.0`, and `f = 1.0`, in line with CIE 248:2022
+    /// recommendations for average surround viewing conditions.
     pub const fn average_surround(la: f64) -> ViewConditions {
         ViewConditions {
             la,
@@ -55,6 +83,26 @@ impl ViewConditions {
         }
     }
 
+    /// Creates a new `ViewConditions` instance with dim surround settings,
+    /// as defined in CIE 248:2022.
+    ///
+    /// # Arguments
+    /// * `la` – Adaptation luminance in cd/m².
+    ///
+    /// # Returns
+    /// A `ViewConditions` configured for a dim surround environment.
+    ///
+    /// # Notes
+    /// The dim surround condition corresponds to a surround ratio between 0.0 and 0.2,
+    /// as described in Annex B of CIE 248:2022. It is typically used for viewing
+    /// self-luminous displays in home settings.
+    ///
+    /// For example, if a display emits 80 cd/m² (white luminance), and the background wall
+    /// is illuminated to about 30 lux—roughly 10 cd/m²—the surround ratio is 10 / 80 = 0.125,
+    /// which falls within the dim range.
+    ///
+    /// This method sets `c = 0.59`, `nc = 0.9`, and `f = 0.9`, following the dim surround
+    /// parameters specified by CIE 248:2022 for color appearance modeling.
     pub const fn dim_surround(la: f64) -> ViewConditions {
         ViewConditions {
             la,
@@ -66,6 +114,26 @@ impl ViewConditions {
         }
     }
 
+    /// Creates a new `ViewConditions` instance with dark surround settings,
+    /// as defined in CIE 248:2022.
+    ///
+    /// # Arguments
+    /// * `la` – Adaptation luminance in cd/m².
+    ///
+    /// # Returns
+    /// A `ViewConditions` configured for a dark surround environment.
+    ///
+    /// # Notes
+    /// The dark surround condition corresponds to a surround ratio approaching zero, as described in
+    /// Annex B of CIE 248:2022.  This setting is used for viewing projected or cinematic images in
+    /// darkened rooms where ambient luminance is minimal.
+    ///
+    /// For example, if the display luminance is 80 cd/m² and the room walls appear black, with a
+    /// luminance less than 1 cd/m² of luminance, the surround ratio would be around 0.0125.
+    ///
+    /// This method sets `c = 0.525`, `nc = 0.8`, and `f = 0.8`,
+    /// matching the parameters recommended by CIE 248:2022
+    /// for color appearance modeling in dark environments.
     pub const fn dark_surround(la: f64) -> ViewConditions {
         ViewConditions {
             la,
@@ -216,14 +284,7 @@ impl ViewConditions {
 
 impl Default for ViewConditions {
     fn default() -> Self {
-        Self {
-            yb: 20.0,
-            c: 0.69,
-            nc: 1.0,
-            f: 1.0,
-            la: 100.0,
-            dopt: None,
-        }
+        Self::average_surround(100.0)
     }
 }
 

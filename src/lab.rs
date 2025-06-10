@@ -96,15 +96,18 @@ impl CieLab {
         }
     }
 
+    /// Converts the CIE L\*a\*b\* color back to XYZ using the reference white.
+    /// # Returns
+    /// The XYZ color corresponding to the CIE L\*a\*b\* values.
     pub fn xyz(&self) -> XYZ {
         // Convert back to XYZ for any further processing
         let xyz = xyz_from_cielab(self.lab, self.xyzn);
         XYZ::from_vecs(xyz, self.observer)
     }
 
-    pub fn xyzn(&self) -> Vector3<f64> {
-        // Return the reference white XYZ tristimulus value
-        self.xyzn
+    /// Returns the reference white XYZ value.
+    pub fn xyzn(&self) -> XYZ {
+        XYZ::from_vecs(self.xyzn, self.observer)
     }
 
     /// Sets the reference white luminance for this CIE L*a*b* color, in units of cd/m².
@@ -224,6 +227,13 @@ impl AsRef<[f64; 3]> for CieLab {
     }
 }
 
+/// Convert CIEXYZ to CIELAB (D50, D65 or any other reference white passed in `xyzn`)
+///
+/// * `xyz`  – XYZ vector
+/// * `xyzn` – reference-white Xn, Yn, Zn (must be in the **same scale** as the XYZ values you want
+///   out – e.g. Yn = 100 for 0-to-100 “percent” data or Yn = 1.0 for ICC/PCS-scaled values)
+/// # Returns
+/// A vector containing the CIELAB L*, a*, b* values.
 fn lab(xyz: Vector3<f64>, xyzn: Vector3<f64>) -> Vector3<f64> {
     const DELTA: f64 = 24f64 / 116f64;
     const DELTA_POW2: f64 = DELTA * DELTA;
@@ -235,14 +245,13 @@ fn lab(xyz: Vector3<f64>, xyzn: Vector3<f64>) -> Vector3<f64> {
     let &[x, y, z] = xyz.as_ref();
     let &[xn, yn, zn] = xyzn.as_ref();
 
-    // helper function
-    fn lab_f(t: f64) -> f64 {
+    let lab_f = |t: f64| {
         if t > DELTA_POW3 {
             t.powf(LABPOW)
         } else {
             LABC1 * t + LABC2
         }
-    }
+    };
 
     Vector3::new(
         116f64 * lab_f(y / yn) - 16f64,
@@ -254,9 +263,8 @@ fn lab(xyz: Vector3<f64>, xyzn: Vector3<f64>) -> Vector3<f64> {
 /// CIELAB → CIEXYZ (D50, D65 or any other reference white passed in `xyzn`)
 ///
 /// * `lab`  – L*, a*, b* vector  
-/// * `xyzn` – reference-white Xn, Yn, Zn (must be in the **same scale** as the XYZ values
-///            you want out – e.g. Yn = 100 for 0-to-100 “percent” data or Yn = 1.0 for
-///            ICC/PCS-scaled values)
+/// * `xyzn` – reference-white Xn, Yn, Zn (must be in the **same scale** as the XYZ values you want
+///   out – e.g. Yn = 100 for 0-to-100 “percent” data or Yn = 1.0 for ICC/PCS-scaled values)
 ///
 /// Returns XYZ in the same scaling as `xyzn`.
 pub fn xyz_from_cielab(lab: Vector3<f64>, xyzn: Vector3<f64>) -> Vector3<f64> {
@@ -272,15 +280,14 @@ pub fn xyz_from_cielab(lab: Vector3<f64>, xyzn: Vector3<f64>) -> Vector3<f64> {
     let fx = a / 500.0 + fy;
     let fz = fy - b / 200.0;
 
-    // 2. Helper to invert the piece-wise f(t) used in the forward transform
-    fn f_inv(f: f64) -> f64 {
+    let f_inv = |f: f64| {
         let f3 = f * f * f;
         if f3 > EPS {
             f3
         } else {
             (116.0 * f - 16.0) / KAPPA
         }
-    }
+    };
 
     // 3. Relative XYZ (scaled by the white point)
     let xr = f_inv(fx);

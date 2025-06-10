@@ -22,26 +22,26 @@ or add this line to the dependencies in your Cargo.toml file:
 This example calculates the XYZ tristimulus values of the D65 illuminant for both the CIE 1931 2º standard observer and the CIE 2015 10º observer.
 
 ```
-    use colorimetry::illuminant::D65;
+use colorimetry::illuminant::D65;
 #   use approx::assert_abs_diff_eq as check;
 
-    // D65 Tristimulus values, using the CIE1931 standard observer by default
-    let xyz_d65 = D65.xyz(None).set_illuminance(100.0);
+// D65 Tristimulus values, using the CIE1931 standard observer by default
+let xyz_d65 = D65.xyz(None).set_illuminance(100.0);
 
-    let [x, y, z] = xyz_d65.values();
-    // [95.04, 100.0, 108.86]
+let [x, y, z] = xyz_d65.values();
+// [95.04, 100.0, 108.86]
 #   check!([x, y, z].as_ref(), [95.04, 100.0, 108.86].as_ref(),  epsilon = 5E-3);
 
 # #[cfg(feature = "supplemental-observers")]
 # {
-    // D65 Tristimulus values using the CIE2015 10º observer
-    // This requires the `supplemental-observers` feature (enabled by default)
-    use colorimetry::observer::Observer::Cie2015_10;
-    let xyz_d65_10 = D65
-        .xyz(Some(Cie2015_10)).set_illuminance(100.0);
+// D65 Tristimulus values using the CIE2015 10º observer
+// This requires the `supplemental-observers` feature (enabled by default)
+use colorimetry::observer::Observer::Cie2015_10;
+let xyz_d65_10 = D65
+    .xyz(Some(Cie2015_10)).set_illuminance(100.0);
 
-    let [x_10, y_10, z_10] = xyz_d65_10.values();
-    //[94.72, 100.0, 107.143]
+let [x_10, y_10, z_10] = xyz_d65_10.values();
+//[94.72, 100.0, 107.143]
 #   check!([x_10, y_10, z_10].as_ref(), [94.72, 100.0, 107.143].as_ref(), epsilon = 5E-3);
 # }
 ```
@@ -58,16 +58,16 @@ locus, often referred to as the tint.
 
 ```
 # #[cfg(feature="cie-illuminants")]
-    use colorimetry::illuminant::A;
+use colorimetry::illuminant::A;
 #   use approx::assert_abs_diff_eq as check;
 
-    // Calculate CCT and Duv for the A illuminant
-    // Requires `cct`, and `cie-illuminants` features
+// Calculate CCT and Duv for the A illuminant
+// Requires `cct`, and `cie-illuminants` features
 # #[cfg(all(feature="cct", feature="cie-illuminants"))]
-    let [cct, duv] = A.cct().unwrap().values();
+let [cct, duv] = A.cct().unwrap().values();
 # #[cfg(all(feature="cct", feature="cie-illuminants"))]
 #    check!([cct, duv].as_ref(), [2855.4977, 0.0].as_ref(),  epsilon = 5E-4);
-    // [2855.4977, 0.0]
+// [2855.4977, 0.0]
 ```
 </details>
 
@@ -83,16 +83,16 @@ Below is an example calculation of the general Color Fidelity Index for the CIE 
 
 ```
 # #[cfg(feature = "cie-illuminants")]
-    use colorimetry::illuminant::F2;
+use colorimetry::illuminant::F2;
 #   use approx::assert_abs_diff_eq as check;
 
 # #[cfg(all(feature = "cfi", feature = "cie-illuminants"))]
 # {
-    // Calculate the Color Fidelity Index of the CIE F2 standard illuminant
-    // Requires `cfi`, and `cie-illuminants` features
-    let cf_f2 = F2.cfi().unwrap();
-    let cf = cf_f2.general_color_fidelity_index();
-    // 70.3
+// Calculate the Color Fidelity Index of the CIE F2 standard illuminant
+// Requires `cfi`, and `cie-illuminants` features
+let cf_f2 = F2.cfi().unwrap();
+let cf = cf_f2.general_color_fidelity_index();
+// 70.3
 #   check!(cf, 70.3,  epsilon = 1E-1);
 # }
 ```
@@ -108,16 +108,16 @@ physically realizable colors. Due to its shape, it is sometimes informally refer
 Below, we compute the chromaticity coordinates that define the spectral locus.
 
 ```
-    use colorimetry::observer::Observer::Cie1931;
-    let mut locus = Vec::new();
-    let wavelength_range = Cie1931.spectral_locus_wavelength_range();
-    for wavelength in wavelength_range {
-        // unwrap OK because nm is in range
-        let xyz = Cie1931.xyz_at_wavelength(wavelength).unwrap();
-        let chromaticity = xyz.chromaticity();
-        locus.push([wavelength as f64, chromaticity.x(), chromaticity.y()]);
-    }
-    println!("{locus:?}");
+use colorimetry::observer::Observer::Cie1931;
+let mut locus = Vec::new();
+let wavelength_range = Cie1931.spectral_locus_wavelength_range();
+for wavelength in wavelength_range {
+    // unwrap OK because nm is in range
+    let xyz = Cie1931.xyz_at_wavelength(wavelength).unwrap();
+    let chromaticity = xyz.chromaticity();
+    locus.push([wavelength as f64, chromaticity.x(), chromaticity.y()]);
+}
+println!("{locus:?}");
 ```
 </details>
 
@@ -129,46 +129,46 @@ Here, we compute transformation matrices for the `DisplayP3` color space using b
 
 ```
 #   use approx::assert_abs_diff_eq as check;
-    use colorimetry::observer::Observer;
-    use colorimetry::rgb::RgbSpace::DisplayP3;
+use colorimetry::observer::Observer;
+use colorimetry::rgb::RgbSpace::DisplayP3;
 
-    let xyz2rgb_31 = Observer::Cie1931.xyz2rgb(DisplayP3);
+let xyz2rgb_31 = Observer::Cie1931.xyz2rgb(DisplayP3);
 #   let want31 = nalgebra::Matrix3::new(
 #         2.4933, -0.9313, -0.4027,
 #        -0.8298,  1.7629,  0.0236,
 #         0.0355, -0.076,   0.9574
 #   );
 #   check!(xyz2rgb_31, want31, epsilon=5E-4);
-        //  2.4933, -0.9313, -0.4027,
-        // -0.8298,  1.7629,  0.0236,
-        //  0.0355, -0.076,   0.9574
+//  2.4933, -0.9313, -0.4027,
+// -0.8298,  1.7629,  0.0236,
+//  0.0355, -0.076,   0.9574
 
-    let rgb2xyz_31 = Observer::Cie1931.rgb2xyz(DisplayP3);
+let rgb2xyz_31 = Observer::Cie1931.rgb2xyz(DisplayP3);
 #   let want31inv = nalgebra::Matrix3::new(
 #       0.4866, 0.2656, 0.1981,
 #       0.2291, 0.6917, 0.0792,
 #       0.0001, 0.0451, 1.0433,
 #   );
 #   check!(rgb2xyz_31, want31inv, epsilon=5E-4);
-        // 0.4866, 0.2656, 0.1981,
-        // 0.2291, 0.6917, 0.0792,
-        // 0.0001, 0.0451, 1.0433,
+// 0.4866, 0.2656, 0.1981,
+// 0.2291, 0.6917, 0.0792,
+// 0.0001, 0.0451, 1.0433,
 
 #   #[cfg(feature = "supplemental-observers")]
 #   {
-    // requires `supplemental-observers`
-    use colorimetry::observer::Observer::Cie2015;
+// requires `supplemental-observers`
+use colorimetry::observer::Observer::Cie2015;
 
-    let xyz2rgb_15 = Cie2015.xyz2rgb(DisplayP3);
+let xyz2rgb_15 = Cie2015.xyz2rgb(DisplayP3);
 #   let want15 = nalgebra::Matrix3::new(
 #       2.5258,  -1.0009, -0.3649,
 #      -0.9006,   1.8546, -0.0011,
 #       0.0279,  -0.0574,  0.95874
 #   );
 #   check!(xyz2rgb_15, want15, epsilon=5E-4);
-        //  2.5258,  -1.0009, -0.3649,
-        // -0.9006,   1.8546, -0.0011,
-        //  0.0279,  -0.0574,  0.95874
+//  2.5258,  -1.0009, -0.3649,
+// -0.9006,   1.8546, -0.0011,
+//  0.0279,  -0.0574,  0.95874
 #    }
 ```
 </details>
@@ -186,21 +186,21 @@ In practical terms, a ΔE of 3 is considered a close match—just at the thresho
 # #[cfg(all(feature= "cri", feature = "supplemental-observers", feature = "munsell"))]
 # {
 #    use approx::assert_abs_diff_eq as check;
-    // requires `cri`, `supplemental-observers`, and `munsell` features
-    use colorimetry::observer::Observer::Cie2015_10;
-    use colorimetry::colorant::{MunsellCollection, TCS};
+// requires `cri`, `supplemental-observers`, and `munsell` features
+use colorimetry::observer::Observer::Cie2015_10;
+use colorimetry::colorant::{MunsellCollection, TCS};
 
-    let cri_r9 = &TCS[8];
-    let (key, delta_e) = MunsellCollection::match_ciecam16(
-        cri_r9,
-        None,
-        None,
-        Some(Cie2015_10),
-    )
-    .unwrap();
+let cri_r9 = &TCS[8];
+let (key, delta_e) = MunsellCollection::match_ciecam16(
+    cri_r9,
+    None,
+    None,
+    Some(Cie2015_10),
+)
+.unwrap();
 #   assert_eq!(key, "5R4/14");
 #   check!(delta_e, 3.0, epsilon = 5e-2);
-    // ("5R4/14", 3.0)
+// ("5R4/14", 3.0)
 # }
 ```
 </details>
@@ -208,18 +208,47 @@ In practical terms, a ΔE of 3 is considered a close match—just at the thresho
 <details>
 <summary><strong>Match a paint color to a <i>sRGB</i> display value under realistic viewing conditions</strong></summary>
 
-This example matches the Munsell paint chip “7.5 BG 7/8”—a light teal—to its nearest <i>sRGB</i>
-equivalent value under conditions that mimic real-world viewing. Instead of the traditional <i>CIE
-1931 2°</i> observer, we use the <i>CIE 2015 10° observer</i>, which better represents how paint
-colours appear at on a wall. We'll assume the paint is illuminated with the warm-white <i>LED_B2</i>
-standard illuminant (≈ 3000 K). Taken together, the display color matches what you’d see on
-a freshly painted wall.
+This example matches the Munsell paint chip <i>5 BG 5/8</i>—a teal/blue-green color—
+to its nearest <i>sRGB</i>
+<span style="display: inline-block; width: 1em; height: 1em; background-color: rgb(0, 113, 138);
+border-radius: 50%; vertical-align: middle; border: 1px solid #000;"></span>
+<span>rgb(0, 113, 138)</span>
+equivalent, mimicking real-world viewing conditions.
+
+Instead of the traditional <i>CIE 1931 2°</i> observer, this match uses the <i>CIE 2015 10° observer</i>,
+which more accurately reflects how paint colors appear on walls. The illumination is based on the warm-white
+<i>LED_B2</i> standard illuminant (≈ 3000 K). Together, these adjustments help the display color reflect
+what you'd actually see on a freshly painted surface.
 
 ```
 # #[cfg(all(feature = "supplemental-observers", feature = "munsell", feature = "cie-illuminants"))]
 # {
-#    use approx::assert_abs_diff_eq as check;
-    // requires `supplemental-observers`, and `munsell` features
+// requires `supplemental-observers`, and `munsell` features
+use colorimetry::{
+    cam::{ViewConditions, CIE248_HOME_SCREEN},
+    colorant::Munsell,
+    illuminant::LED_B2,
+    observer::Observer::{Cie1931, Cie2015_10},
+    rgb::RgbSpace::SRGB,
+};
+
+let paint = Munsell::try_new("5BG5/8").unwrap();
+let vc = ViewConditions::average_surround(6.0);
+let cam_paint = Cie2015_10.ciecam16(&LED_B2, &paint, vc);
+let rgb_2015 = cam_paint
+    .rgb(SRGB, Some(CIE248_HOME_SCREEN))
+    .unwrap()
+    .compress();
+
+// Use a spectral representation of the Cie2015_10 RGB pixel, using the `Rgb`'s Light trait,
+// and calculate its XYZ tristimulus and RGB values for the CIE 1931 standard observer, the
+// observer
+// required for the sRGB color space.
+let xyz_1931 = Cie1931.xyz(&rgb_2015, None);
+let rgb_1931 = xyz_1931.rgb(SRGB).compress();
+let [r, g, b]: [u8; 3] = rgb_1931.into();
+//  (0, 113, 138)
+#   assert!(r == 0 && g == 113 && b == 138);
 # }
 ```
 </details>

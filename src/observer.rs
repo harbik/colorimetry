@@ -215,26 +215,43 @@ impl Observer {
         self.lab(&crate::illuminant::D50, filter)
     }
 
+    /// Calculates the CIECAM16 color appearance model values for a light source and filter combination.
+    /// This method is used to compute the color appearance of a light source
+    /// when filtered by a colorant or filter, using the CIECAM16 model.
+    /// It returns the CIECAM16 values normalized to a white reference luminance of 100.0.
+    /// # Arguments
+    /// * `light` - A reference to an object implementing the [Light] trait, such as [`CieIlluminant`].
+    /// * `filter` - A reference to an object implementing the [Filter] trait, such as `Colorant`.
+    /// * `vc` - The view conditions to use for the CIECAM16 calculation.
+    /// # Returns
+    /// * `CieCam16` - The computed CIECAM16 color appearance model representation for the light and filter combination.
     pub fn ciecam16(&self, light: &dyn Light, filter: &dyn Filter, vc: ViewConditions) -> CieCam16 {
         let [xyz, xyzn] = self.xyz_and_xyzn(light, filter);
         // unwrap OK as we are using only one observer (self) here
         CieCam16::from_xyz(xyz, xyzn, vc).unwrap()
     }
 
+    /// Calculates the CIECAM02 color appearance model values for a light source and filter combination.
+    /// This method is used to compute the color appearance of a light source
+    /// when filtered by a colorant or filter, using the CIECAM02 model.
+    /// It returns the CIECAM02 values normalized to a white reference luminance of 100.0.
+    /// # Arguments
+    /// * `light` - A reference to an object implementing the [Light] trait, such as [`CieIlluminant`].         
+    /// * `filter` - A reference to an object implementing the [Filter] trait, such as `Colorant`.
+    /// * `vc` - The view conditions to use for the CIECAM02 calculation.
+    /// # Returns
+    /// * `CieCam02` - The computed CIECAM02 color appearance model representation for the light and filter combination.
     pub fn ciecam02(&self, light: &dyn Light, filter: &dyn Filter, vc: ViewConditions) -> CieCam02 {
         let [xyz, xyzn] = self.xyz_and_xyzn(light, filter);
         // unwrap OK as we are using only one observer (self) here
         CieCam02::from_xyz(xyz, xyzn, vc).unwrap()
     }
 
-    /**
-        Calculates Tristimulus valus, in form of an [XYZ] object of a general spectrum.
-        If a reference white is given (rhs), it will copy its tristimulus value, and the spectrum
-        is interpreted as a stimulus, being a combination of an illuminant with a colorant.
-        If no reference white is given, the spectrum is interpreted as an illuminant.
-        This method produces the raw XYZ data, not normalized to 100.0
-
-    */
+    /// Calculates Tristimulus valus, in form of an [XYZ] object of a general spectrum.
+    /// If a reference white is given (rhs), it will copy its tristimulus value, and the spectrum
+    /// is interpreted as a stimulus, being a combination of an illuminant with a colorant.
+    /// If no reference white is given, the spectrum is interpreted as an illuminant.
+    /// This method produces the raw XYZ data, not normalized to 100.0
     pub fn xyz_from_spectrum(&self, spectrum: &Spectrum) -> XYZ {
         let xyz = self.data().data * spectrum.0 * self.data().lumconst;
         XYZ::from_vecs(xyz, self.data().tag)
@@ -336,9 +353,9 @@ impl Observer {
         self.rgb2xyz(rgbspace).try_inverse().unwrap()
     }
 
-    pub fn rgb(&self, rgbspace: RgbSpace) -> Matrix3<f64> {
-        self.rgb2xyz(rgbspace)
-    }
+    //  pub fn rgb(&self, rgbspace: RgbSpace) -> Matrix3<f64> {
+    //      self.rgb2xyz(rgbspace)
+    //  }
 
     /// Returns the wavelength range (in nanometer) for the _horse shoe_,
     /// the boundary of the area of all physical colors in a chromiticity diagram,
@@ -512,16 +529,15 @@ mod obs_test {
     }
 
     #[test]
-    // Data from http://www.brucelindbloom.com/index.html?Eqn_RGB_XYZ_Matrix.html
-    // Lindbloom's values are reproduced with an accuracy of 3E-4, which is
-    // a small, but significant difference.  This difference is caused by a difference in the display's white point,
-    // due to wavelength domain differences.  Here we use a domain
-    // from 380 to 780 with a step of 1 nanometer for the spectra, and in
-    // specific for the color matching functions, as recommended by
-    // CIE15:2004, and the color matching functions provided by the CIE in
-    // their online dataset section. The spectra for the primaries are chosen to match the RGB primary values as given by the Color Space specifications.
-    // The white point uses the standard's spectral distribution, as provided by the CIE, clipped to a domain from 380 to 780 nanometer.
-    // See `colorimetry::data::D65`.
+    // Data from http://www.brucelindbloom.com/index.html?Eqn_RGB_XYZ_Matrix.html Lindbloom's values
+    // are reproduced with an accuracy of 3E-4, which is a small, but significant difference.  This
+    // difference is caused by a difference in the display's white point, due to wavelength domain
+    // differences.  Here we use a domain from 380 to 780 with a step of 1 nanometer for the
+    // spectra, and in specific for the color matching functions, as recommended by CIE15:2004, and
+    // the color matching functions provided by the CIE in their online dataset section. The spectra
+    // for the primaries are chosen to match the RGB primary values as given by the Color Space
+    // specifications.  The white point uses the standard's spectral distribution, as provided by
+    // the CIE, clipped to a domain from 380 to 780 nanometer.  See `colorimetry::data::D65`.
     fn test_rgb2xyz_cie1931() {
         let want = nalgebra::Matrix3::new(
             0.4124564, 0.3575761, 0.1804375, 0.2126729, 0.7151522, 0.0721750, 0.0193339, 0.1191920,
