@@ -13,7 +13,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## Unreleased
 
-
 ### Documentation
 
 ### Added
@@ -25,7 +24,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Add standard CIECAM viewing conditions as recommended by CIE248 as constants.
 - _Spectral RGB matching example_ to convert spectral reflectance into sRGB values using the CIE 2015 10° observer. 
 - New helper functions in the `cam` module (and submodules `cam02`, `cam16`, `viewconditions`) for spectral color appearance calculations and surround presets.
-- A comprehensive spectral _color management example_ in `README.md`, demonstrating matching the Munsell paint chip <i>5 BG 5/8</i> to its sRGB equivalent (LED_B2 illuminant, CIE 2015 10° observer).  [oai_citation:3‡github.com](https://github.com/harbik/colorimetry/pull/92/files)
+- A comprehensive spectral _color management example_ in `README.md`, demonstrating matching the Munsell paint chip <i>5 BG 5/8</i> to its sRGB equivalent (LED_B2 illuminant, CIE 2015 10° observer).
 - Add `WideRgb::to_rgb` that returns an `Rgb` instance with the same channel values, if the wide
   RGB was not out-of-gamut.
 - Add `WideRgb::is_in_gamut` to check if the RGB values are within the RGB gamut.

@@ -32,7 +32,7 @@ use super::{CamJCh, CamTransforms, ViewConditions};
 
 use nalgebra::Vector3;
 
-use crate::{error::Error, observer::Observer, xyz::XYZ};
+use crate::{error::Error, observer::Observer, rgb::{RgbSpace, WideRgb}, xyz::XYZ};
 
 /// CIECAM02 Color Appearance Model
 ///
@@ -142,6 +142,16 @@ impl CieCam02 {
     ) -> Result<XYZ, Error> {
         self.0
             .xyz(opt_xyzn, opt_viewconditions, super::Cam::CieCam02)
+    }
+    
+    /// Convert this CieCam02 instance to RGB in the specified color space.
+    pub fn rgb(
+        &self,
+        rgbspace: RgbSpace,
+        opt_viewconditions: Option<ViewConditions>,
+    ) -> Result<WideRgb, Error> {
+        self.0
+            .rgb(rgbspace, opt_viewconditions, super::Cam::CieCam02)
     }
 }
 
