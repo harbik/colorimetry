@@ -297,7 +297,7 @@ impl Observer {
     pub fn spectral_loci(&self, ref_white: CieIlluminant) -> Vec<(usize, RelXYZ)> {
         let xyzn = self.xyz_from_spectrum(ref_white.illuminant().as_ref());
         let scale = 100.0 * self.data().lumconst / xyzn.y();
-        let mut obs = self.data().data.clone();
+        let mut obs = self.data().data;
         let white = &ref_white.illuminant().as_ref().0;
         for r in 0..3 {
             for c in 0..NS {
