@@ -129,7 +129,8 @@ impl CieLab {
     /// let lab1 = CieLab::from_xyz(RelXYZ::with_d65(xyz1));
     /// let lab2 = CieLab::from_xyz(RelXYZ::with_d65(xyz2));
     /// let de = lab1.ciede(&lab2).unwrap();
-    /// approx::assert_abs_diff_eq!(de, 6.57, epsilon = 0.01);
+    /// # approx::assert_abs_diff_eq!(de, 6.57, epsilon = 0.01);
+    /// //  ΔE=6.57
     /// ```
     pub fn ciede(&self, other: &Self) -> Result<f64, Error> {
         if self.xyzn.observer != other.xyzn.observer {
@@ -237,7 +238,7 @@ fn lab(xyz: Vector3<f64>, xyzn: Vector3<f64>) -> Vector3<f64> {
 ///   out – e.g. Yn = 100 for 0-to-100 “percent” data or Yn = 1.0 for ICC/PCS-scaled values)
 ///
 /// Returns XYZ in the same scaling as `xyzn`.
-pub fn xyz_from_cielab(lab: Vector3<f64>, xyzn: Vector3<f64>) -> Vector3<f64> {
+fn xyz_from_cielab(lab: Vector3<f64>, xyzn: Vector3<f64>) -> Vector3<f64> {
     // CIE constants
     const EPS: f64 = 216.0 / 24_389.0; // δ³  (≈ 0.008856)
     const KAPPA: f64 = 24_389.0 / 27.0; // κ  (≈ 903.296 3)
