@@ -13,8 +13,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## Unreleased
 
-### Documentation
-
 ### Added
 - `Gaussian` struct, to represent normal distributions as used in this library as spectral
   distributions and used for filtering.
@@ -28,6 +26,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Add `WideRgb::to_rgb` that returns an `Rgb` instance with the same channel values, if the wide
   RGB was not out-of-gamut.
 - Add `WideRgb::is_in_gamut` to check if the RGB values are within the RGB gamut.
+- Add `RelXYZ` to represent related colors, sharing a single white reference
 
 ### Changed
 - Refactored `physics.rs` with the planck functions and LED functions now moved to the `Illuminant` module,
@@ -45,6 +44,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Mark all enums that might get new variants in future non-API breaking releases as
   `#[non_exhaustive]`. This includes `RgbSpace`, `Cam` and `Error`.
 - Renamed `CES_DATA` to `CES`
+- `CieCam02`, `CieCam03` and `CieLab` constructors now taking a single `RelXYZ` argument, instead of two `XYZ` values.
 
 ### Removed
 - Various normal distribution (gaussian) helper functions, now all collected as methods of the `Gaussian` struct.
