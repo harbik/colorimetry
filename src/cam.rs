@@ -226,7 +226,7 @@ impl CamJCh {
         };
         let xyz_out = XYZ::from_vecs(xyz, self.xyzn.observer);
         let xyzn_out = XYZ::from_vecs(xyzn, self.xyzn.observer);
-        Ok(RelXYZ::new(xyz_out, xyzn_out)?)
+        RelXYZ::from_xyz(xyz_out, xyzn_out)
     }
 
     pub fn rgb(

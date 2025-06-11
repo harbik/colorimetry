@@ -58,7 +58,7 @@ impl CieCam02 {
     pub fn new(jch: [f64; 3], xyzn: XYZ, vc: ViewConditions) -> Self {
         Self(CamJCh {
             jch: Vector3::from(jch),
-            xyzn: xyzn,
+            xyzn,
             vc,
         })
     }
@@ -158,9 +158,8 @@ mod cam02_test {
     // Worked example from CIECAM02 documentation, CIE159:2004, p. 11
     fn test_worked_example() {
         // forward transform (XYZ -> JCh)
-        let xyz = XYZ::new([19.31, 23.93, 10.14], Observer::Cie1931);
-        let xyzn = XYZ::new([98.88, 90.0, 32.03], Observer::Cie1931);
-        let rxyz = RelXYZ::new(xyz, xyzn).unwrap();
+        let white_point = XYZ::new([98.88, 90.0, 32.03], Observer::Cie1931);
+        let rxyz = RelXYZ::new([19.31, 23.93, 10.14], white_point);
         // Table 4, column 2, CIE 159:2004.
         // La = 20 cd/m2;
         let vc = ViewConditions::new(20.0, 18.0, 0.69, 1.0, 1.0, None);
@@ -216,7 +215,7 @@ mod cam02_round_trip_tests {
             // forward transform (XYZ -> JCh)
             let xyz = XYZ::new(xyz_arr, Observer::Cie1931);
             let xyz_d65 = Cie1931.xyz_d65();
-            let rxyz = RelXYZ::new(xyz, xyz_d65).unwrap();
+            let rxyz = RelXYZ::from_xyz(xyz, xyz_d65).unwrap();
             let cam = CieCam02::from_xyz(rxyz,ViewConditions::default());
             let jch = cam.jch();
 

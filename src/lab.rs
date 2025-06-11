@@ -25,26 +25,7 @@
 //!
 //! - **WASM bindings**  
 //!   Exported via `#[wasm_bindgen]` for JavaScript interoperability.
-//!
-//! ## Examples
-//!
-//! ```rust
-//! use colorimetry::prelude::*;
-//!
-//! // Convert XYZ to Lab
-//! let xyz = XYZ::new([36.0, 70.0, 12.0], Observer::Cie1931);
-//! let rxyz = RelXYZ::with_d65(xyz);
-//! let lab1 = CieLab::from_xyz(rxyz);
-//!
-//! // Direct Lab constructor
-//! let white = Cie1931.xyz_d65(); // Reference white point (D65 illuminant)
-//! let lab2 = CieLab::new([50.0, 20.0, 30.0], white);
-//!
-//! // Compute differences
-//! let d_ab   = lab1.ciede(&lab2).unwrap();      // Euclidean ΔE*ab
-//! let d_2000 = lab1.ciede2000(&lab2).unwrap();  // CIEDE2000 ΔE
-//! println!("ΔE*ab = {:.2}, ΔE₀₀ = {:.2}", d_ab, d_2000);
-//! ```
+//! 
 
 use approx::ulps_eq;
 use nalgebra::Vector3;
@@ -71,7 +52,7 @@ impl CieLab {
         let lab = Vector3::from(lab);
         CieLab {
             lab,
-            xyzn: xyzn
+            xyzn
         }
     }
 
@@ -97,7 +78,7 @@ impl CieLab {
         // Convert back to XYZ for any further processing
         let xyz = xyz_from_cielab(self.lab, self.xyzn.xyz);
         // unwrap - same observer
-        RelXYZ::new(XYZ::from_vecs(xyz, self.xyzn.observer ), self.xyzn).unwrap()
+        RelXYZ::from_xyz(XYZ::from_vecs(xyz, self.xyzn.observer ), self.xyzn).unwrap()
     }
 
     /// Sets the reference white luminance for this CIE L*a*b* color, in units of cd/m².
@@ -373,8 +354,7 @@ mod tests {
     fn lab_roundtrip_test() {
         let xyz_values = [36.0, 70.0, 12.0];
         let xyz = XYZ::new(xyz_values, Cie1931);
-        let white = Cie1931.xyz_d65(); // Reference white point (D65 illuminant)
-        let rxyz = RelXYZ::new(xyz, white).unwrap();
+        let rxyz = RelXYZ::with_d65(xyz);
         let lab = CieLab::from_xyz(rxyz);
         let rxyz_back = lab.xyz();
         assert_abs_diff_eq!(rxyz, rxyz_back, epsilon = 1e-10);

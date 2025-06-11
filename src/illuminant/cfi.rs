@@ -58,12 +58,12 @@ impl CFI {
         let mut jabp_rs = [[0f64; 3]; N_CFI];
         for (i, cfi_ces) in CES.iter().enumerate() {
             let xyz_t = Cie1964.xyz(illuminant, Some(cfi_ces));
-            let rxyz_t = RelXYZ::new(xyz_t, xyzn_t)?;
+            let rxyz_t = RelXYZ::from_xyz(xyz_t, xyzn_t)?;
             let jabp_t = CieCam02::from_xyz(rxyz_t, vc).jab_prime();
             jabp_ts[i] = jabp_t;
 
             let xyz_r = Cie1964.xyz(&ref_illuminant, Some(cfi_ces));
-            let rxyz_r = RelXYZ::new(xyz_r, xyzn_r)?;
+            let rxyz_r = RelXYZ::from_xyz(xyz_r, xyzn_r)?;
             let jabp_r = CieCam02::from_xyz(rxyz_r, vc).jab_prime();
             jabp_rs[i] = jabp_r;
         }

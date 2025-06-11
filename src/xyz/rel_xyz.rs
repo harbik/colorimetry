@@ -1,4 +1,5 @@
 use approx::AbsDiffEq;
+use nalgebra::Vector3;
 
 use super::XYZ;
 
@@ -11,45 +12,52 @@ use super::XYZ;
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub struct RelXYZ {
-    related: XYZ,
+    xyz: Vector3<f64>,
     white_point: XYZ,
 }
 
 impl RelXYZ {
-    pub fn new(sample: XYZ, refwhite: XYZ) -> Result<Self, crate::Error> {
+    pub fn new(xyz: [f64;3], white_point: XYZ) -> Self {
+        RelXYZ { xyz: xyz.into(), white_point }
+    }
+
+    pub fn from_xyz(sample: XYZ, refwhite: XYZ) -> Result<Self, crate::Error> {
         if sample.observer != refwhite.observer {
             Err(crate::Error::RequireSameObserver)
         } else {
-            Ok(RelXYZ { related: sample, white_point: refwhite })
+            Ok(RelXYZ { xyz: sample.xyz, white_point: refwhite })
         }
     }
 
-    pub fn with_d65(related: XYZ) -> Self {
-        let white_point = related.observer.xyz_d65();
+    pub fn with_d65(xyz: XYZ) -> Self {
+        let white_point = xyz.observer.xyz_d65();
         RelXYZ {
-            related,
+            xyz: xyz.xyz,
             white_point,    
         }
     }
 
-    pub fn with_d50(related: XYZ) -> Self {
-        let white_point = related.observer.xyz_d50();
+    pub fn with_d50(xyz: XYZ) -> Self {
+        let white_point = xyz.observer.xyz_d50();
         RelXYZ {
-            related,
+            xyz: xyz.xyz,
             white_point,    
         }
     }
 
     pub fn xyz(&self) -> XYZ {
-        self.related
+        XYZ::from_vecs(self.xyz, self.white_point.observer)
     }
 
     pub fn white_point(&self) -> XYZ {
         self.white_point
     }
 
-    pub fn values(&self) -> [[f64; 3];2] {
-        [self.related.values(), self.white_point.values()]
+    pub fn values(&self) -> [[f64; 3]; 2] {
+        [
+            self.xyz.into(),
+            self.white_point.xyz.into(),
+        ]
     }
 }
 
@@ -61,9 +69,8 @@ impl AbsDiffEq for RelXYZ {
     }
 
     fn abs_diff_eq(&self, other: &Self, epsilon: Self::Epsilon) -> bool {
-        let xyz_eq = self.related.abs_diff_eq(&other.related, epsilon);
+        let xyz_eq = self.xyz.abs_diff_eq(&other.xyz, epsilon);
         let xyzn_eq = self.white_point.abs_diff_eq(&other.white_point, epsilon);
-        let obs_eq = self.related.observer == other.related.observer;
-        xyz_eq && xyzn_eq && obs_eq
+        xyz_eq && xyzn_eq
     }
 }

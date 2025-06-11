@@ -165,7 +165,7 @@ impl Observer {
         let xyz = self.xyz_from_spectrum(&s);
         let scale = 100.0 / xyzn.xyz.y;
         // unwrap OK as we are using only one observer (self) here
-        RelXYZ::new(xyz*scale, xyzn*scale).unwrap()
+        RelXYZ::from_xyz(xyz*scale, xyzn*scale).unwrap()
     }
 
     /*

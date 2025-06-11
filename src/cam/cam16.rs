@@ -188,7 +188,7 @@ mod cam16_test {
         // see section 7 CIE 248:2022
         let xyz = XYZ::new([60.70, 49.60, 10.29], Observer::Cie1931);
         let xyzn = XYZ::new([96.46, 100.0, 108.62], Observer::Cie1931);
-        let rxyz = RelXYZ::new(xyz, xyzn).unwrap();
+        let rxyz = RelXYZ::from_xyz(xyz, xyzn).unwrap();
         let vc = ViewConditions::new(40.0, 16.0, 0.69, 1.0, 1.0, None);
         let cam = CieCam16::from_xyz(rxyz, vc);
         let &[j, c, h] = cam.jch_vec().as_ref();
@@ -234,7 +234,7 @@ mod cam16_round_trip_tests {
             // forward transform (XYZ -> JCh)
             let xyz = XYZ::new(xyz_arr, Cie1931);
             let xyz_d65 = Cie1931.xyz_d65();
-            let rxyz = RelXYZ::new(xyz, xyz_d65).unwrap();
+            let rxyz = RelXYZ::from_xyz(xyz, xyz_d65).unwrap();
             let cam = CieCam16::from_xyz(rxyz, ViewConditions::default());
             let jch = cam.jch();
 
