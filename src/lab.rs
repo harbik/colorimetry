@@ -36,8 +36,8 @@ use crate::{error::Error, xyz::{RelXYZ, XYZ}};
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
 #[derive(Debug, Clone, Copy)]
 pub struct CieLab {
-    pub(crate) lab: Vector3<f64>,
-    pub(crate) xyzn: XYZ, // Reference white tristimulus value
+    lab: Vector3<f64>,
+    xyzn: XYZ, // Reference white tristimulus value
 }
 
 impl CieLab {
