@@ -41,4 +41,4 @@ pub use super::rgb::{Rgb, RgbSpace, WideRgb};
 pub use super::spectrum::Spectrum;
 pub use super::stimulus::Stimulus;
 pub use super::traits::{Filter, Light};
-pub use super::xyz::{Chromaticity, XYZ};
+pub use super::xyz::{Chromaticity, XYZ, RelXYZ};

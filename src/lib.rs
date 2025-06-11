@@ -200,8 +200,8 @@ In practical terms, a ΔE of 3 is considered a close match—just at the thresho
     Some(Cie2015_10),
   ).unwrap();
 # assert_eq!(key, "5R4/14");
-# check!(delta_e, 3.0, epsilon = 5e-2);
-  // ("5R4/14", 3.0)
+# check!(delta_e, 2.85, epsilon = 5e-2);
+  // ("5R4/14", 2.85)
 # }
 ```
 </details>

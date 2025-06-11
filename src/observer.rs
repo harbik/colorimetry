@@ -53,7 +53,7 @@ use crate::{
     rgb::RgbSpace,
     spectrum::{to_wavelength, Spectrum, NS, SPECTRUM_WAVELENGTH_RANGE},
     traits::{Filter, Light},
-    xyz::XYZ,
+    xyz::{RelXYZ, XYZ},
 };
 use nalgebra::{Matrix3, SMatrix, Vector3};
 use std::{fmt, ops::RangeInclusive, sync::OnceLock};
@@ -159,6 +159,16 @@ impl Observer {
         self.data().name
     }
 
+    pub fn rel_xyz(&self, light: &dyn Light, filter: &dyn Filter) -> RelXYZ {
+        let xyzn = self.xyz_from_spectrum(&light.spectrum());
+        let s = *light.spectrum() * *filter.spectrum();
+        let xyz = self.xyz_from_spectrum(&s);
+        let scale = 100.0 / xyzn.xyz.y;
+        // unwrap OK as we are using only one observer (self) here
+        RelXYZ::new(xyz*scale, xyzn*scale).unwrap()
+    }
+
+    /*
     fn xyz_and_xyzn(&self, light: &dyn Light, filter: &dyn Filter) -> [XYZ; 2] {
         let xyzn = light.xyzn(self.data().tag, None);
         let s = *light.spectrum() * *filter.spectrum();
@@ -166,6 +176,7 @@ impl Observer {
         let scale = 100.0 / xyzn.xyz.y;
         [xyz * scale, xyzn * scale]
     }
+     */
 
     /// Calulates Tristimulus values for an object implementing the [Light] trait, and an optional [Filter],
     /// filtering the light.
@@ -200,9 +211,9 @@ impl Observer {
     /// # Returns
     /// * `CieLab` - The computed CIELAB color representation for the light and filter combination.
     pub fn lab(&self, light: &dyn Light, filter: &dyn Filter) -> CieLab {
-        let [xyz, xyzn] = self.xyz_and_xyzn(light, filter);
+        let rxyz = self.rel_xyz(light, filter);
         // unwrap OK as we are using only one observer (self) here
-        CieLab::from_xyz(xyz, xyzn).unwrap()
+        CieLab::from_xyz(rxyz)
     }
 
     /// Calculates the L*a*b* CIELAB D65 values of a Colorant, using D65 as an illuminant.
@@ -228,9 +239,9 @@ impl Observer {
     /// # Returns
     /// * `CieCam16` - The computed CIECAM16 color appearance model representation for the light and filter combination.
     pub fn ciecam16(&self, light: &dyn Light, filter: &dyn Filter, vc: ViewConditions) -> CieCam16 {
-        let [xyz, xyzn] = self.xyz_and_xyzn(light, filter);
+        let rxyz = self.rel_xyz(light, filter);
         // unwrap OK as we are using only one observer (self) here
-        CieCam16::from_xyz(xyz, xyzn, vc).unwrap()
+        CieCam16::from_xyz(rxyz, vc)
     }
 
     /// Calculates the CIECAM02 color appearance model values for a light source and filter combination.
@@ -244,9 +255,9 @@ impl Observer {
     /// # Returns
     /// * `CieCam02` - The computed CIECAM02 color appearance model representation for the light and filter combination.
     pub fn ciecam02(&self, light: &dyn Light, filter: &dyn Filter, vc: ViewConditions) -> CieCam02 {
-        let [xyz, xyzn] = self.xyz_and_xyzn(light, filter);
+        let rxyz = self.rel_xyz(light, filter);
         // unwrap OK as we are using only one observer (self) here
-        CieCam02::from_xyz(xyz, xyzn, vc).unwrap()
+        CieCam02::from_xyz(rxyz, vc)
     }
 
     /// Calculates Tristimulus valus, in form of an [XYZ] object of a general spectrum.
@@ -472,6 +483,19 @@ mod obs_test {
     use crate::xyz::XYZ;
     use approx::assert_ulps_eq;
     use strum::IntoEnumIterator as _;
+
+    #[test]
+    fn test_rel_xyz() {
+        use crate::colorant::Colorant;
+
+        let obs = Cie1931;
+        let light = CieIlluminant::D65;
+        let filter = Colorant::gray(0.5);
+
+        let rxyz= obs.rel_xyz(&light, &filter);
+        assert_ulps_eq!(rxyz.xyz()*2.0, rxyz.white_point(),epsilon = 1E-5);
+        assert_ulps_eq!(rxyz.white_point(), obs.xyz_d65(), epsilon = 1E-5);
+    }
 
     #[test]
     fn test_cie1931_spectral_locus_min_max() {

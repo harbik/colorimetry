@@ -33,10 +33,11 @@
 //!
 //! // Convert XYZ to Lab
 //! let xyz = XYZ::new([36.0, 70.0, 12.0], Observer::Cie1931);
-//! let white = Cie1931.xyz_d65(); // Reference white point (D65 illuminant)
-//! let lab1 = CieLab::from_xyz(xyz, white).unwrap();
+//! let rxyz = RelXYZ::with_d65(xyz);
+//! let lab1 = CieLab::from_xyz(rxyz);
 //!
 //! // Direct Lab constructor
+//! let white = Cie1931.xyz_d65(); // Reference white point (D65 illuminant)
 //! let lab2 = CieLab::new([50.0, 20.0, 30.0], white);
 //!
 //! // Compute differences
@@ -49,14 +50,13 @@ use approx::ulps_eq;
 use nalgebra::Vector3;
 use std::f64::consts::PI;
 
-use crate::{error::Error, prelude::Observer, xyz::XYZ};
+use crate::{error::Error, xyz::{RelXYZ, XYZ}};
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
 #[derive(Debug, Clone, Copy)]
 pub struct CieLab {
-    pub(crate) observer: Observer,
     pub(crate) lab: Vector3<f64>,
-    pub(crate) xyzn: Vector3<f64>, // Reference white tristimulus value
+    pub(crate) xyzn: XYZ, // Reference white tristimulus value
 }
 
 impl CieLab {
@@ -70,9 +70,8 @@ impl CieLab {
     pub fn new(lab: [f64; 3], xyzn: XYZ) -> CieLab {
         let lab = Vector3::from(lab);
         CieLab {
-            observer: xyzn.observer,
             lab,
-            xyzn: xyzn.xyz,
+            xyzn: xyzn
         }
     }
 
@@ -84,30 +83,21 @@ impl CieLab {
     ///
     /// # Returns
     /// A `Result` containing the CIE L*a*b* color or an error if the observers do not match.
-    pub fn from_xyz(xyz: XYZ, xyzn: XYZ) -> Result<CieLab, Error> {
-        if xyz.observer != xyzn.observer {
-            Err(Error::RequireSameObserver)
-        } else {
-            Ok(CieLab {
-                observer: xyz.observer,
-                lab: lab(xyz.xyz, xyzn.xyz),
-                xyzn: xyzn.xyz,
-            })
+    pub fn from_xyz(xyz: RelXYZ) -> CieLab {
+        CieLab {
+            lab: lab(xyz.xyz().xyz, xyz.white_point().xyz),
+            xyzn: xyz.white_point()
         }
     }
 
     /// Converts the CIE L\*a\*b\* color back to XYZ using the reference white.
     /// # Returns
     /// The XYZ color corresponding to the CIE L\*a\*b\* values.
-    pub fn xyz(&self) -> XYZ {
+    pub fn xyz(&self) -> RelXYZ {
         // Convert back to XYZ for any further processing
-        let xyz = xyz_from_cielab(self.lab, self.xyzn);
-        XYZ::from_vecs(xyz, self.observer)
-    }
-
-    /// Returns the reference white XYZ value.
-    pub fn xyzn(&self) -> XYZ {
-        XYZ::from_vecs(self.xyzn, self.observer)
+        let xyz = xyz_from_cielab(self.lab, self.xyzn.xyz);
+        // unwrap - same observer
+        RelXYZ::new(XYZ::from_vecs(xyz, self.xyzn.observer ), self.xyzn).unwrap()
     }
 
     /// Sets the reference white luminance for this CIE L*a*b* color, in units of cd/m².
@@ -126,8 +116,8 @@ impl CieLab {
     ///   such as CIECAM16, may use different luminance levels for perceptual accuracy.
     pub fn set_white_luminance(mut self, luminance: f64) -> CieLab {
         // Adjust the reference white to the new luminance
-        let scale = luminance / self.xyzn.y;
-        self.xyzn *= scale;
+        let scale = luminance / self.xyzn.xyz.y;
+        self.xyzn.xyz *= scale;
         self
     }
 
@@ -151,18 +141,17 @@ impl CieLab {
     /// as well as more advanced formulas (e.g., CIEDE2000, or CIECAM16DE).
     /// # Example
     /// ```
-    /// use colorimetry::prelude::*;
+    /// use colorimetry::{lab::CieLab, xyz::{RelXYZ, XYZ}, observer::Observer, Error};
     ///
     /// let xyz1 = XYZ::new([36.0, 70.0, 12.0], Observer::Cie1931);
     /// let xyz2 = XYZ::new([35.0, 71.0, 11.0], Observer::Cie1931);
-    /// let xyzn = Cie1931.xyz_d65(); // Reference white point (D65 illuminant)
-    /// let lab1 = CieLab::from_xyz(xyz1, xyzn).unwrap();
-    /// let lab2 = CieLab::from_xyz(xyz2, xyzn).unwrap();
+    /// let lab1 = CieLab::from_xyz(RelXYZ::with_d65(xyz1));
+    /// let lab2 = CieLab::from_xyz(RelXYZ::with_d65(xyz2));
     /// let de = lab1.ciede(&lab2).unwrap();
     /// approx::assert_abs_diff_eq!(de, 6.57, epsilon = 0.01);
     /// ```
     pub fn ciede(&self, other: &Self) -> Result<f64, Error> {
-        if self.observer != other.observer {
+        if self.xyzn.observer != other.xyzn.observer {
             return Err(Error::RequireSameObserver);
         }
         if ulps_eq!(self.xyzn, other.xyzn) {
@@ -203,7 +192,7 @@ impl CieLab {
     /// approx::assert_abs_diff_eq!(de, 1.2644, epsilon = 1E-4);
     /// ```
     pub fn ciede2000(&self, other: &Self) -> Result<f64, Error> {
-        if self.observer != other.observer {
+        if self.xyzn.observer != other.xyzn.observer {
             return Err(Error::RequireSameObserver);
         }
         if ulps_eq!(self.xyzn, other.xyzn) {
@@ -376,7 +365,7 @@ fn delta_e_ciede2000(lab1: Vector3<f64>, lab2: Vector3<f64>) -> f64 {
 
 #[cfg(test)]
 mod tests {
-    use crate::{lab::CieLab, observer::Observer::Cie1931, xyz::XYZ};
+    use crate::{lab::CieLab, observer::Observer::Cie1931, xyz::{RelXYZ, XYZ}};
     use approx::assert_abs_diff_eq;
     use nalgebra::vector;
 
@@ -385,9 +374,10 @@ mod tests {
         let xyz_values = [36.0, 70.0, 12.0];
         let xyz = XYZ::new(xyz_values, Cie1931);
         let white = Cie1931.xyz_d65(); // Reference white point (D65 illuminant)
-        let lab = CieLab::from_xyz(xyz, white).unwrap();
-        let xyz_back = lab.xyz();
-        assert_abs_diff_eq!(xyz, xyz_back, epsilon = 1e-10);
+        let rxyz = RelXYZ::new(xyz, white).unwrap();
+        let lab = CieLab::from_xyz(rxyz);
+        let rxyz_back = lab.xyz();
+        assert_abs_diff_eq!(rxyz, rxyz_back, epsilon = 1e-10);
     }
 
     #[test]

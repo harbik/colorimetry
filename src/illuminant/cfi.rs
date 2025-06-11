@@ -1,5 +1,6 @@
 use crate::math::distance;
 use crate::observer::Observer::Cie1964;
+use crate::xyz::RelXYZ;
 use crate::{
     cam::{CamTransforms, CieCam02, TM30VC},
     colorant::{CES, N_CFI},
@@ -57,11 +58,13 @@ impl CFI {
         let mut jabp_rs = [[0f64; 3]; N_CFI];
         for (i, cfi_ces) in CES.iter().enumerate() {
             let xyz_t = Cie1964.xyz(illuminant, Some(cfi_ces));
-            let jabp_t = CieCam02::from_xyz(xyz_t, xyzn_t, vc)?.jab_prime();
+            let rxyz_t = RelXYZ::new(xyz_t, xyzn_t)?;
+            let jabp_t = CieCam02::from_xyz(rxyz_t, vc).jab_prime();
             jabp_ts[i] = jabp_t;
 
             let xyz_r = Cie1964.xyz(&ref_illuminant, Some(cfi_ces));
-            let jabp_r = CieCam02::from_xyz(xyz_r, xyzn_r, vc)?.jab_prime();
+            let rxyz_r = RelXYZ::new(xyz_r, xyzn_r)?;
+            let jabp_r = CieCam02::from_xyz(rxyz_r, vc).jab_prime();
             jabp_rs[i] = jabp_r;
         }
 
