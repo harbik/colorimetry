@@ -25,13 +25,16 @@
 //!
 //! - **WASM bindings**  
 //!   Exported via `#[wasm_bindgen]` for JavaScript interoperability.
-//! 
+//!
 
 use approx::ulps_eq;
 use nalgebra::Vector3;
 use std::f64::consts::PI;
 
-use crate::{error::Error, xyz::{RelXYZ, XYZ}};
+use crate::{
+    error::Error,
+    xyz::{RelXYZ, XYZ},
+};
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
 #[derive(Debug, Clone, Copy)]
@@ -50,10 +53,7 @@ impl CieLab {
     /// A new `CieLab` instance.
     pub fn new(lab: [f64; 3], xyzn: XYZ) -> CieLab {
         let lab = Vector3::from(lab);
-        CieLab {
-            lab,
-            xyzn
-        }
+        CieLab { lab, xyzn }
     }
 
     /// Creates a new CIE L*a*b* color from the given XYZ color and reference white.
@@ -67,7 +67,7 @@ impl CieLab {
     pub fn from_xyz(xyz: RelXYZ) -> CieLab {
         CieLab {
             lab: lab(xyz.xyz().xyz, xyz.white_point().xyz),
-            xyzn: xyz.white_point()
+            xyzn: xyz.white_point(),
         }
     }
 
@@ -78,7 +78,7 @@ impl CieLab {
         // Convert back to XYZ for any further processing
         let xyz = xyz_from_cielab(self.lab, self.xyzn.xyz);
         // unwrap - same observer
-        RelXYZ::from_xyz(XYZ::from_vecs(xyz, self.xyzn.observer ), self.xyzn).unwrap()
+        RelXYZ::from_xyz(XYZ::from_vecs(xyz, self.xyzn.observer), self.xyzn).unwrap()
     }
 
     /// Sets the reference white luminance for this CIE L*a*b* color, in units of cd/m².
@@ -346,7 +346,11 @@ fn delta_e_ciede2000(lab1: Vector3<f64>, lab2: Vector3<f64>) -> f64 {
 
 #[cfg(test)]
 mod tests {
-    use crate::{lab::CieLab, observer::Observer::Cie1931, xyz::{RelXYZ, XYZ}};
+    use crate::{
+        lab::CieLab,
+        observer::Observer::Cie1931,
+        xyz::{RelXYZ, XYZ},
+    };
     use approx::assert_abs_diff_eq;
     use nalgebra::vector;
 

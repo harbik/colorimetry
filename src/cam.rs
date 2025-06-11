@@ -87,23 +87,11 @@ impl CamJCh {
     const DEN1: f64 = ((2.0 + Self::P3) * 220.0) / 1403.0;
     const DEN2: f64 = (Self::P3 * 6300.0 - 27.0) / 1403.0;
 
-    pub fn new(
-        jch: Vector3<f64>,
-        xyzn: XYZ,
-        vc: ViewConditions,
-    ) -> Self {
-        Self {
-            jch,
-            xyzn,
-            vc,
-        }
+    pub fn new(jch: Vector3<f64>, xyzn: XYZ, vc: ViewConditions) -> Self {
+        Self { jch, xyzn, vc }
     }
 
-    pub fn from_xyz(
-        rxyz : RelXYZ,
-        vc: ViewConditions,
-        cam: Cam,
-    ) -> Self {
+    pub fn from_xyz(rxyz: RelXYZ, vc: ViewConditions, cam: Cam) -> Self {
         let xyz_vec = rxyz.xyz().xyz;
 
         let ReferenceValues {
@@ -161,7 +149,7 @@ impl CamJCh {
         Self {
             vc,
             jch: Vector3::new(jj, cc, h * 180.0 / PI),
-            xyzn: rxyz.white_point()
+            xyzn: rxyz.white_point(),
         }
     }
 

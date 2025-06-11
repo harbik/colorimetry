@@ -165,7 +165,7 @@ impl Observer {
         let xyz = self.xyz_from_spectrum(&s);
         let scale = 100.0 / xyzn.xyz.y;
         // unwrap OK as we are using only one observer (self) here
-        RelXYZ::from_xyz(xyz*scale, xyzn*scale).unwrap()
+        RelXYZ::from_xyz(xyz * scale, xyzn * scale).unwrap()
     }
 
     /*
@@ -492,8 +492,8 @@ mod obs_test {
         let light = CieIlluminant::D65;
         let filter = Colorant::gray(0.5);
 
-        let rxyz= obs.rel_xyz(&light, &filter);
-        assert_ulps_eq!(rxyz.xyz()*2.0, rxyz.white_point(),epsilon = 1E-5);
+        let rxyz = obs.rel_xyz(&light, &filter);
+        assert_ulps_eq!(rxyz.xyz() * 2.0, rxyz.white_point(), epsilon = 1E-5);
         assert_ulps_eq!(rxyz.white_point(), obs.xyz_d65(), epsilon = 1E-5);
     }
 

@@ -216,7 +216,7 @@ mod cam02_round_trip_tests {
             let xyz = XYZ::new(xyz_arr, Observer::Cie1931);
             let xyz_d65 = Cie1931.xyz_d65();
             let rxyz = RelXYZ::from_xyz(xyz, xyz_d65).unwrap();
-            let cam = CieCam02::from_xyz(rxyz,ViewConditions::default());
+            let cam = CieCam02::from_xyz(rxyz, ViewConditions::default());
             let jch = cam.jch();
 
             // inverse (JCh -> XYZ)

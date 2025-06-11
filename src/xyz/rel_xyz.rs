@@ -4,11 +4,11 @@ use nalgebra::Vector3;
 use super::XYZ;
 
 /// # Related Tristimulus Values
-/// 
+///
 /// Tristimulus Values for a given sample and reference white,
 /// used to represent related colors as used in various color
 /// models. Typically the reference white is normalized to have
-/// an Y-value of 100 
+/// an Y-value of 100
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub struct RelXYZ {
@@ -24,8 +24,11 @@ impl RelXYZ {
     ///
     /// # Returns
     /// A new `RelXYZ` instance initialized with the provided XYZ values and white point.   
-    pub fn new(xyz: [f64;3], white_point: XYZ) -> Self {
-        RelXYZ { xyz: xyz.into(), white_point }
+    pub fn new(xyz: [f64; 3], white_point: XYZ) -> Self {
+        RelXYZ {
+            xyz: xyz.into(),
+            white_point,
+        }
     }
 
     /// Creates a new `RelXYZ` instance from an `XYZ` instance and a reference white point.
@@ -41,7 +44,10 @@ impl RelXYZ {
         if xyz.observer != white_point.observer {
             Err(crate::Error::RequireSameObserver)
         } else {
-            Ok(RelXYZ { xyz: xyz.xyz, white_point })
+            Ok(RelXYZ {
+                xyz: xyz.xyz,
+                white_point,
+            })
         }
     }
 
@@ -55,7 +61,7 @@ impl RelXYZ {
         let white_point = xyz.observer.xyz_d65();
         RelXYZ {
             xyz: xyz.xyz,
-            white_point,    
+            white_point,
         }
     }
 
@@ -69,7 +75,7 @@ impl RelXYZ {
         let white_point = xyz.observer.xyz_d50();
         RelXYZ {
             xyz: xyz.xyz,
-            white_point,    
+            white_point,
         }
     }
 
@@ -87,10 +93,7 @@ impl RelXYZ {
     ///
     /// The first row contains the XYZ values of the color, and the second row contains the XYZ values of the reference white point.        
     pub fn values(&self) -> [[f64; 3]; 2] {
-        [
-            self.xyz.into(),
-            self.white_point.xyz.into(),
-        ]
+        [self.xyz.into(), self.white_point.xyz.into()]
     }
 }
 
