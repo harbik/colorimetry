@@ -39,10 +39,7 @@ impl RelXYZ {
     /// # Returns
     /// A new `RelXYZ` instance initialized with the provided XYZ values and white point.   
     pub fn from_vec(xyz: Vector3<f64>, white_point: XYZ) -> Self {
-        RelXYZ {
-            xyz,
-            white_point,
-        }
+        RelXYZ { xyz, white_point }
     }
 
     /// Creates a new `RelXYZ` instance from an `XYZ` instance and a reference white point.
@@ -109,8 +106,6 @@ impl RelXYZ {
     pub fn values(&self) -> [[f64; 3]; 2] {
         [self.xyz.into(), self.white_point.xyz.into()]
     }
-
-
 }
 
 impl AbsDiffEq for RelXYZ {

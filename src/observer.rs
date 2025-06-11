@@ -46,7 +46,14 @@
 mod observers;
 
 use crate::{
-    cam::{CieCam02, CieCam16, ViewConditions}, error::Error, illuminant::{CieIlluminant, Planck}, lab::CieLab, rgb::RgbSpace, spectrum::{to_wavelength, Spectrum, NS, SPECTRUM_WAVELENGTH_RANGE}, traits::{Filter, Light}, xyz::{RelXYZ, XYZ}
+    cam::{CieCam02, CieCam16, ViewConditions},
+    error::Error,
+    illuminant::{CieIlluminant, Planck},
+    lab::CieLab,
+    rgb::RgbSpace,
+    spectrum::{to_wavelength, Spectrum, NS, SPECTRUM_WAVELENGTH_RANGE},
+    traits::{Filter, Light},
+    xyz::{RelXYZ, XYZ},
 };
 use nalgebra::{Matrix3, SMatrix, Vector3};
 use std::{fmt, ops::RangeInclusive, sync::OnceLock};
@@ -289,7 +296,7 @@ impl Observer {
 
     pub fn spectral_locus_rxyzs(&self, ref_white: CieIlluminant) -> Vec<(usize, RelXYZ)> {
         let xyzn = self.xyz_from_spectrum(ref_white.illuminant().as_ref());
-        let scale = 100.0 * self.data().lumconst  / xyzn.y();
+        let scale = 100.0 * self.data().lumconst / xyzn.y();
         let mut obs = self.data().data.clone();
         let white = &ref_white.illuminant().as_ref().0;
         for r in 0..3 {
@@ -298,7 +305,7 @@ impl Observer {
             }
         }
         let mut v = Vec::with_capacity(NS);
-        for  w in SPECTRUM_WAVELENGTH_RANGE {
+        for w in SPECTRUM_WAVELENGTH_RANGE {
             let xyz = obs.column(w - SPECTRUM_WAVELENGTH_RANGE.start()).into();
             let rxyz = RelXYZ::from_vec(xyz, xyzn.set_illuminance(100.0));
             v.push((w, rxyz));
@@ -309,10 +316,12 @@ impl Observer {
     pub fn santized_spectral_locus_rxyz(&self, ref_white: CieIlluminant) -> Vec<(usize, RelXYZ)> {
         let sl_full = self.spectral_locus_rxyzs(ref_white);
         let valid_range = self.spectral_locus_wavelength_range();
-        sl_full.into_iter().filter(|(w,_)|valid_range.contains(w))
-            .collect()  
+        sl_full
+            .into_iter()
+            .filter(|(w, _)| valid_range.contains(w))
+            .collect()
     }
-    
+
     /// Tristimulus values for the Standard Illuminants in this library.
     ///
     /// Values are not normalized by default, unless an illuminance value is provided.
@@ -696,9 +705,9 @@ mod obs_test {
 
     #[test]
     fn test_spectral_locus_rel_xyz() {
-        use crate::observer::Observer::Cie1931;
-        use crate::illuminant::CieIlluminant;
         use crate::cam::CamTransforms;
+        use crate::illuminant::CieIlluminant;
+        use crate::observer::Observer::Cie1931;
 
         let sl = Cie1931.spectral_locus_rxyzs(CieIlluminant::D65);
         for (w, rxyz) in sl {
@@ -706,6 +715,5 @@ mod obs_test {
             let [x, y, z] = rxyz.xyz().values();
             println!("{w}, {x:.5}, {y:.5}, {z:.5}, {j:.1}, {c:.1}, {h:.1}");
         }
-
     }
 }
