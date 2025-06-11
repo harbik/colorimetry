@@ -31,6 +31,20 @@ impl RelXYZ {
         }
     }
 
+    /// Creates a new `RelXYZ` instance with the given XYZ values and white point.
+    /// # Arguments
+    /// - `xyz`: A 3-element vector representing the XYZ tristimulus values.
+    /// - `white_point`: The reference white point as an `XYZ` instance.
+    ///
+    /// # Returns
+    /// A new `RelXYZ` instance initialized with the provided XYZ values and white point.   
+    pub fn from_vec(xyz: Vector3<f64>, white_point: XYZ) -> Self {
+        RelXYZ {
+            xyz,
+            white_point,
+        }
+    }
+
     /// Creates a new `RelXYZ` instance from an `XYZ` instance and a reference white point.
     ///
     /// - `xyz`: An `XYZ` instance representing the color to be transformed.
@@ -95,6 +109,8 @@ impl RelXYZ {
     pub fn values(&self) -> [[f64; 3]; 2] {
         [self.xyz.into(), self.white_point.xyz.into()]
     }
+
+
 }
 
 impl AbsDiffEq for RelXYZ {
