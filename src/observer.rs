@@ -294,33 +294,35 @@ impl Observer {
         Ok(XYZ::from_vecs(Vector3::new(x, y, z), self.data().tag))
     }
 
-    pub fn spectral_loci(&self, ref_white: CieIlluminant) -> Vec<(usize, RelXYZ)> {
+    /*
+    pub fn spectral_locus(&self, ref_white: CieIlluminant) -> Vec<(usize, RelXYZ)> {
         let xyzn = self.xyz_from_spectrum(ref_white.illuminant().as_ref());
-        let scale = 100.0 * self.data().lumconst / xyzn.y();
         let mut obs = self.data().data;
         let white = &ref_white.illuminant().as_ref().0;
         for r in 0..3 {
             for c in 0..NS {
-                obs[(r, c)] *= white[c] * scale;
+                obs[(r, c)] *= white[c] * self.data().lumconst;
             }
         }
         let mut v = Vec::with_capacity(NS);
         for w in SPECTRUM_WAVELENGTH_RANGE {
             let xyz = obs.column(w - SPECTRUM_WAVELENGTH_RANGE.start()).into();
-            let rxyz = RelXYZ::from_vec(xyz, xyzn.set_illuminance(100.0));
+            let rxyz = RelXYZ::from_vec(xyz, xyzn);
             v.push((w, rxyz));
+            dbg!(&v.last());
         }
         v
     }
 
-    pub fn trimmed_spectral_loci(&self, ref_white: CieIlluminant) -> Vec<(usize, RelXYZ)> {
-        let sl_full = self.spectral_loci(ref_white);
+    pub fn trimmed_spectral_locus(&self, ref_white: CieIlluminant) -> Vec<(usize, RelXYZ)> {
+        let sl_full = self.spectral_locus(ref_white);
         let valid_range = self.spectral_locus_wavelength_range();
         sl_full
             .into_iter()
             .filter(|(w, _)| valid_range.contains(w))
             .collect()
     }
+     */
 
     /// Tristimulus values for the Standard Illuminants in this library.
     ///
@@ -505,7 +507,6 @@ mod obs_test {
     #[cfg(feature = "supplemental-observers")]
     use super::Observer::Cie1964;
     use super::{Observer, Observer::Cie1931};
-    use crate::cam::{CieCam16, CIE248_HOME_SCREEN};
     use crate::illuminant::CieIlluminant;
     use crate::rgb::RgbSpace;
     use crate::spectrum::SPECTRUM_WAVELENGTH_RANGE;
@@ -703,17 +704,35 @@ mod obs_test {
         );
     }
 
+    /*
     #[test]
-    fn test_spectral_locus_rel_xyz() {
+    fn test_spectral_locus() {
         use crate::cam::CamTransforms;
         use crate::illuminant::CieIlluminant;
         use crate::observer::Observer::Cie1931;
 
-        let sl = Cie1931.spectral_loci(CieIlluminant::D65);
+        let sl = Cie1931.spectral_locus(CieIlluminant::D65);
         for (w, rxyz) in sl {
             let [j, c, h] = CieCam16::from_xyz(rxyz, CIE248_HOME_SCREEN).jch();
             let [x, y, z] = rxyz.xyz().values();
             println!("{w}, {x:.8}, {y:.8}, {z:.8}, {j:.3}, {c:.4}, {h:.5}");
         }
     }
+
+    #[test]
+    fn test_spectral_locus_round_trip() {
+        use crate::cam::CamTransforms;
+        use crate::illuminant::CieIlluminant;
+        use crate::observer::Observer::Cie1931;
+
+        let sl = Cie1931.spectral_locus(CieIlluminant::D65);
+        for (w, rxyz) in sl {
+            let cam =  CieCam16::from_xyz(rxyz, CIE248_HOME_SCREEN);
+            let bxyz = cam.xyz(None, Some(CIE248_HOME_SCREEN)).unwrap();
+            let [rx, ry, rz] = rxyz.xyz().values();
+            let [bx, by, bz] = bxyz.xyz().values();
+            println!("{w}, {rx:.8}, {ry:.8}, {rz:.8}, {bx:.8}, {by:.8}, {bz:.8}");
+        }
+    }
+     */
 }
