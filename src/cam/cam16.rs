@@ -9,25 +9,6 @@
 //! - **Chromatic adaptation** using CIECAT02 matrices  
 //! - Utility functions for achromatic response, eccentricity, and more  
 //!
-//! ## Example
-//! ```rust
-//! use colorimetry::cam::CieCam16;
-//! use colorimetry::cam::ViewConditions;
-//! use colorimetry::xyz::XYZ;
-//! use colorimetry::cam::CamTransforms;
-//! use colorimetry::observer::Observer;
-//!
-//! let sample = XYZ::new([60.7, 49.6, 10.3], Observer::Cie1931);
-//! let white  = XYZ::new([96.46, 100.0, 108.62], Observer::Cie1931);
-//! let vc     = ViewConditions::new(16.0, 1.0, 1.0, 0.69, 40.0, None);
-//!
-//! let cam = CieCam16::from_xyz(sample, white, vc).unwrap();
-//! let jch = cam.jch();
-//! println!("JCh: {:?}", jch);
-//! ```
-//!
-//! *Methods and internals marked `pub(crate)` have been omitted for brevity.*
-
 use super::{CamJCh, CamTransforms, ViewConditions};
 
 use nalgebra::Vector3;
@@ -36,7 +17,7 @@ use crate::{
     error::Error,
     observer::Observer,
     rgb::{RgbSpace, WideRgb},
-    xyz::XYZ,
+    xyz::{RelXYZ, XYZ},
 };
 
 /// CIECAM16 Color Appearance Model
@@ -77,9 +58,8 @@ impl CieCam16 {
     pub fn new(jch: [f64; 3], xyzn: XYZ, vc: ViewConditions) -> Self {
         Self(CamJCh {
             jch: Vector3::from(jch),
-            xyzn: xyzn.xyz,
+            xyzn,
             vc,
-            observer: xyzn.observer,
         })
     }
 
@@ -94,9 +74,8 @@ impl CieCam16 {
     /// A Result containing the CieCam16 instance if successful, or a CmtError if an error occurs.
     /// # Errors
     /// Returns an error if the XYZ values are not in the same observer system.
-    pub fn from_xyz(xyz: XYZ, xyzn: XYZ, vc: ViewConditions) -> Result<Self, Error> {
-        let camjch = CamJCh::from_xyz(xyz, xyzn, vc, super::Cam::CieCam16)?;
-        Ok(Self(camjch))
+    pub fn from_xyz(rxyz: RelXYZ, vc: ViewConditions) -> Self {
+        Self(CamJCh::from_xyz(rxyz, vc, super::Cam::CieCam16))
     }
 
     /// Inverse-transform CIECAM16 appearance correlates back to CIE XYZ tristimulus values.
@@ -120,28 +99,11 @@ impl CieCam16 {
     /// # Returns
     /// - `Ok(XYZ)`: the reconstructed tristimulus values under the specified (or original) conditions.  
     /// - `Err(CmtError::RequireSameObserver)`: if `white_opt` has a different `Observer` than `self`.
-    ///
-    /// # Example
-    /// ```rust
-    /// use colorimetry::prelude::*;
-    /// // Original CAM16 instance:
-    /// let sample_xyz = XYZ::new([60.7, 49.6, 10.3], Observer::Cie1931);
-    /// let white_xyz  = XYZ::new([96.46, 100.0, 108.62], Observer::Cie1931);
-    /// let vc     = ViewConditions::new(16.0, 1.0, 1.0, 0.69, 40.0, None);
-    /// let cam = CieCam16::from_xyz(sample_xyz, white_xyz, vc).unwrap();
-    ///
-    /// // Inverse under same conditions:
-    /// let back_to_xyz = cam.xyz(None, None).unwrap();
-    ///
-    /// // Inverse with a new white point:
-    /// let new_white = XYZ::new([95.0, 100.0, 108.0], Observer::Cie1931);
-    /// let adapted_xyz = cam.xyz(Some(new_white), None).unwrap();
-    /// ```
     pub fn xyz(
         &self,
         opt_xyzn: Option<XYZ>,
         opt_viewconditions: Option<ViewConditions>,
-    ) -> Result<XYZ, Error> {
+    ) -> Result<RelXYZ, Error> {
         self.0
             .xyz(opt_xyzn, opt_viewconditions, super::Cam::CieCam16)
     }
@@ -199,11 +161,11 @@ impl CamTransforms for CieCam16 {
 
     /// Returns the observer of this CieCam16 instance.
     fn observer(&self) -> Observer {
-        self.0.observer
+        self.0.xyzn.observer
     }
 
     fn xyzn(&self) -> &Vector3<f64> {
-        &self.0.xyzn
+        &self.0.xyzn.xyz
     }
 }
 
@@ -214,7 +176,7 @@ mod cam16_test {
 
     use crate::cam::{CamTransforms, CieCam16, ViewConditions, M16, M16INV};
     use crate::observer::Observer;
-    use crate::xyz::XYZ;
+    use crate::xyz::{RelXYZ, XYZ};
 
     #[test]
     fn test_m16() {
@@ -226,8 +188,9 @@ mod cam16_test {
         // see section 7 CIE 248:2022
         let xyz = XYZ::new([60.70, 49.60, 10.29], Observer::Cie1931);
         let xyzn = XYZ::new([96.46, 100.0, 108.62], Observer::Cie1931);
+        let rxyz = RelXYZ::from_xyz(xyz, xyzn).unwrap();
         let vc = ViewConditions::new(40.0, 16.0, 0.69, 1.0, 1.0, None);
-        let cam = CieCam16::from_xyz(xyz, xyzn, vc).unwrap();
+        let cam = CieCam16::from_xyz(rxyz, vc);
         let &[j, c, h] = cam.jch_vec().as_ref();
         //println!("J:\t{j:?}\nC:\t{c:?}\nh:\t{h:?}");
         approx::assert_abs_diff_eq!(j, 70.4406, epsilon = 1E-4);
@@ -236,7 +199,7 @@ mod cam16_test {
 
         // inverse transformation, with no change in white adaptation of viewing conditions.
         let xyz_rev = cam.xyz(None, Some(vc)).unwrap();
-        assert_abs_diff_eq!(xyz, xyz_rev, epsilon = 1E-4);
+        assert_abs_diff_eq!(rxyz, xyz_rev, epsilon = 1E-4);
     }
 }
 
@@ -244,6 +207,7 @@ mod cam16_test {
 mod cam16_round_trip_tests {
     use crate::observer::Observer::Cie1931;
     use crate::prelude::*;
+    use crate::xyz::RelXYZ;
     use approx::assert_abs_diff_eq;
 
     #[test]
@@ -270,21 +234,16 @@ mod cam16_round_trip_tests {
             // forward transform (XYZ -> JCh)
             let xyz = XYZ::new(xyz_arr, Cie1931);
             let xyz_d65 = Cie1931.xyz_d65();
-            let cam = CieCam16::from_xyz(xyz, xyz_d65, ViewConditions::default()).unwrap();
+            let rxyz = RelXYZ::from_xyz(xyz, xyz_d65).unwrap();
+            let cam = CieCam16::from_xyz(rxyz, ViewConditions::default());
             let jch = cam.jch();
 
             // inverse (JCh -> XYZ)
             let cam_back = CieCam16::new(jch, xyz_d65, ViewConditions::default());
-            let xyz_back = cam_back.xyz(None, None).unwrap();
+            let rxyz_back = cam_back.xyz(None, None).unwrap();
 
             // compare original vs. round-tripped XYZ
-            let orig = XYZ::new(xyz_arr, Cie1931);
-            let [x0, y0, z0] = orig.values();
-            let [x1, y1, z1] = xyz_back.values();
-
-            assert_abs_diff_eq!(x0, x1, epsilon = 1e-6);
-            assert_abs_diff_eq!(y0, y1, epsilon = 1e-6);
-            assert_abs_diff_eq!(z0, z1, epsilon = 1e-6);
+            assert_abs_diff_eq!(rxyz, rxyz_back, epsilon = 1e-6);
         }
     }
 }

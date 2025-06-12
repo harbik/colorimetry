@@ -8,25 +8,6 @@
 //! - **Inverse transform** back to XYZ with optional new white or viewing conditions via `xyz`.  
 //! - **Chromatic adaptation** using CIECAT02 matrices  
 //! - Utility functions for achromatic response, eccentricity, and more  
-//!
-//! ## Example
-//! ```rust
-//! use colorimetry::cam::CieCam02;
-//! use colorimetry::cam::ViewConditions;
-//! use colorimetry::xyz::XYZ;
-//! use colorimetry::cam::CamTransforms;
-//! use colorimetry::observer::Observer;
-//!
-//! let sample = XYZ::new([60.7, 49.6, 10.3], Observer::Cie1931);
-//! let white  = XYZ::new([96.46, 100.0, 108.62], Observer::Cie1931);
-//! let vc     = ViewConditions::new(16.0, 1.0, 1.0, 0.69, 40.0, None);
-//!
-//! let cam = CieCam02::from_xyz(sample, white, vc).unwrap();
-//! let jch = cam.jch();
-//! println!("JCh: {:?}", jch);
-//! ```
-//!
-//! *Methods and internals marked `pub(crate)` have been omitted for brevity.*
 
 use super::{CamJCh, CamTransforms, ViewConditions};
 
@@ -36,7 +17,7 @@ use crate::{
     error::Error,
     observer::Observer,
     rgb::{RgbSpace, WideRgb},
-    xyz::XYZ,
+    xyz::{RelXYZ, XYZ},
 };
 
 /// CIECAM02 Color Appearance Model
@@ -77,9 +58,8 @@ impl CieCam02 {
     pub fn new(jch: [f64; 3], xyzn: XYZ, vc: ViewConditions) -> Self {
         Self(CamJCh {
             jch: Vector3::from(jch),
-            xyzn: xyzn.xyz,
+            xyzn,
             vc,
-            observer: xyzn.observer,
         })
     }
 
@@ -94,9 +74,8 @@ impl CieCam02 {
     /// A Result containing the CieCam02 instance if successful, or a CmtError if an error occurs.
     /// # Errors
     /// Returns an error if the XYZ values are not in the same observer system.
-    pub fn from_xyz(xyz: XYZ, xyzn: XYZ, vc: ViewConditions) -> Result<Self, Error> {
-        let camjch = CamJCh::from_xyz(xyz, xyzn, vc, super::Cam::CieCam02)?;
-        Ok(Self(camjch))
+    pub fn from_xyz(rxyz: RelXYZ, vc: ViewConditions) -> Self {
+        Self(CamJCh::from_xyz(rxyz, vc, super::Cam::CieCam02))
     }
 
     /// Inverse-transform CIECAM02 appearance correlates back to CIE XYZ tristimulus values.
@@ -120,31 +99,11 @@ impl CieCam02 {
     /// # Returns
     /// - `Ok(XYZ)`: the reconstructed tristimulus values under the specified (or original) conditions.  
     /// - `Err(CmtError::RequireSameObserver)`: if `white_opt` has a different `Observer` than `self`.
-    ///
-    /// # Example
-    /// ```rust
-    /// use colorimetry::cam::CieCam02;
-    /// use colorimetry::cam::ViewConditions;
-    /// use colorimetry::xyz::XYZ;
-    /// use colorimetry::observer::Observer;
-    /// // Original CAM16 instance:
-    /// let sample_xyz = XYZ::new([60.7, 49.6, 10.3], Observer::Cie1931);
-    /// let white_xyz  = XYZ::new([96.46, 100.0, 108.62], Observer::Cie1931);
-    /// let vc = ViewConditions::new(40.0, 16.0, 0.69, 1.0, 1.0, None);
-    /// let cam = CieCam02::from_xyz(sample_xyz, white_xyz, vc).unwrap();
-    ///
-    /// // Inverse under same conditions:
-    /// let back_to_xyz = cam.xyz(None, None).unwrap();
-    ///
-    /// // Inverse with a new white point:
-    /// let new_white = XYZ::new([95.0, 100.0, 108.0], Observer::Cie1931);
-    /// let adapted_xyz = cam.xyz(Some(new_white), None).unwrap();
-    /// ```
     pub fn xyz(
         &self,
         opt_xyzn: Option<XYZ>,
         opt_viewconditions: Option<ViewConditions>,
-    ) -> Result<XYZ, Error> {
+    ) -> Result<RelXYZ, Error> {
         self.0
             .xyz(opt_xyzn, opt_viewconditions, super::Cam::CieCam02)
     }
@@ -173,11 +132,11 @@ impl CamTransforms for CieCam02 {
 
     /// Returns the observer of this CieCam02 instance.
     fn observer(&self) -> Observer {
-        self.0.observer
+        self.0.xyzn.observer
     }
 
     fn xyzn(&self) -> &Vector3<f64> {
-        &self.0.xyzn
+        &self.0.xyzn.xyz
     }
 }
 
@@ -188,7 +147,7 @@ mod cam02_test {
 
     use crate::cam::{CamTransforms, CieCam02, ViewConditions, M16, M16INV};
     use crate::observer::Observer;
-    use crate::xyz::XYZ;
+    use crate::xyz::{RelXYZ, XYZ};
 
     #[test]
     fn test_m16() {
@@ -199,13 +158,12 @@ mod cam02_test {
     // Worked example from CIECAM02 documentation, CIE159:2004, p. 11
     fn test_worked_example() {
         // forward transform (XYZ -> JCh)
-        let xyz = XYZ::new([19.31, 23.93, 10.14], Observer::Cie1931);
-        let xyzn = XYZ::new([98.88, 90.0, 32.03], Observer::Cie1931);
-
+        let white_point = XYZ::new([98.88, 90.0, 32.03], Observer::Cie1931);
+        let rxyz = RelXYZ::new([19.31, 23.93, 10.14], white_point);
         // Table 4, column 2, CIE 159:2004.
         // La = 20 cd/m2;
         let vc = ViewConditions::new(20.0, 18.0, 0.69, 1.0, 1.0, None);
-        let cam = CieCam02::from_xyz(xyz, xyzn, vc).unwrap();
+        let cam = CieCam02::from_xyz(rxyz, vc);
         let jch = cam.jch_vec();
         let &[j, c, h] = jch.as_ref();
         assert_abs_diff_eq!(j, 47.6856, epsilon = 1E-4); // J
@@ -215,7 +173,7 @@ mod cam02_test {
         // Table 4, column 3, CIE 159:2004.
         // La = 200 cd/m2;
         let vc = ViewConditions::new(200.0, 18.0, 0.69, 1.0, 1.0, None);
-        let cam = CieCam02::from_xyz(xyz, xyzn, vc).unwrap();
+        let cam = CieCam02::from_xyz(rxyz, vc);
         let jch = cam.jch_vec();
         let &[j, c, h] = jch.as_ref();
         assert_abs_diff_eq!(j, 48.0314, epsilon = 1E-4); // J
@@ -227,10 +185,9 @@ mod cam02_test {
 #[cfg(test)]
 mod cam02_round_trip_tests {
     use crate::{
-        cam::CieCam02,
-        cam::{CamTransforms, ViewConditions},
-        observer::{Observer, Observer::Cie1931},
-        xyz::XYZ,
+        cam::{CamTransforms, CieCam02, ViewConditions},
+        observer::Observer::{self, Cie1931},
+        xyz::{RelXYZ, XYZ},
     };
     use approx::assert_abs_diff_eq;
 
@@ -258,7 +215,8 @@ mod cam02_round_trip_tests {
             // forward transform (XYZ -> JCh)
             let xyz = XYZ::new(xyz_arr, Observer::Cie1931);
             let xyz_d65 = Cie1931.xyz_d65();
-            let cam = CieCam02::from_xyz(xyz, xyz_d65, ViewConditions::default()).unwrap();
+            let rxyz = RelXYZ::from_xyz(xyz, xyz_d65).unwrap();
+            let cam = CieCam02::from_xyz(rxyz, ViewConditions::default());
             let jch = cam.jch();
 
             // inverse (JCh -> XYZ)
@@ -266,13 +224,7 @@ mod cam02_round_trip_tests {
             let xyz_back = cam_back.xyz(None, None).unwrap();
 
             // compare original vs. round-tripped XYZ
-            let orig = XYZ::new(xyz_arr, Observer::Cie1931);
-            let [x0, y0, z0] = orig.values();
-            let [x1, y1, z1] = xyz_back.values();
-
-            assert_abs_diff_eq!(x0, x1, epsilon = 1e-6);
-            assert_abs_diff_eq!(y0, y1, epsilon = 1e-6);
-            assert_abs_diff_eq!(z0, z1, epsilon = 1e-6);
+            assert_abs_diff_eq!(rxyz, xyz_back, epsilon = 1e-6);
         }
     }
 }

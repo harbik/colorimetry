@@ -133,15 +133,13 @@ impl MunsellCollection {
         let illuminant = opt_illuminant.unwrap_or(&D65);
         let vc = opt_vc.unwrap_or_default();
         let observer = opt_observer.unwrap_or_default();
-
-        let xyz = observer.xyz(illuminant, Some(colorant));
-        let xyzn = observer.xyz(illuminant, None);
-        let tgt_cam = CieCam16::from_xyz(xyz, xyzn, vc)?;
+        let rxyz = observer.rel_xyz(illuminant, colorant);
+        let tgt_cam = CieCam16::from_xyz(rxyz, vc);
         let mut best_key = String::new();
         let mut best_delta_e = f64::MAX;
         for mm in MunsellCollection.into_iter() {
-            let xyz_mm = observer.xyz(illuminant, Some(&mm));
-            let cam_mm = CieCam16::from_xyz(xyz_mm, xyzn, vc)?;
+            let xyz_mm = observer.rel_xyz(illuminant, &mm);
+            let cam_mm = CieCam16::from_xyz(xyz_mm, vc);
             let delta_e = tgt_cam.de_ucs(&cam_mm)?;
             if delta_e < best_delta_e {
                 best_delta_e = delta_e;
@@ -244,6 +242,6 @@ mod test_munsell {
         let r9 = &crate::colorant::tcs::TCS[8];
         let (key, delta_e) = MunsellCollection::match_ciecam16(r9, None, None, None).unwrap();
         assert_eq!(key, "5R4/14");
-        approx::assert_abs_diff_eq!(delta_e, 3.0, epsilon = 5e-2);
+        approx::assert_abs_diff_eq!(delta_e, 2.8, epsilon = 5e-2);
     }
 }

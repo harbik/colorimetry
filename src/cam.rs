@@ -41,22 +41,18 @@ pub use crate::cam::cam02::CieCam02;
 use crate::{
     observer::Observer,
     rgb::{RgbSpace, WideRgb},
-    xyz::XYZ,
+    xyz::{RelXYZ, XYZ},
 };
 use nalgebra::{matrix, vector, SMatrix, Vector3};
 use std::f64::consts::PI;
 
 #[derive(Debug)]
 pub struct CamJCh {
-    /// Colorimetric Observer used.
-    /// The standard requires use of the CIE1931 standard observer.
-    observer: Observer,
-
     /// Correlates of Lightness, Chroma, and hue-angle
     jch: Vector3<f64>,
 
     /// Tristimulus values of the reference white being use
-    xyzn: Vector3<f64>,
+    xyzn: XYZ,
 
     /// Viewing Conditions
     vc: ViewConditions,
@@ -91,31 +87,12 @@ impl CamJCh {
     const DEN1: f64 = ((2.0 + Self::P3) * 220.0) / 1403.0;
     const DEN2: f64 = (Self::P3 * 6300.0 - 27.0) / 1403.0;
 
-    pub fn new(
-        observer: Observer,
-        jch: Vector3<f64>,
-        xyzn: Vector3<f64>,
-        vc: ViewConditions,
-    ) -> Self {
-        Self {
-            observer,
-            jch,
-            xyzn,
-            vc,
-        }
+    pub fn new(jch: Vector3<f64>, xyzn: XYZ, vc: ViewConditions) -> Self {
+        Self { jch, xyzn, vc }
     }
 
-    pub fn from_xyz(
-        xyz: XYZ,
-        xyzn: XYZ,
-        vc: ViewConditions,
-        cam: Cam,
-    ) -> Result<Self, crate::Error> {
-        if xyz.observer != xyzn.observer {
-            return Err(crate::Error::RequireSameObserver);
-        }
-        let xyz_vec = xyz.xyz;
-        let xyzn_vec = xyzn.xyz;
+    pub fn from_xyz(rxyz: RelXYZ, vc: ViewConditions, cam: Cam) -> Self {
+        let xyz_vec = rxyz.xyz().xyz;
 
         let ReferenceValues {
             n,
@@ -125,9 +102,7 @@ impl CamJCh {
             d_rgb,
             aw,
             qu,
-        } = vc.reference_values(xyzn.xyz, cam);
-        //  let vcdd = vc.dd();
-        //  let vcfl = vc.f_l();
+        } = vc.reference_values(rxyz.white_point().xyz, cam);
 
         let mut rgb = match cam {
             Cam::CieCam16 => M16 * xyz_vec,
@@ -171,12 +146,11 @@ impl CamJCh {
             / (rgb[0] + rgb[1] + 21.0 / 20.0 * rgb[2]);
         let cc = t.powf(0.9) * (jj / 100.).sqrt() * (1.64 - (0.29f64).powf(n)).powf(0.73);
 
-        Ok(Self {
+        Self {
             vc,
             jch: Vector3::new(jj, cc, h * 180.0 / PI),
-            observer: xyz.observer,
-            xyzn: xyzn_vec,
-        })
+            xyzn: rxyz.white_point(),
+        }
     }
 
     pub fn xyz(
@@ -184,16 +158,16 @@ impl CamJCh {
         opt_xyzn: Option<XYZ>,
         opt_viewconditions: Option<ViewConditions>,
         cam: Cam,
-    ) -> Result<XYZ, crate::Error> {
+    ) -> Result<RelXYZ, crate::Error> {
         let vc = opt_viewconditions.unwrap_or_default();
         let xyzn = if let Some(white) = opt_xyzn {
-            if white.observer == self.observer {
+            if white.observer == self.xyzn.observer {
                 white.xyz
             } else {
                 return Err(crate::Error::RequireSameObserver);
             }
         } else {
-            self.xyzn
+            self.xyzn.xyz
         };
         let ReferenceValues {
             n,
@@ -238,7 +212,9 @@ impl CamJCh {
                 MCAT02INV * rgb_c
             }
         };
-        Ok(XYZ::from_vecs(xyz, self.observer))
+        let xyz_out = XYZ::from_vecs(xyz, self.xyzn.observer);
+        let xyzn_out = XYZ::from_vecs(xyzn, self.xyzn.observer);
+        RelXYZ::from_xyz(xyz_out, xyzn_out)
     }
 
     pub fn rgb(
@@ -248,10 +224,10 @@ impl CamJCh {
         cam: Cam,
     ) -> Result<WideRgb, crate::Error> {
         let viewconditions = opt_viewconditions.unwrap_or_default();
-        let observer = self.observer;
+        let observer = self.xyzn.observer;
         let xyzn = observer.xyz(&rgbspace.white(), None).set_illuminance(100.0);
         let xyz = self.xyz(Some(xyzn), Some(viewconditions), cam)?;
-        Ok(xyz.rgb(rgbspace))
+        Ok(xyz.xyz().rgb(rgbspace))
     }
 }
 

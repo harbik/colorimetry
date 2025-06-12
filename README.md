@@ -162,7 +162,7 @@ In practical terms, a ΔE of 3 is considered a close match—just at the thresho
     None,
     Some(Cie2015_10),
   ).unwrap();
-  // ("5R4/14", 3.0)
+  // ("5R4/14", 2.85)
 ```
 </details>
 

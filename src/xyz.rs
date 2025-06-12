@@ -36,6 +36,9 @@ mod chromaticity;
 mod dominant;
 pub use chromaticity::Chromaticity;
 
+mod rel_xyz;
+pub use rel_xyz::RelXYZ;
+
 use core::f64;
 
 use crate::{error::Error, observer::Observer, rgb::RgbSpace, rgb::WideRgb};
