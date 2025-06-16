@@ -9,7 +9,9 @@ repository = "https://github.com/harbik/colorimetry"
 keywords = ["CIE", "CIELAB", "CIECAM16", "Colorimetry"]
 license = "MIT OR Apache-2.0"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+# Exclude files not needed when used as a Rust library
+# from being published to crates.io
+exclude = [".github", ".vscode", "pkg"]
 
 [dependencies]
 nalgebra = "0.33"
