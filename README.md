@@ -11,13 +11,17 @@ You can use it to build lighting tools, visualize spectra, or get the right tran
 It also has early support for JavaScript and WebAssembly, so you can run it in the browser, and use it with JavaScript Runtimes such as Deno.
 
 ## Usage
+
 To use this library in a Rust application, run the command:
+
  ```bash
     cargo add colorimetry
 ```
+
 or add this line to the dependencies in your Cargo.toml file:
+
 ```text
-    colorimetry = "0.0.6"
+    colorimetry = "0.0.7"
 ```
 
 ## Examples
@@ -45,6 +49,7 @@ This example calculates the XYZ tristimulus values of the D65 illuminant for bot
   let [x_10, y_10, z_10] = xyz_d65_10.values();
   //[94.72, 100.0, 107.143]
 ```
+
 </details>
 
 <details>
@@ -64,6 +69,7 @@ locus, often referred to as the tint.
   let [cct, duv] = A.cct().unwrap().values();
   // [2855.4977, 0.0]
 ```
+
 </details>
 
 <details>
@@ -85,6 +91,7 @@ Below is an example calculation of the general Color Fidelity Index for the CIE 
   let cf = cf_f2.general_color_fidelity_index();
   // 70.3
 ```
+
 </details>
 
 <details>
@@ -108,6 +115,7 @@ Below, we compute the chromaticity coordinates that define the spectral locus.
   }
   println!("{locus:?}");
 ```
+
 </details>
 
 <details>
@@ -139,6 +147,7 @@ Here, we compute transformation matrices for the `DisplayP3` color space using b
   // -0.9006,   1.8546, -0.0011,
   //  0.0279,  -0.0574,  0.95874
 ```
+
 </details>
 
 <details>
@@ -164,6 +173,7 @@ In practical terms, a ΔE of 3 is considered a close match—just at the thresho
   ).unwrap();
   // ("5R4/14", 2.85)
 ```
+
 </details>
 
 <details>
@@ -208,6 +218,7 @@ what you'd actually see on a freshly painted surface.
   let [r, g, b]: [u8; 3] = rgb_1931.into();
   //  (0, 113, 138)
 ```
+
 </details>
 
 ## Capabilities
@@ -231,9 +242,8 @@ what you'd actually see on a freshly painted surface.
   - LED: [`LED_B1`], [`LED_B2`], [`LED_B3`], [`LED_B4`], [`LED_B5`], [`LED_BH1`], [`LED_RGB1`], [`LED_V1`]
 
 - Includes Various Colorant Collections (optional):
-    - Munsell Color System [`MunsellCollection`], with over 1,000 colors
-    - Test Color Samples [`TCS`], including the 14 test colors used for Color Rendering Index calculations
-    - Color Evaluation Samples [`CES`], a set of 99 test colors used in the Color Fidelity Index (CFI) calculations
+  - Munsell Color System [`MunsellCollection`], with over 1,000 colors
+  - Color Evaluation Samples [`CES`], a set of 99 test colors used in the Color Fidelity Index (CFI) calculations
 
 - Calculate Illuminant metrics:
   - [`CCT`] Correlated color temperature, including distance to the blackbody locus for tint indication[^1]
@@ -286,7 +296,9 @@ To enable a feature, such as `cri` and `munsell`, use
 ```bash
 cargo add colorimetry -F cri,munsell
 ```
-or
+
+or, if you prefer to use the `cargo add` command with the `--features` flag, you can run:
+
 ```bash
 cargo add colorimetry --features cri,munsell
 ```
@@ -294,17 +306,18 @@ cargo add colorimetry --features cri,munsell
 Alternatively, configure features manually in your `Cargo.toml`:
 
 ```toml
-colorimetry = { version = "0.0.6", features = ["cri", "munsell"] }
+colorimetry = { version = "0.0.7", features = ["cri", "munsell"] }
 ```
 
 </details>
 
 ### License
+
 All content &copy;2025 Harbers Bik LLC, and licensed under either of the
 
- * Apache License, Version 2.0,
+- Apache License, Version 2.0,
    ([LICENSE-APACHE](LICENSE-APACHE) or <http://www.apache.org/licenses/LICENSE-2.0>), or the
- * MIT license
+- MIT license
    [LICENSE-MIT](LICENSE-MIT) or <http://opensource.org/licenses/MIT>,
 
 at your option.
@@ -320,7 +333,6 @@ dual licensed as above, without any additional terms or conditions.
 [`Spectrum::linear_interpolate`]: https://docs.rs/colorimetry/latest/colorimetry/spectrum/struct.Spectrum.html#method.linear_interpolate
 [`Spectrum::sprague_interpolate`]: https://docs.rs/colorimetry/latest/colorimetry/spectrum/struct.Spectrum.html#method.sprague_interpolate
 [`Spectrum::smooth`]: https://docs.rs/colorimetry/latest/colorimetry/spectrum/struct.Spectrum.html#method.smooth
-[`Illuminant`]: https://docs.rs/colorimetry/latest/colorimetry/illuminant/struct.Illuminant.html
 [`Illuminant::planckian`]: https://docs.rs/colorimetry/latest/colorimetry/illuminant/struct.Illuminant.html#method.planckian
 [`Illuminant::led`]: https://docs.rs/colorimetry/latest/colorimetry/illuminant/struct.Illuminant.html#method.led
 [`CieLab`]: https://docs.rs/colorimetry/latest/colorimetry/lab/struct.CieLab.html
@@ -333,40 +345,24 @@ dual licensed as above, without any additional terms or conditions.
 [`CCT`]: https://docs.rs/colorimetry/latest/colorimetry/illuminant/struct.CCT.html
 [`CRI`]: https://docs.rs/colorimetry/latest/colorimetry/illuminant/struct.CRI.html
 [`CFI`]: https://docs.rs/colorimetry/latest/colorimetry/illuminant/struct.CFI.html
-[`Colorant`]: https://docs.rs/colorimetry/latest/colorimetry/colorant/struct.Colorant.html
 [`Colorant::gaussian`]: https://docs.rs/colorimetry/latest/colorimetry/colorant/struct.Colorant.html#method.gaussian
-[`Stimulus`]: https://docs.rs/colorimetry/latest/colorimetry/stimulus/struct.Stimulus.html
-[`Stimulus::from_srgb`]: https://docs.rs/colorimetry/latest/colorimetry/stimulus/struct.Stimulus.html#method.from_srgb
 [`Stimulus::from_rgb`]: https://docs.rs/colorimetry/latest/colorimetry/stimulus/struct.Stimulus.html#method.from_rgb
-[Colorimetric Observers]: https://docs.rs/colorimetry/latest/colorimetry/observer/index.html
 [`Observer`]: https://docs.rs/colorimetry/latest/colorimetry/observer/enum.Observer.html
 [`Observer::Cie1931`]: https://docs.rs/colorimetry/latest/colorimetry/observer/enum.Observer.html#variant.Cie1931
 [`Observer::Cie1964`]: https://docs.rs/colorimetry/latest/colorimetry/observer/enum.Observer.html#variant.Cie1964
 [`Observer::Cie2015`]: https://docs.rs/colorimetry/latest/colorimetry/observer/enum.Observer.html#variant.Ci2015e
 [`Observer::Cie2015_10`]: https://docs.rs/colorimetry/latest/colorimetry/observer/enum.Observer.html#variant.Cie2015_10
-[`ObserverData`]:https://docs.rs/colorimetry/latest/colorimetry/observer/enum.ObserverData.html
-[`Observer.xyz`]: https://docs.rs/colorimetry/latest/colorimetry/observer/struct.ObserverData.html#method.xyz
-[`CIE1931`]: https://docs.rs/colorimetry/latest/colorimetry/data/observers/static.CIE1931.html
-[`CIE1964`]: https://docs.rs/colorimetry/latest/colorimetry/data/observers/static.CIE1964.html
-[`CIE2015`]: https://docs.rs/colorimetry/latest/colorimetry/data/observers/static.CIE2015.html
-[`CIE2015_10`]: https://docs.rs/colorimetry/latest/colorimetry/data/observers/static.CIE2015_10.html
 [`XYZ`]: https://docs.rs/colorimetry/latest/colorimetry/xyz/struct.XYZ.html
 [`Rgb`]: https://docs.rs/colorimetry/latest/colorimetry/rgb/struct.RGB.html
-[`WideRgb`]: https://docs.rs/colorimetry/latest/colorimetry/widergb/struct.WideRgb.html
-[`RgbSpace`]: https://docs.rs/colorimetry/latest/colorimetry/rgbspace/enum.RgbSpace.html
 [`RgbSpace::SRGB`]: https://docs.rs/colorimetry/latest/colorimetry/rgb/enum.RgbSpace.html#variant.SRGB
 [`RgbSpace::Adobe`]: https://docs.rs/colorimetry/latest/colorimetry/rgb/enum.RgbSpace.html#variant.Adobe
 [`RgbSpace::DisplayP3`]: https://docs.rs/colorimetry/latest/colorimetry/rgb/enum.RgbSpace.html#variant.DisplayP3
-[`RgbSpaceData`]: https://docs.rs/colorimetry/latest/colorimetry/rgbspace/struct.RgbSpaceData.html
 
 [`CES`]: https://docs.rs/colorimetry/latest/colorimetry/colorant/static.CES.html
-[`TCS`]: https://docs.rs/colorimetry/latest/colorimetry/colorant/static.TCS.html
 [`MunsellCollection`]: https://docs.rs/colorimetry/latest/colorimetry/colorant/struct.MunsellCollection.html
-[`Munsell`]: https://docs.rs/colorimetry/latest/colorimetry/colorant/struct.Munsell.html
 
 [`D65`]: https://docs.rs/colorimetry/latest/colorimetry/illuminant/static.D65.html
 [`D50`]: https://docs.rs/colorimetry/latest/colorimetry/illuminant/static.D50.html
-[`D65`]: https://docs.rs/colorimetry/latest/colorimetry/illuminant/static.D65.html
 [`A`]: https://docs.rs/colorimetry/latest/colorimetry/illuminant/static.A.html
 [`F1`]: https://docs.rs/colorimetry/latest/colorimetry/illuminant/static.F1.html
 [`F2`]: https://docs.rs/colorimetry/latest/colorimetry/illuminant/static.F2.html
