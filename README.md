@@ -311,6 +311,16 @@ colorimetry = { version = "0.0.7", features = ["cri", "munsell"] }
 
 </details>
 
+### Developer Tasks with `xtask`
+
+This project uses a Rust-based `xtask` utility for common development tasks:
+
+- `cargo xtask check` – run clippy, fmt, check, and readme verification
+- `cargo xtask test` – test all feature configurations
+- `cargo xtask doc` – build and open project documentation
+
+More commands will be added as the project evolves.
+
 ### License
 
 All content &copy;2025 Harbers Bik LLC, and licensed under either of the
