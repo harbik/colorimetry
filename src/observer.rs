@@ -168,16 +168,6 @@ impl Observer {
         RelXYZ::from_xyz(xyz * scale, xyzn * scale).unwrap()
     }
 
-    /*
-    fn xyz_and_xyzn(&self, light: &dyn Light, filter: &dyn Filter) -> [XYZ; 2] {
-        let xyzn = light.xyzn(self.data().tag, None);
-        let s = *light.spectrum() * *filter.spectrum();
-        let xyz = self.xyz_from_spectrum(&s);
-        let scale = 100.0 / xyzn.xyz.y;
-        [xyz * scale, xyzn * scale]
-    }
-     */
-
     /// Calulates Tristimulus values for an object implementing the [Light] trait, and an optional [Filter],
     /// filtering the light.
     ///
@@ -294,22 +284,41 @@ impl Observer {
         Ok(XYZ::from_vecs(Vector3::new(x, y, z), self.data().tag))
     }
 
-    /*
+    /// Calculates the relative XYZ tristimulus values of monochromatic (narrowband) wavelengths
+    /// across the visible spectrum, forming what is known as the *spectral locus*.
+    ///
+    /// This method multiplies the standard observer data by the given reference illuminant
+    /// (assumed to have an illuminance of 100.0 lux) and computes XYZ values for each 1 nm step.
+    /// The resulting colors represent idealized, fully saturated spectral stimuli—typically
+    /// used in chromaticity diagrams like CIE 1931 (x, y) or CIECAM16 (JCh).
+    ///
+    /// ### Notes
+    /// - Each wavelength is treated as a delta function (spectral width = 1 nm), so the resulting
+    ///   XYZ values are very low in magnitude—i.e., they appear perceptually "dark."
+    /// - The XYZ values are normalized relative to the total white point derived from the illuminant.
+    /// - The resulting data can be used to draw the outer boundary of the visible chromaticity space.
+    ///
+    /// ### Parameters
+    /// - `ref_white`: The reference illuminant used for normalizing the output (e.g. D65 or D50).
+    ///
+    /// ### Returns
+    /// A vector of `(wavelength, RelXYZ)` tuples, where each `RelXYZ` represents the relative
+    /// tristimulus values of that wavelength under the given illuminant, scaled to 100 lux.
     pub fn spectral_locus(&self, ref_white: CieIlluminant) -> Vec<(usize, RelXYZ)> {
-        let xyzn = self.xyz_from_spectrum(ref_white.illuminant().as_ref());
         let mut obs = self.data().data;
         let white = &ref_white.illuminant().as_ref().0;
         for r in 0..3 {
             for c in 0..NS {
-                obs[(r, c)] *= white[c] * self.data().lumconst;
+                obs[(r, c)] *= white[c];
             }
         }
+        let xyzn_vec = obs.column_sum();
+        let xyzn = XYZ::from_vecs(xyzn_vec, self.data().tag);
         let mut v = Vec::with_capacity(NS);
         for w in SPECTRUM_WAVELENGTH_RANGE {
             let xyz = obs.column(w - SPECTRUM_WAVELENGTH_RANGE.start()).into();
             let rxyz = RelXYZ::from_vec(xyz, xyzn);
-            v.push((w, rxyz));
-            dbg!(&v.last());
+            v.push((w, rxyz.set_illuminance(100.0)));
         }
         v
     }
@@ -322,7 +331,6 @@ impl Observer {
             .filter(|(w, _)| valid_range.contains(w))
             .collect()
     }
-     */
 
     /// Tristimulus values for the Standard Illuminants in this library.
     ///
@@ -505,12 +513,10 @@ impl fmt::Display for Observer {
 mod obs_test {
 
     #[cfg(feature = "supplemental-observers")]
-    use super::Observer::Cie1964;
-    use super::{Observer, Observer::Cie1931};
-    use crate::illuminant::CieIlluminant;
-    use crate::rgb::RgbSpace;
-    use crate::spectrum::SPECTRUM_WAVELENGTH_RANGE;
-    use crate::xyz::XYZ;
+    use super::{Observer, Observer::Cie1931, Observer::Cie1964};
+    use crate::{
+        illuminant::CieIlluminant, rgb::RgbSpace, spectrum::SPECTRUM_WAVELENGTH_RANGE, xyz::XYZ
+    };
     use approx::assert_ulps_eq;
     use strum::IntoEnumIterator as _;
 
@@ -615,20 +621,7 @@ mod obs_test {
         approx::assert_ulps_eq!(want, got, epsilon = 3E-4);
     }
 
-    /* not applicable anymore
-    #[test]
-    fn test_xyz_std_illuminants() {
-        use crate::xyz::XYZ;
-        use nalgebra as na;
-        let XYZ {
-            xyz,
-            xyzn,
-            observer,
-        } = CIE1931.xyz_cie_table(&CieIlluminant::D65, Some(100.0));
-        approx::assert_ulps_eq!(xyzn, na::Vector3::new(95.04, 100.0, 108.86), epsilon = 1E-2);
-        assert!(xyz.is_none());
-    }
-     */
+  
 
     #[test]
     fn test_planckian_locus() {
@@ -704,35 +697,23 @@ mod obs_test {
         );
     }
 
-    /*
     #[test]
     fn test_spectral_locus() {
-        use crate::cam::CamTransforms;
         use crate::illuminant::CieIlluminant;
         use crate::observer::Observer::Cie1931;
 
         let sl = Cie1931.spectral_locus(CieIlluminant::D65);
-        for (w, rxyz) in sl {
-            let [j, c, h] = CieCam16::from_xyz(rxyz, CIE248_HOME_SCREEN).jch();
-            let [x, y, z] = rxyz.xyz().values();
-            println!("{w}, {x:.8}, {y:.8}, {z:.8}, {j:.3}, {c:.4}, {h:.5}");
-        }
+        // Check the first and last points of the spectral locus
+        // Data obtained from spreadsheet using data directly downloaded from cie.co.at
+        assert_eq!(sl.len(), 401);
+        let xyz_first = sl[0].1.xyz().values();
+        approx::assert_abs_diff_eq!(xyz_first.as_ref(), [6.46976E-04, 1.84445E-05, 3.05044E-03].as_ref(), epsilon = 1E-5);
+        let xyz_last = sl[sl.len() - 1].1.xyz().values();
+        approx::assert_abs_diff_eq!(xyz_last.as_ref(), [2.48982E-05, 8.99121E-06, 0.0].as_ref(), epsilon = 1E-5);
+        // 550 nm
+        let xyz_550 = sl[170].1.xyz().values();
+        approx::assert_abs_diff_eq!(xyz_550.as_ref(), [0.4268018, 0.9796899, 0.0086158].as_ref(), epsilon = 1E-4);
+
     }
 
-    #[test]
-    fn test_spectral_locus_round_trip() {
-        use crate::cam::CamTransforms;
-        use crate::illuminant::CieIlluminant;
-        use crate::observer::Observer::Cie1931;
-
-        let sl = Cie1931.spectral_locus(CieIlluminant::D65);
-        for (w, rxyz) in sl {
-            let cam =  CieCam16::from_xyz(rxyz, CIE248_HOME_SCREEN);
-            let bxyz = cam.xyz(None, Some(CIE248_HOME_SCREEN)).unwrap();
-            let [rx, ry, rz] = rxyz.xyz().values();
-            let [bx, by, bz] = bxyz.xyz().values();
-            println!("{w}, {rx:.8}, {ry:.8}, {rz:.8}, {bx:.8}, {by:.8}, {bz:.8}");
-        }
-    }
-     */
 }
