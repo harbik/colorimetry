@@ -1,6 +1,8 @@
 use approx::AbsDiffEq;
 use nalgebra::Vector3;
 
+use crate::lab::CieLab;
+
 use super::XYZ;
 
 /// # Related Tristimulus Values
@@ -106,6 +108,47 @@ impl RelXYZ {
     pub fn values(&self) -> [[f64; 3]; 2] {
         [self.xyz.into(), self.white_point.xyz.into()]
     }
+
+    /// Sets the illuminance of the color represented by this `RelXYZ` instance.
+    /// # Arguments
+    /// - `illuminance`: The desired illuminance level in lux.
+    ///
+    /// # Returns
+    /// A new `RelXYZ` instance with the XYZ values scaled to the specified illuminance.
+    ///
+    /// # Panics
+    /// Panics if the Y value of the white point or the illuminance is less than or equal to zero.
+    pub fn set_illuminance(mut self, illuminance: f64) -> Self {
+        let yn = self.white_point.xyz.y;
+        if yn > f64::EPSILON && illuminance > f64::EPSILON {
+            let scale = illuminance / yn;
+            self.xyz *= scale;
+            self.white_point.xyz *= scale;
+            self
+        } else {
+            panic!("Illuminance and Y of white point must be greater than zero");
+        }
+    }
+
+    /// Checks if a related XYZ color is valid by converting it to CIELAB and back,
+    /// and verifying the result is consistent, finite, and non-negative.
+    ///
+    /// # Returns
+    /// - `true` if the XYZ value is perceptually valid and reversible.
+    /// - `false` if the round-trip introduces a large error or the output contains invalid values.
+    ///
+    /// # Why This Works
+    /// The XYZ → CIELAB → XYZ transformation is only reliable for physically meaningful colors.
+    /// If the input XYZ is too far from the reference white, or contains negative components,
+    /// the LAB model may produce invalid results or large reversibility errors.
+    pub fn is_valid(&self) -> bool {
+        let lab = CieLab::from_xyz(*self);
+        let xyz_back = lab.xyz();
+        let same = self.abs_diff_eq(&xyz_back, 1E-5);
+        same && xyz_back.values()[0]
+            .into_iter()
+            .all(|v| v >= 0.0 && v.is_finite())
+    }
 }
 
 impl AbsDiffEq for RelXYZ {
@@ -119,5 +162,92 @@ impl AbsDiffEq for RelXYZ {
         let xyz_eq = self.xyz.abs_diff_eq(&other.xyz, epsilon);
         let xyzn_eq = self.white_point.abs_diff_eq(&other.white_point, epsilon);
         xyz_eq && xyzn_eq
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::observer::Observer::Cie1931;
+    use approx::assert_abs_diff_eq;
+
+    #[test]
+    fn test_new() {
+        let xyz = [1.0, 2.0, 3.0];
+        let white = XYZ::new([100.0, 100.0, 100.0], Cie1931);
+        let rel_xyz = RelXYZ::new(xyz, white);
+        assert_abs_diff_eq!(rel_xyz.xyz.x, 1.0);
+        assert_abs_diff_eq!(rel_xyz.xyz.y, 2.0);
+        assert_abs_diff_eq!(rel_xyz.xyz.z, 3.0);
+        assert_abs_diff_eq!(rel_xyz.white_point.xyz.x, 100.0);
+    }
+
+    #[test]
+    fn test_from_vec() {
+        let xyz = Vector3::new(1.0, 2.0, 3.0);
+        let white = XYZ::new([100.0, 100.0, 100.0], Cie1931);
+        let rel_xyz = RelXYZ::from_vec(xyz, white);
+        assert_abs_diff_eq!(rel_xyz.xyz.x, 1.0);
+        assert_abs_diff_eq!(rel_xyz.xyz.y, 2.0);
+        assert_abs_diff_eq!(rel_xyz.xyz.z, 3.0);
+    }
+
+    #[test]
+    fn test_with_d65() {
+        let xyz = XYZ::new([1.0, 2.0, 3.0], Cie1931);
+        let rel_xyz = RelXYZ::with_d65(xyz);
+        assert_abs_diff_eq!(rel_xyz.xyz.x, 1.0);
+        assert_eq!(rel_xyz.white_point, Cie1931.xyz_d65());
+    }
+
+    #[test]
+    fn test_with_d50() {
+        let xyz = XYZ::new([1.0, 2.0, 3.0], Cie1931);
+        let rel_xyz = RelXYZ::with_d50(xyz);
+        assert_abs_diff_eq!(rel_xyz.xyz.x, 1.0);
+        assert_eq!(rel_xyz.white_point, Cie1931.xyz_d50());
+    }
+
+    #[test]
+    fn test_set_illuminance() {
+        let white = XYZ::new([50.0, 50.0, 50.0], Cie1931);
+        let rel_xyz = RelXYZ::new([5.0; 3], white).set_illuminance(100.0);
+        assert_abs_diff_eq!(rel_xyz.xyz.y, 10.0);
+        assert_abs_diff_eq!(rel_xyz.white_point.xyz.y, 100.0);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_set_illuminance_zero() {
+        let xyz = XYZ::new([1.0, 2.0, 3.0], Cie1931);
+        let white = XYZ::new([100.0, 100.0, 100.0], Cie1931);
+        let rel_xyz = RelXYZ::from_xyz(xyz, white).unwrap();
+        rel_xyz.set_illuminance(0.0);
+        // This should panic because illuminance is zero
+    }
+
+    #[test]
+    fn test_spectral_locus_round_trip() {
+        use crate::{illuminant::CieIlluminant, observer::Observer::Cie1931};
+
+        let sl = Cie1931.spectral_locus(CieIlluminant::D65);
+        for (_w, rxyz) in sl {
+            let lab = CieLab::from_xyz(rxyz);
+            let xyz_back = lab.xyz();
+            approx::assert_abs_diff_eq!(rxyz, xyz_back, epsilon = 1E-6)
+        }
+    }
+
+    #[test]
+    fn test_spectral_locus_round_trip_print() {
+        use crate::{illuminant::CieIlluminant, observer::Observer::Cie1931};
+
+        let sl = Cie1931.spectral_locus(CieIlluminant::D65);
+        for (w, rxyz) in sl {
+            print!("{}, {:.4?}", w, rxyz.values()[0]);
+            let lab = CieLab::from_xyz(rxyz);
+            let xyz_back = lab.xyz();
+            println!("{:.4?}", xyz_back.values()[0]);
+        }
     }
 }
