@@ -145,6 +145,17 @@ impl CieLab {
         }
     }
 
+    pub fn lch(&self) -> [f64;3] {
+        let &[l, a, b] = self.lab.as_ref();
+        let c = (a * a + b * b).sqrt();
+        let h = if c == 0.0 {
+            0.0 // Undefined hue when chroma is zero
+        } else {
+            b.atan2(a).to_degrees().rem_euclid(360.0) // Convert to degrees and normalize
+        };
+        [l, c, h]
+    }
+
     ///
     /// Computes the CIEDE2000 ΔE color difference between two CIE L*a*b* colors.
     ///
@@ -562,4 +573,46 @@ mod tests {
             approx::assert_abs_diff_eq!(de, expected, epsilon = 1e-4);
         }
     }
+
+    #[test]
+    fn test_lch_conversion() {
+        let xyz_d65 = Cie1931.xyz_d65();
+
+        // Test neutral gray (h undefined, should return 0)
+        let gray = CieLab::new([50.0, 0.0, 0.0], xyz_d65);
+        let [l, c, h] = gray.lch();
+        assert_abs_diff_eq!(l, 50.0);
+        assert_abs_diff_eq!(c, 0.0); 
+        assert_abs_diff_eq!(h, 0.0);
+
+        // Test pure red (+a)
+        let red = CieLab::new([50.0, 50.0, 0.0], xyz_d65);
+        let [l, c, h] = red.lch();
+        assert_abs_diff_eq!(l, 50.0);
+        assert_abs_diff_eq!(c, 50.0);
+        assert_abs_diff_eq!(h, 0.0);
+
+        // Test pure yellow (+a, +b) 
+        let yellow = CieLab::new([50.0, 0.0, 50.0], xyz_d65);
+        let [l, c, h] = yellow.lch();
+        assert_abs_diff_eq!(l, 50.0);
+        assert_abs_diff_eq!(c, 50.0);
+        assert_abs_diff_eq!(h, 90.0);
+
+        // Test pure green (-a)
+        let green = CieLab::new([50.0, -50.0, 0.0], xyz_d65);
+        let [l, c, h] = green.lch();
+        assert_abs_diff_eq!(l, 50.0);
+        assert_abs_diff_eq!(c, 50.0);
+        assert_abs_diff_eq!(h, 180.0);
+
+        // Test pure blue (-b)
+        let blue = CieLab::new([30.0, 0.0, -50.0], xyz_d65);
+        let [l, c, h] = blue.lch();
+        assert_abs_diff_eq!(l, 30.0);
+        assert_abs_diff_eq!(c, 50.0);
+        assert_abs_diff_eq!(h, 270.0);
+    }
+
+
 }
