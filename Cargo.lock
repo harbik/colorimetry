@@ -233,7 +233,7 @@ dependencies = [
 
 [[package]]
 name = "colorimetry"
-version = "0.0.6"
+version = "0.0.7"
 dependencies = [
  "approx",
  "argmin",
