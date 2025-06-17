@@ -21,7 +21,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 * distributions and used for filtering.
 * `Planck` struct, with methods for calculating blackbody emission spectra.
 * Add `CieCam02` implementation, with same methods as CieCam16.
-* Add `CFI` Color Fidelity Index calculations. with `general_color_fidelity_index` and `special_color_fidelity_indices`.
+* Add `CFI` Color Fidelity Index calculations with `general_color_fidelity_index` and `special_color_fidelity_indices`.
 * Add standard CIECAM viewing conditions as recommended by CIE248 as constants.
 * A Spectral RGB matching use case to convert spectral reflectance into sRGB values using the CIE 2015 10° observer.
 * New helper functions in the `cam` module (and submodules `cam02`, `cam16`, `viewconditions`) for spectral color appearance calculations and surround presets.
@@ -74,17 +74,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 * Remove undocumented `XYZ::srgb` method that both clamped out-of-gamut values and converted
   directly to a gamma encoded `[u8; 3]`. Obtain the same result with the more explicit
   `xyz.rgb(Some(RgbSpace::SRGB)).clamp().values()`.
-* Remove conversion directly from `WideRgb` to clamped and gamma encoded `[u8; 3]`. Prefer being
-  more explicit by converting to the `Rgb` type in between with one of the provided conversion
-  methods.
+* Remove conversion directly from `WideRgb` to clamped and gamma encoded `[u8; 3]`.
+  Prefer being more explicit by converting to the `Rgb` type in between with one of the provided conversion methods.
 * Remove `DeRef<Spectrum> for Illuminant` to be replaced with the more explcicit `AsRef<Spectrum>`.
 * Remove `XYZ_D65`, using `xyz_d65` instead.
 
 ### Changed [0.0.6]
 
 * `XYZ::new` now only uses a single array of tristimulus values; the white reference value was dropped in the XYZ representation.
-* Make indexing into a `Spectrum` with out of bounds wavelengths cause a panic, instead
-  of returning `NaN`s or modifying the first or last values.
+* Make indexing into a `Spectrum` with out of bounds wavelengths cause a panic, instead of returning `NaN`s or modifying the first or last values.
 * Exposed `CieCam16::jab` methods, which was private before.
 * Renamed private `CieCam16::jabp` to `CieCam16::jab_prime` method, and made it public.
 * Renamed private `CieCam16::jchp` to `CieCam16::jch_prime` method, and made it public.
@@ -102,16 +100,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Fixed [0.0.6]
 
 * Fix bug `XYZ::set_illuminance`. Avoid divide be zero when luminous values is zero, or negative.
-* Fix bug in `WideRgb::compress`. Previously `WideRgb` instances with only positive channel values
-  would have its lowest channel value invalidly scaled down to 0.0. And instances with only values
-  below 1.0 would have its highest channel value invalidly scaled up to 1.0.
+* Fix bug in `WideRgb::compress`. Previously `WideRgb` instances with only positive channel values would have its lowest channel value invalidly scaled down to 0.0. And instances with only values below 1.0 would have its highest channel value invalidly scaled up to 1.0.
 
 ## [0.0.5] - 2025-05-14
 
 ### Added [0.0.5]
 
-* `WideRgb::clamp` and `WideRgb::compress` methods to create `Rgb` from `WideRgb` values, to pull
-   out-of-gamut values within the colorspace,
+* `WideRgb::clamp` and `WideRgb::compress` methods to create `Rgb` from `WideRgb` values, to pull out-of-gamut values within the colorspace,
 * `WideRgb` type allowing unconstrained, out-of-gamut RGB values
 * Implement strums `EnumIter` on `Observer`. Allows easy iteration over all available observers.
 * Add `r()`, `g()` and `b()` methods to `RGB` for easy access to each channel value.
