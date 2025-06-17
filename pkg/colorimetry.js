@@ -114,108 +114,52 @@ function getArrayF64FromWasm0(ptr, len) {
     return getFloat64ArrayMemory0().subarray(ptr / 8, ptr / 8 + len);
 }
 /**
- * Stefan Boltzmann law: Blackbody's radiant emittance (W m<sup>-2</sup>), as function of its absolute
- * temperature (K).
- * @param {number} temperature
- * @returns {number}
+ * @enum {0 | 1}
  */
-export function stefanBoltzmann(temperature) {
-    const ret = wasm.stefanBoltzmann(temperature);
-    return ret;
-}
-
-/**
- * @enum {0 | 1 | 2 | 3}
- */
-export const Observer = Object.freeze({
-    Std1931: 0, "0": "Std1931",
-    Std1964: 1, "1": "Std1964",
-    Std2015: 2, "2": "Std2015",
-    Std2015_10: 3, "3": "Std2015_10",
+export const CieIlluminant = Object.freeze({
+    D65: 0, "0": "D65",
+    D50: 1, "1": "D50",
 });
 /**
+ * Light-weight identifier added to the `XYZ` and `RGB` datasets,
+ *    representing the colorimetric standard observer used.
  *
+ *    No data included here, which would be the Rust way, but that does not work with wasm-bindgen.
+ *    This can be directly used in JavaScript, and has the benefit to be just an index.
+ * @enum {0}
+ */
+export const Observer = Object.freeze({
+    Cie1931: 0, "0": "Cie1931",
+});
+/**
  * A Light Weight tag, representing an RGB color space.
  * Used for example in the RGB value set, to identify the color space being used.
- *
  * @enum {0 | 1 | 2}
  */
 export const RgbSpace = Object.freeze({
     SRGB: 0, "0": "SRGB",
-    ADOBE: 1, "1": "ADOBE",
+    Adobe: 1, "1": "Adobe",
     DisplayP3: 2, "2": "DisplayP3",
 });
-/**
- * @enum {0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37 | 38}
- */
-export const StdIlluminant = Object.freeze({
-    D65: 0, "0": "D65",
-    D50: 1, "1": "D50",
-    A: 2, "2": "A",
-    F1: 3, "3": "F1",
-    F2: 4, "4": "F2",
-    F3: 5, "5": "F3",
-    F4: 6, "6": "F4",
-    F5: 7, "7": "F5",
-    F6: 8, "8": "F6",
-    F7: 9, "9": "F7",
-    F8: 10, "10": "F8",
-    F9: 11, "11": "F9",
-    F10: 12, "12": "F10",
-    F11: 13, "13": "F11",
-    F12: 14, "14": "F12",
-    F3_1: 15, "15": "F3_1",
-    F3_2: 16, "16": "F3_2",
-    F3_3: 17, "17": "F3_3",
-    F3_4: 18, "18": "F3_4",
-    F3_5: 19, "19": "F3_5",
-    F3_6: 20, "20": "F3_6",
-    F3_7: 21, "21": "F3_7",
-    F3_8: 22, "22": "F3_8",
-    F3_9: 23, "23": "F3_9",
-    F3_10: 24, "24": "F3_10",
-    F3_11: 25, "25": "F3_11",
-    F3_12: 26, "26": "F3_12",
-    F3_13: 27, "27": "F3_13",
-    F3_14: 28, "28": "F3_14",
-    F3_15: 29, "29": "F3_15",
-    LED_B1: 30, "30": "LED_B1",
-    LED_B2: 31, "31": "LED_B2",
-    LED_B3: 32, "32": "LED_B3",
-    LED_B4: 33, "33": "LED_B4",
-    LED_B5: 34, "34": "LED_B5",
-    LED_BH1: 35, "35": "LED_BH1",
-    LED_RGB1: 36, "36": "LED_RGB1",
-    LED_V1: 37, "37": "LED_V1",
-    LED_V2: 38, "38": "LED_V2",
-});
 
-const CRIFinalization = (typeof FinalizationRegistry === 'undefined')
+const ChromaticityFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
-    : new FinalizationRegistry(ptr => wasm.__wbg_cri_free(ptr >>> 0, 1));
+    : new FinalizationRegistry(ptr => wasm.__wbg_chromaticity_free(ptr >>> 0, 1));
 /**
- * Encapcsulated Array of calculated Ri values, from a test light source.
+ * A chromaticity coordinate with x and y values.
  */
-export class CRI {
-
-    static __wrap(ptr) {
-        ptr = ptr >>> 0;
-        const obj = Object.create(CRI.prototype);
-        obj.__wbg_ptr = ptr;
-        CRIFinalization.register(obj, obj.__wbg_ptr, obj);
-        return obj;
-    }
+export class Chromaticity {
 
     __destroy_into_raw() {
         const ptr = this.__wbg_ptr;
         this.__wbg_ptr = 0;
-        CRIFinalization.unregister(this);
+        ChromaticityFinalization.unregister(this);
         return ptr;
     }
 
     free() {
         const ptr = this.__destroy_into_raw();
-        wasm.__wbg_cri_free(ptr, 0);
+        wasm.__wbg_chromaticity_free(ptr, 0);
     }
 }
 
@@ -241,7 +185,13 @@ export class CieLab {
 const IlluminantFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_illuminant_free(ptr >>> 0, 1));
-
+/**
+ * # Illuminant
+ *
+ * An illuminant is a spectral power distribution that represents the
+ * spectral power density of a light source (sun, bulb, LED, etc.) in
+ * W/m²/nm over 380–780 nm (401 samples).
+ */
 export class Illuminant {
 
     static __wrap(ptr) {
@@ -264,16 +214,9 @@ export class Illuminant {
         wasm.__wbg_illuminant_free(ptr, 0);
     }
     /**
-     * Creates a new Spectrum object, using as input a `Category`, a
-     * Float64Array with exactly 401 datapoints, and an optional third
-     * parameter called total, representing the total irradiance, transmission,
-     * or reflectivity of the values, depending on the category of the
-     * spectrum. The spectral values should be associated with a wavelength
-     * domain from 380 to 480 nanometer, with an interval size of 1 nanometer.
+     * Create a new illuminant spectrum from the given data.
      *
-     * If the Spectral data you have uses another wavelength domain and/or a different
-     * wavelength interval, use the linear or sprague interpolate constructors,
-     * which takes a wavelength domain and spectral data as arguments.
+     * The data must be the 401 values from 380 to 780 nm, with an interval size of 1 nanometer.
      * @param {Float64Array} data
      */
     constructor(data) {
@@ -300,24 +243,9 @@ export class Illuminant {
         return v1;
     }
     /**
-     * Calculates the Color Rendering Index values for illuminant spectrum.
-     *
-     * To use this function, first use `await CRI.init()`, which downloads the
-     * Test Color Samples required for the calculation.  These are downloaded
-     * seperately to limit the size of the main web assembly library.
-     * @returns {CRI}
-     */
-    cri() {
-        const ret = wasm.illuminant_cri(this.__wbg_ptr);
-        if (ret[2]) {
-            throw takeFromExternrefTable0(ret[1]);
-        }
-        return CRI.__wrap(ret[0]);
-    }
-    /**
-     * Get the StdIlluminant spectrum. Typically you don't need to use the Spectrum itself, as many
-     * methods just accept the StdIlluminant directly.
-     * @param {StdIlluminant} stdill
+     * Get the CieIlluminant spectrum. Typically you don't need to use the Spectrum itself, as many
+     * methods just accept the CieIlluminant directly.
+     * @param {CieIlluminant} stdill
      * @returns {Illuminant}
      */
     static illuminant(stdill) {
@@ -326,82 +254,71 @@ export class Illuminant {
     }
 }
 
-const MunsellMattFinalization = (typeof FinalizationRegistry === 'undefined')
+const RelXYZFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
-    : new FinalizationRegistry(ptr => wasm.__wbg_munsellmatt_free(ptr >>> 0, 1));
-
-export class MunsellMatt {
-
-    __destroy_into_raw() {
-        const ptr = this.__wbg_ptr;
-        this.__wbg_ptr = 0;
-        MunsellMattFinalization.unregister(this);
-        return ptr;
-    }
-
-    free() {
-        const ptr = this.__destroy_into_raw();
-        wasm.__wbg_munsellmatt_free(ptr, 0);
-    }
-}
-
-const ObserverDataFinalization = (typeof FinalizationRegistry === 'undefined')
-    ? { register: () => {}, unregister: () => {} }
-    : new FinalizationRegistry(ptr => wasm.__wbg_observerdata_free(ptr >>> 0, 1));
+    : new FinalizationRegistry(ptr => wasm.__wbg_relxyz_free(ptr >>> 0, 1));
 /**
+ * # Related Tristimulus Values
  *
- *    A data structure to define Standard Observers, such as the CIE 1931 2º and
- *    the CIE 2015 standard observers.
- *
- *    These are defined in the form of the three color matching functions,
- *    typically denoted by $\hat{x}(\lamda)$,$\hat{y}{\lambda}$, and $\hat{z}(\lambda)$.
- *    Traditionally, the CIE1931 Colorimetric Standard Observer is used almost exclusively,
- *    but is known to be not a good representation of human vision in the blue region of the
- *    spectrum. We also know now that the way you see color varies with age, and your healty,
- *    and that not everyone sees to same color.
- *
- *    In this library colors are represented by spectral distributions, to allow color modelling
- *    with newer, and better standard observers, such as the CIE2015 Observer, derived from
- *    the sensitivities of the cones in the retina of your eye, the biological color receptors
- *    of light.
- *
- *    It's main purpose is to calculate `XYZ` tristimulus values for a general stimulus,
- *    in from of a `Spectrum`.
+ * Tristimulus Values for a given sample and reference white,
+ * used to represent related colors as used in various color
+ * models. Typically the reference white is normalized to have
+ * an Y-value of 100
  */
-export class ObserverData {
+export class RelXYZ {
 
     __destroy_into_raw() {
         const ptr = this.__wbg_ptr;
         this.__wbg_ptr = 0;
-        ObserverDataFinalization.unregister(this);
+        RelXYZFinalization.unregister(this);
         return ptr;
     }
 
     free() {
         const ptr = this.__destroy_into_raw();
-        wasm.__wbg_observerdata_free(ptr, 0);
+        wasm.__wbg_relxyz_free(ptr, 0);
     }
 }
 
-const RGBFinalization = (typeof FinalizationRegistry === 'undefined')
+const RgbFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_rgb_free(ptr >>> 0, 1));
 /**
- * Representation of a color stimulus in a set of Red, Green, and Blue (RGB) values,
- * representing its relative composition using standard primaries.
+ * Represents a color stimulus using Red, Green, and Blue (RGB) values constrained to the `[0.0, 1.0]` range.
+ * Each component is a floating-point value representing the relative intensity of the respective primary color
+ * within a defined RGB color space.
  *
- * RGB values are commonly used in digital images, with the relative intensity
- * of the primaries defined as three 8-bit values, with range from 0 to 255.
- * As ooposed to CIE XYZ tristimulus values, which used imaginary primaries,
- * displays use real primaries, typically defined in the CIE 1931 diagram.
- * They cover a triangular area, referred to the _color gamut_ of a display.
+ * Unlike the CIE XYZ tristimulus values, which use imaginary primaries, RGB values are defined using real primaries
+ * based on a specific color space. These primaries typically form a triangular area within a CIE (x,y) chromaticity
+ * diagram, representing the gamut of colors the device can reproduce.
+ *
+ * # Usage
+ * The `Rgb` struct is used to encapsulate color information in a device-independent manner, allowing for accurate color
+ * representation, conversion, and manipulation within defined RGB spaces. It is particularly useful for applications
+ * involving color management, digital imaging, and rendering where strict adherence to gamut boundaries is required.
+ *
+ * # Example
+ * ```rust
+ * # use colorimetry::rgb::Rgb;
+ * # use approx::assert_abs_diff_eq;
+ *
+ * // Create an sRGB color with normalized RGB values
+ * let rgb = Rgb::new(0.5, 0.25, 0.75, None, None).unwrap();
+ * assert_abs_diff_eq!(rgb.values().as_ref(), [0.5, 0.25, 0.75].as_ref(), epsilon = 1e-6);
+ * ```
+ *
+ * # Notes
+ * - The `Rgb` struct strictly enforces the `[0.0, 1.0]` range for each component. Any attempt to create values
+ *   outside this range will result in an error.
+ * - The `observer` field allows for color conversion accuracy under different lighting and viewing conditions,
+ *   enhancing the reliability of transformations to other color spaces such as XYZ.
  */
-export class RGB {
+export class Rgb {
 
     __destroy_into_raw() {
         const ptr = this.__wbg_ptr;
         this.__wbg_ptr = 0;
-        RGBFinalization.unregister(this);
+        RgbFinalization.unregister(this);
         return ptr;
     }
 
@@ -449,15 +366,12 @@ export class Spectrum {
         wasm.__wbg_spectrum_free(ptr, 0);
     }
     /**
-     * Creates a new Spectrum object, using as input a `Category`, a
-     * Float64Array with exactly 401 datapoints, and an optional third
-     * parameter called total, representing the total irradiance, transmission,
-     * or reflectivity of the values, depending on the category of the
-     * spectrum. The spectral values should be associated with a wavelength
-     * domain from 380 to 480 nanometer, with an interval size of 1 nanometer.
+     * Create a new spectrum from the given data.
+     *
+     * The data must be the 401 values from 380 to 780 nm, with an interval size of 1 nanometer.
      *
      * If the Spectral data you have uses another wavelength domain and/or a different
-     * wavelength interval, use the linear or sprague interpolate constructors,
+     * wavelength interval, use the linear interpolate constructor,
      * which takes a wavelength domain and spectral data as arguments.
      * @param {Float64Array} data
      */
@@ -485,88 +399,76 @@ export class Spectrum {
         return v1;
     }
     /**
+     * This function maps spectral data with irregular intervals or intervals different than 1
+     * nanometer to the standard spectrum as used in this library.
      *
-     *    This function maps spectral data with irregular intervals or intervals
-     *    different than 1 nanometer to the standard spectrum as used in this
-     *    library.
+     * For domains with a regular interval, the wavelength slice should have a size of two, containing
+     * the minimum and maximum wavelength values, both also in units of meters or nanometers.
      *
-     *    For domains with a regular interval, the wavelength slice should have a size
-     *    of two, containing the minimum and maximum wavelength values, both also in
-     *    units of meters or nanometers.
+     * For irregular domains, this function requires a slice of wavelengths and a slice of spectral
+     * data, both of the same size. The wavelengths can be specified in units of meters or nanometers.
      *
-     *    For irregular domains, this function requires a slice of wavelengths and
-     *    a slice of spectral data, both of the same size. The wavelengths can be
-     *    specified in units of meters or nanometers.
+     * In case of duplicate wavelength values the last data values is used, so it is impossible to
+     * define filters with vertical edges using this method.
      *
-     *    In case of duplicate wavelength values the last data values is used, so it
-     *    is impossible to define filters with vertical edges using this method.
+     * ```rust
+     * // Creates a linear gradient filter, with a zero transmission at 380 nanometer, and full
+     * // transmission at 780 nanometer. This is an example using a uniform wavelength domain as input.
+     * use colorimetry::prelude::*;
+     * use approx::assert_ulps_eq;
+     * let data = [0.0, 1.0];
+     * let wl = [380.0, 780.0];
+     * let mut spd = Spectrum::linear_interpolate(&wl, &data).unwrap();
+     * assert_ulps_eq!(spd[380], 0.);
+     * assert_ulps_eq!(spd[380+100], 0.25);
+     * assert_ulps_eq!(spd[380+200], 0.5);
+     * assert_ulps_eq!(spd[380+300], 0.75);
+     * assert_ulps_eq!(spd[380+400], 1.0);
      *
-     *    ```ts, ignore
-     *    // Creates a linear gradient filter, with a zero transmission at 380
-     *    // nanometer, and full transmission at 780 nanometer. This is an example
-     *    // using a uniform wavelength domain as input.
-     *    use colorimetry as cmt;
-     *    # use approx::assert_ulps_eq;
-     *    let data = [0.0, 1.0];
-     *    let wl = [380.0, 780.0];
-     *    let mut spd = cmt::Spectrum::linear_interpolate(cmt::Category::Colorant, &wl, &data, None).unwrap().values();
-     *    assert_ulps_eq!(spd[0], 0.);
-     *    assert_ulps_eq!(spd[100], 0.25);
-     *    assert_ulps_eq!(spd[200], 0.5);
-     *    assert_ulps_eq!(spd[300], 0.75);
-     *    assert_ulps_eq!(spd[400], 1.0);
-     *
-     *    // Creates a top hat filter, with slanted angles, using an irregular
-     *    // wavelength domain.
-     *    let data = vec![0.0, 1.0, 1.0, 0.0];
-     *    let wl = vec![480.0, 490.0, 570.0, 580.0];
-     *    let spd = cmt::Spectrum::linear_interpolate(cmt::Category::Colorant, &wl, &data, None).unwrap().values();
-     *    assert_ulps_eq!(spd[0], 0.0);
-     *    assert_ulps_eq!(spd[100], 0.0);
-     *    assert_ulps_eq!(spd[110], 1.0);
-     *    assert_ulps_eq!(spd[190], 1.0);
-     *    assert_ulps_eq!(spd[200], 0.0);
-     *    assert_ulps_eq!(spd[300], 0.0);
-     *    assert_ulps_eq!(spd[400], 0.0);
-     *    ```
-     *
+     * // Creates a top hat filter, with slanted angles, using an irregular
+     * // wavelength domain.
+     * let data = vec![0.0, 1.0, 1.0, 0.0];
+     * let wl = vec![480.0, 490.0, 570.0, 580.0];
+     * let spd = Spectrum::linear_interpolate(&wl, &data).unwrap();
+     * assert_ulps_eq!(spd[380+0], 0.0);
+     * assert_ulps_eq!(spd[380+100], 0.0);
+     * assert_ulps_eq!(spd[380+110], 1.0);
+     * assert_ulps_eq!(spd[380+190], 1.0);
+     * assert_ulps_eq!(spd[380+200], 0.0);
+     * assert_ulps_eq!(spd[380+300], 0.0);
+     * assert_ulps_eq!(spd[380+400], 0.0);
+     * ```
      * @param {Float64Array} wavelengths
      * @param {Float64Array} data
-     * @param {any} total_js
      * @returns {Spectrum}
      */
-    static linearInterpolate(wavelengths, data, total_js) {
+    static linearInterpolate(wavelengths, data) {
         const ptr0 = passArrayF64ToWasm0(wavelengths, wasm.__wbindgen_malloc);
         const len0 = WASM_VECTOR_LEN;
         const ptr1 = passArrayF64ToWasm0(data, wasm.__wbindgen_malloc);
         const len1 = WASM_VECTOR_LEN;
-        const ret = wasm.spectrum_linearInterpolate(ptr0, len0, ptr1, len1, total_js);
+        const ret = wasm.spectrum_linearInterpolate(ptr0, len0, ptr1, len1);
         if (ret[2]) {
             throw takeFromExternrefTable0(ret[1]);
         }
         return Spectrum.__wrap(ret[0]);
-    }
-    /**
-     * Calculates the Color Rendering Index values for illuminant spectrum.
-     *
-     * To use this function, first use `await CRI.init()`, which downloads the
-     * Test Color Samples required for the calculation.  These are downloaded
-     * seperately to limit the size of the main web assembly library.
-     * @returns {CRI}
-     */
-    cri() {
-        const ret = wasm.spectrum_cri(this.__wbg_ptr);
-        if (ret[2]) {
-            throw takeFromExternrefTable0(ret[1]);
-        }
-        return CRI.__wrap(ret[0]);
     }
 }
 
 const ViewConditionsFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_viewconditions_free(ptr >>> 0, 1));
-
+/**
+ * CIECAM viewing conditions.
+ *
+ * The ViewConditions as recommended by CIE248:2022 are provided for various scenarios as constants, and are included as:
+ * - [`CIE248_CABINET`] Viewing a surface in a cabinet
+ * - [`CIE248_HOME_SCREEN`] Viewing a self-luminous display at home
+ * - [`CIE248_PROJECTED_DARK`] Viewing projected images in a darkened room
+ * - [`CIE248_OFFICE_SCREEN`] Viewing a self-luminous display under office illumination
+ *
+ * The TM30 and Color Fidelity ViewConditions are provided as [`TM30VC`].
+ */
 export class ViewConditions {
 
     __destroy_into_raw() {
@@ -580,89 +482,28 @@ export class ViewConditions {
         const ptr = this.__destroy_into_raw();
         wasm.__wbg_viewconditions_free(ptr, 0);
     }
-    /**
-     * Degree of Adaptation, if omitted, formula 4.3 of CIE248:2022 is used.``
-     * @returns {number | undefined}
-     */
-    get dopt() {
-        const ret = wasm.__wbg_get_viewconditions_dopt(this.__wbg_ptr);
-        return ret[0] === 0 ? undefined : ret[1];
+}
+
+const WideRgbFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_widergb_free(ptr >>> 0, 1));
+/**
+ * Represents a color stimulus using unconstrained Red, Green, and Blue (RGB) floating-point values
+ * within a device's RGB color space. The values can extend beyond the typical 0.0 to 1.0 range,
+ * allowing for out-of-gamut colors that cannot be accurately represented by the device.
+ */
+export class WideRgb {
+
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        WideRgbFinalization.unregister(this);
+        return ptr;
     }
-    /**
-     * Degree of Adaptation, if omitted, formula 4.3 of CIE248:2022 is used.``
-     * @param {number | null} [arg0]
-     */
-    set dopt(arg0) {
-        wasm.__wbg_set_viewconditions_dopt(this.__wbg_ptr, !isLikeNone(arg0), isLikeNone(arg0) ? 0 : arg0);
-    }
-    /**
-     * @returns {number}
-     */
-    get f() {
-        const ret = wasm.__wbg_get_viewconditions_f(this.__wbg_ptr);
-        return ret;
-    }
-    /**
-     * @param {number} arg0
-     */
-    set f(arg0) {
-        wasm.__wbg_set_viewconditions_f(this.__wbg_ptr, arg0);
-    }
-    /**
-     * Adaptation Luminance, in cd/m2.
-     * La = Lw/5, with Lw: luminance of a perfect white object
-     * @returns {number}
-     */
-    get la() {
-        const ret = wasm.__wbg_get_viewconditions_la(this.__wbg_ptr);
-        return ret;
-    }
-    /**
-     * Adaptation Luminance, in cd/m2.
-     * La = Lw/5, with Lw: luminance of a perfect white object
-     * @param {number} arg0
-     */
-    set la(arg0) {
-        wasm.__wbg_set_viewconditions_la(this.__wbg_ptr, arg0);
-    }
-    /**
-     * @returns {number}
-     */
-    get nc() {
-        const ret = wasm.__wbg_get_viewconditions_nc(this.__wbg_ptr);
-        return ret;
-    }
-    /**
-     * @param {number} arg0
-     */
-    set nc(arg0) {
-        wasm.__wbg_set_viewconditions_nc(this.__wbg_ptr, arg0);
-    }
-    /**
-     * @returns {number}
-     */
-    get yb() {
-        const ret = wasm.__wbg_get_viewconditions_yb(this.__wbg_ptr);
-        return ret;
-    }
-    /**
-     * @param {number} arg0
-     */
-    set yb(arg0) {
-        wasm.__wbg_set_viewconditions_yb(this.__wbg_ptr, arg0);
-    }
-    /**
-     * @returns {number}
-     */
-    get c() {
-        const ret = wasm.__wbg_get_viewconditions_c(this.__wbg_ptr);
-        return ret;
-    }
-    /**
-     * @param {number} arg0
-     */
-    set c(arg0) {
-        wasm.__wbg_set_viewconditions_c(this.__wbg_ptr, arg0);
+
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_widergb_free(ptr, 0);
     }
 }
 
@@ -670,12 +511,10 @@ const XYZFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_xyz_free(ptr >>> 0, 1));
 /**
- * A set of two CIE XYZ Tristimulus values, for a Standard Observer.
+ * Represents a color by its tristimulus value XYZ color space.
  *
- * One is associated with an illuminant or a reference white value, denoted by the fieldname `xyzn`, and
- * a second, optional value, a set of tristimulus values for a stimulus, or 'a color' value.
- * XYZ values are not often used directly, but form the basis for many colorimetric models, such as
- * CIELAB and CIECAM.
+ * The `XYZ` struct represents the tristimulus values (X, Y, Z) and the associated observer.
+ * The observer defines the color matching functions used for the conversion.
  */
 export class XYZ {
 
@@ -691,43 +530,40 @@ export class XYZ {
         wasm.__wbg_xyz_free(ptr, 0);
     }
     /**
+     * Create an XYZ Tristimuls Values object.
      *
-     *    Create an XYZ Tristimuls Values object.
+     * Accepts as arguments
      *
-     *    Accepts as arguments
+     * - x and y chromaticity coordinates only , using the "Cie::Cie1931" observer as default
+     * - x and y chromaticity coordinates, and standard observer ID as 3rd argument
+     * - X, Y, and Z tristimulus values, using the "Cie::Cie1931" observer as default
+     * - X, Y, and Z tristimulus values, and a standard Observer ID as 4th argument
      *
-     *    - x and y chromaticity coordinates only , using the "Cie::Std1931" observer as default
-     *    - x and y chromaticity coordinates, and standard observer ID as 3rd argument
-     *    - X, Y, and Z tristimulus values, using the "Cie::Std1931" observer as default
-     *    - X, Y, and Z tristimulus values, and a standard Observer ID as 4th argument
+     * When only x and y chromaticity coordinates are specified, the luminous
+     * value is set to 100.0 candela per square meter.
      *
-     *    When only x and y chromaticity coordinates are specified, the luminous
-     *    value is set to 100.0 candela per square meter.
+     * ```javascript, ignore
+     * // Create a new XYZ object using D65 CIE 1931 chromaticity coordinates
+     * const xyz = new cmt.XYZ(0.31272, 0.32903);
      *
-     *    ```javascript, ignore
-     *    // Create a new XYZ object using D65 CIE 1931 chromaticity coordinates
-     *    const xyz = new cmt.XYZ(0.31272, 0.32903);
+     * // Get and check the corresponding tristimulus values, with a luminous value
+     * // of 100.0
+     * const [x, y, z] = xyz.values();
+     * assert.assertAlmostEquals(x, 95.047, 5E-3); // D65 wikipedia
+     * assert.assertAlmostEquals(y, 100.0);
+     * assert.assertAlmostEquals(z, 108.883, 5E-3);
      *
-     *    // Get and check the corresponding tristimulus values, with a luminous value
-     *    // of 100.0
-     *    const [x, y, z] = xyz.values();
-     *    assert.assertAlmostEquals(x, 95.047, 5E-3); // D65 wikipedia
-     *    assert.assertAlmostEquals(y, 100.0);
-     *    assert.assertAlmostEquals(z, 108.883, 5E-3);
+     * // and get back the orgiinal chromaticity coordinates:
+     * const [xc, yc] = xyz.chromaticity();
+     * assert.assertAlmostEquals(xc, 0.31272);
+     * assert.assertAlmostEquals(yc, 0.32903);
      *
-     *    // and get back the orgiinal chromaticity coordinates:
-     *    const [xc, yc] = xyz.chromaticity();
-     *    assert.assertAlmostEquals(xc, 0.31272);
-     *    assert.assertAlmostEquals(yc, 0.32903);
-     *
-     *
-     *    // to get the luminous value:
-     *    const l = xyz.luminousValue();
-     *    assert.assertAlmostEquals(l, 100.0);
-     *    // D65 CIE 1931 chromaticity coordinates
-     *    const xyz = new cmt.XYZ(0.31272, 0.32903);
-     *    ```
-     *
+     * // to get the luminous value:
+     * const l = xyz.luminousValue();
+     * assert.assertAlmostEquals(l, 100.0);
+     * // D65 CIE 1931 chromaticity coordinates
+     * const xyz = new cmt.XYZ(0.31272, 0.32903);
+     * ```
      * @param {number} x
      * @param {number} y
      * @param {...Array<any>} opt
@@ -743,7 +579,6 @@ export class XYZ {
     }
     /**
      * Get the XYZ tristimulus value as an array.
-     * Values of the stimulus, if present, else the illuminant.
      * @returns {Array<any>}
      */
     values() {
@@ -759,11 +594,11 @@ export class XYZ {
         return ret;
     }
     /**
-     * Get the luminous value
+     * Get the luminous value, Y.
      * @returns {number}
      */
-    luminousValue() {
-        const ret = wasm.xyz_luminousValue(this.__wbg_ptr);
+    y() {
+        const ret = wasm.xyz_y(this.__wbg_ptr);
         return ret;
     }
 }

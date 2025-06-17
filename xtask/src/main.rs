@@ -16,6 +16,8 @@ enum Commands {
     Test,
     /// Builds the documentation, and opens it
     Doc,
+    /// Builds the wasm-bindgen output using wasm-pack
+    Wasm,
 }
 
 fn main() {
@@ -45,7 +47,23 @@ fn main() {
         Commands::Doc => {
             run("cargo", &["doc", "--all-features", "--no-deps", "--open"]);
         }
+        Commands::Wasm => {
+            build_wasm();
+        }
     }
+}
+
+fn build_wasm() {
+    let status = Command::new("wasm-pack")
+        .args(["build", "--target", "web", "--release", "--out-dir", "pkg"])
+        .status()
+        .expect("failed to run wasm-pack");
+
+    if !status.success() {
+        std::process::exit(status.code().unwrap_or(1));
+    }
+
+    println!("✅ wasm-bindgen build complete");
 }
 
 fn run(cmd: &str, args: &[&str]) {
