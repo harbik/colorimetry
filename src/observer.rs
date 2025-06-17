@@ -284,19 +284,20 @@ impl Observer {
         Ok(XYZ::from_vecs(Vector3::new(x, y, z), self.data().tag))
     }
 
-    /// Calculates the relative XYZ tristimulus values of monochromatic (narrowband) wavelengths
+    /// Calculates the relative XYZ tristimulus values of monochromatic (narrowband) spectra
     /// across the visible spectrum, forming what is known as the *spectral locus*.
     ///
     /// This method multiplies the standard observer data by the given reference illuminant
     /// (assumed to have an illuminance of 100.0 lux) and computes XYZ values for each 1 nm step.
     /// The resulting colors represent idealized, fully saturated spectral stimuli—typically
-    /// used in chromaticity diagrams like CIE 1931 (x, y) or CIECAM16 (JCh).
+    /// used in chromaticity diagrams like CIE 1931 (x, y) or CIELAB (L*, a*, b*).
     ///
     /// ### Notes
     /// - Each wavelength is treated as a delta function (spectral width = 1 nm), so the resulting
     ///   XYZ values are very low in magnitude—i.e., they appear perceptually "dark."
     /// - The XYZ values are normalized relative to the total white point derived from the illuminant.
-    /// - The resulting data can be used to draw the outer boundary of the visible chromaticity space.
+    /// - The resulting data can be used to draw the outer boundary of the visible chromaticity space,
+    ///   or to draw spectral color diagrams using white adaptation correction.
     ///
     /// ### Parameters
     /// - `ref_white`: The reference illuminant used for normalizing the output (e.g. D65 or D50).
@@ -513,9 +514,10 @@ impl fmt::Display for Observer {
 mod obs_test {
 
     #[cfg(feature = "supplemental-observers")]
-    use super::{Observer, Observer::Cie1931, Observer::Cie1964};
+    use super::Observer::Cie1964;
+    use super::{Observer, Observer::Cie1931};
     use crate::{
-        illuminant::CieIlluminant, rgb::RgbSpace, spectrum::SPECTRUM_WAVELENGTH_RANGE, xyz::XYZ
+        illuminant::CieIlluminant, rgb::RgbSpace, spectrum::SPECTRUM_WAVELENGTH_RANGE, xyz::XYZ,
     };
     use approx::assert_ulps_eq;
     use strum::IntoEnumIterator as _;
@@ -621,8 +623,6 @@ mod obs_test {
         approx::assert_ulps_eq!(want, got, epsilon = 3E-4);
     }
 
-  
-
     #[test]
     fn test_planckian_locus() {
         // see https://www.waveformlighting.com/tech/calculate-cie-1931-xy-coordinates-from-cct
@@ -707,13 +707,23 @@ mod obs_test {
         // Data obtained from spreadsheet using data directly downloaded from cie.co.at
         assert_eq!(sl.len(), 401);
         let xyz_first = sl[0].1.xyz().values();
-        approx::assert_abs_diff_eq!(xyz_first.as_ref(), [6.46976E-04, 1.84445E-05, 3.05044E-03].as_ref(), epsilon = 1E-5);
+        approx::assert_abs_diff_eq!(
+            xyz_first.as_ref(),
+            [6.46976E-04, 1.84445E-05, 3.05044E-03].as_ref(),
+            epsilon = 1E-5
+        );
         let xyz_last = sl[sl.len() - 1].1.xyz().values();
-        approx::assert_abs_diff_eq!(xyz_last.as_ref(), [2.48982E-05, 8.99121E-06, 0.0].as_ref(), epsilon = 1E-5);
+        approx::assert_abs_diff_eq!(
+            xyz_last.as_ref(),
+            [2.48982E-05, 8.99121E-06, 0.0].as_ref(),
+            epsilon = 1E-5
+        );
         // 550 nm
         let xyz_550 = sl[170].1.xyz().values();
-        approx::assert_abs_diff_eq!(xyz_550.as_ref(), [0.4268018, 0.9796899, 0.0086158].as_ref(), epsilon = 1E-4);
-
+        approx::assert_abs_diff_eq!(
+            xyz_550.as_ref(),
+            [0.4268018, 0.9796899, 0.0086158].as_ref(),
+            epsilon = 1E-4
+        );
     }
-
 }

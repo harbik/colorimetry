@@ -145,7 +145,7 @@ impl CieLab {
         }
     }
 
-    pub fn lch(&self) -> [f64;3] {
+    pub fn lch(&self) -> [f64; 3] {
         let &[l, a, b] = self.lab.as_ref();
         let c = (a * a + b * b).sqrt();
         let h = if c == 0.0 {
@@ -582,7 +582,7 @@ mod tests {
         let gray = CieLab::new([50.0, 0.0, 0.0], xyz_d65);
         let [l, c, h] = gray.lch();
         assert_abs_diff_eq!(l, 50.0);
-        assert_abs_diff_eq!(c, 0.0); 
+        assert_abs_diff_eq!(c, 0.0);
         assert_abs_diff_eq!(h, 0.0);
 
         // Test pure red (+a)
@@ -592,7 +592,7 @@ mod tests {
         assert_abs_diff_eq!(c, 50.0);
         assert_abs_diff_eq!(h, 0.0);
 
-        // Test pure yellow (+a, +b) 
+        // Test pure yellow (+a, +b)
         let yellow = CieLab::new([50.0, 0.0, 50.0], xyz_d65);
         let [l, c, h] = yellow.lch();
         assert_abs_diff_eq!(l, 50.0);
@@ -613,6 +613,4 @@ mod tests {
         assert_abs_diff_eq!(c, 50.0);
         assert_abs_diff_eq!(h, 270.0);
     }
-
-
 }

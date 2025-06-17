@@ -1,5 +1,3 @@
-use std::f64::EPSILON;
-
 use approx::AbsDiffEq;
 use nalgebra::Vector3;
 
@@ -122,7 +120,7 @@ impl RelXYZ {
     /// Panics if the Y value of the white point or the illuminance is less than or equal to zero.
     pub fn set_illuminance(mut self, illuminance: f64) -> Self {
         let yn = self.white_point.xyz.y;
-        if yn > EPSILON && illuminance > EPSILON {
+        if yn > f64::EPSILON && illuminance > f64::EPSILON {
             let scale = illuminance / yn;
             self.xyz *= scale;
             self.white_point.xyz *= scale;
@@ -132,7 +130,7 @@ impl RelXYZ {
         }
     }
 
-    /// Checks if a related XYZ color is valid by converting it to CIELAB and back, 
+    /// Checks if a related XYZ color is valid by converting it to CIELAB and back,
     /// and verifying the result is consistent, finite, and non-negative.
     ///
     /// # Returns
@@ -147,7 +145,9 @@ impl RelXYZ {
         let lab = CieLab::from_xyz(*self);
         let xyz_back = lab.xyz();
         let same = self.abs_diff_eq(&xyz_back, 1E-5);
-        same && xyz_back.values()[0].into_iter().all(|v| v >= 0.0 && v.is_finite())
+        same && xyz_back.values()[0]
+            .into_iter()
+            .all(|v| v >= 0.0 && v.is_finite())
     }
 }
 
@@ -231,8 +231,10 @@ mod tests {
         use crate::{illuminant::CieIlluminant, observer::Observer::Cie1931};
 
         let sl = Cie1931.spectral_locus(CieIlluminant::D65);
-        for (w, rxyz) in sl {
-           assert!(rxyz.is_valid(), "Round-trip failed for wavelength: {:?} {:?}", w, rxyz.values());
+        for (_w, rxyz) in sl {
+            let lab = CieLab::from_xyz(rxyz);
+            let xyz_back = lab.xyz();
+            approx::assert_abs_diff_eq!(rxyz, xyz_back, epsilon = 1E-6)
         }
     }
 
