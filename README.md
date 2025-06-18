@@ -315,9 +315,10 @@ colorimetry = { version = "0.0.7", features = ["cri", "munsell"] }
 
 This project uses a Rust-based `xtask` utility for common development tasks:
 
-- `cargo xtask check` – run clippy, fmt, check, and readme verification
-- `cargo xtask test` – test all feature configurations
-- `cargo xtask doc` – build and open project documentation
+- `cargo xtask check` – to run clippy, fmt, check, and readme verification,
+- `cargo xtask test` – test various feature configurations,
+- `cargo xtask doc` – build and open project documentation (fails on warnings), and,
+- `cargo xtask wasm` – to generate the web-assembly files in `pkg` (requires `wasm-pack` and `wasm-opt`)
 
 More commands will be added as the project evolves.
 

@@ -13,6 +13,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## Unreleased
 
+### Added
+
+* `xtask` package as a sub-package, as a build and check tool, to use:
+
+  * `cargo xtask check` to check the files using `clippy`, `fmt`, and `rdme`,
+  * `cargo xtask test` to run test with various feature settings,
+  * `cargo xtask doc` to generate the documentation, failing on warnings, and
+  * `cargo xtask wasm` to generate the web-assembly files in `pkg` (requires `wasm-pack` and `wasm-opt`)
+
 ## [0.0.7] - 2025-6-17
 
 ### Added [0.0.7]
