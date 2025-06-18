@@ -45,7 +45,9 @@ fn main() {
             run("cargo", &["test", "--no-default-features"]);
         }
         Commands::Doc => {
+            check_or_force_rdme();
             run("cargo", &["doc", "--all-features", "--no-deps", "--open"]);
+            println!("✅ Documentation build complete");
         }
         Commands::Wasm => {
             build_wasm();
@@ -64,6 +66,30 @@ fn build_wasm() {
     }
 
     println!("✅ wasm-bindgen build complete");
+}
+
+fn check_or_force_rdme() {
+    let status = Command::new("cargo")
+        .args(["rdme", "--check"])
+        .status()
+        .expect("failed to run cargo rdme --check");
+
+    if status.success() {
+        println!("✅ README is up to date");
+    } else {
+        println!("⚠️ README is out of date, regenerating...");
+        let force_status = Command::new("cargo")
+            .args(["rdme", "--force"])
+            .status()
+            .expect("failed to run cargo rdme --force");
+
+        if force_status.success() {
+            println!("✅ README regenerated successfully");
+        } else {
+            eprintln!("❌ Failed to regenerate README");
+            std::process::exit(force_status.code().unwrap_or(1));
+        }
+    }
 }
 
 fn run(cmd: &str, args: &[&str]) {
