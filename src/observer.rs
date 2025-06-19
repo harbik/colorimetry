@@ -45,6 +45,8 @@
 
 mod observers;
 
+mod optimal;
+
 use crate::{
     cam::{CieCam02, CieCam16, ViewConditions},
     error::Error,
