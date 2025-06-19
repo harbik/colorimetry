@@ -377,6 +377,22 @@ impl std::ops::Add<XYZ> for XYZ {
     }
 }
 
+impl std::ops::Sub<XYZ> for XYZ {
+    type Output = XYZ;
+
+    /// Subtract tristimulus values using the "-" operator.
+    ///
+    /// Panics if not the same observer is used.
+    fn sub(mut self, rhs: XYZ) -> Self::Output {
+        assert!(
+            self.observer == rhs.observer,
+            "Can not subtract two XYZ values for different observers"
+        );
+        self.xyz -= rhs.xyz;
+        self
+    }
+}
+
 #[cfg(test)]
 mod xyz_test {
     use crate::prelude::*;
