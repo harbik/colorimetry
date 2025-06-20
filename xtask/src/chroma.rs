@@ -33,6 +33,7 @@ fn generate_rust_file(
         writer,
         "// Do not edit manually, use `cargo xtask gen_tables` to regenerate."
     )?;
+    writeln!(writer, "#[allow(clippy::zero_prefixed_literal)]")?;
     writeln!(writer, "pub static {}: [[u8; 72]; 99] = [", identifier)?;
     for l in 1..=99u8 {
         writeln!(writer, "[// L={}", l)?;

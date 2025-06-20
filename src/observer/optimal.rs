@@ -176,7 +176,7 @@ mod tests {
         let cielch = opt_colors.cielab_max_chromas();
         for l in 1..=99 {
             for h in 0..72 {
-                if cielch.get(&(l, h)).is_none() {
+                if !cielch.contains_key(&(l, h)) {
                     eprintln!("bin {}, {} not populated", l, h);
                 }
             }
