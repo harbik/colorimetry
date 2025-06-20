@@ -14,31 +14,43 @@
 //! if a CIE Lab color falls within the defined gamut.
 
 mod cielch_gamut_cie1931_d50;
-
 use cielch_gamut_cie1931_d50::CIELCH_GAMUT_CIE1931_D50;
 
 mod cielch_gamut_cie1931_d65;
 use cielch_gamut_cie1931_d65::CIELCH_GAMUT_CIE1931_D65;
 
+// Optional features for supplemental observers
+#[cfg(feature = "supplemental-observers")]
 mod cielch_gamut_cie1964_d50;
+#[cfg(feature = "supplemental-observers")]
 use cielch_gamut_cie1964_d50::CIELCH_GAMUT_CIE1964_D50;
 
+#[cfg(feature = "supplemental-observers")]
 mod cielch_gamut_cie1964_d65;
+#[cfg(feature = "supplemental-observers")]
 use cielch_gamut_cie1964_d65::CIELCH_GAMUT_CIE1964_D65;
 
+#[cfg(feature = "supplemental-observers")]
 mod cielch_gamut_cie2015_10_d50;
+#[cfg(feature = "supplemental-observers")]
 use cielch_gamut_cie2015_10_d50::CIELCH_GAMUT_CIE2015_10_D50;
 
+#[cfg(feature = "supplemental-observers")]
 mod cielch_gamut_cie2015_10_d65;
+#[cfg(feature = "supplemental-observers")]
 use cielch_gamut_cie2015_10_d65::CIELCH_GAMUT_CIE2015_10_D65;
 
+#[cfg(feature = "supplemental-observers")]
+mod cielch_gamut_cie2015_d65;
+#[cfg(feature = "supplemental-observers")]
+use cielch_gamut_cie2015_d65::CIELCH_GAMUT_CIE2015_D65;
+
+#[cfg(feature = "supplemental-observers")]
 mod cielch_gamut_cie2015_d50;
+#[cfg(feature = "supplemental-observers")]
 use cielch_gamut_cie2015_d50::CIELCH_GAMUT_CIE2015_D50;
 
-mod cielch_gamut_cie2015_d65;
-
 use crate::illuminant::CieIlluminant;
-use cielch_gamut_cie2015_d65::CIELCH_GAMUT_CIE2015_D65;
 use nalgebra::SMatrix;
 use strum::Display;
 
@@ -72,15 +84,22 @@ impl CieLChGamutData {
 }
 
 #[non_exhaustive]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Display)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Display)]
 pub enum CieLChGamut {
+    #[default]
     Cie1931D50,
     Cie1931D65,
+    #[cfg(feature = "supplemental-observers")]
     Cie1964D50,
+    #[cfg(feature = "supplemental-observers")]
     Cie1964D65,
+    #[cfg(feature = "supplemental-observers")]
     Cie2015_10D50,
+    #[cfg(feature = "supplemental-observers")]
     Cie2015_10D65,
+    #[cfg(feature = "supplemental-observers")]
     Cie2015D50,
+    #[cfg(feature = "supplemental-observers")]
     Cie2015D65,
 }
 
@@ -99,20 +118,26 @@ impl CieLChGamut {
         match self {
             // D65-based gamuts
             CieLChGamut::Cie1931D65 => &CIELCH_GAMUT_CIE1931_D65,
+            #[cfg(feature = "supplemental-observers")]
             CieLChGamut::Cie1964D65 => &CIELCH_GAMUT_CIE1964_D65,
+            #[cfg(feature = "supplemental-observers")]
             CieLChGamut::Cie2015_10D65 => &CIELCH_GAMUT_CIE2015_10_D65,
+            #[cfg(feature = "supplemental-observers")]
             CieLChGamut::Cie2015D65 => &CIELCH_GAMUT_CIE2015_D65,
 
             // D50-based gamuts
             CieLChGamut::Cie1931D50 => &CIELCH_GAMUT_CIE1931_D50,
+            #[cfg(feature = "supplemental-observers")]
             CieLChGamut::Cie1964D50 => &CIELCH_GAMUT_CIE1964_D50,
+            #[cfg(feature = "supplemental-observers")]
             CieLChGamut::Cie2015_10D50 => &CIELCH_GAMUT_CIE2015_10_D50,
+            #[cfg(feature = "supplemental-observers")]
             CieLChGamut::Cie2015D50 => &CIELCH_GAMUT_CIE2015_D50,
         }
     }
 
     pub fn lch(&self, l: u8, h: u8) -> Result<u8, Error> {
-        if l < 1 || l > 99 {
+        if !(1..=99).contains(&l) {
             return Err(Error::InvalidLightness(l));
         }
         if h >= 72 {
@@ -127,13 +152,13 @@ impl CieLChGamut {
         let [l, c, h] = lab.lch();
 
         // Validate L value
-        if l < 0.0 || l > 100.0 {
+        if !(0.0..=100.0).contains(&l) {
             return false; // Invalid Lab values.
         }
         let l_u8 = l.round() as u8;
 
         // Validate Hue value
-        if h < 0.0 || h >= 360.0 {
+        if !(0.0..360.0).contains(&h) {
             return false; // Invalid hue value.
         }
 
@@ -163,15 +188,20 @@ impl CieLChGamut {
     /// or an error if the hue bin index is invalid.
     /// The values are associated with lightness bins from 1 to 99.
     /// The maximum chroma values are returned as an array of length `NL` (99),
-    pub fn iso_hue(&self, hue_bin: u8) -> Result<[u8;NL], Error> {
+    pub fn iso_hue(&self, hue_bin: u8) -> Result<[u8; NL], Error> {
         if hue_bin >= 72 {
             return Err(Error::InvalidHue(hue_bin));
         }
-        let row_vec: Vec<u8> = self.data().gamut.row(hue_bin as usize).iter().copied().collect();
+        let row_vec: Vec<u8> = self
+            .data()
+            .gamut
+            .row(hue_bin as usize)
+            .iter()
+            .copied()
+            .collect();
         Ok(row_vec.try_into().unwrap())
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -197,7 +227,7 @@ mod tests {
         let lab_in_gamut = CieLab::from_xyz(rxyz);
         assert!(c31d65.in_gamut(lab_in_gamut));
 
-        let rxyz = RelXYZ::new([0.0;3], white_point);
+        let rxyz = RelXYZ::new([0.0; 3], white_point);
         let lab_in_gamut = CieLab::from_xyz(rxyz);
         assert!(c31d65.in_gamut(lab_in_gamut));
 
