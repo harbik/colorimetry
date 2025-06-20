@@ -41,6 +41,17 @@ pub enum Error {
     ProvideAtLeastNValues(usize),
     #[error("Invalid RGB value")]
     InvalidRgbValue,
+    #[error("Whitepoint Not Supported: {white_point} for {observer}")]
+    WhitePointNotSupported {
+        white_point: String,
+        observer: String,
+    },
+    #[error("Observer {0} not supported")]
+    ObserverNotSupported(String),
+    #[error("Invalid Lightness: {0}")]
+    InvalidLightness(u8),
+    #[error("Invalid Hue: {0}")]
+    InvalidHue(u8),
 }
 
 impl From<&str> for Error {

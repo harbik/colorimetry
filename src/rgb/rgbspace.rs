@@ -6,7 +6,7 @@ use crate::{
     colorant::Colorant, illuminant::CieIlluminant, illuminant::D65, observer::Observer::Cie1931,
     rgb::gamma::GammaCurve, rgb::gaussian_filtered_primaries, stimulus::Stimulus,
 };
-use strum_macros::EnumIter;
+use strum::{AsRefStr, EnumIter};
 
 // The display P3 red coordinate is outside the CIE 1931 gamut using the CIE 1931 1 nanometer
 // dataset as provided by the CIE.  To still match it, it's desatured it adding white. It also mixes
@@ -18,7 +18,7 @@ const D65Y: f64 = 0.329_052;
 /// A Light Weight tag, representing an RGB color space.
 /// Used for example in the RGB value set, to identify the color space being used.
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
-#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, EnumIter)]
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, EnumIter, AsRefStr)]
 #[non_exhaustive]
 pub enum RgbSpace {
     #[default]
@@ -281,5 +281,12 @@ mod rgbspace_tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn test_rgb_as_ref_str() {
+        assert_eq!(RgbSpace::SRGB.as_ref(), "SRGB");
+        assert_eq!(RgbSpace::DisplayP3.as_ref(), "DisplayP3");
+        assert_eq!(RgbSpace::Adobe.as_ref(), "Adobe");
     }
 }

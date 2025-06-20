@@ -10,7 +10,8 @@ use strum::IntoEnumIterator;
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     for spc in CieIlluminant::iter() {
         // Calculate CRI parameters
-        let cri: colorimetry::illuminant::CRI = spc.as_ref().try_into()?;
+        let ill: &Illuminant = spc.as_ref();
+        let cri: colorimetry::illuminant::CRI = ill.try_into()?;
         let ra = cri.ra();
         let r9 = cri[9];
 

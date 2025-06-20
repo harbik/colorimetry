@@ -27,6 +27,9 @@
 //!   Exported via `#[wasm_bindgen]` for JavaScript interoperability.
 //!
 
+mod gamut;
+pub use gamut::CieLChGamut;
+
 use approx::ulps_eq;
 use nalgebra::Vector3;
 use std::f64::consts::PI;
@@ -79,6 +82,11 @@ impl CieLab {
         let xyz = xyz_from_cielab(self.lab, self.xyzn.xyz);
         // unwrap - same observer
         RelXYZ::from_xyz(XYZ::from_vecs(xyz, self.xyzn.observer), self.xyzn).unwrap()
+    }
+
+    /// Returns the reference white tristimulus value for this CIE L*a*b* color.
+    pub fn xyzn(&self) -> XYZ {
+        self.xyzn
     }
 
     /// Sets the reference white luminance for this CIE L*a*b* color, in units of cd/m².
