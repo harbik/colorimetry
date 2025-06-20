@@ -58,7 +58,7 @@ fn main() {
             build_wasm();
         }
         Commands::Gen => {
-            chroma::gen_tables();
+            chroma::gen_files();
         }
     }
 }
