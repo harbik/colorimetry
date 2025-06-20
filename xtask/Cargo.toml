@@ -5,4 +5,5 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }  # for argument parsing
-colorimetry = { path = ".." } # to use the main library
+strum = {version = "0.27", features = ["derive"]}  # for enum iteration and derive macros
+colorimetry = { path = ".." , features = ["supplemental-observers", "cie-illuminants"]} # to use the main library
