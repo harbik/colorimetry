@@ -1,6 +1,8 @@
 use clap::{Parser, Subcommand};
 use std::process::Command;
 
+pub mod chroma;
+
 #[derive(Parser)]
 #[command(name = "xtask", about = "Custom build tasks")]
 struct XtaskArgs {
@@ -18,6 +20,9 @@ enum Commands {
     Doc,
     /// Builds the wasm-bindgen output using wasm-pack
     Wasm,
+    /// Generates data structures which are expensive to generate,
+    /// and which are used in the library.
+    Gen,
 }
 
 fn main() {
@@ -51,6 +56,9 @@ fn main() {
         }
         Commands::Wasm => {
             build_wasm();
+        }
+        Commands::Gen => {
+            chroma::gen_tables();
         }
     }
 }
