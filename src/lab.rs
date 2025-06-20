@@ -84,6 +84,11 @@ impl CieLab {
         RelXYZ::from_xyz(XYZ::from_vecs(xyz, self.xyzn.observer), self.xyzn).unwrap()
     }
 
+    /// Returns the reference white tristimulus value for this CIE L*a*b* color.
+    pub fn xyzn(&self) -> XYZ {
+        self.xyzn
+    }
+
     /// Sets the reference white luminance for this CIE L*a*b* color, in units of cd/m².
     ///
     /// # Arguments
