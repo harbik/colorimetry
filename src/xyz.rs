@@ -40,6 +40,7 @@ mod rel_xyz;
 pub use rel_xyz::RelXYZ;
 
 use core::f64;
+use std::fmt::Display;
 
 use crate::{error::Error, observer::Observer, rgb::RgbSpace, rgb::WideRgb};
 use approx::AbsDiffEq;
@@ -395,6 +396,20 @@ impl std::ops::Sub<XYZ> for XYZ {
         );
         self.xyz -= rhs.xyz;
         self
+    }
+}
+
+impl Display for XYZ {
+    /// Returns a string representation of the XYZ value in the format "X, Y, Z (Observer)".
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "[{:.3}, {:.3}, {:.3}] ({})",
+            self.x(),
+            self.y(),
+            self.z(),
+            self.observer
+        )
     }
 }
 
