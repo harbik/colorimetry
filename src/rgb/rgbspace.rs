@@ -285,8 +285,8 @@ mod rgbspace_tests {
 
     #[test]
     fn test_rgb_as_ref_str() {
-            assert_eq!(RgbSpace::SRGB.as_ref(), "SRGB");
-            assert_eq!(RgbSpace::DisplayP3.as_ref(), "DisplayP3");
-            assert_eq!(RgbSpace::Adobe.as_ref(), "Adobe");
+        assert_eq!(RgbSpace::SRGB.as_ref(), "SRGB");
+        assert_eq!(RgbSpace::DisplayP3.as_ref(), "DisplayP3");
+        assert_eq!(RgbSpace::Adobe.as_ref(), "Adobe");
     }
 }
