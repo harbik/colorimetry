@@ -73,6 +73,8 @@ impl Observer {
 
 impl OptimalColors {
     pub const LAB_MAX_CHROME_LEN: usize = 7128;
+    pub const NH: usize = 72;
+    pub const NL: usize = 99;
 
     pub fn white_point(&self) -> XYZ {
         self.0
