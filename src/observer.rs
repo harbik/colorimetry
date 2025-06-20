@@ -46,6 +46,7 @@
 mod observers;
 
 mod optimal;
+pub use optimal::OptimalColors;
 
 use crate::{
     cam::{CieCam02, CieCam16, ViewConditions},
@@ -59,7 +60,8 @@ use crate::{
 };
 use nalgebra::{Matrix3, SMatrix, Vector3};
 use std::{fmt, ops::RangeInclusive, sync::OnceLock};
-use strum_macros::EnumIter;
+
+use strum::{AsRefStr, EnumIter};
 
 ///     A data structure to define Standard Observers, such as the CIE 1931 2º and
 ///     the CIE 2015 standard observers.
@@ -123,7 +125,7 @@ impl ObserverData {
 ///    This can be directly used in JavaScript, and has the benefit to be just an index.
 #[cfg(not(feature = "supplemental-observers"))]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
-#[derive(Clone, Copy, Default, PartialEq, Eq, Hash, Debug, EnumIter)]
+#[derive(Clone, Copy, Default, PartialEq, Eq, Hash, Debug, EnumIter, AsRefStr)]
 #[non_exhaustive]
 pub enum Observer {
     #[default]
@@ -132,7 +134,7 @@ pub enum Observer {
 
 #[cfg(feature = "supplemental-observers")]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
-#[derive(Clone, Copy, Default, PartialEq, Eq, Hash, Debug, EnumIter)]
+#[derive(Clone, Copy, Default, PartialEq, Eq, Hash, Debug, EnumIter, AsRefStr)]
 #[non_exhaustive]
 pub enum Observer {
     #[default]
@@ -727,5 +729,17 @@ mod obs_test {
             [0.4268018, 0.9796899, 0.0086158].as_ref(),
             epsilon = 1E-4
         );
+    }
+
+    #[test]
+    fn test_as_ref_str() {
+        // Ensure that the observer names are correct
+        assert_eq!(Cie1931.as_ref(), "Cie1931");
+        #[cfg(feature = "supplemental-observers")]
+        {
+            assert_eq!(Cie1964.as_ref(), "Cie1964");
+            assert_eq!(Observer::Cie2015.as_ref(), "Cie2015");
+            assert_eq!(Observer::Cie2015_10.as_ref(), "Cie2015_10");
+        }
     }
 }
