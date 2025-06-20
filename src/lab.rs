@@ -27,6 +27,9 @@
 //!   Exported via `#[wasm_bindgen]` for JavaScript interoperability.
 //!
 
+mod gamut;
+pub use gamut::CieLChGamut;
+
 use approx::ulps_eq;
 use nalgebra::Vector3;
 use std::f64::consts::PI;
