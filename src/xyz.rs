@@ -174,6 +174,11 @@ impl XYZ {
         self.values()[2]
     }
 
+    /// Returns the observer used for this `XYZ` value.
+    pub fn observer(&self) -> Observer {
+        self.observer
+    }
+
     /// Returns the XYZ Tristimulus values in an array on the format [X, Y, Z]
     /// ```
     /// use colorimetry::prelude::*;
