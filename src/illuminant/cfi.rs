@@ -12,7 +12,7 @@ use super::CCT;
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
 /// Container for CIE 2017 Colour Fidelity Index (**R<sub>f</sub>**) calculations,
 /// including both the general color fidelity **R<sub>f</sub>** score and the 99 special color fidelity indices (**R<sub>f,1</sub>** to **R<sub>f,99</sub>**)
-/// as specified in [CIE 224:2017](https://cie.co.at/publications/cie-2017-colour-fidelity-index-accurate-scientific-use).
+/// as specified in [CIE 224:2017](https://cie.co.at/publications/colour-fidelity-index-accurate-scientific-use).
 ///
 /// # Requirements
 /// - Requires the `cfi` feature to access color evaluation samples (CES) used for testing.
@@ -33,7 +33,7 @@ use super::CCT;
 /// - **Use CFI (Rf)** for a more precise and scientifically up-to-date assessment of color fidelity, especially with modern or tunable light sources.
 ///
 /// # Reference
-/// [CIE 224:2017 – CIE 2017 Colour Fidelity Index for accurate scientific use](https://cie.co.at/publications/cie-2017-colour-fidelity-index-accurate-scientific-use)
+/// [CIE 224:2017 – CIE 2017 Colour Fidelity Index for accurate scientific use](https://cie.co.at/publications/colour-fidelity-index-accurate-scientific-use)
 pub struct CFI {
     jabp_ts: [[f64; 3]; N_CFI], // CIE1964
     jabp_rs: [[f64; 3]; N_CFI],
