@@ -147,18 +147,21 @@ impl Illuminant {
         // crossover.
         const BLEND_RANGE_START: f64 = 4000.0;
         const BLEND_RANGE_END: f64 = 5000.0;
-        match cct {
-            c if c < BLEND_RANGE_START => Ok(Self::planckian(c)),
-            c if c > BLEND_RANGE_END => Ok(Self::d_illuminant(c)?),
-            _ => {
-                let illuminant_planckian = Self::planckian(BLEND_RANGE_START);
-                let illuminant_d = Self::d_illuminant(BLEND_RANGE_END)?;
-                let ratio_d = (cct - BLEND_RANGE_START) / (BLEND_RANGE_END - BLEND_RANGE_START);
-                let ratio_planckian = 1.0 - ratio_d;
-                Ok(Self(
-                    ratio_d * illuminant_d.0 + ratio_planckian * illuminant_planckian.0,
-                ))
-            }
+
+        if cct < BLEND_RANGE_START {
+            Ok(Self::planckian(cct))
+        } else if cct > BLEND_RANGE_END {
+            Self::d_illuminant(cct)
+        } else {
+            let illuminant_planckian = Self::planckian(BLEND_RANGE_START);
+            let illuminant_d = Self::d_illuminant(BLEND_RANGE_END)?;
+
+            let ratio_d = (cct - BLEND_RANGE_START) / (BLEND_RANGE_END - BLEND_RANGE_START);
+            let ratio_planckian = 1.0 - ratio_d;
+
+            Ok(Self(
+                ratio_d * illuminant_d.0 + ratio_planckian * illuminant_planckian.0,
+            ))
         }
     }
 
