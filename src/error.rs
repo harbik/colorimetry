@@ -52,6 +52,8 @@ pub enum Error {
     InvalidLightness(u8),
     #[error("Invalid Hue: {0}")]
     InvalidHue(u8),
+    #[error("Invalid Hue Bin (0..72): {0}")]
+    InvalidHueBin(u8),
 }
 
 impl From<&str> for Error {
