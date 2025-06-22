@@ -6,11 +6,12 @@ use crate::{
 };
 use std::sync::LazyLock;
 
-/// Create Array of Color Fidelity Index Test Spectra, as used to assess the color fidelity index of a light source.
+/// An array of Color Fidelity Index Test Spectra, as used to assess the color fidelity index of a
+/// light source.
 ///
-/// The data for these is obtained from the <https:://cie.co.at> site's dataset library, on May 29, 2025.
-/// The dataset uses a 380-780-5nm domain, included below in the 'CFI5' static matrix.
-/// Here the dataset is converted to an array of 99 Spectra, using linear interpolation.
+/// The data for these is obtained from the <https://cie.co.at> site's dataset library, on May 29, 2025.
+/// The dataset uses a 380-780-5nm domain. Here the dataset is converted to an array of 99 Spectra,
+/// using linear interpolation.
 pub static CES: LazyLock<Box<[Colorant; N_CFI]>> = LazyLock::new(|| {
     let s_vec: Vec<Colorant> = CES5
         .column_iter()
