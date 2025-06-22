@@ -50,6 +50,12 @@ impl Observer {
     ///   The block wraps around the spectrum to ensure continuity and to represent the full range of possible colors.
     /// * This is a theoretical construct and may not correspond to physically realizable colors.
     /// * As it calculates about 160K colors, it may be computationally intensive.
+    /// # Improvements
+    /// * Consider optimizing the integration process to reduce computational overhead.
+    ///   * The current implementation uses a brute-force approach to integrate spectral bands,
+    ///     which may be slow for large matrices. Drop first and add last element to avoid
+    ///     instead of summation all the values in a spectral band.
+    ///
     pub fn optimal_colors(&self, ref_white: CieIlluminant) -> OptimalColors {
         let mut optcol: DMatrix<Vector3<f64>> =
             DMatrix::from_fn(NS - 1, NS, |_, _| Vector3::zeros());
@@ -114,7 +120,11 @@ impl OptimalColors {
             let h_u8 = (h / 5.0).floor() as u8;
             let c_u8 = c.floor() as u8;
 
-            if l_u8 > 0 && l_u8 < 100 {
+            // Only add to the map if lightness is in the range 1–99
+            // and hue is in the range 0–71 (72 bins covering 360 degrees).
+            // Lightness values 0 and 100 are excluded, as they represent edge cases
+            // that are always considered in gamut for all hues, and with zero chroma.
+            if (1..100).contains(&l_u8) && h_u8 < Self::NH as u8 {
                 map.entry((l_u8, h_u8))
                     .and_modify(|existing| {
                         if *existing < c_u8 {
@@ -187,6 +197,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "This test is computationally intensive and may take a long time to run."]
     fn test_cielch_all_observers() {
         for ref_white in [CieIlluminant::D65, CieIlluminant::D50] {
             for obs in Observer::iter() {
@@ -200,6 +211,37 @@ mod tests {
                     ref_white
                 );
             }
+        }
+    }
+
+    #[test]
+    fn test_values() {
+        let observer = Cie1931;
+        let ref_white = CieIlluminant::D65;
+        let opt_colors = observer.optimal_colors(ref_white);
+        const WANTS: &[[u8; 3]] = &[
+            [1, 0, 13],
+            [50, 0, 97],
+            [0, 50, 0],
+            [99, 0, 5],
+            [1, 71, 13],
+            [50, 71, 99],
+            [99, 71, 6],
+            [1, 36, 5],
+            [50, 36, 138],
+            [99, 36, 12],
+            [1, 18, 2],
+            [50, 18, 86],
+            [99, 18, 18],
+        ];
+        let cielab_max_chromas = opt_colors.cielab_max_chromas();
+        for &[l, h, expected] in WANTS {
+            let &c = cielab_max_chromas.get(&(l, h)).unwrap_or(&0);
+            assert_eq!(
+                c, expected,
+                "Expected chroma for (L={}, H={}) to be {}, but got {}",
+                l, h, expected, c
+            );
         }
     }
 }

@@ -73,13 +73,16 @@ impl Data {
 }
 
 pub fn data_table(map: &HashMap<(u8, u8), u8>) -> Vec<Vec<u8>> {
+    // SMatrix is row-major, so we need to create a 2D vector
+    // with 72 columns (hue bins) and 99 rows (lightness bins).
+    // lightness is the fastest changing index (row-major order).
     let mut table = Vec::new();
-    for l in 1..=99u8 {
-        let mut hues = Vec::new();
-        for h in 0..72u8 {
-            hues.push(map.get(&(l, h)).copied().unwrap());
+    for h in 0..72u8 {
+        let mut lightness_vec = Vec::new();
+        for l in 1..=99u8 {
+            lightness_vec.push(map.get(&(l, h)).copied().unwrap());
         }
-        table.push(hues);
+        table.push(lightness_vec);
     }
     table
 }

@@ -1,17 +1,20 @@
 //! Gamut Module for CIE LCh Color Space
 //!
-//! This module defines the structures and implementations for representing the gamut
-//! of the CIE LCh color space as a matrix of maximum chroma values. The gamut is modeled
-//! as a two-dimensional array where each cell corresponds to a lightness–hue bin:
+//! This module defines structures and implementations for representing the gamut
+//! of the CIE LCh color space as a matrix of maximum chroma values.
 //!
-//! - There are 99 lightness bins (ranging from 1 to 99), arranged horizontally.
-//! - There are 72 hue bins (each covering 5 degrees of the full 360° circle), arranged vertically.
+//! The gamut is modeled as a two-dimensional matrix where each cell corresponds to a lightness–hue bin:
+//! - There are `NL` lightness bins (L = 1..=NL), arranged as rows.
+//! - There are `NH` hue bins (each covering 360/NH degrees, H = 0..NH-1), arranged as columns.
+//!
+//! The gamut matrix is stored as `SMatrix<u8, NL, NH>`, where each cell `(l, h)` contains the maximum chroma (C)
+//! for that lightness (row) and hue (column) bin under a specific observer and illuminant.
 //!
 //! The module organizes different gamut definitions based on standard observer measurements
-//! (e.g., CIE 1931, CIE 1964, CIE 2015) and illuminant conditions (D50 and D65). It provides
-//! accessors for retrieving the associated observer, illuminant, and gamut data, as well as
-//! methods to query the maximum chroma for specific lightness–hue combinations and to check
-//! if a CIE Lab color falls within the defined gamut.
+//! (e.g., CIE 1931, CIE 1964, CIE 2015) and illuminant conditions (D50 and D65).
+//! It provides accessors for retrieving the associated observer, illuminant, and gamut data,
+//! as well as methods to query the maximum chroma for specific (lightness, hue) combinations
+//! and to check if a CIE Lab color falls within the defined gamut.
 
 mod cielch_gamut_cie1931_d50;
 use cielch_gamut_cie1931_d50::CIELCH_GAMUT_CIE1931_D50;
@@ -57,29 +60,39 @@ use strum::Display;
 const NL: usize = 99; // number of lightness bins.
 const NH: usize = 72; // number of hue bins (each covering 5 degrees).
 
-/// The gamut is represented as a matrix with a width of 99 lightness values, and a height of 72  values where:
+/// Represents the CIE LCh color gamut as a matrix of maximum chroma values.
 ///
-/// - Lightness (L) varying from 1 to 99 in horizontal direction, increasing from left to right and
-/// - ranging from 0 to 71 (each covering 5 degrees), in vertical direction, in ascending order from
-///   the top to the bottem.
-/// - Each cell contains the maximum chroma (C) for that L and H.
+/// The gamut is stored as a 2D matrix (`SMatrix<u8, NL, NH>`) where:
+///
+/// - The horizontal axis (columns, size `NH = 72`) corresponds to hue (H) bins, each covering 5 degrees.
+/// - The vertical axis (rows, size `NL = 99`) corresponds to lightness (L) bins, ranging from 1 to 99.
+/// - Each cell `(l, h)` contains the maximum chroma (C) for that lightness and hue bin.
+///
+/// The struct also stores the associated illuminant and observer used to compute the gamut data.
 pub struct CieLChGamutData {
     illuminant: CieIlluminant,
     observer: Observer,
-    gamut: SMatrix<u8, NH, NL>,
+    gamut: SMatrix<u8, NL, NH>,
 }
 
 impl CieLChGamutData {
     pub const fn new(
         illuminant: CieIlluminant,
         observer: Observer,
-        gamut: SMatrix<u8, NH, NL>,
+        gamut: SMatrix<u8, NL, NH>,
     ) -> Self {
         Self {
             illuminant,
             observer,
             gamut,
         }
+    }
+
+    /// Returns the maximum chroma for the given lightness and hue bin.
+    /// - `l`: lightness bin index (row, 0..NL-1)
+    /// - `h`: hue bin index (column, 0..NH-1)
+    pub fn max_chroma(&self, l: usize, h: usize) -> u8 {
+        self.gamut[(l, h)]
     }
 }
 
@@ -136,14 +149,13 @@ impl CieLChGamut {
         }
     }
 
-    pub fn lch(&self, l: u8, h: u8) -> Result<u8, Error> {
-        if !(1..=99).contains(&l) {
-            return Err(Error::InvalidLightness(l));
+    pub fn lch_bin(&self, l: u8, h: u8) -> Result<u8, Error> {
+        match (l, h) {
+            (0, _) | (100, _) => return Ok(0),
+            (_, h) if h >= NH as u8 => Err(Error::InvalidHueBin(h)),
+            (1..=99, h) => Ok(self.data().gamut[(l as usize - 1, h as usize)]),
+            (l,_) => Err(Error::InvalidLightness(l)),
         }
-        if h >= 72 {
-            return Err(Error::InvalidHue(h));
-        }
-        Ok(self.data().gamut[(l as usize - 1, h as usize)])
     }
 
     /// Check if the Lab color is within the gamut defined by the CieLChGamut
@@ -173,7 +185,7 @@ impl CieLChGamut {
             (_, h) if h >= NH as u8 => false,
             _ => {
                 // Safe unwrap: lookup is valid as ranges were already checked.
-                let max_c = self.lch(l_u8, h_u8).unwrap();
+                let max_c = self.lch_bin(l_u8, h_u8).unwrap();
                 max_c < c.floor() as u8
             }
         }
@@ -237,11 +249,31 @@ mod tests {
     }
 
     #[test]
-    fn test_iso_hue() {
-        let c31d65 = CieLChGamut::Cie1931D65;
-        println!("{}", c31d65.data().gamut);
-        let hue_bin = 0; // Test the first hue bin
-        let result = c31d65.iso_hue(hue_bin).unwrap();
-        println!("ISO Hue for bin {}: {:?}", hue_bin, result);
+    fn test_values() {
+        // Test the maximum chroma for specific lightness and hue bins.
+        // See test in optimal_colors.rs for the expected values.
+        const WANTS: &[[u8; 3]] = &[
+            [1, 0, 13],
+            [50, 0, 97],
+            [0, 50, 0],
+            [99, 0, 5],
+            [1, 71, 13],
+            [50, 71, 99],
+            [99, 71, 6],
+            [1, 36, 5],
+            [50, 36, 138],
+            [99, 36, 12],
+            [1, 18, 2],
+            [50, 18, 86],
+            [99, 18, 18],
+        ];
+        for &[l, h, expected] in WANTS {
+            let c = CieLChGamut::Cie1931D65.lch_bin(l, h).unwrap();
+            assert_eq!(
+                c, expected,
+                "Expected chroma for (L={}, H={}) to be {}, but got {}",
+                l, h, expected, c
+            );
+        }
     }
 }
