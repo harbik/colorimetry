@@ -138,13 +138,15 @@ impl Illuminant {
         Self(Spectrum(data))
     }
 
-    // TODO: Add documentation on what this is for. Which standard it is implemented
-    // according to.
+    /// Returns the reference illuminant for a test source with the given correlated color
+    /// temperature (CCT) as defined by the TM-30-20 standard.
+    ///
+    /// The reference illuminant varies with the correlated color temperature (CCT)
+    /// of the illuminant being tested. For a CCT below 4000 K, a blackbody Planckian
+    /// illuminant is returned. For a CCT above 5000 K, a CIE D illuminant is returned.
+    /// For CCTs between 4000 K and 5000 K, the two illuminants are blended to create a
+    /// smooth crossover.
     pub fn cfi_reference(cct: f64) -> Result<Self, crate::Error> {
-        // Below this range, a blackbody planckian illuminant is returned.
-        // Above this range, a daylight (CIE D series) illuminant is returned.
-        // In this range, the two illuminants above are blended to create a smooth
-        // crossover.
         const BLEND_RANGE_START: f64 = 4000.0;
         const BLEND_RANGE_END: f64 = 5000.0;
 
