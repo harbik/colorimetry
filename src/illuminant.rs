@@ -138,15 +138,26 @@ impl Illuminant {
         Self(Spectrum(data))
     }
 
+    // TODO: Add documentation on what this is for. Which standard it is implemented
+    // according to.
     pub fn cfi_reference(cct: f64) -> Result<Self, crate::Error> {
+        // Below this range, a blackbody planckian illuminant is returned.
+        // Above this range, a daylight (CIE D series) illuminant is returned.
+        // In this range, the two illuminants above are blended to create a smooth
+        // crossover.
+        const BLEND_RANGE_START: f64 = 4000.0;
+        const BLEND_RANGE_END: f64 = 5000.0;
         match cct {
-            c if c < 4000.0 => Ok(Illuminant::planckian(c)),
-            c if c > 5000.0 => Ok(Illuminant::d_illuminant(c)?),
+            c if c < BLEND_RANGE_START => Ok(Self::planckian(c)),
+            c if c > BLEND_RANGE_END => Ok(Self::d_illuminant(c)?),
             _ => {
-                let ill4000 = Illuminant::planckian(4000.0);
-                let ill5000 = Illuminant::d_illuminant(5000.0)?;
-                let f = (cct - 4000.0) / (5000.0 - 4000.0);
-                Ok(Self(f * ill5000.0 + (1.0 - f) * ill4000.0))
+                let illuminant_planckian = Self::planckian(BLEND_RANGE_START);
+                let illuminant_d = Self::d_illuminant(BLEND_RANGE_END)?;
+                let ratio_d = (cct - BLEND_RANGE_START) / (BLEND_RANGE_END - BLEND_RANGE_START);
+                let ratio_planckian = 1.0 - ratio_d;
+                Ok(Self(
+                    ratio_d * illuminant_d.0 + ratio_planckian * illuminant_planckian.0,
+                ))
             }
         }
     }
