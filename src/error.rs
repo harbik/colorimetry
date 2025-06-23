@@ -49,9 +49,11 @@ pub enum Error {
     #[error("Observer {0} not supported")]
     ObserverNotSupported(String),
     #[error("Invalid Lightness: {0}")]
-    InvalidLightness(u8),
+    InvalidLightness(f64),
+    #[error("Invalid Lightness Bin: {0}")]
+    InvalidLightnessBin(u8),
     #[error("Invalid Hue: {0}")]
-    InvalidHue(u8),
+    InvalidHue(f64),
     #[error("Invalid Hue Bin (0..72): {0}")]
     InvalidHueBin(u8),
 }
