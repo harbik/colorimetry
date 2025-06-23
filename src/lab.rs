@@ -27,7 +27,9 @@
 //!   Exported via `#[wasm_bindgen]` for JavaScript interoperability.
 //!
 
+#[cfg(feature = "gamut-tables")]
 mod gamut;
+#[cfg(feature = "gamut-tables")]
 pub use gamut::CieLChGamut;
 
 use approx::ulps_eq;
