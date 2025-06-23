@@ -80,7 +80,7 @@ impl CFI {
     ///
     /// # Returns
     /// An array of 99 `f64` values. Each value represents the fidelity score (Rf,i) for the corresponding
-    /// CES under the current light source compared to the reference illuminant (daylight or Planckian).
+    /// [`CES`] under the current light source compared to the reference illuminant (daylight or Planckian).
     /// Higher values indicate better color fidelity for that sample.
     ///
     /// # Usage
