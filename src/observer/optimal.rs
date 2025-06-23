@@ -24,13 +24,13 @@ use crate::{
 /// Represents the set of optimal colors in colorimetry.
 ///
 /// Optimal colors define the theoretical limits of color saturation (chroma) for given
-/// lightness and hue values. They are based on binary reflectance spectra that reflect 
-/// either 0% or 100% of light at each wavelength, representing the most vivid colors 
+/// lightness and hue values. They are based on binary reflectance spectra that reflect
+/// either 0% or 100% of light at each wavelength, representing the most vivid colors
 /// physically possible under the constraints of human vision.
 ///
 /// These colors form the boundary of the CIE color spaces (such as CIE 1931 or CIELAB),
 /// and are used to compute:
-/// 
+///
 /// - The spectral locus in chromaticity diagrams.
 /// - The maximum chroma values at given lightness and hue levels in perceptual spaces like CIELAB.
 ///
@@ -61,7 +61,7 @@ impl Observer {
     /// * This is a theoretical construct and may not correspond to physically realizable colors.
     /// * As it calculates about 160,000 colors, it may be computationally intensive.
     pub fn optimal_colors(&self, ref_white: CieIlluminant) -> OptimalColors {
-        let mut optcol: DMatrix<Vector3<f64>> = DMatrix::zeros(NS-1, NS);
+        let mut optcol: DMatrix<Vector3<f64>> = DMatrix::zeros(NS - 1, NS);
         let spectral_locus = self.spectral_locus(ref_white);
         let white_point = spectral_locus[0].1.white_point();
 
@@ -260,11 +260,10 @@ mod tests {
 
         // Check first row matches spectral locus
         let spectral_locus = observer.spectral_locus(ref_white);
-        for c in 0..NS {
-            let expected = spectral_locus[c].1.xyz().xyz;
+        for (c, (_, sl_val)) in spectral_locus.iter().enumerate() {
+            let expected = sl_val.xyz().xyz;
             let actual = matrix.row(0)[c];
             assert_abs_diff_eq!(expected, actual, epsilon = 1e-10);
         }
     }
-
 }
