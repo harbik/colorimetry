@@ -21,56 +21,58 @@ use crate::{
     xyz::{RelXYZ, XYZ},
 };
 
-/// `OptimalColors` represents a matrix of tristimulus values derived from optimal spectra,
-/// which are theoretical reflectance curves that define the outer boundary (gamut limit)
-/// of a color space under a given illuminant and observer.
+/// Represents the set of optimal colors in colorimetry.
 ///
-/// The colors are stored in an `NS × NS` matrix, where `NS` is the number of spectral samples.  The
-/// values are computed by integrating blocks of the spectral locus, effectively simulating the
-/// addition of contiguous spectral bands, with increasing width.  Each row in the matrix
-/// corresponds to a different block width, and each column corresponds to a different starting
-/// wavelength in the spectrum.  The block wraps around the spectrum to ensure continuity, and to
-/// represent the full range of possible colors, including purples.
+/// Optimal colors define the theoretical limits of color saturation (chroma) for given
+/// lightness and hue values. They are based on binary reflectance spectra that reflect 
+/// either 0% or 100% of light at each wavelength, representing the most vivid colors 
+/// physically possible under the constraints of human vision.
 ///
-/// The accompanying `XYZ` value stores the reference white used in the computations.
+/// These colors form the boundary of the CIE color spaces (such as CIE 1931 or CIELAB),
+/// and are used to compute:
+/// 
+/// - The spectral locus in chromaticity diagrams.
+/// - The maximum chroma values at given lightness and hue levels in perceptual spaces like CIELAB.
+///
+/// Although optimal colors do not correspond to real-world pigments or displays, they are
+/// essential for defining the theoretical gamut of visible colors.
 pub struct OptimalColors(XYZ, DMatrix<Vector3<f64>>);
 
 impl Observer {
     /// Computes the optimal colors for the observer under the specified reference white.
+    ///
     /// The resulting `OptimalColors` contains a matrix of tristimulus values
     /// derived from optimal spectra.
+    ///
     /// # Arguments
     /// * `ref_white` - The reference white illuminant to use for the calculations.
+    ///
     /// # Returns
     /// * `OptimalColors` - A struct containing the reference white and the matrix of optimal colors.
-    /// # Notes
-    /// * The optimal colors are computed by integrating blocks of the spectral locus,
-    ///   simulating the addition of contiguous spectral bands with increasing width.
-    /// * Each row in the resulting matrix corresponds to a different block width,
-    ///   The block wraps around the spectrum to ensure continuity and to represent the full range of possible colors.
-    /// * This is a theoretical construct and may not correspond to physically realizable colors.
-    /// * As it calculates about 160K colors, it may be computationally intensive.
-    /// # Improvements
-    /// * Consider optimizing the integration process to reduce computational overhead.
-    ///   * The current implementation uses a brute-force approach to integrate spectral bands,
-    ///     which may be slow for large matrices. Drop first and add last element to avoid
-    ///     instead of summation all the values in a spectral band.
     ///
+    /// # Notes
+    /// * The optimal colors are computed by applying a rectangular filter to the spectral locus,
+    ///   simulating the addition of contiguous spectral bands with increasing width.
+    /// * Each row in the resulting matrix corresponds to a different filter width,
+    ///   and the filter wraps around the spectrum to ensure continuity and to represent the full range of possible colors.
+    /// * The number of spectral samples, `NS`, is fixed at 401 throughout the library.
+    ///   - The resulting matrix has shape `(NS-1, NS)` = (400, 401).
+    ///   - Each column corresponds to a starting wavelength, and each row to a filter width.
+    /// * This is a theoretical construct and may not correspond to physically realizable colors.
+    /// * As it calculates about 160,000 colors, it may be computationally intensive.
     pub fn optimal_colors(&self, ref_white: CieIlluminant) -> OptimalColors {
-        let mut optcol: DMatrix<Vector3<f64>> =
-            DMatrix::from_fn(NS - 1, NS, |_, _| Vector3::zeros());
+        let mut optcol: DMatrix<Vector3<f64>> = DMatrix::zeros(NS-1, NS);
         let spectral_locus = self.spectral_locus(ref_white);
         let white_point = spectral_locus[0].1.white_point();
 
-        for r in 0..NS - 1 {
-            // row
+        for c in 0..NS {
+            optcol[(0, c)] = spectral_locus[c].1.xyz().xyz; // first row is the spectral locus
+        }
+
+        for r in 1..NS - 1 {
             for c in 0..NS {
-                // column, scroll block through spectrum from blue to red
-                for w in 0..=r {
-                    // integrate block with width r+1
-                    let i = (c + w) % NS; // wrap around
-                    optcol[(r, c)] += spectral_locus[i].1.xyz().xyz;
-                }
+                let i = (c + r) % NS; // wrap around
+                optcol[(r, c)] = optcol[(r - 1, c)] + optcol[(0, i)];
             }
         }
         OptimalColors(white_point, optcol)
@@ -244,4 +246,25 @@ mod tests {
             );
         }
     }
+
+    #[test]
+    fn test_optimal_colors_matrix_shape_and_first_row() {
+        let observer = Observer::Cie1931;
+        let ref_white = CieIlluminant::D65;
+        let opt_colors = observer.optimal_colors(ref_white);
+        let matrix = opt_colors.colors();
+
+        // Check matrix shape
+        assert_eq!(matrix.nrows(), NS - 1, "Matrix should have NS-1 rows");
+        assert_eq!(matrix.ncols(), NS, "Matrix should have NS columns");
+
+        // Check first row matches spectral locus
+        let spectral_locus = observer.spectral_locus(ref_white);
+        for c in 0..NS {
+            let expected = spectral_locus[c].1.xyz().xyz;
+            let actual = matrix.row(0)[c];
+            assert_abs_diff_eq!(expected, actual, epsilon = 1e-10);
+        }
+    }
+
 }
