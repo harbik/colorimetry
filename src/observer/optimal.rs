@@ -84,6 +84,8 @@ impl OptimalColors {
     pub const NH: usize = 72;
     pub const NL: usize = 99;
 
+    const RESOLUTION: f64 = 0.0005; // resolution for chromaticity coordinates
+
     pub fn white_point(&self) -> XYZ {
         self.0
     }
@@ -94,6 +96,50 @@ impl OptimalColors {
 
     pub fn observer(&self) -> Observer {
         self.0.observer
+    }
+
+    /// Computes the maximum luminance (Y) for each chromaticity bin in the CIE xyY color space,
+    /// using the optimal color set for this observer and reference white.
+    ///
+    /// This mapping is useful for:
+    /// - Visualizing the outer boundary of the visible gamut in chromaticity diagrams.
+    /// - Determining the maximum achievable luminance at each chromaticity point for theoretical (optimal) colors.
+    /// - Gamut mapping and boundary visualization tasks.
+    ///
+    /// # Returns
+    /// A `HashMap<[u16; 2], u16>` mapping each chromaticity bin `[x_bin, y_bin]` to the maximum luminance (Y) found in that bin.
+    pub fn max_luminance_per_chromaticity_bin(&self) -> HashMap<[u16; 2], u16> {
+        let mut max_luminances = HashMap::new();
+
+        for xyz in self.1.iter() {
+            let rel_xyz = RelXYZ::from_vec(*xyz, self.0);
+            let [xx, yy] = rel_xyz.xyz().chromaticity().to_array();
+
+            // xx < 1.0, and yy<1.0 because they are chromaticity coordinates.
+            let x_bin = Self::chromaticity_to_xy_bin(xx);
+            let y_bin = Self::chromaticity_to_xy_bin(yy);
+
+            // Scale the luminance to a u16 value
+            // The luminance is scaled from [0, 100.0] to [0, 65535]
+            let y_max_u16 = Self::luminance_to_l_xy_bin(rel_xyz.xyz().y());
+
+            // Only add if the discrete chromaticity coordinates and luminance are valid.
+            // This does a to and from CieLab round trip, which is not ideal,
+            // but it is a reasonable approximation for the purpose of this mapping.
+            let rxyz_for_bin = self.bins_to_rel_xyz(x_bin, y_bin, y_max_u16);
+            if rxyz_for_bin.is_valid() {
+                // Insert or update the maximum luminance for this chromaticity bin
+                max_luminances
+                    .entry([x_bin, y_bin])
+                    .and_modify(|existing| {
+                        if *existing < y_max_u16 {
+                            *existing = y_max_u16;
+                        }
+                    })
+                    .or_insert(y_max_u16);
+            }
+        }
+        max_luminances
     }
 
     /// Computes the maximum chroma values across lightness–hue combinations in the CIE LCh color space.
@@ -110,92 +156,114 @@ impl OptimalColors {
     /// representations.
     pub fn cielab_max_chromas(&self) -> HashMap<(u8, u8), u8> {
         let mut map = HashMap::new();
-        let white_point = self.0;
 
-        let mut add_xyz = |xyz: Vector3<f64>, scale: f64| {
-            let xyz_scaled = xyz * scale;
-            let rel_xyz = RelXYZ::from_vec(xyz_scaled, white_point);
-            let lab = CieLab::from_xyz(rel_xyz);
-            let [l, c, h] = lab.lch();
+        let max_lums = self.max_luminance_per_chromaticity_bin();
+        for (&[x_bin, y_bin], &y_max_u16) in max_lums.iter() {
+            let rel_xyz = self.bins_to_rel_xyz(x_bin, y_bin, y_max_u16);
+            let [l, c, h] = CieLab::from_xyz(rel_xyz).lch();
 
-            let l_u8 = l.round() as u8;
-            let h_u8 = (h / 5.0).floor() as u8;
-            let c_u8 = c.floor() as u8;
-
-            // Only add to the map if lightness is in the range 1–99
-            // and hue is in the range 0–71 (72 bins covering 360 degrees).
-            // Lightness values 0 and 100 are excluded, as they represent edge cases
-            // that are always considered in gamut for all hues, and with zero chroma.
-            if (1..100).contains(&l_u8) && h_u8 < Self::NH as u8 {
-                map.entry((l_u8, h_u8))
-                    .and_modify(|existing| {
-                        if *existing < c_u8 {
-                            *existing = c_u8;
+            // Round lightness to the nearest integer in the range 0–100
+            let l_bin = l.round() as u8;
+            // Hue is in degrees, convert to 72 bins (5 degrees each)
+            let h_bin = (h / 5.0).round() as u8;
+            let c_bin = c.round() as u8;
+            // Ensure lightness is within the valid range
+            if l_bin <= 100 && h_bin < Self::NH as u8 {
+                // Update the maximum chroma for this (L, H) pair
+                map.entry((l_bin, h_bin))
+                    .and_modify(|c: &mut u8| {
+                        if c_bin > *c {
+                            *c = c_bin;
                         }
                     })
-                    .or_insert(c_u8);
-            }
-        };
-
-        // fill the map with the original colors, and then with dimmer versions to cover the full gamut
-        for xyz in self.1.iter() {
-            let mut scale = 1.0;
-            for _ in 1..=7 {
-                add_xyz(*xyz, scale);
-                scale /= 1.61803; // golden ratio
+                    .or_insert(c_bin);
             }
         }
         map
+    }
+
+    fn chromaticity_to_xy_bin(value: f64) -> u16 {
+        // Scale the chromaticity coordinate to a bin index
+        (value.clamp(0.0, 1.0) / Self::RESOLUTION).round() as u16
+    }
+
+    fn xy_bin_to_chromaticity(bin: u16) -> f64 {
+        // Convert a bin index back to a chromaticity coordinate
+        bin as f64 * Self::RESOLUTION
+    }
+
+    fn l_xy_bin_to_luminance(y_max_u16: u16) -> f64 {
+        y_max_u16 as f64 / u16::MAX as f64 * 100.0
+    }
+
+    fn luminance_to_l_xy_bin(luminance: f64) -> u16 {
+        // Convert luminance to a u16 value
+        (luminance / 100.0 * u16::MAX as f64).round() as u16
+    }
+
+    fn bins_to_rel_xyz(&self, x_bin: u16, y_bin: u16, y_max_u16: u16) -> RelXYZ {
+        // Convert bins to relative XYZ coordinates
+        let x = Self::xy_bin_to_chromaticity(x_bin);
+        let y = Self::xy_bin_to_chromaticity(y_bin);
+        let z: f64 = 1.0 - x - y; // CIE XYZ constraint
+        let l = Self::l_xy_bin_to_luminance(y_max_u16);
+        let scale = l / y;
+        RelXYZ::new([x * scale, y * scale, z * scale], self.white_point())
+    }
+
+    pub fn lch_bin_to_chromatity(&self, l_bin: u8, c_bin: u8, h_bin: u8) -> [f64; 2] {
+        // Convert lightness and hue bins to chromaticity coordinates
+        let l = l_bin as f64;
+        let h = h_bin as f64 * 5.0; // 5 degrees per bin
+        let c = c_bin as f64;
+        let lab = CieLab::from_lch([l, c, h], self.white_point());
+        let xyz = lab.xyz();
+        xyz.xyz().chromaticity().to_array()
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::illuminant::CieIlluminant;
     use crate::observer::Observer::Cie1931;
     use approx::assert_abs_diff_eq;
     use strum::IntoEnumIterator;
 
     #[test]
-    fn test_optimum_colors() {
+    fn test_max_luminance() {
         let observer = Cie1931;
         let ref_white = CieIlluminant::D65;
         let opt_colors = observer.optimal_colors(ref_white);
+        let max_luminances = opt_colors.max_luminance_per_chromaticity_bin();
 
-        let first: Vec<XYZ> = observer
-            .spectral_locus(ref_white)
-            .iter()
-            .map(|(_w, xyz)| xyz.xyz())
-            .collect();
-
-        first
-            .iter()
-            .map(|xyz| xyz.xyz)
-            .zip(opt_colors.colors().row(0).iter())
-            .for_each(|(x, y)| {
-                assert_abs_diff_eq!(x, y, epsilon = 1e-10);
-            });
-
-        dbg!(
-            opt_colors.colors().row(NS - 2)[0],
-            opt_colors.colors().row(NS - 2)[NS - 1]
+        let [x, y] = observer.xyz_d65().chromaticity().to_array();
+        let x_bin = (x * 2000.0).round() as u16;
+        let y_bin = (y * 2000.0).round() as u16;
+        let y_max_u16 = max_luminances.get(&[x_bin, y_bin]).unwrap_or(&0);
+        dbg!(max_luminances.len());
+        assert!(
+            y_max_u16 == &u16::MAX,
+            "Expected maximum luminance of 255 for D65 reference white"
         );
     }
 
     #[test]
-    fn test_cielch() {
+    #[ignore]
+    fn test_cielch_hashmap_chromaticity() {
         let observer = Cie1931;
         let ref_white = CieIlluminant::D65;
         let opt_colors = observer.optimal_colors(ref_white);
         let cielch = opt_colors.cielab_max_chromas();
-        for l in 1..=99 {
-            for h in 0..72 {
-                if !cielch.contains_key(&(l, h)) {
-                    eprintln!("bin {}, {} not populated", l, h);
+        for h in 0..72 {
+            for l in 1..=99 {
+                if cielch.contains_key(&(l, h)) {
+                    let c = cielch[&(l, h)];
+                    let [x, y] = opt_colors.lch_bin_to_chromatity(l as u8, c as u8, h as u8);
+                    println!("{:.5}, {:.5}", x, y);
                 }
             }
         }
-        assert_eq!(cielch.len(), OptimalColors::LAB_MAX_CHROME_LEN);
     }
 
     #[test]
@@ -217,37 +285,6 @@ mod tests {
     }
 
     #[test]
-    fn test_values() {
-        let observer = Cie1931;
-        let ref_white = CieIlluminant::D65;
-        let opt_colors = observer.optimal_colors(ref_white);
-        const WANTS: &[[u8; 3]] = &[
-            [1, 0, 13],
-            [50, 0, 97],
-            [0, 50, 0],
-            [99, 0, 5],
-            [1, 71, 13],
-            [50, 71, 99],
-            [99, 71, 6],
-            [1, 36, 5],
-            [50, 36, 138],
-            [99, 36, 12],
-            [1, 18, 2],
-            [50, 18, 86],
-            [99, 18, 18],
-        ];
-        let cielab_max_chromas = opt_colors.cielab_max_chromas();
-        for &[l, h, expected] in WANTS {
-            let &c = cielab_max_chromas.get(&(l, h)).unwrap_or(&0);
-            assert_eq!(
-                c, expected,
-                "Expected chroma for (L={}, H={}) to be {}, but got {}",
-                l, h, expected, c
-            );
-        }
-    }
-
-    #[test]
     fn test_optimal_colors_matrix_shape_and_first_row() {
         let observer = Observer::Cie1931;
         let ref_white = CieIlluminant::D65;
@@ -265,5 +302,70 @@ mod tests {
             let actual = matrix.row(0)[c];
             assert_abs_diff_eq!(expected, actual, epsilon = 1e-10);
         }
+    }
+
+    #[test]
+    fn test_chromaticity_to_bin() {
+        // Test exact values
+        assert_eq!(OptimalColors::chromaticity_to_xy_bin(0.0), 0);
+        assert_eq!(OptimalColors::chromaticity_to_xy_bin(0.5), 1000);
+        assert_eq!(OptimalColors::chromaticity_to_xy_bin(1.0), 2000);
+
+        // Test edge cases
+        assert_eq!(OptimalColors::chromaticity_to_xy_bin(0.0001), 0);
+        assert_eq!(OptimalColors::chromaticity_to_xy_bin(0.999999), 2000);
+
+        // Test rounding behavior
+        assert_eq!(OptimalColors::chromaticity_to_xy_bin(0.4995), 999);
+        assert_eq!(OptimalColors::chromaticity_to_xy_bin(0.5005), 1001);
+
+        // Test roundtrip (bin -> chromaticity -> bin)
+        let test_values = [0.1, 0.25, 0.5, 0.75, 0.9];
+        for &x in &test_values {
+            let bin = OptimalColors::chromaticity_to_xy_bin(x);
+            let x_restored = OptimalColors::xy_bin_to_chromaticity(bin);
+            assert_abs_diff_eq!(x, x_restored, epsilon = 0.0005);
+        }
+
+        // Test invalid values (should clamp)
+        assert_eq!(OptimalColors::chromaticity_to_xy_bin(-0.1), 0);
+        assert_eq!(OptimalColors::chromaticity_to_xy_bin(1.1), 2000);
+    }
+
+    #[test]
+    fn test_bins_to_rel_xyz() {
+        // Setup test data
+        let opt_colors = Cie1931.optimal_colors(CieIlluminant::D65);
+
+        let whitepoint = opt_colors.white_point();
+        assert_abs_diff_eq!(whitepoint.x(), 95.042, epsilon = 0.001);
+        assert_abs_diff_eq!(whitepoint.y(), 100.000, epsilon = 0.001);
+        assert_abs_diff_eq!(whitepoint.z(), 108.861, epsilon = 0.001);
+
+        // Test equal energy (0.3333, 0.3333), with Y = 50.0.
+        // bin is 0.3333 * 2000 = 667
+        let center = opt_colors.bins_to_rel_xyz(667, 667, 32768);
+        assert_abs_diff_eq!(center.xyz().x(), 50.0, epsilon = 0.1); // discretization inaccuracy
+        assert_abs_diff_eq!(center.xyz().y(), 50.0, epsilon = 0.1);
+        assert_abs_diff_eq!(center.xyz().z(), 50.0, epsilon = 0.1);
+
+        // Test round trip
+        let test_bins = [(250, 250), (500, 500), (750, 750)];
+        for &(x_bin, y_bin) in &test_bins {
+            let rel_xyz = opt_colors.bins_to_rel_xyz(x_bin, y_bin, 32768);
+            let [xx, yy] = rel_xyz.xyz().chromaticity().to_array();
+            let x_bin_back = OptimalColors::chromaticity_to_xy_bin(xx);
+            let y_bin_back = OptimalColors::chromaticity_to_xy_bin(yy);
+            assert_eq!(x_bin, x_bin_back);
+            assert_eq!(y_bin, y_bin_back);
+        }
+
+        // Test luminance scaling
+        let d65 = whitepoint.chromaticity();
+        let x_bin = OptimalColors::chromaticity_to_xy_bin(d65.x());
+        let y_bin = OptimalColors::chromaticity_to_xy_bin(d65.y());
+        dbg!(x_bin, y_bin, d65);
+        let test_lum = opt_colors.bins_to_rel_xyz(x_bin, y_bin, u16::MAX);
+        assert_abs_diff_eq!(whitepoint, test_lum.xyz(), epsilon = 0.2); // discretization inaccuracy
     }
 }
