@@ -259,7 +259,7 @@ mod tests {
             for l in 1..=99 {
                 if cielch.contains_key(&(l, h)) {
                     let c = cielch[&(l, h)];
-                    let [x, y] = opt_colors.lch_bin_to_chromatity(l as u8, c as u8, h as u8);
+                    let [x, y] = opt_colors.lch_bin_to_chromatity(l, c, h);
                     println!("{:.5}, {:.5}", x, y);
                 }
             }

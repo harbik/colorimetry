@@ -242,12 +242,12 @@ impl Light for Rgb {
     /// - The method iterates over the RGB components and the respective primary spectra.
     /// - Each component value is scaled by its corresponding luminance weight (`yrgb`) and then combined
     ///   with the primary spectrum using a weighted sum.
-    /// - The resulting `Spectrum` is returned as an owned `Cow<Spectrum>`.
+    /// - The resulting `Spectrum` is returned as an owned `Cow<'_,Spectrum>`.
     ///
     /// # Notes
     /// - The spectral representation is device-dependent and based on the primaries defined by the `RgbSpace`.
     /// - The observer's data is used to apply luminance scaling, enhancing perceptual accuracy.
-    fn spectrum(&self) -> Cow<Spectrum> {
+    fn spectrum(&self) -> Cow<'_, Spectrum> {
         let prim = &self.space.data().primaries;
         let rgb2xyz = self.observer.rgb2xyz(self.space);
         let yrgb = rgb2xyz.row(1);
@@ -297,14 +297,14 @@ impl Filter for Rgb {
     ///   component as a filter function.
     /// - Each component is scaled by its luminance factor (`yrgb`) to accurately reflect the relative
     ///   contribution of each primary to the resulting spectrum.
-    /// - The resulting spectrum is returned as an owned `Cow<Spectrum>`.
+    /// - The resulting spectrum is returned as an owned `Cow<'_,Spectrum>`.
     ///
     /// # Notes
     /// - The spectral representation is device-dependent, relying on the primary spectra defined in the
     ///   associated `RgbSpace`.
     /// - This implementation excludes the reference illuminant, making it suitable for use as a relative filter
     ///   that can be combined with any illuminant to produce a specific stimulus.
-    fn spectrum(&self) -> Cow<Spectrum> {
+    fn spectrum(&self) -> Cow<'_, Spectrum> {
         let prim = self.space.data().primaries_as_colorants();
         let rgb2xyz = self.observer.rgb2xyz(self.space);
         let yrgb = rgb2xyz.row(1);
