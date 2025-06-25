@@ -38,6 +38,8 @@ pub use chromaticity::Chromaticity;
 
 mod rel_xyz;
 pub use rel_xyz::RelXYZ;
+#[cfg(feature = "gamut-tables")]
+pub use rel_xyz::RelXYZGamut;
 
 use core::f64;
 use std::fmt::Display;
