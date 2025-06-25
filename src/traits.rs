@@ -53,7 +53,7 @@ pub trait Light {
         }
     }
 
-    fn spectrum(&self) -> Cow<Spectrum>;
+    fn spectrum(&self) -> Cow<'_, Spectrum>;
 }
 
 impl From<&dyn Light> for Illuminant {
@@ -63,5 +63,5 @@ impl From<&dyn Light> for Illuminant {
 }
 
 pub trait Filter {
-    fn spectrum(&self) -> Cow<Spectrum>;
+    fn spectrum(&self) -> Cow<'_, Spectrum>;
 }

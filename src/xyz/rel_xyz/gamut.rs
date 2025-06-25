@@ -77,20 +77,20 @@ impl RelXYZGamut {
 
     pub fn data(&self) -> &RelXYZGamutData {
         match self {
-            RelXYZGamut::Cie1931D50 => &*RELXYZ_GAMUT_CIE1931_D50_DATA,
-            RelXYZGamut::Cie1931D65 => &*RELXYZ_GAMUT_CIE1931_D65_DATA,
+            RelXYZGamut::Cie1931D50 => &RELXYZ_GAMUT_CIE1931_D50_DATA,
+            RelXYZGamut::Cie1931D65 => &RELXYZ_GAMUT_CIE1931_D65_DATA,
             #[cfg(feature = "supplemental-observers")]
-            RelXYZGamut::Cie1964D50 => &*CIEXYZ_GAMUT_CIE1964_D50_DATA,
+            RelXYZGamut::Cie1964D50 => &CIEXYZ_GAMUT_CIE1964_D50_DATA,
             #[cfg(feature = "supplemental-observers")]
-            RelXYZGamut::Cie1964D65 => &*CIEXYZ_GAMUT_CIE1964_D65_DATA,
+            RelXYZGamut::Cie1964D65 => &CIEXYZ_GAMUT_CIE1964_D65_DATA,
             #[cfg(feature = "supplemental-observers")]
-            RelXYZGamut::Cie2015D50 => &*CIEXYZ_GAMUT_CIE2015_D50_DATA,
+            RelXYZGamut::Cie2015D50 => &CIEXYZ_GAMUT_CIE2015_D50_DATA,
             #[cfg(feature = "supplemental-observers")]
-            RelXYZGamut::Cie2015D65 => &*CIEXYZ_GAMUT_CIE2015_D65_DATA,
+            RelXYZGamut::Cie2015D65 => &CIEXYZ_GAMUT_CIE2015_D65_DATA,
             #[cfg(feature = "supplemental-observers")]
-            RelXYZGamut::Cie2015_10D50 => &*CIEXYZ_GAMUT_CIE2015_10_D50_DATA,
+            RelXYZGamut::Cie2015_10D50 => &CIEXYZ_GAMUT_CIE2015_10_D50_DATA,
             #[cfg(feature = "supplemental-observers")]
-            RelXYZGamut::Cie2015_10D65 => &*CIEXYZ_GAMUT_CIE2015_10_D65_DATA,
+            RelXYZGamut::Cie2015_10D65 => &CIEXYZ_GAMUT_CIE2015_10_D65_DATA,
         }
     }
 
