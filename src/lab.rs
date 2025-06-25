@@ -27,12 +27,7 @@
 //!   Exported via `#[wasm_bindgen]` for JavaScript interoperability.
 //!
 
-#[cfg(feature = "gamut-tables")]
-mod gamut;
-#[cfg(feature = "gamut-tables")]
-pub use gamut::CieLChGamut;
-
-use approx::ulps_eq;
+use approx::{abs_diff_eq, ulps_eq, AbsDiffEq};
 use nalgebra::Vector3;
 use std::f64::consts::PI;
 
@@ -42,7 +37,7 @@ use crate::{
 };
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct CieLab {
     lab: Vector3<f64>,
     xyzn: XYZ, // Reference white tristimulus value
@@ -166,6 +161,14 @@ impl CieLab {
         [l, c, h]
     }
 
+    pub fn from_lch(lch: [f64; 3], xyzn: XYZ) -> CieLab {
+        let [l, c, h] = lch;
+        let h_rad = h.to_radians();
+        let a = c * h_rad.cos();
+        let b = c * h_rad.sin();
+        CieLab::new([l, a, b], xyzn)
+    }
+
     ///
     /// Computes the CIEDE2000 ΔE color difference between two CIE L*a*b* colors.
     ///
@@ -216,6 +219,20 @@ impl CieLab {
 impl AsRef<[f64; 3]> for CieLab {
     fn as_ref(&self) -> &[f64; 3] {
         self.lab.as_ref()
+    }
+}
+
+impl AbsDiffEq for CieLab {
+    type Epsilon = f64;
+
+    fn default_epsilon() -> Self::Epsilon {
+        1e-6
+    }
+
+    fn abs_diff_eq(&self, other: &Self, epsilon: Self::Epsilon) -> bool {
+        self.xyzn.observer == other.xyzn.observer
+            && self.xyzn == other.xyzn
+            && abs_diff_eq!(self.lab, other.lab, epsilon = epsilon)
     }
 }
 
@@ -274,7 +291,7 @@ fn xyz_from_cielab(lab: Vector3<f64>, xyzn: Vector3<f64>) -> Vector3<f64> {
 
     let f_inv = |f: f64| {
         let f3 = f * f * f;
-        if f3 > EPS {
+        if f3 >= EPS {
             f3
         } else {
             (116.0 * f - 16.0) / KAPPA
@@ -622,5 +639,18 @@ mod tests {
         assert_abs_diff_eq!(l, 30.0);
         assert_abs_diff_eq!(c, 50.0);
         assert_abs_diff_eq!(h, 270.0);
+    }
+
+    #[test]
+    fn test_lch_from_lch() {
+        let xyz_d65 = Cie1931.xyz_d65();
+
+        // Test conversion from LCH to Lab and back
+        let lch = [50.0, 50.0, 30.0]; // L*, C*, h°
+        let lab = CieLab::from_lch(lch, xyz_d65);
+        let lch_converted = lab.lch();
+        assert_abs_diff_eq!(lch_converted[0], lch[0], epsilon = 1e-10);
+        assert_abs_diff_eq!(lch_converted[1], lch[1], epsilon = 1e-10);
+        assert_abs_diff_eq!(lch_converted[2], lch[2], epsilon = 1e-10);
     }
 }
