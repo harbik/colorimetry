@@ -1,7 +1,8 @@
 use clap::{Parser, Subcommand};
 use std::process::Command;
 
-pub mod chroma;
+// pub mod chroma;
+
 
 #[derive(Parser)]
 #[command(name = "xtask", about = "Custom build tasks")]
@@ -58,7 +59,7 @@ fn main() {
             build_wasm();
         }
         Commands::Gen => {
-            chroma::gen_files();
+            todo!()
         }
     }
 }
