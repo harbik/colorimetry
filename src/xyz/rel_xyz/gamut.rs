@@ -9,21 +9,6 @@
 //! - Default support for CIE 1931 2° observer with D50 and D65 illuminants
 //! - Optional support for additional observers (CIE 1964, CIE 2015) via "supplemental-observers" feature
 //! - High-resolution chromaticity binning (2000x2000 bins)
-//!
-//! # Examples
-//! ```
-//! use colorimetry::xyz::RelXYZGamut;
-//!
-//! let gamut = RelXYZGamut::Cie1931D65;
-//! let x_bin = RelXYZGamut::chromaticity_to_bin(0.3);
-//! let y_bin = RelXYZGamut::chromaticity_to_bin(0.4);
-//!
-//! // Get maximum luminance for specific chromaticity coordinates
-//! if let Some(max_luminance) = gamut.max_luminance_for_bin(x_bin, y_bin) {
-//!     // Convert bins back to RelXYZ color
-//!     let color = gamut.bins_to_rel_xyz(x_bin, y_bin, max_luminance);
-//! }
-//! ```
 
 use std::collections::HashMap;
 
@@ -261,7 +246,7 @@ mod tests {
     fn test_relxyz_gamut_data() {
         let gamut = RelXYZGamut::Cie1931D65;
         assert_eq!(gamut.observer(), Observer::Cie1931);
-        assert!(gamut.data().max_luminances.len() > 0);
+        assert!(!gamut.data().max_luminances.is_empty());
     }
 
     #[test]
@@ -276,10 +261,7 @@ mod tests {
                 }
             }
         }
-        assert!(
-            false,
-            "No max luminance found for any bin in the range 200-300"
-        );
+        panic!("No max luminance found for any bin in the range 200-300");
     }
 
     #[test]
@@ -320,7 +302,11 @@ mod tests {
     fn test_max_luminance() {
         let max_luminances = RelXYZGamut::Cie1931D65;
 
-        let [x, y] = max_luminances.observer().xyz_d65().chromaticity().to_array();
+        let [x, y] = max_luminances
+            .observer()
+            .xyz_d65()
+            .chromaticity()
+            .to_array();
         let x_bin = (x * 2000.0).round() as u16;
         let y_bin = (y * 2000.0).round() as u16;
         let y_max_u16 = max_luminances.max_luminance(x_bin, y_bin).unwrap();

@@ -13,11 +13,7 @@
 use nalgebra::{DMatrix, Vector3};
 
 use super::Observer;
-use crate::{
-    illuminant::CieIlluminant,
-    spectrum::NS,
-    xyz::XYZ,
-};
+use crate::{illuminant::CieIlluminant, spectrum::NS, xyz::XYZ};
 
 /// Represents the set of optimal colors in colorimetry.
 ///
@@ -82,7 +78,7 @@ impl OptimalColors {
     pub const NH: usize = 72;
     pub const NL: usize = 99;
 
-   // const RESOLUTION: f64 = 0.0005; // resolution for chromaticity coordinates
+    // const RESOLUTION: f64 = 0.0005; // resolution for chromaticity coordinates
 
     pub fn white_point(&self) -> XYZ {
         self.0
@@ -189,8 +185,6 @@ mod tests {
     use crate::illuminant::CieIlluminant;
     use approx::assert_abs_diff_eq;
 
-
-
     /*
     #[test]
     #[ignore = "This test has output which can be checked."]
@@ -253,69 +247,69 @@ mod tests {
     }
 
     /*
-    #[test]
-    fn test_chromaticity_to_bin() {
-        // Test exact values
-        assert_eq!(OptimalColors::chromaticity_to_xy_bin(0.0), 0);
-        assert_eq!(OptimalColors::chromaticity_to_xy_bin(0.5), 1000);
-        assert_eq!(OptimalColors::chromaticity_to_xy_bin(1.0), 2000);
+        #[test]
+        fn test_chromaticity_to_bin() {
+            // Test exact values
+            assert_eq!(OptimalColors::chromaticity_to_xy_bin(0.0), 0);
+            assert_eq!(OptimalColors::chromaticity_to_xy_bin(0.5), 1000);
+            assert_eq!(OptimalColors::chromaticity_to_xy_bin(1.0), 2000);
 
-        // Test edge cases
-        assert_eq!(OptimalColors::chromaticity_to_xy_bin(0.0001), 0);
-        assert_eq!(OptimalColors::chromaticity_to_xy_bin(0.999999), 2000);
+            // Test edge cases
+            assert_eq!(OptimalColors::chromaticity_to_xy_bin(0.0001), 0);
+            assert_eq!(OptimalColors::chromaticity_to_xy_bin(0.999999), 2000);
 
-        // Test rounding behavior
-        assert_eq!(OptimalColors::chromaticity_to_xy_bin(0.4995), 999);
-        assert_eq!(OptimalColors::chromaticity_to_xy_bin(0.5005), 1001);
+            // Test rounding behavior
+            assert_eq!(OptimalColors::chromaticity_to_xy_bin(0.4995), 999);
+            assert_eq!(OptimalColors::chromaticity_to_xy_bin(0.5005), 1001);
 
-        // Test roundtrip (bin -> chromaticity -> bin)
-        let test_values = [0.1, 0.25, 0.5, 0.75, 0.9];
-        for &x in &test_values {
-            let bin = OptimalColors::chromaticity_to_xy_bin(x);
-            let x_restored = OptimalColors::xy_bin_to_chromaticity(bin);
-            assert_abs_diff_eq!(x, x_restored, epsilon = 0.0005);
+            // Test roundtrip (bin -> chromaticity -> bin)
+            let test_values = [0.1, 0.25, 0.5, 0.75, 0.9];
+            for &x in &test_values {
+                let bin = OptimalColors::chromaticity_to_xy_bin(x);
+                let x_restored = OptimalColors::xy_bin_to_chromaticity(bin);
+                assert_abs_diff_eq!(x, x_restored, epsilon = 0.0005);
+            }
+
+            // Test invalid values (should clamp)
+            assert_eq!(OptimalColors::chromaticity_to_xy_bin(-0.1), 0);
+            assert_eq!(OptimalColors::chromaticity_to_xy_bin(1.1), 2000);
         }
 
-        // Test invalid values (should clamp)
-        assert_eq!(OptimalColors::chromaticity_to_xy_bin(-0.1), 0);
-        assert_eq!(OptimalColors::chromaticity_to_xy_bin(1.1), 2000);
-    }
+        #[test]
+        fn test_bins_to_rel_xyz() {
+            // Setup test data
+            let opt_colors = Cie1931.optimal_colors(CieIlluminant::D65);
 
-    #[test]
-    fn test_bins_to_rel_xyz() {
-        // Setup test data
-        let opt_colors = Cie1931.optimal_colors(CieIlluminant::D65);
+            let whitepoint = opt_colors.white_point();
+            assert_abs_diff_eq!(whitepoint.x(), 95.042, epsilon = 0.001);
+            assert_abs_diff_eq!(whitepoint.y(), 100.000, epsilon = 0.001);
+            assert_abs_diff_eq!(whitepoint.z(), 108.861, epsilon = 0.001);
 
-        let whitepoint = opt_colors.white_point();
-        assert_abs_diff_eq!(whitepoint.x(), 95.042, epsilon = 0.001);
-        assert_abs_diff_eq!(whitepoint.y(), 100.000, epsilon = 0.001);
-        assert_abs_diff_eq!(whitepoint.z(), 108.861, epsilon = 0.001);
+            // Test equal energy (0.3333, 0.3333), with Y = 50.0.
+            // bin is 0.3333 * 2000 = 667
+            let center = opt_colors.bins_to_rel_xyz(667, 667, 32768);
+            assert_abs_diff_eq!(center.xyz().x(), 50.0, epsilon = 0.1); // discretization inaccuracy
+            assert_abs_diff_eq!(center.xyz().y(), 50.0, epsilon = 0.1);
+            assert_abs_diff_eq!(center.xyz().z(), 50.0, epsilon = 0.1);
 
-        // Test equal energy (0.3333, 0.3333), with Y = 50.0.
-        // bin is 0.3333 * 2000 = 667
-        let center = opt_colors.bins_to_rel_xyz(667, 667, 32768);
-        assert_abs_diff_eq!(center.xyz().x(), 50.0, epsilon = 0.1); // discretization inaccuracy
-        assert_abs_diff_eq!(center.xyz().y(), 50.0, epsilon = 0.1);
-        assert_abs_diff_eq!(center.xyz().z(), 50.0, epsilon = 0.1);
+            // Test round trip
+            let test_bins = [(250, 250), (500, 500), (750, 750)];
+            for &(x_bin, y_bin) in &test_bins {
+                let rel_xyz = opt_colors.bins_to_rel_xyz(x_bin, y_bin, 32768);
+                let [xx, yy] = rel_xyz.xyz().chromaticity().to_array();
+                let x_bin_back = OptimalColors::chromaticity_to_xy_bin(xx);
+                let y_bin_back = OptimalColors::chromaticity_to_xy_bin(yy);
+                assert_eq!(x_bin, x_bin_back);
+                assert_eq!(y_bin, y_bin_back);
+            }
 
-        // Test round trip
-        let test_bins = [(250, 250), (500, 500), (750, 750)];
-        for &(x_bin, y_bin) in &test_bins {
-            let rel_xyz = opt_colors.bins_to_rel_xyz(x_bin, y_bin, 32768);
-            let [xx, yy] = rel_xyz.xyz().chromaticity().to_array();
-            let x_bin_back = OptimalColors::chromaticity_to_xy_bin(xx);
-            let y_bin_back = OptimalColors::chromaticity_to_xy_bin(yy);
-            assert_eq!(x_bin, x_bin_back);
-            assert_eq!(y_bin, y_bin_back);
+            // Test luminance scaling
+            let d65 = whitepoint.chromaticity();
+            let x_bin = OptimalColors::chromaticity_to_xy_bin(d65.x());
+            let y_bin = OptimalColors::chromaticity_to_xy_bin(d65.y());
+            dbg!(x_bin, y_bin, d65);
+            let test_lum = opt_colors.bins_to_rel_xyz(x_bin, y_bin, u16::MAX);
+            assert_abs_diff_eq!(whitepoint, test_lum.xyz(), epsilon = 0.2); // discretization inaccuracy
         }
-
-        // Test luminance scaling
-        let d65 = whitepoint.chromaticity();
-        let x_bin = OptimalColors::chromaticity_to_xy_bin(d65.x());
-        let y_bin = OptimalColors::chromaticity_to_xy_bin(d65.y());
-        dbg!(x_bin, y_bin, d65);
-        let test_lum = opt_colors.bins_to_rel_xyz(x_bin, y_bin, u16::MAX);
-        assert_abs_diff_eq!(whitepoint, test_lum.xyz(), epsilon = 0.2); // discretization inaccuracy
-    }
-*/
+    */
 }
