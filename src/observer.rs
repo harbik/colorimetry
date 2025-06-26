@@ -80,18 +80,18 @@ use strum::{AsRefStr, EnumIter};
 ///
 ///     It's main purpose is to calculate `XYZ` tristimulus values for a general stimulus,
 ///     in from of a `Spectrum`.
-struct ObserverData {
-    data: SMatrix<f64, 3, NS>,
-    lumconst: f64,
-    tag: Observer,
-    name: &'static str,
-    d65: OnceLock<XYZ>,
-    d50: OnceLock<XYZ>,
+pub struct ObserverData {
+    pub data: SMatrix<f64, 3, NS>,
+    pub lumconst: f64,
+    pub tag: Observer,
+    pub name: &'static str,
+    pub d65: OnceLock<XYZ>,
+    pub d50: OnceLock<XYZ>,
 
     /// The range of indices for which the spectral locus of this observer returns unique
     /// chromaticity coordinates. See documentation for the
     /// [`ObserverData::spectral_locus_wavelength_range`] method for details.
-    spectral_locus_range: RangeInclusive<usize>,
+    pub spectral_locus_range: RangeInclusive<usize>,
 }
 
 impl ObserverData {

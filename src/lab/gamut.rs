@@ -144,7 +144,7 @@ mod tests {
         let l = 50;
         for h in 0..=100 {
             if let Some(c) = gamut.max_chroma(l, h) {
-                println!("Max luminance found for bin ({}, {}): {}", l, h, c);
+                println!("Max luminance found for bin ({l}, {h}): {c}");
                 return;
             }
         }
@@ -200,7 +200,7 @@ mod tests {
                 if let Some(c) = gamut.max_chroma(l, h) {
                     let lab = gamut.bins_to_cielab(l, c, h);
                     let [x, y] = lab.xyz().xyz().chromaticity().to_array();
-                    print!("[{:.5}, {:.5}],", x, y);
+                    print!("[{x:.5}, {y:.5}],");
                 }
             }
             println!("],");

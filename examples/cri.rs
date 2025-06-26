@@ -22,7 +22,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let tint = d * 1000.0;
 
         // Output Results
-        let s = format!("{}", spc);
+        let s = format!("{spc}");
         println!("\n{}", s.bold().underline());
         println!("CCT  = {t:.0} Kelvin");
         println!("Duv  = {d:.5}");

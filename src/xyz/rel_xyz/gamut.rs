@@ -151,7 +151,7 @@ mod tests {
             for y in 200..=300 {
                 let max_luminance = gamut.max_luminance(x, y);
                 if let Some(luminance) = max_luminance {
-                    println!("Max luminance found for bin ({}, {}): {}", x, y, luminance);
+                    println!("Max luminance found for bin ({x}, {y}): {luminance}");
                     return;
                 }
             }
