@@ -586,7 +586,7 @@ mod obs_test {
     #[test]
     fn test_spectral_locus_to_rgb() {
         for observer in Observer::iter() {
-            eprintln!("Testing observer {:?}", observer);
+            eprintln!("Testing observer {observer:?}");
             for wavelength in observer.spectral_locus_wavelength_range() {
                 let xyz = observer.xyz_at_wavelength(wavelength).unwrap();
                 for rgbspace in RgbSpace::iter() {

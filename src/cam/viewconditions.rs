@@ -235,7 +235,7 @@ impl ViewConditions {
         if let Some(d) = self.dopt {
             d.clamp(0.0, 1.0)
         } else {
-            (self.f * (1.0 - (1.0 / 3.6) * ((-1.0 * self.la - 42.0) / 92.0).exp())).clamp(0.0, 1.0)
+            (self.f * (1.0 - (1.0 / 3.6) * ((-self.la - 42.0) / 92.0).exp())).clamp(0.0, 1.0)
         }
     }
 
