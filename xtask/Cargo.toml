@@ -6,7 +6,7 @@ rust-version = "1.80"
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }  # for argument parsing
-strum = {version = "0.27", features = ["derive"]}  # for enum iteration and derive macros
+strum = {version = "0.25", features = ["derive"]}  # for enum iteration and derive macros
 colorimetry = { path = ".." , features = ["supplemental-observers", "cie-illuminants"]} # to use the main library
 handlebars = "6.3.2"
 serde = { version = "1.0.219", features = ["derive"] }

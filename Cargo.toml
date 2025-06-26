@@ -24,7 +24,7 @@ nalgebra = "0.33"
 approx = "0.5.1"
 libm = "0.2.8"
 thiserror = "1.0.63"
-strum = {version = "0.27", features = ["derive"]} # for enum iteration and derive macros
+strum = {version = "0.25", features = ["derive"]} # for enum iteration and derive macros
 num-traits = "0.2.19"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
