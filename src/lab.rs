@@ -73,18 +73,6 @@ impl CieLab {
         self.lab[0]
     }
 
-    pub fn a(&self) -> f64 {
-        self.lab[1]
-    }
-
-    pub fn b(&self) -> f64 {
-        self.lab[2]
-    }
-
-    pub fn l(&self) -> f64 {
-        self.lab[0]
-    }
-
     /// Creates a new CIE L*a*b* color from the given XYZ color and reference white.
     ///
     /// # Arguments
@@ -108,11 +96,6 @@ impl CieLab {
         let xyz = xyz_from_cielab(self.lab, self.xyzn.xyz);
         // unwrap - same observer
         RelXYZ::from_xyz(XYZ::from_vecs(xyz, self.xyzn.observer), self.xyzn).unwrap()
-    }
-
-    /// Returns the reference white tristimulus value for this CIE L*a*b* color.
-    pub fn xyzn(&self) -> XYZ {
-        self.xyzn
     }
 
     /// Returns the reference white tristimulus value for this CIE L*a*b* color.
@@ -193,14 +176,6 @@ impl CieLab {
             b.atan2(a).to_degrees().rem_euclid(360.0) // Convert to degrees and normalize
         };
         [l, c, h]
-    }
-
-    pub fn from_lch(lch: [f64; 3], xyzn: XYZ) -> CieLab {
-        let [l, c, h] = lch;
-        let h_rad = h.to_radians();
-        let a = c * h_rad.cos();
-        let b = c * h_rad.sin();
-        CieLab::new([l, a, b], xyzn)
     }
 
     pub fn from_lch(lch: [f64; 3], xyzn: XYZ) -> CieLab {
