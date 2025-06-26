@@ -32,7 +32,7 @@ use crate::{illuminant::CieIlluminant, spectrum::NS, xyz::XYZ};
 /// essential for defining the theoretical gamut of visible colors.
 pub struct OptimalColors(XYZ, DMatrix<Vector3<f64>>);
 
-impl Observer {
+impl OptimalColors {
     /// Computes the optimal colors for the observer under the specified reference white.
     ///
     /// The resulting `OptimalColors` contains a matrix of tristimulus values
@@ -54,9 +54,9 @@ impl Observer {
     ///   - Each column corresponds to a starting wavelength, and each row to a filter width.
     /// * This is a theoretical construct and may not correspond to physically realizable colors.
     /// * As it calculates about 160,000 colors, it may be computationally intensive.
-    pub fn optimal_colors(&self, ref_white: CieIlluminant) -> OptimalColors {
+    pub fn new(observer: Observer, ref_white: CieIlluminant) -> OptimalColors {
         let mut optcol: DMatrix<Vector3<f64>> = DMatrix::zeros(NS - 1, NS);
-        let spectral_locus = self.spectral_locus(ref_white);
+        let spectral_locus = observer.spectral_locus(ref_white);
         let white_point = spectral_locus[0].1.white_point();
 
         for c in 0..NS {
@@ -71,10 +71,6 @@ impl Observer {
         }
         OptimalColors(white_point, optcol)
     }
-}
-
-impl OptimalColors {
-    // const RESOLUTION: f64 = 0.0005; // resolution for chromaticity coordinates
 
     pub fn white_point(&self) -> XYZ {
         self.0
@@ -99,7 +95,7 @@ mod tests {
     fn test_optimal_colors_matrix_shape_and_first_row() {
         let observer = Observer::Cie1931;
         let ref_white = CieIlluminant::D65;
-        let opt_colors = observer.optimal_colors(ref_white);
+        let opt_colors = OptimalColors::new(observer, ref_white);
         let matrix = opt_colors.colors();
 
         // Check matrix shape

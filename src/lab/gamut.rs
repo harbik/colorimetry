@@ -14,7 +14,7 @@ use std::collections::HashMap;
 
 use crate::illuminant::CieIlluminant;
 use crate::lab::CieLab;
-use crate::observer::Observer;
+use crate::observer::{Observer, OptimalColors};
 use crate::traits::Light;
 use crate::xyz::{RelXYZ, XYZ};
 
@@ -32,7 +32,7 @@ impl CieLChGamut {
     const L_SCALE: f64 = Self::L_BINS as f64 / 100.0;
 
     pub fn new(observer: Observer, illuminant: CieIlluminant) -> Self {
-        let opt_colors = observer.optimal_colors(illuminant);
+        let opt_colors = OptimalColors::new(observer, illuminant);
         let whitepoint = illuminant.xyzn100(observer);
         let mut max_chromas = HashMap::new();
         for xyz in opt_colors.colors().iter() {

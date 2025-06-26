@@ -264,7 +264,7 @@ what you'd actually see on a freshly painted surface.
   - [`Observer::Cie2015`] the CIE 2015 2º cone fundamentals-based observer (optional, enabled by default)
   - [`Observer::Cie2015_10`] the CIE 2015 10º cone fundamentals-based observer (optional, enabled by default)
 
-- Compute gamut boundaries for CIE XYZ (`RelXYZGamut`) and CIELAB (`CieLChGamut`) using optimal colors (`OptimalColors`).
+- Compute gamut boundaries for CIE XYZ ([`RelXYZGamut`]) and CIELAB ([`CieLChGamut`]) using optimal colors ([`OptimalColors`]).
   - Estimate the total number of perceptually distinct colors.
   - Plot CIE LCh iso-hue lines and iso-lightness contours on chromaticity diagrams.
   - Plot maximum luminance value contours on chromaticity diagrams.
@@ -423,9 +423,5 @@ dual licensed as above, without any additional terms or conditions.
 [`LED_BH1`]: https://docs.rs/colorimetry/latest/colorimetry/illuminant/static.LED_BH1.html
 [`LED_RGB1`]: https://docs.rs/colorimetry/latest/colorimetry/illuminant/static.LED_RGB1.html
 [`LED_V1`]: https://docs.rs/colorimetry/latest/colorimetry/illuminant/static.LED_V1.html
-
-[^1]: Commission Internationale de l'Éclairage. (2004). *CIE 015:2004: Colorimetry* (3rd ed.). Vienna.
-[^2]: Commission Internationale de l'Éclairage, (1995). *CIE 13.3-1995: Method of Measuring and Specifying Colour Rendering Properties of Light Sources*, Vienna.
-[^3]: Commission Internationale de l'Éclairage. (2017). *CIE 224:2017: Colour Fidelity Index for accurate scientific use*. Vienna.
 
 <!-- cargo-rdme end -->

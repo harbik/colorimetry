@@ -13,7 +13,7 @@
 use std::collections::HashMap;
 
 use crate::illuminant::CieIlluminant;
-use crate::observer::Observer;
+use crate::observer::{Observer, OptimalColors};
 use crate::xyz::{RelXYZ, XYZ};
 
 /// Configuration constant defining the resolution for chromaticity binning.
@@ -50,7 +50,7 @@ impl RelXYZGamut {
     /// # Returns
     /// A `HashMap<[u16; 2], u16>` mapping each chromaticity bin `[x_bin, y_bin]` to the maximum luminance (Y) found in that bin.
     pub fn new(observer: Observer, illuminant: CieIlluminant) -> Self {
-        let opt_colors = observer.optimal_colors(illuminant);
+        let opt_colors = OptimalColors::new(observer, illuminant);
         let whitepoint = opt_colors.white_point();
         let mut max_luminances = HashMap::new();
         for xyz in opt_colors.colors().iter() {
