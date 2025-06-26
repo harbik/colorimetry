@@ -264,6 +264,16 @@ what you'd actually see on a freshly painted surface.
   - [`Observer::Cie2015`] the CIE 2015 2º cone fundamentals-based observer (optional, enabled by default)
   - [`Observer::Cie2015_10`] the CIE 2015 10º cone fundamentals-based observer (optional, enabled by default)
 
+- Compute gamut boundaries for CIE XYZ (`RelXYZGamut`) and CIELAB (`CieLChGamut`) using optimal colors (`OptimalColors`).
+  - Estimate the total number of perceptually distinct colors.
+  - Plot CIE LCh iso-hue lines and iso-lightness contours on chromaticity diagrams.
+  - Plot maximum luminance value contours on chromaticity diagrams.
+  - Use in hue-neutral gamut-compression algorithms.
+
+[^1]: McCamy, C. S. (1992). Correlated color temperature as an explicit function of chromaticity coordinates. Color Research & Application, 17(2), 142-144.
+[^2]: Wyszecki, G., & Stiles, W. S. (2000). Color science: concepts and methods, quantitative data and formulae. John Wiley & Sons.
+[^3]: Li, C., Luo, M. R., & Cui, G. (2020). The CIE 2017 colour fidelity index for accurate scientific use. Optics express, 28(5), 6589-6609.
+
 ## Features
 
 - `supplemental-observers`
@@ -368,6 +378,9 @@ dual licensed as above, without any additional terms or conditions.
 [`RgbSpace::SRGB`]: https://docs.rs/colorimetry/latest/colorimetry/rgb/enum.RgbSpace.html#variant.SRGB
 [`RgbSpace::Adobe`]: https://docs.rs/colorimetry/latest/colorimetry/rgb/enum.RgbSpace.html#variant.Adobe
 [`RgbSpace::DisplayP3`]: https://docs.rs/colorimetry/latest/colorimetry/rgb/enum.RgbSpace.html#variant.DisplayP3
+[`CieLChGamut`]: https://docs.rs/colorimetry/latest/colorimetry/lab/struct.CieLchGamut.html
+[`RelXYZGamut`]: https://docs.rs/colorimetry/latest/colorimetry/xyz/struct.RelXYZGamut.html
+[`OptimalColors`]: https://docs.rs/colorimetry/latest/colorimetry/observer/struct.OptimalColors.html
 
 [`CES`]: https://docs.rs/colorimetry/latest/colorimetry/colorant/static.CES.html
 [`MunsellCollection`]: https://docs.rs/colorimetry/latest/colorimetry/colorant/struct.MunsellCollection.html
