@@ -18,6 +18,9 @@ enum Commands {
     Doc,
     /// Builds the wasm-bindgen output using wasm-pack
     Wasm,
+    /// Generates data structures which are expensive to generate,
+    /// and which are used in the library.
+    Gen,
 }
 
 fn main() {
@@ -51,6 +54,9 @@ fn main() {
         }
         Commands::Wasm => {
             build_wasm();
+        }
+        Commands::Gen => {
+            todo!()
         }
     }
 }

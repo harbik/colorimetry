@@ -262,7 +262,7 @@ where
 /// Make colorant data available as a generic [`Filter`] entity, used in particular
 /// in the [`Observer`] tristiumulus `xyz`-function.
 impl Filter for Colorant {
-    fn spectrum(&self) -> Cow<Spectrum> {
+    fn spectrum(&self) -> Cow<'_, Spectrum> {
         Cow::Borrowed(&self.0)
     }
 }

@@ -84,7 +84,7 @@ impl Stimulus {
 }
 
 impl Light for Stimulus {
-    fn spectrum(&self) -> Cow<Spectrum> {
+    fn spectrum(&self) -> Cow<'_, Spectrum> {
         Cow::Borrowed(self)
     }
 }

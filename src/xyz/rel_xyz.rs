@@ -5,6 +5,12 @@ use crate::lab::CieLab;
 
 use super::XYZ;
 
+#[cfg(feature = "gamut-tables")]
+mod gamut;
+
+#[cfg(feature = "gamut-tables")]
+pub use gamut::RelXYZGamut;
+
 /// # Related Tristimulus Values
 ///
 /// Tristimulus Values for a given sample and reference white,

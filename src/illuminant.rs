@@ -335,7 +335,7 @@ impl Mul<Illuminant> for f64 {
 }
 
 impl Light for Illuminant {
-    fn spectrum(&self) -> Cow<Spectrum> {
+    fn spectrum(&self) -> Cow<'_, Spectrum> {
         Cow::Borrowed(self.as_ref())
     }
 }
