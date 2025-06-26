@@ -31,6 +31,11 @@ use approx::{abs_diff_eq, ulps_eq, AbsDiffEq};
 use nalgebra::Vector3;
 use std::f64::consts::PI;
 
+#[cfg(feature = "gamut-tables")]
+mod gamut;
+#[cfg(feature = "gamut-tables")]
+pub use gamut::CieJChGamut;
+
 use crate::{
     error::Error,
     xyz::{RelXYZ, XYZ},
@@ -54,6 +59,18 @@ impl CieLab {
     pub fn new(lab: [f64; 3], xyzn: XYZ) -> CieLab {
         let lab = Vector3::from(lab);
         CieLab { lab, xyzn }
+    }
+
+    pub fn a(&self) -> f64 {
+        self.lab[1]
+    }
+
+    pub fn b(&self) -> f64 {
+        self.lab[2]
+    }
+
+    pub fn l(&self) -> f64 {
+        self.lab[0]
     }
 
     /// Creates a new CIE L*a*b* color from the given XYZ color and reference white.
@@ -213,6 +230,24 @@ impl CieLab {
     /// An array containing the L*, a*, and b* values of the color.
     pub fn values(&self) -> [f64; 3] {
         *self.lab.as_ref()
+    }
+
+    /// Validates the CIE L*a*b* color values.
+    /// # Returns
+    /// `true` if the L*, a*, and b* values are within valid ranges and
+    /// the round-trip conversion to and from XYZ is consistent; `false` otherwise.
+    pub fn is_valid(&self) -> bool {
+        let [l, a, b] = self.values();
+        if (0.0..=100.0).contains(&l)
+            && (-200.0..=200.0).contains(&a)
+            && ((-200.0..=200.0).contains(&b))
+        {
+            let xyz = self.xyz();
+            let lab_ret = CieLab::from_xyz(xyz);
+            abs_diff_eq!(self.lab, lab_ret.lab, epsilon = 1e-5)
+        } else {
+            false
+        }
     }
 }
 

@@ -14,9 +14,7 @@ use std::collections::HashMap;
 
 use crate::illuminant::CieIlluminant;
 use crate::observer::Observer;
-use crate::traits::Light;
-use crate::xyz::RelXYZ;
-use std::sync::LazyLock;
+use crate::xyz::{RelXYZ, XYZ};
 
 /// Configuration constant defining the resolution for chromaticity binning.
 /// Higher values provide more precise gamut boundary representation at the cost of memory usage.
@@ -33,59 +31,14 @@ const MAX_BIN: u16 = CHROMATICITY_BINS - 1;
 /// Scale factor for converting chromaticity to bin index
 const BIN_SCALE: f64 = CHROMATICITY_BINS as f64;
 
-/// Stores gamut data for a specific combination of observer and illuminant.
-/// Contains maximum luminance values indexed by chromaticity coordinates.
-macro_rules! generate_relxyz_gamuts {
-    ($(($identifier:ident, $observer:ident, $illuminant:ident)),* $(,)?) => {
-        $(
-            static $identifier: LazyLock<RelXYZGamutData> = LazyLock::new(|| {
-              //  let opt_colors = Observer::$observer.optimal_colors(CieIlluminant::$illuminant);
-              //  let hashmap = opt_colors.max_luminance_per_chromaticity_bin();
-                RelXYZGamutData::new(
-                    Observer::$observer,
-                    CieIlluminant::$illuminant,
-                )
-            });
-        )*
-    };
-}
-
-generate_relxyz_gamuts!(
-    (RELXYZ_GAMUT_CIE1931_D50_DATA, Cie1931, D50),
-    (RELXYZ_GAMUT_CIE1931_D65_DATA, Cie1931, D65),
-);
-
-#[cfg(feature = "supplemental-observers")]
-generate_relxyz_gamuts!(
-    (CIEXYZ_GAMUT_CIE1964_D50_DATA, Cie1964, D50),
-    (CIEXYZ_GAMUT_CIE1964_D65_DATA, Cie1964, D65),
-    (CIEXYZ_GAMUT_CIE2015_D50_DATA, Cie2015, D50),
-    (CIEXYZ_GAMUT_CIE2015_D65_DATA, Cie2015, D65),
-    (CIEXYZ_GAMUT_CIE2015_10_D50_DATA, Cie2015_10, D50),
-    (CIEXYZ_GAMUT_CIE2015_10_D65_DATA, Cie2015_10, D65),
-);
-
-struct RelXYZGamutData {
+pub struct RelXYZGamut {
     illuminant: CieIlluminant,
+    whitepoint: XYZ,
     observer: Observer,
     max_luminances: HashMap<[u16; 2], u16>,
 }
 
-impl RelXYZGamutData {
-    /*
-    const fn new(
-        observer: Observer,
-        illuminant: CieIlluminant,
-        max_luminances: HashMap<[u16; 2], u16>,
-    ) -> Self {
-        RelXYZGamutData {
-            illuminant,
-            observer,
-            max_luminances,
-        }
-    }
-     */
-
+impl RelXYZGamut {
     /// Computes the maximum luminance (Y) for each chromaticity bin in the CIE xyY color space,
     /// using the optimal color set for this observer and reference white.
     ///
@@ -98,6 +51,7 @@ impl RelXYZGamutData {
     /// A `HashMap<[u16; 2], u16>` mapping each chromaticity bin `[x_bin, y_bin]` to the maximum luminance (Y) found in that bin.
     pub fn new(observer: Observer, illuminant: CieIlluminant) -> Self {
         let opt_colors = observer.optimal_colors(illuminant);
+        let whitepoint = opt_colors.white_point();
         let mut max_luminances = HashMap::new();
         for xyz in opt_colors.colors().iter() {
             let rel_xyz = RelXYZ::from_vec(*xyz, opt_colors.white_point());
@@ -114,8 +68,7 @@ impl RelXYZGamutData {
             // Only add if the discrete chromaticity coordinates and luminance are valid.
             // This does a to and from CieLab round trip, which is not ideal,
             // but it is a reasonable approximation for the purpose of this mapping.
-            let rxyz_for_bin =
-                Self::bins_to_rel_xyz_static(observer, illuminant, x_bin, y_bin, y_max_u16);
+            let rxyz_for_bin = Self::bins_to_rel_xyz_static(whitepoint, x_bin, y_bin, y_max_u16);
             if rxyz_for_bin.is_valid() {
                 // Insert or update the maximum luminance for this chromaticity bin
                 max_luminances
@@ -128,16 +81,23 @@ impl RelXYZGamutData {
                     .or_insert(y_max_u16);
             }
         }
-        RelXYZGamutData {
+        RelXYZGamut {
             illuminant,
             observer,
             max_luminances,
+            whitepoint,
         }
     }
 
+    pub fn observer(&self) -> Observer {
+        self.observer
+    }
+    pub fn illuminant(&self) -> CieIlluminant {
+        self.illuminant
+    }
+
     pub fn bins_to_rel_xyz_static(
-        observer: Observer,
-        illuminant: CieIlluminant,
+        whitepoint: XYZ,
         x_bin: u16,
         y_bin: u16,
         y_max_u16: u16,
@@ -147,7 +107,7 @@ impl RelXYZGamutData {
         let z = 1.0 - x - y;
         let l = y_max_u16 as f64 / u16::MAX as f64 * 100.0;
         let scale = l / y.max(f64::EPSILON);
-        RelXYZ::new([x * scale, l, z * scale], illuminant.xyzn100(observer))
+        RelXYZ::new([x * scale, l, z * scale], whitepoint)
     }
 
     pub fn chromaticity_to_bin(value: f64) -> u16 {
@@ -162,78 +122,13 @@ impl RelXYZGamutData {
         // Convert luminance to a u16 value
         (luminance / 100.0 * u16::MAX as f64).round() as u16
     }
-}
-
-#[non_exhaustive]
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, strum::Display)]
-/// Represents available RelXYZ gamut configurations for different observer/illuminant combinations.
-///
-/// Provides methods for:
-/// - Accessing observer and illuminant information
-/// - Converting between chromaticity values and bin indices
-/// - Retrieving maximum luminance values for specific chromaticity coordinates
-/// - Converting bin coordinates to RelXYZ colors
-///
-/// The default configuration is CIE 1931 2° observer with D65 illuminant.
-/// Additional configurations are available with the "supplemental-observers" feature.
-pub enum RelXYZGamut {
-    #[default]
-    Cie1931D65,
-    Cie1931D50,
-    #[cfg(feature = "supplemental-observers")]
-    Cie1964D50,
-    #[cfg(feature = "supplemental-observers")]
-    Cie1964D65,
-    #[cfg(feature = "supplemental-observers")]
-    Cie2015D50,
-    #[cfg(feature = "supplemental-observers")]
-    Cie2015D65,
-    #[cfg(feature = "supplemental-observers")]
-    Cie2015_10D50,
-    #[cfg(feature = "supplemental-observers")]
-    Cie2015_10D65,
-}
-
-impl RelXYZGamut {
-    pub fn observer(&self) -> Observer {
-        self.data().observer
-    }
-
-    pub fn illuminant(&self) -> CieIlluminant {
-        self.data().illuminant
-    }
 
     pub fn bins_to_rel_xyz(&self, x_bin: u16, y_bin: u16, y_max_u16: u16) -> RelXYZ {
-        RelXYZGamutData::bins_to_rel_xyz_static(
-            self.observer(),
-            self.illuminant(),
-            x_bin,
-            y_bin,
-            y_max_u16,
-        )
-    }
-
-    fn data(&self) -> &RelXYZGamutData {
-        match self {
-            RelXYZGamut::Cie1931D50 => &RELXYZ_GAMUT_CIE1931_D50_DATA,
-            RelXYZGamut::Cie1931D65 => &RELXYZ_GAMUT_CIE1931_D65_DATA,
-            #[cfg(feature = "supplemental-observers")]
-            RelXYZGamut::Cie1964D50 => &CIEXYZ_GAMUT_CIE1964_D50_DATA,
-            #[cfg(feature = "supplemental-observers")]
-            RelXYZGamut::Cie1964D65 => &CIEXYZ_GAMUT_CIE1964_D65_DATA,
-            #[cfg(feature = "supplemental-observers")]
-            RelXYZGamut::Cie2015D50 => &CIEXYZ_GAMUT_CIE2015_D50_DATA,
-            #[cfg(feature = "supplemental-observers")]
-            RelXYZGamut::Cie2015D65 => &CIEXYZ_GAMUT_CIE2015_D65_DATA,
-            #[cfg(feature = "supplemental-observers")]
-            RelXYZGamut::Cie2015_10D50 => &CIEXYZ_GAMUT_CIE2015_10_D50_DATA,
-            #[cfg(feature = "supplemental-observers")]
-            RelXYZGamut::Cie2015_10D65 => &CIEXYZ_GAMUT_CIE2015_10_D65_DATA,
-        }
+        RelXYZGamut::bins_to_rel_xyz_static(self.whitepoint, x_bin, y_bin, y_max_u16)
     }
 
     pub fn max_luminance(&self, x: u16, y: u16) -> Option<u16> {
-        self.data().max_luminances.get(&[x, y]).copied()
+        self.max_luminances.get(&[x, y]).copied()
     }
 }
 
@@ -244,14 +139,14 @@ mod tests {
 
     #[test]
     fn test_relxyz_gamut_data() {
-        let gamut = RelXYZGamut::Cie1931D65;
-        assert_eq!(gamut.observer(), Observer::Cie1931);
-        assert!(!gamut.data().max_luminances.is_empty());
+        let gamut = RelXYZGamut::new(Observer::Cie1931, CieIlluminant::D65);
+        assert_eq!(gamut.observer, Observer::Cie1931);
+        assert!(!gamut.max_luminances.is_empty());
     }
 
     #[test]
     fn test_max_luminance_for_bin() {
-        let gamut = RelXYZGamut::Cie1931D65;
+        let gamut = RelXYZGamut::new(Observer::Cie1931, CieIlluminant::D65);
         for x in 200..=300 {
             for y in 200..=300 {
                 let max_luminance = gamut.max_luminance(x, y);
@@ -266,19 +161,19 @@ mod tests {
 
     #[test]
     fn test_chromaticity_to_bin() {
-        assert_eq!(RelXYZGamutData::chromaticity_to_bin(0.0), 0);
-        assert_eq!(RelXYZGamutData::chromaticity_to_bin(0.5), 1000);
-        assert_eq!(RelXYZGamutData::chromaticity_to_bin(0.9995), 1999);
+        assert_eq!(RelXYZGamut::chromaticity_to_bin(0.0), 0);
+        assert_eq!(RelXYZGamut::chromaticity_to_bin(0.5), 1000);
+        assert_eq!(RelXYZGamut::chromaticity_to_bin(0.9995), 1999);
 
         // Test edge cases
-        assert_eq!(RelXYZGamutData::chromaticity_to_bin(-0.1), 0);
-        assert_eq!(RelXYZGamutData::chromaticity_to_bin(1.1), 2000);
+        assert_eq!(RelXYZGamut::chromaticity_to_bin(-0.1), 0);
+        assert_eq!(RelXYZGamut::chromaticity_to_bin(1.1), 2000);
 
         // Test roundtrip
         let test_values = [0.1, 0.25, 0.5, 0.75, 0.9];
         for &x in &test_values {
-            let bin = RelXYZGamutData::chromaticity_to_bin(x);
-            let x_restored = RelXYZGamutData::bin_to_chromaticity(bin);
+            let bin = RelXYZGamut::chromaticity_to_bin(x);
+            let x_restored = RelXYZGamut::bin_to_chromaticity(bin);
             assert_abs_diff_eq!(x, x_restored, epsilon = 0.0005);
         }
     }
@@ -286,12 +181,12 @@ mod tests {
     #[test]
     fn test_bins_to_rel_xyz() {
         let white_point = Observer::Cie1931.xyz_d65();
-        let gamut = RelXYZGamut::Cie1931D65;
+        let gamut = RelXYZGamut::new(Observer::Cie1931, CieIlluminant::D65);
 
         // Test center point (0.3, 0.5)
         let [xx, yy] = white_point.chromaticity().to_array();
-        let xbin = RelXYZGamutData::chromaticity_to_bin(xx);
-        let ybin = RelXYZGamutData::chromaticity_to_bin(yy);
+        let xbin = RelXYZGamut::chromaticity_to_bin(xx);
+        let ybin = RelXYZGamut::chromaticity_to_bin(yy);
         let center = gamut.bins_to_rel_xyz(xbin, ybin, 32768);
         assert_abs_diff_eq!(center.xyz().x(), 47.49, epsilon = 0.005);
         assert_abs_diff_eq!(center.xyz().y(), 50.0, epsilon = 0.005);
@@ -300,16 +195,12 @@ mod tests {
 
     #[test]
     fn test_max_luminance() {
-        let max_luminances = RelXYZGamut::Cie1931D65;
+        let gamut = RelXYZGamut::new(Observer::Cie1931, CieIlluminant::D65);
 
-        let [x, y] = max_luminances
-            .observer()
-            .xyz_d65()
-            .chromaticity()
-            .to_array();
+        let [x, y] = gamut.whitepoint.chromaticity().to_array();
         let x_bin = (x * 2000.0).round() as u16;
         let y_bin = (y * 2000.0).round() as u16;
-        let y_max_u16 = max_luminances.max_luminance(x_bin, y_bin).unwrap();
+        let y_max_u16 = gamut.max_luminance(x_bin, y_bin).unwrap();
         assert!(
             y_max_u16 == u16::MAX,
             "Expected maximum luminance of 255 for D65 reference white"
