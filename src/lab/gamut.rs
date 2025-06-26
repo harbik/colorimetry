@@ -18,14 +18,14 @@ use crate::observer::Observer;
 use crate::traits::Light;
 use crate::xyz::{RelXYZ, XYZ};
 
-pub struct CieJChGamut {
+pub struct CieLChGamut {
     illuminant: CieIlluminant,
     observer: Observer,
     max_chromas: HashMap<[u16; 2], u16>,
     white_point: XYZ,
 }
 
-impl CieJChGamut {
+impl CieLChGamut {
     const H_BINS: u16 = 72;
     const L_BINS: u16 = 100;
     const H_SCALE: f64 = Self::H_BINS as f64 / 360.0;
@@ -59,7 +59,7 @@ impl CieJChGamut {
                     .or_insert(c_bin);
             }
         }
-        CieJChGamut {
+        CieLChGamut {
             illuminant,
             observer,
             max_chromas,
@@ -126,10 +126,10 @@ mod tests {
 
     #[test]
     fn test_relxyz_gamut_data() {
-        let gamut = CieJChGamut::new(Observer::Cie1931, CieIlluminant::D65);
+        let gamut = CieLChGamut::new(Observer::Cie1931, CieIlluminant::D65);
         assert_eq!(gamut.observer(), Observer::Cie1931);
         assert!(!gamut.max_chromas.is_empty());
-        let size_guess = (CieJChGamut::H_BINS * CieJChGamut::L_BINS) / 2;
+        let size_guess = (CieLChGamut::H_BINS * CieLChGamut::L_BINS) / 2;
         assert!(
             gamut.max_chromas.len() > size_guess as usize,
             "Size should be at least {}, got {}",
@@ -140,7 +140,7 @@ mod tests {
 
     #[test]
     fn test_max_chroma_for_bin() {
-        let gamut = CieJChGamut::new(Observer::Cie1931, CieIlluminant::D65);
+        let gamut = CieLChGamut::new(Observer::Cie1931, CieIlluminant::D65);
         let l = 50;
         for h in 0..=100 {
             if let Some(c) = gamut.max_chroma(l, h) {
@@ -154,25 +154,25 @@ mod tests {
     #[test]
     fn test_bin_conversions() {
         // Test L* conversions
-        assert_eq!(CieJChGamut::l_to_bin(50.0), 50);
-        assert_abs_diff_eq!(CieJChGamut::bin_to_l(50), 50.0, epsilon = 0.001);
-        assert_eq!(CieJChGamut::l_to_bin(100.0), 100);
-        assert_abs_diff_eq!(CieJChGamut::bin_to_l(100), 100.0, epsilon = 0.001);
+        assert_eq!(CieLChGamut::l_to_bin(50.0), 50);
+        assert_abs_diff_eq!(CieLChGamut::bin_to_l(50), 50.0, epsilon = 0.001);
+        assert_eq!(CieLChGamut::l_to_bin(100.0), 100);
+        assert_abs_diff_eq!(CieLChGamut::bin_to_l(100), 100.0, epsilon = 0.001);
 
         // Test h conversions
-        assert_eq!(CieJChGamut::h_to_bin(180.0), 36);
-        assert_abs_diff_eq!(CieJChGamut::bin_to_h(36), 180.0, epsilon = 0.001);
-        assert_eq!(CieJChGamut::h_to_bin(360.0), 72);
-        assert_abs_diff_eq!(CieJChGamut::bin_to_h(72), 360.0, epsilon = 0.001);
+        assert_eq!(CieLChGamut::h_to_bin(180.0), 36);
+        assert_abs_diff_eq!(CieLChGamut::bin_to_h(36), 180.0, epsilon = 0.001);
+        assert_eq!(CieLChGamut::h_to_bin(360.0), 72);
+        assert_abs_diff_eq!(CieLChGamut::bin_to_h(72), 360.0, epsilon = 0.001);
 
         // Test C* conversions
-        assert_eq!(CieJChGamut::c_to_bin(50.5), 50);
-        assert_abs_diff_eq!(CieJChGamut::bin_to_c(50), 50.0, epsilon = 0.001);
+        assert_eq!(CieLChGamut::c_to_bin(50.5), 50);
+        assert_abs_diff_eq!(CieLChGamut::bin_to_c(50), 50.0, epsilon = 0.001);
     }
 
     #[test]
     fn test_white_point() {
-        let gamut = CieJChGamut::new(Observer::Cie1931, CieIlluminant::D65);
+        let gamut = CieLChGamut::new(Observer::Cie1931, CieIlluminant::D65);
         let wp = gamut.white_point();
         assert_abs_diff_eq!(wp.x(), 95.0422, epsilon = 0.001);
         assert_abs_diff_eq!(wp.y(), 100.0, epsilon = 0.001);
@@ -181,7 +181,7 @@ mod tests {
 
     #[test]
     fn test_bins_to_cielab() {
-        let gamut = CieJChGamut::new(Observer::Cie1931, CieIlluminant::D65);
+        let gamut = CieLChGamut::new(Observer::Cie1931, CieIlluminant::D65);
         let lab = gamut.bins_to_cielab(50, 10, 36);
         assert!(lab.is_valid());
         let [l, c, h] = lab.lch();
@@ -193,7 +193,7 @@ mod tests {
     #[test]
     #[ignore = "This test has output which can be checked."]
     fn test_cielch_hashmap_chromaticity() {
-        let gamut = CieJChGamut::new(Observer::Cie1931, CieIlluminant::D65);
+        let gamut = CieLChGamut::new(Observer::Cie1931, CieIlluminant::D65);
         for h in 0..72 {
             print!("[");
             for l in 1..=100 {

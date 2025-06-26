@@ -34,7 +34,7 @@ use std::f64::consts::PI;
 #[cfg(feature = "gamut-tables")]
 mod gamut;
 #[cfg(feature = "gamut-tables")]
-pub use gamut::CieJChGamut;
+pub use gamut::CieLChGamut;
 
 use crate::{
     error::Error,
