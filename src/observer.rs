@@ -90,7 +90,7 @@ pub struct ObserverData {
 
     /// The range of indices for which the spectral locus of this observer returns unique
     /// chromaticity coordinates. See documentation for the
-    /// [`ObserverData::spectral_locus_wavelength_range`] method for details.
+    /// [`ObserverData::spectral_locus_range`] method for details.
     pub spectral_locus_range: RangeInclusive<usize>,
 }
 
