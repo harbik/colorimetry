@@ -117,6 +117,10 @@ impl CieLChGamut {
     pub fn max_chroma(&self, x: u16, y: u16) -> Option<u16> {
         self.max_chromas.get(&[x, y]).copied()
     }
+
+    pub fn colors(&self) -> &HashMap<[u16; 2], u16> {
+        &self.max_chromas
+    }
 }
 
 #[cfg(test)]
