@@ -151,7 +151,7 @@ impl RelXYZ {
         let lab = CieLab::from_xyz(*self);
         let xyz_back = lab.xyz();
         let same = self.abs_diff_eq(&xyz_back, 1E-5);
-        same && xyz_back.values()[0]
+        same && xyz_back.xyz().values()
             .into_iter()
             .all(|v| v >= 0.0 && v.is_finite())
     }
@@ -174,7 +174,7 @@ impl AbsDiffEq for RelXYZ {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::observer::Observer::Cie1931;
+    use crate::{observer::Observer::Cie1931, xyz::Chromaticity};
     use approx::assert_abs_diff_eq;
 
     #[test]
@@ -255,5 +255,24 @@ mod tests {
             let xyz_back = lab.xyz();
             println!("{:.4?}", xyz_back.values()[0]);
         }
+    }
+
+    #[test]
+    fn test_is_valid() {
+        let white = XYZ::new([95.047, 100.0, 108.883], Cie1931); // D65
+        let valid_rel_xyz = RelXYZ::new([41.24, 21.26, 1.93], white);
+        assert!(valid_rel_xyz.is_valid());
+
+        let mut invalid_rel_xyz = RelXYZ::new([200.0, -50.0, 300.0], white);
+        assert!(!invalid_rel_xyz.is_valid());
+    
+        let xyz = XYZ::from_chromaticity(Chromaticity::new(0.05, 0.05),None, None).unwrap();
+        invalid_rel_xyz = RelXYZ::with_d65(xyz);
+        assert!(!invalid_rel_xyz.is_valid());
+
+        let xyz = XYZ::from_chromaticity(Chromaticity::new(0.03, 0.85),None, None).unwrap();
+        invalid_rel_xyz = RelXYZ::with_d65(xyz);
+        assert!(!invalid_rel_xyz.is_valid());
+
     }
 }
