@@ -242,9 +242,8 @@ impl CieLab {
             && (-200.0..=200.0).contains(&a)
             && ((-200.0..=200.0).contains(&b))
         {
-            let xyz = self.xyz();
-            let lab_ret = CieLab::from_xyz(xyz);
-            abs_diff_eq!(self.lab, lab_ret.lab, epsilon = 1e-5)
+            // check if the associated XYZ is valid
+            self.xyz().is_valid()
         } else {
             false
         }
