@@ -288,28 +288,34 @@ impl Observer {
         Ok(XYZ::from_vecs(Vector3::new(x, y, z), self.data().tag))
     }
 
-    /// Calculates the relative XYZ tristimulus values of monochromatic (narrowband) spectra
-    /// across the visible spectrum, forming what is known as the *spectral locus*.
+    /// Calculates the relative XYZ tristimulus values of monochromatic stimuli.
     ///
-    /// This method multiplies the standard observer data by the given reference illuminant
-    /// (assumed to have an illuminance of 100.0 lux) and computes XYZ values for each 1 nm step.
-    /// The resulting colors represent idealized, fully saturated spectral stimuli—typically
-    /// used in chromaticity diagrams like CIE 1931 (x, y) or CIELAB (L*, a*, b*).
+    /// Monochromatic stimuli are pure spectral colors, like those seen when white light
+    /// is dispersed by a prism. This method computes their XYZ values under a given illuminant.
     ///
-    /// ### Notes
-    /// - Each wavelength is treated as a delta function (spectral width = 1 nm), so the resulting
-    ///   XYZ values are very low in magnitude—i.e., they appear perceptually "dark."
-    /// - The XYZ values are normalized relative to the total white point derived from the illuminant.
-    /// - The resulting data can be used to draw the outer boundary of the visible chromaticity space,
-    ///   or to draw spectral color diagrams using white adaptation correction.
+    /// # Details
+    /// - Computes XYZ values for wavelengths from 380nm to 780nm in 1nm steps
+    /// - Multiplies observer color matching functions by illuminant spectrum
+    /// - Normalizes results relative to the illuminant's white point
+    /// - Scales output to 100 lux illuminance
     ///
-    /// ### Parameters
-    /// - `ref_white`: The reference illuminant used for normalizing the output (e.g. D65 or D50).
+    /// # Difference from Spectral Locus
+    /// While the spectral locus shows only chromaticity coordinates (x,y) of pure spectral
+    /// colors, this method provides full XYZ values including luminance information.
     ///
-    /// ### Returns
-    /// A vector of `(wavelength, RelXYZ)` tuples, where each `RelXYZ` represents the relative
-    /// tristimulus values of that wavelength under the given illuminant, scaled to 100 lux.
-    pub fn spectral_locus(&self, ref_white: CieIlluminant) -> Vec<(usize, RelXYZ)> {
+    /// # Implementation Notes
+    /// - Each wavelength is treated as a monochromatic stimulus (delta function)
+    /// - Results are typically low in magnitude due to the narrow bandwidth
+    /// - Values are normalized relative to the illuminant's total energy
+    ///
+    /// # Parameters
+    /// - `ref_white`: Reference illuminant (e.g., D65, D50) for normalization
+    ///
+    /// # Returns
+    /// Vector of (wavelength, RelXYZ) pairs, where:
+    /// - wavelength: nanometers (380-780nm)
+    /// - RelXYZ: relative tristimulus values scaled to 100 lux
+    pub fn monochromes(&self, ref_white: CieIlluminant) -> Vec<(usize, RelXYZ)> {
         let mut obs = self.data().data;
         let white = &ref_white.illuminant().as_ref().0;
         for r in 0..3 {
@@ -329,7 +335,7 @@ impl Observer {
     }
 
     pub fn trimmed_spectral_locus(&self, ref_white: CieIlluminant) -> Vec<(usize, RelXYZ)> {
-        let sl_full = self.spectral_locus(ref_white);
+        let sl_full = self.monochromes(ref_white);
         let valid_range = self.spectral_locus_wavelength_range();
         sl_full
             .into_iter()
@@ -706,7 +712,7 @@ mod obs_test {
         use crate::illuminant::CieIlluminant;
         use crate::observer::Observer::Cie1931;
 
-        let sl = Cie1931.spectral_locus(CieIlluminant::D65);
+        let sl = Cie1931.monochromes(CieIlluminant::D65);
         // Check the first and last points of the spectral locus
         // Data obtained from spreadsheet using data directly downloaded from cie.co.at
         assert_eq!(sl.len(), 401);

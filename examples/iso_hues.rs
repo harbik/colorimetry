@@ -32,7 +32,7 @@ impl<'a> Plot<'a> {
     }
 
     fn add_spectral_locus(&mut self, observer: Observer) -> Result<(), Box<dyn std::error::Error>> {
-        let spectral_locus = observer.spectral_locus(D65);
+        let spectral_locus = observer.monochromes(D65);
         let mut points: Vec<(f64, f64)> = spectral_locus
             .iter()
             .map(|&(_wl, rxyz)|{

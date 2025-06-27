@@ -236,7 +236,7 @@ mod tests {
     fn test_spectral_locus_round_trip() {
         use crate::{illuminant::CieIlluminant, observer::Observer::Cie1931};
 
-        let sl = Cie1931.spectral_locus(CieIlluminant::D65);
+        let sl = Cie1931.monochromes(CieIlluminant::D65);
         for (_w, rxyz) in sl {
             let lab = CieLab::from_xyz(rxyz);
             let xyz_back = lab.xyz();
@@ -248,7 +248,7 @@ mod tests {
     fn test_spectral_locus_round_trip_print() {
         use crate::{illuminant::CieIlluminant, observer::Observer::Cie1931};
 
-        let sl = Cie1931.spectral_locus(CieIlluminant::D65);
+        let sl = Cie1931.monochromes(CieIlluminant::D65);
         for (w, rxyz) in sl {
             print!("{}, {:.4?}", w, rxyz.values()[0]);
             let lab = CieLab::from_xyz(rxyz);
