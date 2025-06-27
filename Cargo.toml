@@ -26,6 +26,7 @@ libm = "0.2.8"
 thiserror = "1.0.63"
 strum = {version = "0.25", features = ["derive"]} # for enum iteration and derive macros
 num-traits = "0.2.19"
+geo = "0.29.3"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = "0.2"
