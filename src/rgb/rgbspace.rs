@@ -5,6 +5,7 @@ use crate::xyz::Chromaticity;
 use crate::{
     colorant::Colorant, illuminant::CieIlluminant, illuminant::D65, observer::Observer::Cie1931,
     rgb::gamma::GammaCurve, rgb::gaussian_filtered_primaries, stimulus::Stimulus,
+    math::Triangle
 };
 use strum::{AsRefStr, EnumIter};
 
@@ -82,6 +83,15 @@ impl RgbSpace {
             Self::Adobe => CieIlluminant::D65,
             Self::DisplayP3 => CieIlluminant::D65,
         }
+    }
+
+    pub fn contains(&self, chromaticity: &Chromaticity) -> bool {
+        let triangle = Triangle::new(
+            self.primaries_chromaticity()[0].to_array(),
+            self.primaries_chromaticity()[1].to_array(),
+            self.primaries_chromaticity()[2].to_array(),
+        ).unwrap(); // validated upon construction
+        triangle.contains(chromaticity.x(), chromaticity.y())
     }
 }
 
