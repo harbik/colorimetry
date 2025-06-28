@@ -48,6 +48,9 @@ mod observers;
 mod optimal;
 pub use optimal::OptimalColors;
 
+mod spectral_locus;
+pub use spectral_locus::SpectralLocus;
+
 use crate::{
     cam::{CieCam02, CieCam16, ViewConditions},
     error::Error,
@@ -87,6 +90,7 @@ pub struct ObserverData {
     pub name: &'static str,
     pub d65: OnceLock<XYZ>,
     pub d50: OnceLock<XYZ>,
+    pub spectral_locus: OnceLock<SpectralLocus>,
 
     /// The range of indices for which the spectral locus of this observer returns unique
     /// chromaticity coordinates. See documentation for the
@@ -114,6 +118,7 @@ impl ObserverData {
             d65: OnceLock::new(),
             d50: OnceLock::new(),
             spectral_locus_range,
+            spectral_locus: OnceLock::new(),
         }
     }
 }
@@ -161,6 +166,15 @@ impl Observer {
     /// Returns the name of the observer.
     pub fn name(&self) -> &'static str {
         self.data().name
+    }
+
+    /// Returns the spectral locus for this observer.
+    /// 
+    /// The spectral locus is the boundary of the area of all physical colors in a chromiticity diagram.
+    pub fn spectral_locus(&self) -> &SpectralLocus {
+        self.data()
+            .spectral_locus
+            .get_or_init(|| SpectralLocus::new(*self))
     }
 
     pub fn rel_xyz(&self, light: &dyn Light, filter: &dyn Filter) -> RelXYZ {
