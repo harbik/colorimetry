@@ -149,7 +149,7 @@ impl RelXYZ {
     /// the LAB model may produce invalid results or large reversibility errors.
     pub fn is_valid(&self) -> bool {
         // Check if chromaticity is within the spectral locus
-        if !self.xyz().is_valid(){
+        if !self.xyz().is_valid() {
             return false;
         }
         let lab = CieLab::from_xyz(*self);
@@ -274,7 +274,5 @@ mod tests {
         let xyz = XYZ::from_chromaticity(Chromaticity::new(0.03, 0.85), None, None).unwrap();
         invalid_rel_xyz = RelXYZ::with_d65(xyz);
         assert!(!invalid_rel_xyz.is_valid());
-    
-        
     }
 }
