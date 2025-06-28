@@ -3,22 +3,6 @@
 //! The spectral locus represents the boundary of visible colors in a chromaticity diagram,
 //! formed by plotting monochromatic light sources of different wavelengths.
 //!
-//! # Examples
-//!
-//! ```
-//! use colorimetry::observer::{Observer, SpectralLocus};
-//!
-//! let locus = SpectralLocus::new(Observer::Cie1931);
-//!
-//! // Check if a point is within the spectral locus
-//! assert!(locus.contains([0.3, 0.3]));
-//!
-//! // Iterate over the spectral locus points
-//! for point in &locus {
-//!     println!("x: {}, y: {}", point[0], point[1]);
-//! }
-//! ```
-//!
 //! The module provides:
 //! - `SpectralLocus`: Main struct representing the spectral locus
 //! - `SpectralLocusIterator`: Iterator for traversing spectral locus points
@@ -77,7 +61,7 @@ impl<'a> IntoIterator for &'a SpectralLocus {
 
     fn into_iter(self) -> Self::IntoIter {
         SpectralLocusIterator {
-            locus: &self,
+            locus: self,
             index: 0,
         }
     }

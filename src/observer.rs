@@ -169,7 +169,7 @@ impl Observer {
     }
 
     /// Returns the spectral locus for this observer.
-    /// 
+    ///
     /// The spectral locus is the boundary of the area of all physical colors in a chromiticity diagram.
     pub fn spectral_locus(&self) -> &SpectralLocus {
         self.data()

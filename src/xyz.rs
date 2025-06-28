@@ -88,7 +88,9 @@ impl XYZ {
         if self.xyz.iter().any(|v| *v < 0.0 || !v.is_finite()) {
             return false;
         }
-        self.observer.spectral_locus().contains(self.chromaticity().to_array())
+        self.observer
+            .spectral_locus()
+            .contains(self.chromaticity().to_array())
     }
 
     // Creates a new `XYZ` value from chromaticity coordinates, an optional luminous value, and an optional observer.
