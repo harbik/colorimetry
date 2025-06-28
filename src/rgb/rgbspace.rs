@@ -3,9 +3,9 @@ use std::sync::OnceLock;
 
 use crate::xyz::Chromaticity;
 use crate::{
-    colorant::Colorant, illuminant::CieIlluminant, illuminant::D65, observer::Observer::Cie1931,
-    rgb::gamma::GammaCurve, rgb::gaussian_filtered_primaries, stimulus::Stimulus,
-    math::Triangle
+    colorant::Colorant, illuminant::CieIlluminant, illuminant::D65, math::Triangle,
+    observer::Observer::Cie1931, rgb::gamma::GammaCurve, rgb::gaussian_filtered_primaries,
+    stimulus::Stimulus,
 };
 use strum::{AsRefStr, EnumIter};
 
@@ -90,7 +90,8 @@ impl RgbSpace {
             self.primaries_chromaticity()[0].to_array(),
             self.primaries_chromaticity()[1].to_array(),
             self.primaries_chromaticity()[2].to_array(),
-        ).unwrap(); // validated upon construction
+        )
+        .unwrap(); // validated upon construction
         triangle.contains(chromaticity.x(), chromaticity.y())
     }
 }
