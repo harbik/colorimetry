@@ -61,6 +61,10 @@ required-features = ["cct"]
 name = "cri"
 required-features = ["cri"]
 
+[[example]]
+name = "iso_hues"
+required-features = ["gamut-tables"]
+
 [[bench]]
 name = "widergb"
 harness = false
