@@ -318,7 +318,7 @@ impl Triangle {
         [a, b, c]
     }
 
-    pub fn within(&self, x: f64, y: f64) -> bool {
+    pub fn contains(&self, x: f64, y: f64) -> bool {
         let abc = self.barycentric_coordinates(x, y);
         !abc.iter().any(|v| !(0.0..=1.0).contains(v))
     }
