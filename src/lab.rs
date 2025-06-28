@@ -277,20 +277,19 @@ impl AbsDiffEq for CieLab {
 ///   out – e.g. Yn = 100 for 0-to-100 “percent” data or Yn = 1.0 for ICC/PCS-scaled values)
 /// # Returns
 /// A vector containing the CIELAB L*, a*, b* values.
+/// # References
+/// - [CIE 15:2018](https://www.cie.co.at/publications/cie-15-2018-colorimetry), equation 8.3 to 8.11
 fn lab(xyz: Vector3<f64>, xyzn: Vector3<f64>) -> Vector3<f64> {
-    const DELTA: f64 = 24f64 / 116f64;
-    const DELTA_POW2: f64 = DELTA * DELTA;
-    const DELTA_POW3: f64 = DELTA_POW2 * DELTA;
-    const LABPOW: f64 = 1f64 / 3f64;
-    const LABC1: f64 = 1f64 / (3f64 * DELTA_POW2);
-    const LABC2: f64 = 4f64 / 29f64;
+    const DELTA: f64 = 0.008856451679035631; // 24f64 / 116.0).powi(3);
+    const LABC1: f64 = 841.0 / 108.0;
+    const LABC2: f64 = 16.0 / 116.0;
 
     let &[x, y, z] = xyz.as_ref();
     let &[xn, yn, zn] = xyzn.as_ref();
 
     let lab_f = |t: f64| {
-        if t > DELTA_POW3 {
-            t.powf(LABPOW)
+        if t > DELTA {
+            t.cbrt()
         } else {
             LABC1 * t + LABC2
         }
@@ -303,42 +302,45 @@ fn lab(xyz: Vector3<f64>, xyzn: Vector3<f64>) -> Vector3<f64> {
     )
 }
 
-/// CIELAB → CIEXYZ (D50, D65 or any other reference white passed in `xyzn`)
-///
-/// * `lab`  – L*, a*, b* vector  
+/// Convert CIE L*a*b* to CIEXYZ (D50, D65 or any other reference white passed in `xyzn`)
+/// * `lab`  – CIE L*a*b* vector
 /// * `xyzn` – reference-white Xn, Yn, Zn (must be in the **same scale** as the XYZ values you want
-///   out – e.g. Yn = 100 for 0-to-100 “percent” data or Yn = 1.0 for ICC/PCS-scaled values)
-///
-/// Returns XYZ in the same scaling as `xyzn`.
+///  out – e.g. Yn = 100 for 0-to-100 “percent” data or Yn = 1.0 for ICC/PCS-scaled values)
+/// # Returns
+/// A vector containing the CIEXYZ X, Y, Z values.
+/// /// # References
+/// - [CIE 15:2018](https://www.cie.co.at/publications/colorimetry-4th-edition), equation 8.3 to 8.11
 fn xyz_from_cielab(lab: Vector3<f64>, xyzn: Vector3<f64>) -> Vector3<f64> {
     // CIE constants
-    const EPS: f64 = 216.0 / 24_389.0; // δ³  (≈ 0.008856)
-    const KAPPA: f64 = 24_389.0 / 27.0; // κ  (≈ 903.296 3)
+    const DELTA_INV: f64 = 24f64 / 116.0; 
+    const LABC1INV: f64 = 108.0 / 841.0; // LABC1
+    const LABC2: f64 = 16.0 / 116.0;
 
     let &[l, a, b] = lab.as_ref();
     let &[xn, yn, zn] = xyzn.as_ref();
 
-    // 1. Recover the “f” terms
-    let fy = (l + 16.0) / 116.0;
-    let fx = a / 500.0 + fy;
-    let fz = fy - b / 200.0;
 
+    let fy = (l + 16.0) / 116.0; // C.1
+    let fx = a / 500.0 + fy; // C.2
+    let fz = fy - b / 200.0; // C.3
+
+    // C.4 - C.9
     let f_inv = |f: f64| {
-        let f3 = f * f * f;
-        if f3 >= EPS {
-            f3
+        if f > DELTA_INV  {
+            // If the value is above the threshold (DELTA), use the cube of the value.
+            // Otherwise, apply the linear transformation to approximate the non-linear behavior.
+            f.powi(3)
         } else {
-            (116.0 * f - 16.0) / KAPPA
+            (f - LABC2) * LABC1INV
         }
     };
 
-    // 3. Relative XYZ (scaled by the white point)
-    let xr = f_inv(fx);
-    let yr = f_inv(fy);
-    let zr = f_inv(fz);
+    // C.4 - C.9
+    let x = xn * f_inv(fx);
+    let y = yn * f_inv(fy);
+    let z = zn * f_inv(fz);
 
-    // 4. Absolute XYZ
-    Vector3::new(xr * xn, yr * yn, zr * zn)
+    Vector3::new( x, y, z)
 }
 
 /// Compute the CIEDE2000 ΔE between two CIE L*a*b* triples.
@@ -421,6 +423,7 @@ fn delta_e_ciede2000(lab1: Vector3<f64>, lab2: Vector3<f64>) -> f64 {
 mod tests {
     use crate::{
         lab::CieLab,
+        illuminant::CieIlluminant,
         observer::Observer::Cie1931,
         xyz::{RelXYZ, XYZ},
     };
@@ -436,6 +439,19 @@ mod tests {
         let rxyz_back = lab.xyz();
         assert_abs_diff_eq!(rxyz, rxyz_back, epsilon = 1e-10);
     }
+
+    #[test]
+    #[cfg(feature = "munsell")]
+    fn test_lab_roundtrip_munsell() {
+        use crate::colorant::MunsellCollection;
+        MunsellCollection.into_iter().for_each(|colorant| {
+            let xyz = Cie1931.rel_xyz(&CieIlluminant::D65, &colorant);
+            let lab = CieLab::from_xyz(xyz);
+            let xyz_back = lab.xyz();
+            assert_abs_diff_eq!(xyz, xyz_back, epsilon = 1e-10);
+        });
+    }
+
 
     #[test]
     fn delta_e_ciede2000_example1() {
