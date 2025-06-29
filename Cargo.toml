@@ -48,7 +48,7 @@ argmin-math = "0.4.0"
 clap = { version = "4.5.18", features = ["derive"] }
 colored = "2.2.0"
 criterion = "0.6.0"
-plotters = {version ="0.3.7", features = ["svg_backend"]}
+plotters = {version ="0.3.7", default-features = false, features = ["svg_backend"]}
 
 [lib]
 crate-type = ["cdylib", "rlib"]
