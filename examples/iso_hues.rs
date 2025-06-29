@@ -1,7 +1,10 @@
 use colorimetry::{
-    illuminant::{CieIlluminant, CieIlluminant::D65},
     lab::CieLChGamut,
-    observer::{Observer, Observer::Cie1931},
+    observer::{
+        Observer::{self, Cie1931},
+        SpectralLocus,
+    },
+    rgb::RgbSpace,
 };
 
 use plotters::{coord::types::RangedCoordf64, prelude::*};
@@ -18,7 +21,7 @@ impl<'a> Plot<'a> {
         std::fs::create_dir_all("plots")?;
         let root = SVGBackend::new(OUT_FILE_NAME, (800, 800)).into_drawing_area();
         let mut chart = ChartBuilder::on(&root)
-            .caption(&caption, ("sans-serif", 20))
+            .caption(caption, ("sans-serif", 20))
             .margin(10)
             .x_label_area_size(30)
             .y_label_area_size(30)
@@ -30,34 +33,18 @@ impl<'a> Plot<'a> {
     }
 
     fn add_spectral_locus(&mut self, observer: Observer) -> Result<(), Box<dyn std::error::Error>> {
-        let spectral_locus = observer.monochromes(D65);
-        let mut points: Vec<(f64, f64)> = spectral_locus
-            .iter()
-            .map(|&(_wl, rxyz)| {
-                let chromaticity = rxyz.xyz().chromaticity();
-                (chromaticity.x(), chromaticity.y())
-            })
-            .collect();
-        // add purple line
-        let first_point = spectral_locus[0].1.xyz().chromaticity();
-        points.push((first_point.x(), first_point.y()));
-        self.chart.draw_series(LineSeries::new(points, &BLACK))?;
+        let spectral_locus = SpectralLocus::new(observer);
+        self.chart
+            .draw_series(LineSeries::new(spectral_locus.into_iter(), &BLACK))?;
 
         Ok(())
     }
 
     fn plot_iso_hue_lines(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        let gamut = CieLChGamut::new(Observer::Cie1931, CieIlluminant::D65);
+        let gamut = CieLChGamut::new(Observer::Cie1931, RgbSpace::Adobe);
 
-        gamut.colors().iter().for_each(|([l_bin, h_bin], c_bin)| {
-            let lab = gamut.bins_to_cielab(*l_bin, *c_bin, *h_bin);
-            if !lab.is_valid() {
-                eprintln!("Invalid color at L*={}, C*={}, h*={}", l_bin, c_bin, h_bin);
-            };
-        });
-
-        for h in 0..72 {
-            let points: Vec<(f64, f64)> = (1..=100)
+        for h in (0..360u16).step_by(5) {
+            let points: Vec<(f64, f64)> = (1..=CieLChGamut::L_BINS)
                 .filter_map(|l| {
                     gamut.max_chroma(l, h).map(|c| {
                         let lab = gamut.bins_to_cielab(l, c, h);
@@ -78,6 +65,10 @@ impl<'a> Plot<'a> {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    if !cfg!(feature = "gamut-tables") {
+        eprintln!("This example requires the 'gamut-tables' feature to be enabled.");
+        return Ok(());
+    }
     // Create a new plot
     let mut plot = Plot::new("Iso-hue lines in CIE 1931 chromaticity diagram")?;
 

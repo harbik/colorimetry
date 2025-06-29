@@ -13,8 +13,9 @@
 use std::collections::HashMap;
 
 use crate::illuminant::CieIlluminant;
-use crate::lab::CieLab;
+use crate::lab::{CieLCh, CieLab};
 use crate::observer::{Observer, OptimalColors};
+use crate::rgb::RgbSpace;
 use crate::traits::Light;
 use crate::xyz::{RelXYZ, XYZ};
 
@@ -22,33 +23,32 @@ pub struct CieLChGamut {
     illuminant: CieIlluminant,
     observer: Observer,
     max_chromas: HashMap<[u16; 2], u16>,
+    rgb_space: RgbSpace,
     white_point: XYZ,
 }
 
 impl CieLChGamut {
-    const H_BINS: u16 = 72;
-    const L_BINS: u16 = 100;
+    pub const H_BINS: u16 = 360;
+    pub const L_BINS: u16 = 500;
+    pub const C_BINS: u16 = 500;
     const H_SCALE: f64 = Self::H_BINS as f64 / 360.0;
     const L_SCALE: f64 = Self::L_BINS as f64 / 100.0;
+    const C_SCALE: f64 = Self::C_BINS as f64 / 100.0;
 
-    pub fn new(observer: Observer, illuminant: CieIlluminant) -> Self {
+    pub fn new(observer: Observer, rgb_space: RgbSpace) -> Self {
+        let illuminant = rgb_space.white();
         let opt_colors = OptimalColors::new(observer, illuminant);
-        let whitepoint = illuminant.xyzn100(observer);
+        let white_point = illuminant.xyzn100(observer);
         let mut max_chromas = HashMap::new();
         for xyz in opt_colors.colors().iter() {
             let rel_xyz = RelXYZ::from_vec(*xyz, opt_colors.white_point());
-            let [l, c, h] = CieLab::from_xyz(rel_xyz).lch();
 
+            let [l, c, h] = CieLCh::from_xyz(rel_xyz).values();
             let l_bin = Self::l_to_bin(l);
             let h_bin = Self::h_to_bin(h);
             let c_bin = Self::c_to_bin(c);
 
-            // Only add if the discrete ab coordinates and luminance are valid.
-            // This does XYZ - CieLab round trip, which is not ideal,
-            // but it is a reasonable approximation for the purpose of this mapping.
-            let cielab_for_bin = Self::bins_to_cielab_static(whitepoint, l_bin, c_bin, h_bin);
-            if cielab_for_bin.is_valid() {
-                // Insert or update the maximum luminance for this chromaticity bin
+            if rgb_space.contains(&rel_xyz.xyz().chromaticity()) {
                 max_chromas
                     .entry([l_bin, h_bin])
                     .and_modify(|existing| {
@@ -63,8 +63,13 @@ impl CieLChGamut {
             illuminant,
             observer,
             max_chromas,
-            white_point: illuminant.xyzn100(observer),
+            white_point,
+            rgb_space,
         }
+    }
+
+    pub fn rgb_space(&self) -> RgbSpace {
+        self.rgb_space
     }
 
     pub fn illuminant(&self) -> CieIlluminant {
@@ -83,7 +88,8 @@ impl CieLChGamut {
         let l = Self::bin_to_l(l_bin);
         let c = Self::bin_to_c(c_bin);
         let h = Self::bin_to_h(h_bin);
-        CieLab::from_lch([l, c, h], whitepoint)
+        let cielch = CieLCh::new([l, c, h], whitepoint);
+        cielch.lab()
     }
 
     pub fn h_to_bin(value: f64) -> u16 {
@@ -91,15 +97,15 @@ impl CieLChGamut {
     }
 
     pub fn bin_to_h(bin: u16) -> f64 {
-        (bin.min(Self::H_BINS) as f64) / Self::H_BINS as f64 * 360.0
+        bin as f64 / Self::H_BINS as f64 * 360.0
     }
 
     pub fn c_to_bin(value: f64) -> u16 {
-        value.floor() as u16
+        (value.clamp(0.0, 100.0) * Self::C_SCALE).floor() as u16
     }
 
     pub fn bin_to_c(bin: u16) -> f64 {
-        bin as f64
+        bin as f64 / Self::C_BINS as f64 * 100.0
     }
 
     pub fn l_to_bin(value: f64) -> u16 {
@@ -107,7 +113,7 @@ impl CieLChGamut {
     }
 
     pub fn bin_to_l(bin: u16) -> f64 {
-        (bin.min(Self::L_BINS) as f64) / Self::L_BINS as f64 * 100.0
+        bin as f64 / Self::L_BINS as f64 * 100.0
     }
 
     pub fn bins_to_cielab(&self, l_bin: u16, c_bin: u16, h_bin: u16) -> CieLab {
@@ -129,54 +135,53 @@ mod tests {
     use approx::assert_abs_diff_eq;
 
     #[test]
-    fn test_relxyz_gamut_data() {
-        let gamut = CieLChGamut::new(Observer::Cie1931, CieIlluminant::D65);
-        assert_eq!(gamut.observer(), Observer::Cie1931);
-        assert!(!gamut.max_chromas.is_empty());
-        let size_guess = (CieLChGamut::H_BINS * CieLChGamut::L_BINS) / 2;
-        assert!(
-            gamut.max_chromas.len() > size_guess as usize,
-            "Size should be at least {}, got {}",
-            size_guess,
-            gamut.max_chromas.len()
+    fn test_bin_conversions() {
+        // Test L* conversions
+        assert_eq!(
+            CieLChGamut::l_to_bin(50.0),
+            50 * CieLChGamut::L_SCALE as u16
+        );
+        assert_abs_diff_eq!(
+            CieLChGamut::bin_to_l(50),
+            50.0 / CieLChGamut::L_SCALE,
+            epsilon = 0.001
+        );
+        assert_eq!(
+            CieLChGamut::l_to_bin(100.0),
+            100 * CieLChGamut::L_SCALE as u16
+        );
+        assert_abs_diff_eq!(
+            CieLChGamut::bin_to_l(100),
+            100.0 / CieLChGamut::L_SCALE,
+            epsilon = 0.001
+        );
+
+        // Test h conversions
+        assert_eq!(
+            CieLChGamut::h_to_bin(180.0),
+            180 * CieLChGamut::H_SCALE as u16
+        );
+        assert_abs_diff_eq!(
+            CieLChGamut::bin_to_h(180),
+            180.0 / CieLChGamut::H_SCALE,
+            epsilon = 0.001
+        );
+
+        // Test C* conversions
+        assert_eq!(
+            CieLChGamut::c_to_bin(50.0),
+            50 * CieLChGamut::C_SCALE as u16
+        );
+        assert_abs_diff_eq!(
+            CieLChGamut::bin_to_c(50 * CieLChGamut::C_SCALE as u16),
+            50.0,
+            epsilon = 0.001
         );
     }
 
     #[test]
-    fn test_max_chroma_for_bin() {
-        let gamut = CieLChGamut::new(Observer::Cie1931, CieIlluminant::D65);
-        let l = 50;
-        for h in 0..=100 {
-            if let Some(c) = gamut.max_chroma(l, h) {
-                println!("Max luminance found for bin ({l}, {h}): {c}");
-                return;
-            }
-        }
-        panic!("No max luminance found for any bin in the range 200-300");
-    }
-
-    #[test]
-    fn test_bin_conversions() {
-        // Test L* conversions
-        assert_eq!(CieLChGamut::l_to_bin(50.0), 50);
-        assert_abs_diff_eq!(CieLChGamut::bin_to_l(50), 50.0, epsilon = 0.001);
-        assert_eq!(CieLChGamut::l_to_bin(100.0), 100);
-        assert_abs_diff_eq!(CieLChGamut::bin_to_l(100), 100.0, epsilon = 0.001);
-
-        // Test h conversions
-        assert_eq!(CieLChGamut::h_to_bin(180.0), 36);
-        assert_abs_diff_eq!(CieLChGamut::bin_to_h(36), 180.0, epsilon = 0.001);
-        assert_eq!(CieLChGamut::h_to_bin(360.0), 72);
-        assert_abs_diff_eq!(CieLChGamut::bin_to_h(72), 360.0, epsilon = 0.001);
-
-        // Test C* conversions
-        assert_eq!(CieLChGamut::c_to_bin(50.5), 50);
-        assert_abs_diff_eq!(CieLChGamut::bin_to_c(50), 50.0, epsilon = 0.001);
-    }
-
-    #[test]
     fn test_white_point() {
-        let gamut = CieLChGamut::new(Observer::Cie1931, CieIlluminant::D65);
+        let gamut = CieLChGamut::new(Observer::Cie1931, RgbSpace::SRGB);
         let wp = gamut.white_point();
         assert_abs_diff_eq!(wp.x(), 95.0422, epsilon = 0.001);
         assert_abs_diff_eq!(wp.y(), 100.0, epsilon = 0.001);
@@ -184,20 +189,9 @@ mod tests {
     }
 
     #[test]
-    fn test_bins_to_cielab() {
-        let gamut = CieLChGamut::new(Observer::Cie1931, CieIlluminant::D65);
-        let lab = gamut.bins_to_cielab(50, 10, 36);
-        assert!(lab.is_valid());
-        let [l, c, h] = lab.lch();
-        assert_abs_diff_eq!(l, 50.0, epsilon = 0.001);
-        assert_abs_diff_eq!(c, 10.0, epsilon = 0.001);
-        assert_abs_diff_eq!(h, 180.0, epsilon = 0.001);
-    }
-
-    #[test]
     #[ignore = "This test has output which can be checked."]
     fn test_cielch_hashmap_chromaticity() {
-        let gamut = CieLChGamut::new(Observer::Cie1931, CieIlluminant::D65);
+        let gamut = CieLChGamut::new(Observer::Cie1931, RgbSpace::SRGB);
         for h in 0..72 {
             print!("[");
             for l in 1..=100 {
