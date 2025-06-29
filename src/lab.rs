@@ -31,6 +31,9 @@ use approx::{abs_diff_eq, ulps_eq, AbsDiffEq};
 use nalgebra::Vector3;
 use std::f64::consts::PI;
 
+mod lch;
+pub use lch::CieLCh;
+
 #[cfg(feature = "gamut-tables")]
 mod gamut;
 #[cfg(feature = "gamut-tables")]
@@ -167,25 +170,6 @@ impl CieLab {
         }
     }
 
-    pub fn lch(&self) -> [f64; 3] {
-        let &[l, a, b] = self.lab.as_ref();
-        let c = (a * a + b * b).sqrt();
-        let h = if c == 0.0 {
-            0.0 // Undefined hue when chroma is zero
-        } else {
-            b.atan2(a).to_degrees().rem_euclid(360.0) // Convert to degrees and normalize
-        };
-        [l, c, h]
-    }
-
-    pub fn from_lch(lch: [f64; 3], xyzn: XYZ) -> CieLab {
-        let [l, c, h] = lch;
-        let h_rad = h.to_radians();
-        let a = c * h_rad.cos();
-        let b = c * h_rad.sin();
-        CieLab::new([l, a, b], xyzn)
-    }
-
     ///
     /// Computes the CIEDE2000 ΔE color difference between two CIE L*a*b* colors.
     ///
@@ -242,9 +226,8 @@ impl CieLab {
             && (-200.0..=200.0).contains(&a)
             && ((-200.0..=200.0).contains(&b))
         {
-            let xyz = self.xyz();
-            let lab_ret = CieLab::from_xyz(xyz);
-            abs_diff_eq!(self.lab, lab_ret.lab, epsilon = 1e-5)
+            // check if the associated XYZ is valid
+            self.xyz().is_valid()
         } else {
             false
         }
@@ -278,20 +261,19 @@ impl AbsDiffEq for CieLab {
 ///   out – e.g. Yn = 100 for 0-to-100 “percent” data or Yn = 1.0 for ICC/PCS-scaled values)
 /// # Returns
 /// A vector containing the CIELAB L*, a*, b* values.
+/// # References
+/// - [CIE 15:2018](https://www.cie.co.at/publications/cie-15-2018-colorimetry), equation 8.3 to 8.11
 fn lab(xyz: Vector3<f64>, xyzn: Vector3<f64>) -> Vector3<f64> {
-    const DELTA: f64 = 24f64 / 116f64;
-    const DELTA_POW2: f64 = DELTA * DELTA;
-    const DELTA_POW3: f64 = DELTA_POW2 * DELTA;
-    const LABPOW: f64 = 1f64 / 3f64;
-    const LABC1: f64 = 1f64 / (3f64 * DELTA_POW2);
-    const LABC2: f64 = 4f64 / 29f64;
+    const DELTA: f64 = 0.008856451679035631; // 24f64 / 116.0).powi(3);
+    const LABC1: f64 = 841.0 / 108.0;
+    const LABC2: f64 = 16.0 / 116.0;
 
     let &[x, y, z] = xyz.as_ref();
     let &[xn, yn, zn] = xyzn.as_ref();
 
     let lab_f = |t: f64| {
-        if t > DELTA_POW3 {
-            t.powf(LABPOW)
+        if t > DELTA {
+            t.cbrt()
         } else {
             LABC1 * t + LABC2
         }
@@ -304,42 +286,44 @@ fn lab(xyz: Vector3<f64>, xyzn: Vector3<f64>) -> Vector3<f64> {
     )
 }
 
-/// CIELAB → CIEXYZ (D50, D65 or any other reference white passed in `xyzn`)
-///
-/// * `lab`  – L*, a*, b* vector  
+/// Convert CIE L*a*b* to CIEXYZ (D50, D65 or any other reference white passed in `xyzn`)
+/// * `lab`  – CIE L*a*b* vector
 /// * `xyzn` – reference-white Xn, Yn, Zn (must be in the **same scale** as the XYZ values you want
 ///   out – e.g. Yn = 100 for 0-to-100 “percent” data or Yn = 1.0 for ICC/PCS-scaled values)
-///
-/// Returns XYZ in the same scaling as `xyzn`.
+/// # Returns
+/// A vector containing the CIEXYZ X, Y, Z values.
+/// /// # References
+/// - [CIE 15:2018](https://www.cie.co.at/publications/colorimetry-4th-edition), equation 8.3 to 8.11
 fn xyz_from_cielab(lab: Vector3<f64>, xyzn: Vector3<f64>) -> Vector3<f64> {
     // CIE constants
-    const EPS: f64 = 216.0 / 24_389.0; // δ³  (≈ 0.008856)
-    const KAPPA: f64 = 24_389.0 / 27.0; // κ  (≈ 903.296 3)
+    const DELTA_INV: f64 = 24f64 / 116.0;
+    const LABC1INV: f64 = 108.0 / 841.0; // LABC1
+    const LABC2: f64 = 16.0 / 116.0;
 
     let &[l, a, b] = lab.as_ref();
     let &[xn, yn, zn] = xyzn.as_ref();
 
-    // 1. Recover the “f” terms
-    let fy = (l + 16.0) / 116.0;
-    let fx = a / 500.0 + fy;
-    let fz = fy - b / 200.0;
+    let fy = (l + 16.0) / 116.0; // C.1
+    let fx = a / 500.0 + fy; // C.2
+    let fz = fy - b / 200.0; // C.3
 
+    // C.4 - C.9
     let f_inv = |f: f64| {
-        let f3 = f * f * f;
-        if f3 >= EPS {
-            f3
+        if f > DELTA_INV {
+            // If the value is above the threshold (DELTA), use the cube of the value.
+            // Otherwise, apply the linear transformation to approximate the non-linear behavior.
+            f.powi(3)
         } else {
-            (116.0 * f - 16.0) / KAPPA
+            (f - LABC2) * LABC1INV
         }
     };
 
-    // 3. Relative XYZ (scaled by the white point)
-    let xr = f_inv(fx);
-    let yr = f_inv(fy);
-    let zr = f_inv(fz);
+    // C.4 - C.9
+    let x = xn * f_inv(fx);
+    let y = yn * f_inv(fy);
+    let z = zn * f_inv(fz);
 
-    // 4. Absolute XYZ
-    Vector3::new(xr * xn, yr * yn, zr * zn)
+    Vector3::new(x, y, z)
 }
 
 /// Compute the CIEDE2000 ΔE between two CIE L*a*b* triples.
@@ -421,6 +405,7 @@ fn delta_e_ciede2000(lab1: Vector3<f64>, lab2: Vector3<f64>) -> f64 {
 #[cfg(test)]
 mod tests {
     use crate::{
+        illuminant::CieIlluminant,
         lab::CieLab,
         observer::Observer::Cie1931,
         xyz::{RelXYZ, XYZ},
@@ -436,6 +421,28 @@ mod tests {
         let lab = CieLab::from_xyz(rxyz);
         let rxyz_back = lab.xyz();
         assert_abs_diff_eq!(rxyz, rxyz_back, epsilon = 1e-10);
+    }
+
+    #[test]
+    #[cfg(feature = "munsell")]
+    fn test_lab_roundtrip_munsell() {
+        use crate::colorant::MunsellCollection;
+        MunsellCollection.into_iter().for_each(|colorant| {
+            let xyz = Cie1931.rel_xyz(&CieIlluminant::D65, &colorant);
+            let lab = CieLab::from_xyz(xyz);
+            let xyz_back = lab.xyz();
+            assert_abs_diff_eq!(xyz, xyz_back, epsilon = 1e-10);
+        });
+    }
+
+    #[test]
+    fn test_lab_roundtrip_monochromes() {
+        let monos = Cie1931.monochromes(CieIlluminant::D65);
+        monos.into_iter().for_each(|(_l, xyz)| {
+            let lab = CieLab::from_xyz(xyz);
+            let xyz_back = lab.xyz();
+            assert_abs_diff_eq!(xyz, xyz_back, epsilon = 1e-10);
+        });
     }
 
     #[test]
@@ -634,58 +641,5 @@ mod tests {
             let de = lab1.ciede(&lab2).unwrap();
             approx::assert_abs_diff_eq!(de, expected, epsilon = 1e-4);
         }
-    }
-
-    #[test]
-    fn test_lch_conversion() {
-        let xyz_d65 = Cie1931.xyz_d65();
-
-        // Test neutral gray (h undefined, should return 0)
-        let gray = CieLab::new([50.0, 0.0, 0.0], xyz_d65);
-        let [l, c, h] = gray.lch();
-        assert_abs_diff_eq!(l, 50.0);
-        assert_abs_diff_eq!(c, 0.0);
-        assert_abs_diff_eq!(h, 0.0);
-
-        // Test pure red (+a)
-        let red = CieLab::new([50.0, 50.0, 0.0], xyz_d65);
-        let [l, c, h] = red.lch();
-        assert_abs_diff_eq!(l, 50.0);
-        assert_abs_diff_eq!(c, 50.0);
-        assert_abs_diff_eq!(h, 0.0);
-
-        // Test pure yellow (+a, +b)
-        let yellow = CieLab::new([50.0, 0.0, 50.0], xyz_d65);
-        let [l, c, h] = yellow.lch();
-        assert_abs_diff_eq!(l, 50.0);
-        assert_abs_diff_eq!(c, 50.0);
-        assert_abs_diff_eq!(h, 90.0);
-
-        // Test pure green (-a)
-        let green = CieLab::new([50.0, -50.0, 0.0], xyz_d65);
-        let [l, c, h] = green.lch();
-        assert_abs_diff_eq!(l, 50.0);
-        assert_abs_diff_eq!(c, 50.0);
-        assert_abs_diff_eq!(h, 180.0);
-
-        // Test pure blue (-b)
-        let blue = CieLab::new([30.0, 0.0, -50.0], xyz_d65);
-        let [l, c, h] = blue.lch();
-        assert_abs_diff_eq!(l, 30.0);
-        assert_abs_diff_eq!(c, 50.0);
-        assert_abs_diff_eq!(h, 270.0);
-    }
-
-    #[test]
-    fn test_lch_from_lch() {
-        let xyz_d65 = Cie1931.xyz_d65();
-
-        // Test conversion from LCH to Lab and back
-        let lch = [50.0, 50.0, 30.0]; // L*, C*, h°
-        let lab = CieLab::from_lch(lch, xyz_d65);
-        let lch_converted = lab.lch();
-        assert_abs_diff_eq!(lch_converted[0], lch[0], epsilon = 1e-10);
-        assert_abs_diff_eq!(lch_converted[1], lch[1], epsilon = 1e-10);
-        assert_abs_diff_eq!(lch_converted[2], lch[2], epsilon = 1e-10);
     }
 }

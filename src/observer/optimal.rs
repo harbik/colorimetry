@@ -56,7 +56,7 @@ impl OptimalColors {
     /// * As it calculates about 160,000 colors, it may be computationally intensive.
     pub fn new(observer: Observer, ref_white: CieIlluminant) -> OptimalColors {
         let mut optcol: DMatrix<Vector3<f64>> = DMatrix::zeros(NS - 1, NS);
-        let spectral_locus = observer.spectral_locus(ref_white);
+        let spectral_locus = observer.monochromes(ref_white);
         let white_point = spectral_locus[0].1.white_point();
 
         for c in 0..NS {
@@ -103,7 +103,7 @@ mod tests {
         assert_eq!(matrix.ncols(), NS, "Matrix should have NS columns");
 
         // Check first row matches spectral locus
-        let spectral_locus = observer.spectral_locus(ref_white);
+        let spectral_locus = observer.monochromes(ref_white);
         for (c, (_, sl_val)) in spectral_locus.iter().enumerate() {
             let expected = sl_val.xyz().xyz;
             let actual = matrix.row(0)[c];
