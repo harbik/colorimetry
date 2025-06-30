@@ -1,6 +1,8 @@
 use clap::{Parser, Subcommand};
 use std::process::Command;
 
+mod gen_rgbxyz;
+
 #[derive(Parser)]
 #[command(name = "xtask", about = "Custom build tasks")]
 struct XtaskArgs {
@@ -61,7 +63,8 @@ fn main() {
             build_wasm();
         }
         Commands::Gen => {
-            todo!()
+            gen_rgbxyz::matrices().unwrap();
+            run("rustfmt", &["src/observer/rgbxyz.rs"]);
         }
     }
 }

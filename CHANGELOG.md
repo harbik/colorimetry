@@ -23,6 +23,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   * `cargo xtask doc` to generate the documentation, failing on warnings, and
   * `cargo xtask wasm` to generate the web-assembly files in `pkg` (requires `wasm-pack` and `wasm-opt`)
 
+### Changed
+
+* RGB <-> XYZ conversion matrices hard coded through `xtask gen` `gen_rgbxyz.rs` function, using a handlebars template
+
 ## [0.0.7] - 2025-6-17
 
 ### Added [0.0.7]
