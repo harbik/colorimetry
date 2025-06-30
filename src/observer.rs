@@ -44,6 +44,7 @@
 //! These standard observers form the backbone of color spaces, chromaticity diagrams, and all standardized color measurements.  
 
 mod observers;
+mod rgbxyz;
 
 mod optimal;
 pub use optimal::OptimalColors;
@@ -385,9 +386,19 @@ impl Observer {
     }
 
     /// Calculates the RGB to XYZ matrix, for a particular color space.
-    pub fn rgb2xyz(&self, rgbspace: RgbSpace) -> Matrix3<f64> {
+    ///
+    /// Don't use this directly, as all the matrices are available through
+    /// Observer::rgb2xyz_matrix. The only use for this function is through
+    /// the `xtask gen` function, used when the library is extended with new
+    /// observers or new color spaces.
+    pub fn calc_rgb2xyz_matrix(&self, rgbspace: RgbSpace) -> Matrix3<f64> {
         let space = rgbspace.data();
-        let mut rgb2xyz = Matrix3::from_iterator(
+        let mut rgb2xyz: nalgebra::Matrix<
+            f64,
+            nalgebra::Const<3>,
+            nalgebra::Const<3>,
+            nalgebra::ArrayStorage<f64, 3, 3>,
+        > = Matrix3::from_iterator(
             space
                 .primaries
                 .iter()
@@ -404,9 +415,11 @@ impl Observer {
     }
 
     /// Calculates the XYZ to RGB matrix, for a particular color space.
-    pub fn xyz2rgb(&self, rgbspace: RgbSpace) -> Matrix3<f64> {
+    /// Don't use this directly, as they are all precalculated and available
+    /// through Observer::xyz2rgb.
+    pub fn calc_xyz2rgb_matrix(&self, rgbspace: RgbSpace) -> Matrix3<f64> {
         // unwrap: only used with library color spaces
-        self.rgb2xyz(rgbspace).try_inverse().unwrap()
+        self.rgb2xyz_matrix(rgbspace).try_inverse().unwrap()
     }
 
     //  pub fn rgb(&self, rgbspace: RgbSpace) -> Matrix3<f64> {
@@ -523,7 +536,7 @@ mod obs_test {
     use crate::{
         illuminant::CieIlluminant, rgb::RgbSpace, spectrum::SPECTRUM_WAVELENGTH_RANGE, xyz::XYZ,
     };
-    use approx::assert_ulps_eq;
+    use approx::{assert_abs_diff_eq, assert_ulps_eq};
     use strum::IntoEnumIterator as _;
 
     #[test]
@@ -611,7 +624,7 @@ mod obs_test {
             0.4124564, 0.3575761, 0.1804375, 0.2126729, 0.7151522, 0.0721750, 0.0193339, 0.1191920,
             0.9503041,
         );
-        let got = Cie1931.rgb2xyz(crate::rgb::RgbSpace::SRGB);
+        let got = Cie1931.rgb2xyz_matrix(crate::rgb::RgbSpace::SRGB);
         approx::assert_ulps_eq!(want, got, epsilon = 3E-4);
     }
 
@@ -623,7 +636,7 @@ mod obs_test {
             3.2404542, -1.5371385, -0.4985314, -0.9692660, 1.8760108, 0.0415560, 0.0556434,
             -0.2040259, 1.0572252,
         );
-        let got = Cie1931.xyz2rgb(crate::rgb::RgbSpace::SRGB);
+        let got = Cie1931.xyz2rgb_matrix(crate::rgb::RgbSpace::SRGB);
         approx::assert_ulps_eq!(want, got, epsilon = 3E-4);
     }
 
@@ -711,20 +724,20 @@ mod obs_test {
         // Data obtained from spreadsheet using data directly downloaded from cie.co.at
         assert_eq!(sl.len(), 401);
         let xyz_first = sl[0].1.xyz().values();
-        approx::assert_abs_diff_eq!(
+        assert_abs_diff_eq!(
             xyz_first.as_ref(),
             [6.46976E-04, 1.84445E-05, 3.05044E-03].as_ref(),
             epsilon = 1E-5
         );
         let xyz_last = sl[sl.len() - 1].1.xyz().values();
-        approx::assert_abs_diff_eq!(
+        assert_abs_diff_eq!(
             xyz_last.as_ref(),
             [2.48982E-05, 8.99121E-06, 0.0].as_ref(),
             epsilon = 1E-5
         );
         // 550 nm
         let xyz_550 = sl[170].1.xyz().values();
-        approx::assert_abs_diff_eq!(
+        assert_abs_diff_eq!(
             xyz_550.as_ref(),
             [0.4268018, 0.9796899, 0.0086158].as_ref(),
             epsilon = 1E-4
@@ -740,6 +753,46 @@ mod obs_test {
             assert_eq!(Cie1964.as_ref(), "Cie1964");
             assert_eq!(Observer::Cie2015.as_ref(), "Cie2015");
             assert_eq!(Observer::Cie2015_10.as_ref(), "Cie2015_10");
+        }
+    }
+
+    #[test]
+    #[cfg(feature = "supplemental-observers")]
+    // Test white point, should be
+    fn test_rgb_xyz_white() {
+        for obs in Observer::iter() {
+            for space in RgbSpace::iter() {
+                let d65 = obs.xyz_d65().set_illuminance(1.0);
+                let xyz2rgb = obs.xyz2rgb_matrix(space);
+                let rgb = xyz2rgb * d65.xyz;
+                rgb.iter().for_each(|&v| {
+                    assert_abs_diff_eq!(v, 1.0, epsilon = 2E-6);
+                });
+
+                let xyz_round_trip = XYZ::from_vecs(obs.rgb2xyz_matrix(space) * rgb, obs);
+                assert_abs_diff_eq!(d65, xyz_round_trip, epsilon = 2E-6);
+            }
+        }
+    }
+
+    #[test]
+    #[cfg(feature = "supplemental-observers")]
+    // Test CIE 1931 primaries
+    fn test_rgb_primaries() {
+        use nalgebra::Vector3;
+        let obs = Observer::Cie1931;
+        for space in RgbSpace::iter() {
+            for (i, &primary) in [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
+                .iter()
+                .enumerate()
+            {
+                let want = space.primaries_chromaticity()[i].to_array();
+                let prim_vec = Vector3::from(primary);
+                let xy = XYZ::from_vecs(obs.rgb2xyz_matrix(space) * prim_vec, obs).chromaticity();
+                println!("{obs}, {space} {want:?}");
+                assert_abs_diff_eq!(xy.x(), want[0], epsilon = 1E-5);
+                assert_abs_diff_eq!(xy.y(), want[1], epsilon = 1E-5);
+            }
         }
     }
 }

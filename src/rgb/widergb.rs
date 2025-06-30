@@ -121,7 +121,7 @@ impl WideRgb {
     /// Converts the RGB value to a tri-stimulus XYZ value
     pub fn xyz(&self) -> XYZ {
         const YW: f64 = 100.0;
-        let xyz = self.observer.rgb2xyz(self.space) * self.rgb;
+        let xyz = self.observer.rgb2xyz_matrix(self.space) * self.rgb;
         XYZ {
             observer: self.observer,
             xyz: xyz.map(|v| v * YW),

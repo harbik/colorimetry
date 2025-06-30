@@ -1,6 +1,8 @@
 use clap::{Parser, Subcommand};
 use std::process::Command;
 
+mod gen_rgbxyz;
+
 #[derive(Parser)]
 #[command(name = "xtask", about = "Custom build tasks")]
 struct XtaskArgs {
@@ -49,14 +51,20 @@ fn main() {
         }
         Commands::Doc => {
             check_or_force_rdme();
-            run("cargo", &["doc", "--all-features", "--no-deps", "--open"]);
+            run_env(
+                "cargo",
+                &["doc", "--all-features", "--no-deps"],
+                &[("RUSTDOCFLAGS", "--deny warnings")],
+            )
+            .expect("failed to run cargo doc");
             println!("✅ Documentation build complete");
         }
         Commands::Wasm => {
             build_wasm();
         }
         Commands::Gen => {
-            todo!()
+            gen_rgbxyz::matrices().unwrap();
+            run("rustfmt", &["src/observer/rgbxyz.rs"]);
         }
     }
 }
@@ -107,4 +115,17 @@ fn run(cmd: &str, args: &[&str]) {
     if !status.success() {
         std::process::exit(status.code().unwrap_or(1));
     }
+}
+
+fn run_env(cmd: &str, args: &[&str], env: &[(&str, &str)]) -> Result<(), std::io::Error> {
+    let mut c = Command::new(cmd);
+    c.args(args);
+    for (k, v) in env {
+        c.env(k, v);
+    }
+    let status = c.status()?;
+    if !status.success() {
+        std::process::exit(status.code().unwrap_or(1));
+    }
+    Ok(())
 }

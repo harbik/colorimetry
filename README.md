@@ -129,12 +129,12 @@ Here, we compute transformation matrices for the `DisplayP3` color space using b
   use colorimetry::observer::Observer;
   use colorimetry::rgb::RgbSpace::DisplayP3;
 
-  let xyz2rgb_31 = Observer::Cie1931.xyz2rgb(DisplayP3);
+  let xyz2rgb_31 = Observer::Cie1931.xyz2rgb_matrix(DisplayP3);
   //  2.4933, -0.9313, -0.4027,
   // -0.8298,  1.7629,  0.0236,
   //  0.0355, -0.076,   0.9574
 
-  let rgb2xyz_31 = Observer::Cie1931.rgb2xyz(DisplayP3);
+  let rgb2xyz_31 = Observer::Cie1931.rgb2xyz_matrix(DisplayP3);
   // 0.4866, 0.2656, 0.1981,
   // 0.2291, 0.6917, 0.0792,
   // 0.0001, 0.0451, 1.0433,
@@ -142,7 +142,7 @@ Here, we compute transformation matrices for the `DisplayP3` color space using b
   // requires `supplemental-observers`
   use colorimetry::observer::Observer::Cie2015;
 
-  let xyz2rgb_15 = Cie2015.xyz2rgb(DisplayP3);
+  let xyz2rgb_15 = Cie2015.xyz2rgb_matrix(DisplayP3).clone();
   //  2.5258,  -1.0009, -0.3649,
   // -0.9006,   1.8546, -0.0011,
   //  0.0279,  -0.0574,  0.95874
@@ -224,17 +224,20 @@ what you'd actually see on a freshly painted surface.
 ## Capabilities
 
 - Uses a Standard fixed-grid spectral representation [`Spectrum`], with a wavelength domain ranging from 380 to 780 nanometers, with 1-nanometer intervals, ensuring high precision in capturing fine spectral details critical for accurate colorimetry calculations.
+
   - Uses [`nalgebra`] vector and matrix types for fast integration and transformations, chosen for its high performance, numerical stability, and compatibility with other mathematical libraries.
   - Supports interpolation from irregular spectral data using [`Spectrum::linear_interpolate`] and [`Spectrum::sprague_interpolate`].
   - Optional smoothing using a Gaussian filter via [`Spectrum::smooth`], which is typically used to reduce noise in spectral data or to smooth out irregularities in measured spectra for better analysis.
 
 - Generate spectral distributions from analytical models:
+
   - [`Illuminant::planckian`] Planck’s law for blackbody radiators
   - [`Illuminant::led`] Spectral power distribution of a LED
   - [`Colorant::gaussian`] Gaussian color filters
   - [`Stimulus::from_rgb`] Spectral distribution of an RGB color pixel using Gaussian spectral primaries
 
 - Includes Spectral Representations CIE Standard Illuminants (optional):
+
   - Daylight: [`D65`], [`D50`]
   - Incandescent: [`A`]
   - Fluorescent: [`F1`], [`F2`], [`F3`], [`F4`], [`F5`], [`F6`], [`F7`], [`F8`], [`F9`], [`F10`], [`F11`], [`F12`]
@@ -242,29 +245,35 @@ what you'd actually see on a freshly painted surface.
   - LED: [`LED_B1`], [`LED_B2`], [`LED_B3`], [`LED_B4`], [`LED_B5`], [`LED_BH1`], [`LED_RGB1`], [`LED_V1`]
 
 - Includes Various Colorant Collections (optional):
+
   - Munsell Color System [`MunsellCollection`], with over 1,000 colors
   - Color Evaluation Samples [`CES`], a set of 99 test colors used in the Color Fidelity Index (CFI) calculations
 
 - Calculate Illuminant metrics:
+
   - [`CCT`] Correlated color temperature, including distance to the blackbody locus for tint indication[^1]
   - [`CRI`] Color rendering index[^2]
   - [`CFI`] Color fidelity index[^3]
 
 - Use Advanced color (appearance) models:
+
   - [`CieLab`], [`CieCam02`], [`CieCam16`]
   - Color difference methods: [`CieLab::ciede`], [`CieLab::ciede2000`], [`CieCam02::de_ucs`], [`CieCam16::de_ucs`]
 
 - Work with Spectrally based RGB color spaces, with support for non-CIE 1931 observers and generic transformations between [`Rgb`] and [`XYZ`]:
+
   - RGB Color Spaces [`RgbSpace::SRGB`],  [`RgbSpace::Adobe`], [`RgbSpace::DisplayP3`]
   - Define RGB colors using spectral primaries, allowing switching observers
 
 - Includes Multiple CIE Standard Observers (see [`Observer`]), with transformations to [`XYZ`]:
+
   - [`Observer::Cie1931`] the CIE 1931 2º standard observer
   - [`Observer::Cie1964`] the CIE 1964 10º standard observer (optional, enabled by default)1
   - [`Observer::Cie2015`] the CIE 2015 2º cone fundamentals-based observer (optional, enabled by default)
   - [`Observer::Cie2015_10`] the CIE 2015 10º cone fundamentals-based observer (optional, enabled by default)
 
 - Compute gamut boundaries for CIE XYZ ([`RelXYZGamut`]) and CIELAB ([`CieLChGamut`]) using optimal colors ([`OptimalColors`]).
+
   - Estimate the total number of perceptually distinct colors.
   - Plot CIE LCh iso-hue lines and iso-lightness contours on chromaticity diagrams.
   - Plot maximum luminance value contours on chromaticity diagrams.

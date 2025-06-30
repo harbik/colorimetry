@@ -15,12 +15,17 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+* Add `OptimalColors`, `RelXYZGamut`, and `CieLChGamut` to build gamut hashmaps for the envelopes of the XYZ and CieLab color spaces.
 * `xtask` package as a sub-package, as a build and check tool, to use:
 
   * `cargo xtask check` to check the files using `clippy`, `fmt`, and `rdme`,
   * `cargo xtask test` to run test with various feature settings,
   * `cargo xtask doc` to generate the documentation, failing on warnings, and
   * `cargo xtask wasm` to generate the web-assembly files in `pkg` (requires `wasm-pack` and `wasm-opt`)
+
+### Changed
+
+* RGB <-> XYZ conversion matrices hard coded through `xtask gen` `gen_rgbxyz.rs` function, using a handlebars template
 
 ## [0.0.7] - 2025-6-17
 
