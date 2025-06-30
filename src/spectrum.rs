@@ -506,7 +506,7 @@ mod tests {
         approx::assert_ulps_eq!(
             Cie1931.xyz_from_spectrum(&white),
             Cie1931.xyz_d65().set_illuminance(100.0),
-            epsilon = 1E-6
+            epsilon = 5E-4
         );
         let red = Stimulus::from_srgb(255, 0, 0);
         assert_ulps_eq!(

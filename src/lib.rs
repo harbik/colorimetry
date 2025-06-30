@@ -142,24 +142,24 @@ Here, we compute transformation matrices for the `DisplayP3` color space using b
   use colorimetry::observer::Observer;
   use colorimetry::rgb::RgbSpace::DisplayP3;
 
-  let xyz2rgb_31 = Observer::Cie1931.xyz2rgb(DisplayP3);
+  let xyz2rgb_31 = Observer::Cie1931.xyz2rgb_matrix(DisplayP3);
 # let want31 = nalgebra::Matrix3::new(
 #    2.4933, -0.9313, -0.4027,
 #   -0.8298,  1.7629,  0.0236,
 #    0.0355, -0.076,   0.9574
 # );
-#   check!(xyz2rgb_31, want31, epsilon=5E-4);
+#   check!(xyz2rgb_31, &want31, epsilon=5E-4);
   //  2.4933, -0.9313, -0.4027,
   // -0.8298,  1.7629,  0.0236,
   //  0.0355, -0.076,   0.9574
 
-  let rgb2xyz_31 = Observer::Cie1931.rgb2xyz(DisplayP3);
+  let rgb2xyz_31 = Observer::Cie1931.rgb2xyz_matrix(DisplayP3);
 #  let want31inv = nalgebra::Matrix3::new(
 #     0.4866, 0.2656, 0.1981,
 #     0.2291, 0.6917, 0.0792,
 #     0.0001, 0.0451, 1.0433,
 # );
-# check!(rgb2xyz_31, want31inv, epsilon=5E-4);
+# check!(rgb2xyz_31, &want31inv, epsilon=5E-4);
   // 0.4866, 0.2656, 0.1981,
   // 0.2291, 0.6917, 0.0792,
   // 0.0001, 0.0451, 1.0433,
@@ -169,7 +169,7 @@ Here, we compute transformation matrices for the `DisplayP3` color space using b
   // requires `supplemental-observers`
   use colorimetry::observer::Observer::Cie2015;
 
-  let xyz2rgb_15 = Cie2015.xyz2rgb(DisplayP3);
+  let xyz2rgb_15 = Cie2015.xyz2rgb_matrix(DisplayP3).clone();
 # let want15 = nalgebra::Matrix3::new(
 #     2.5258,  -1.0009, -0.3649,
 #    -0.9006,   1.8546, -0.0011,
