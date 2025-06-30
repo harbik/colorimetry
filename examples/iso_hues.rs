@@ -43,16 +43,13 @@ impl<'a> Plot<'a> {
     fn plot_iso_hue_lines(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         let gamut = CieLChGamut::new(Observer::Cie1931, RgbSpace::Adobe);
 
-        for h in (0..360u16).step_by(5) {
-            let points: Vec<(f64, f64)> = (1..=CieLChGamut::L_BINS)
-                .filter_map(|l| {
-                    gamut.max_chroma(l, h).map(|c| {
-                        let lab = gamut.bins_to_cielab(l, c, h);
-                        let [x, y] = lab.xyz().xyz().chromaticity().to_array();
-                        (x, y)
-                    })
-                })
-                .collect();
+        for hbin in (0..360).step_by(5) {
+            let mut points = Vec::with_capacity(CieLChGamut::L_BINS);
+            for lbin in 0..CieLChGamut::L_BINS {
+                let lch = gamut.gamut_lch_bin(hbin, lbin);
+                let xy = lch.xyz().xyz().chromaticity();
+                points.push((xy.x(), xy.y()));
+            }
             self.chart.draw_series(LineSeries::new(points, &BLACK))?;
         }
         Ok(())
