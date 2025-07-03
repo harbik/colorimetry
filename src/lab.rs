@@ -48,20 +48,20 @@ use crate::{
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct CieLab {
     lab: Vector3<f64>,
-    xyzn: XYZ, // Reference white tristimulus value
+    white_point: XYZ, // Reference white tristimulus value
 }
 
 impl CieLab {
     /// Creates a new CIE L*a*b* color from the given L*a*b* values and reference white.
     /// # Arguments
     /// * `lab` - The L*a*b* color values as an array of three f64 values.
-    /// * `xyzn` - The reference white tristimulus value.
+    /// * `white_point` - The reference white tristimulus value.
     ///
     /// # Returns
     /// A new `CieLab` instance.
     pub fn new(lab: [f64; 3], xyzn: XYZ) -> CieLab {
         let lab = Vector3::from(lab);
-        CieLab { lab, xyzn }
+        CieLab { lab, white_point: xyzn }
     }
 
     pub fn a(&self) -> f64 {
@@ -79,31 +79,35 @@ impl CieLab {
     /// Creates a new CIE L*a*b* color from the given XYZ color and reference white.
     ///
     /// # Arguments
-    /// * `xyz` - The XYZ color to convert.
-    /// * `xyzn` - The reference white tristimulus value.
+    /// * `rxyz` - The RelXYZ color to convert.
     ///
     /// # Returns
     /// A `Result` containing the CIE L*a*b* color or an error if the observers do not match.
-    pub fn from_xyz(xyz: RelXYZ) -> CieLab {
+    pub fn from_rxyz(xyz: RelXYZ) -> CieLab {
         CieLab {
             lab: lab(xyz.xyz().xyz, xyz.white_point().xyz),
-            xyzn: xyz.white_point(),
+            white_point: xyz.white_point(),
         }
     }
 
     /// Converts the CIE L\*a\*b\* color back to XYZ using the reference white.
     /// # Returns
     /// The XYZ color corresponding to the CIE L\*a\*b\* values.
-    pub fn xyz(&self) -> RelXYZ {
-        // Convert back to XYZ for any further processing
-        let xyz = xyz_from_cielab(self.lab, self.xyzn.xyz);
-        // unwrap - same observer
-        RelXYZ::from_xyz(XYZ::from_vecs(xyz, self.xyzn.observer), self.xyzn).unwrap()
+    pub fn rxyz(&self) -> RelXYZ {
+        let xyz = xyz_from_cielab(self.lab, self.white_point.xyz);
+        RelXYZ::from_vec(xyz, self.white_point)
+    }
+
+    /// Converts the CIE L\*a\*b\* color back to XYZ using the reference white.
+    /// # Returns
+    /// The XYZ color corresponding to the CIE L\*a\*b\* values.
+    pub fn xyz(&self) -> XYZ {
+        self.rxyz().xyz()
     }
 
     /// Returns the reference white tristimulus value for this CIE L*a*b* color.
-    pub fn xyzn(&self) -> XYZ {
-        self.xyzn
+    pub fn white_point(&self) -> XYZ {
+        self.white_point
     }
 
     /// Sets the reference white luminance for this CIE L*a*b* color, in units of cd/m².
@@ -122,8 +126,8 @@ impl CieLab {
     ///   such as CIECAM16, may use different luminance levels for perceptual accuracy.
     pub fn set_white_luminance(mut self, luminance: f64) -> CieLab {
         // Adjust the reference white to the new luminance
-        let scale = luminance / self.xyzn.xyz.y;
-        self.xyzn.xyz *= scale;
+        let scale = luminance / self.white_point.xyz.y;
+        self.white_point.xyz *= scale;
         self
     }
 
@@ -158,10 +162,10 @@ impl CieLab {
     /// //  ΔE=6.57
     /// ```
     pub fn ciede(&self, other: &Self) -> Result<f64, Error> {
-        if self.xyzn.observer != other.xyzn.observer {
+        if self.white_point.observer != other.white_point.observer {
             return Err(Error::RequireSameObserver);
         }
-        if ulps_eq!(self.xyzn, other.xyzn) {
+        if ulps_eq!(self.white_point, other.white_point) {
             let &[l1, a1, b1] = self.lab.as_ref();
             let &[l2, a2, b2] = other.lab.as_ref();
             Ok(((l2 - l1).powi(2) + (a2 - a1).powi(2) + (b2 - b1).powi(2)).sqrt())
@@ -199,10 +203,10 @@ impl CieLab {
     /// approx::assert_abs_diff_eq!(de, 1.2644, epsilon = 1E-4);
     /// ```
     pub fn ciede2000(&self, other: &Self) -> Result<f64, Error> {
-        if self.xyzn.observer != other.xyzn.observer {
+        if self.white_point.observer != other.white_point.observer {
             return Err(Error::RequireSameObserver);
         }
-        if ulps_eq!(self.xyzn, other.xyzn) {
+        if ulps_eq!(self.white_point, other.white_point) {
             Ok(delta_e_ciede2000(self.lab, other.lab))
         } else {
             Err(Error::RequiresSameIlluminant)
@@ -227,10 +231,17 @@ impl CieLab {
             && ((-200.0..=200.0).contains(&b))
         {
             // check if the associated XYZ is valid
-            self.xyz().is_valid()
+            self.rxyz().is_valid()
         } else {
             false
         }
+    }
+
+    pub fn is_black(&self, epsilon: f64) -> bool {
+        let mut black = self.clone();
+        black.lab = Vector3::new(0.0, 0.0, 0.0);
+        let de = self.ciede2000(&black).unwrap(); // same observer and white point
+        de < epsilon
     }
 }
 
@@ -248,8 +259,8 @@ impl AbsDiffEq for CieLab {
     }
 
     fn abs_diff_eq(&self, other: &Self, epsilon: Self::Epsilon) -> bool {
-        self.xyzn.observer == other.xyzn.observer
-            && self.xyzn == other.xyzn
+        self.white_point.observer == other.white_point.observer
+            && self.white_point == other.white_point
             && abs_diff_eq!(self.lab, other.lab, epsilon = epsilon)
     }
 }
@@ -418,8 +429,8 @@ mod tests {
         let xyz_values = [36.0, 70.0, 12.0];
         let xyz = XYZ::new(xyz_values, Cie1931);
         let rxyz = RelXYZ::with_d65(xyz);
-        let lab = CieLab::from_xyz(rxyz);
-        let rxyz_back = lab.xyz();
+        let lab = CieLab::from_rxyz(rxyz);
+        let rxyz_back = lab.rxyz();
         assert_abs_diff_eq!(rxyz, rxyz_back, epsilon = 1e-10);
     }
 
@@ -429,8 +440,8 @@ mod tests {
         use crate::colorant::MunsellCollection;
         MunsellCollection.into_iter().for_each(|colorant| {
             let xyz = Cie1931.rel_xyz(&CieIlluminant::D65, &colorant);
-            let lab = CieLab::from_xyz(xyz);
-            let xyz_back = lab.xyz();
+            let lab = CieLab::from_rxyz(xyz);
+            let xyz_back = lab.rxyz();
             assert_abs_diff_eq!(xyz, xyz_back, epsilon = 1e-10);
         });
     }
@@ -439,8 +450,8 @@ mod tests {
     fn test_lab_roundtrip_monochromes() {
         let monos = Cie1931.monochromes(CieIlluminant::D65);
         monos.into_iter().for_each(|(_l, xyz)| {
-            let lab = CieLab::from_xyz(xyz);
-            let xyz_back = lab.xyz();
+            let lab = CieLab::from_rxyz(xyz);
+            let xyz_back = lab.rxyz();
             assert_abs_diff_eq!(xyz, xyz_back, epsilon = 1e-10);
         });
     }

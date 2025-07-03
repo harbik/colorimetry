@@ -100,7 +100,7 @@ impl RelXYZ {
 
     /// Returns the XYZ tristimulus values of the color represented by this `RelXYZ` instance.
     pub fn xyz(&self) -> XYZ {
-        XYZ::from_vecs(self.xyz, self.white_point.observer)
+        XYZ::from_vec(self.xyz, self.white_point.observer)
     }
 
     /// Returns the reference white point of this `RelXYZ` instance.
@@ -152,9 +152,12 @@ impl RelXYZ {
         if !self.xyz().is_valid() {
             return false;
         }
-        let lab = CieLab::from_xyz(*self);
-        let xyz_back = lab.xyz();
-        self.abs_diff_eq(&xyz_back, 1E-7)
+        // Convert to CIELAB and back to XYZ, check for consistency
+        // This is a round-trip conversion to ensure the CieLab values are valid
+        // and can be represented in the CIELAB color space.
+        let lab = CieLab::from_rxyz(*self);
+        let xyz_back = lab.rxyz();
+        self.abs_diff_eq(&xyz_back, 1E-12)
     }
 }
 
@@ -239,8 +242,8 @@ mod tests {
 
         let sl = Cie1931.monochromes(CieIlluminant::D65);
         for (_w, rxyz) in sl {
-            let lab = CieLab::from_xyz(rxyz);
-            let xyz_back = lab.xyz();
+            let lab = CieLab::from_rxyz(rxyz);
+            let xyz_back = lab.rxyz();
             approx::assert_abs_diff_eq!(rxyz, xyz_back, epsilon = 1E-6)
         }
     }
@@ -252,8 +255,8 @@ mod tests {
         let sl = Cie1931.monochromes(CieIlluminant::D65);
         for (w, rxyz) in sl {
             print!("{}, {:.4?}", w, rxyz.values()[0]);
-            let lab = CieLab::from_xyz(rxyz);
-            let xyz_back = lab.xyz();
+            let lab = CieLab::from_rxyz(rxyz);
+            let xyz_back = lab.rxyz();
             println!("{:.4?}", xyz_back.values()[0]);
         }
     }
