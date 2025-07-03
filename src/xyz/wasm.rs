@@ -78,7 +78,7 @@ impl XYZ {
                 "XYZ values should be all positive values".into(),
             ));
         }
-        Ok(XYZ::from_vecs(Vector3::new(x, y, z), obs))
+        Ok(XYZ::from_vec(Vector3::new(x, y, z), obs))
     }
 
     /// Get the XYZ tristimulus value as an array.
