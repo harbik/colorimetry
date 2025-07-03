@@ -43,7 +43,8 @@
 //!
 //! These standard observers form the backbone of color spaces, chromaticity diagrams, and all standardized color measurements.  
 
-mod observers;
+pub mod observer_data;
+
 mod rgbxyz;
 
 mod optimal;
@@ -57,72 +58,16 @@ use crate::{
     error::Error,
     illuminant::{CieIlluminant, Planck},
     lab::CieLab,
+    observer::observer_data::ObserverData,
     rgb::RgbSpace,
     spectrum::{to_wavelength, Spectrum, NS, SPECTRUM_WAVELENGTH_RANGE},
     traits::{Filter, Light},
     xyz::{RelXYZ, XYZ},
 };
-use nalgebra::{Matrix3, SMatrix, Vector3};
-use std::{fmt, ops::RangeInclusive, sync::OnceLock};
+use nalgebra::{Matrix3, Vector3};
+use std::{fmt, ops::RangeInclusive};
 
 use strum::{AsRefStr, EnumIter};
-
-///     A data structure to define Standard Observers, such as the CIE 1931 2º and
-///     the CIE 2015 standard observers.
-///
-///     These are defined in the form of the three color matching functions,
-///     typically denoted by $\hat{x}(\lamda)$,$\hat{y}{\lambda}$, and $\hat{z}(\lambda)$.
-///     Traditionally, the CIE1931 Colorimetric Standard Observer is used almost exclusively,
-///     but is known to be not a good representation of human vision in the blue region of the
-///     spectrum. We also know now that the way you see color varies with age, and your healty,
-///     and that not everyone sees to same color.
-///
-///     In this library colors are represented by spectral distributions, to allow color modelling
-///     with newer, and better standard observers, such as the CIE2015 Observer, derived from
-///     the sensitivities of the cones in the retina of your eye, the biological color receptors
-///     of light.
-///
-///     It's main purpose is to calculate `XYZ` tristimulus values for a general stimulus,
-///     in from of a `Spectrum`.
-pub struct ObserverData {
-    pub data: SMatrix<f64, 3, NS>,
-    pub lumconst: f64,
-    pub tag: Observer,
-    pub name: &'static str,
-    pub d65: OnceLock<XYZ>,
-    pub d50: OnceLock<XYZ>,
-    pub spectral_locus: OnceLock<SpectralLocus>,
-
-    /// The range of indices for which the spectral locus of this observer returns unique
-    /// chromaticity coordinates. See documentation for the
-    /// [`ObserverData::spectral_locus_range`] method for details.
-    pub spectral_locus_range: RangeInclusive<usize>,
-}
-
-impl ObserverData {
-    /// Creates a new `ObserverData` object, with the given color matching functions.
-    ///
-    /// Only visible to the crate itself since it cannot be used nicely from the outside
-    /// (since the `tag` is not something anyone else can create new varians of).
-    const fn new(
-        tag: Observer,
-        name: &'static str,
-        lumconst: f64,
-        spectral_locus_range: RangeInclusive<usize>,
-        data: SMatrix<f64, 3, NS>,
-    ) -> Self {
-        Self {
-            data,
-            lumconst,
-            tag,
-            name,
-            d65: OnceLock::new(),
-            d50: OnceLock::new(),
-            spectral_locus_range,
-            spectral_locus: OnceLock::new(),
-        }
-    }
-}
 
 /// Light-weight identifier added to the `XYZ` and `RGB` datasets,
 ///    representing the colorimetric standard observer used.
@@ -154,13 +99,13 @@ impl Observer {
     /// Get a reference to the data for the specified `Observer`.
     fn data(&self) -> &'static ObserverData {
         match self {
-            Observer::Cie1931 => &observers::CIE1931,
+            Observer::Cie1931 => &observer_data::CIE1931,
             #[cfg(feature = "supplemental-observers")]
-            Observer::Cie1964 => &observers::CIE1964,
+            Observer::Cie1964 => &observer_data::CIE1964,
             #[cfg(feature = "supplemental-observers")]
-            Observer::Cie2015 => &observers::CIE2015,
+            Observer::Cie2015 => &observer_data::CIE2015,
             #[cfg(feature = "supplemental-observers")]
-            Observer::Cie2015_10 => &observers::CIE2015_10,
+            Observer::Cie2015_10 => &observer_data::CIE2015_10,
         }
     }
 
