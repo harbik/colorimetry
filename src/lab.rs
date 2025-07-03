@@ -61,7 +61,10 @@ impl CieLab {
     /// A new `CieLab` instance.
     pub fn new(lab: [f64; 3], xyzn: XYZ) -> CieLab {
         let lab = Vector3::from(lab);
-        CieLab { lab, white_point: xyzn }
+        CieLab {
+            lab,
+            white_point: xyzn,
+        }
     }
 
     pub fn a(&self) -> f64 {

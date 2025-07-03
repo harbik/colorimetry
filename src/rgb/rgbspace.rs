@@ -85,6 +85,7 @@ impl RgbSpace {
         }
     }
 
+    // TODO: use the actual primaries, not the target chromaticity coordinates here
     pub fn contains(&self, chromaticity: &Chromaticity) -> bool {
         let triangle = Triangle::new(
             self.primaries_chromaticity()[0].to_array(),
