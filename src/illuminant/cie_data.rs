@@ -2,25 +2,45 @@ use crate::illuminant::Illuminant;
 use crate::spectrum::{Spectrum, NS};
 use nalgebra::{ArrayStorage, SVector};
 
+/// Macro to define a static `Illuminant` with associated spectral data.
+///
+/// # Arguments
+///
+/// - `$name`: Identifier for the generated static variable.
+/// - `$desc`: Documentation string describing the illuminant (used as a doc comment).
+///   It should be a meaningful and well-formed string, ideally following Markdown conventions
+///   and providing clear and concise information about the illuminant.
+/// - `$data`: Comma-separated list of spectral data values.
 macro_rules! data_illuminant {
     ($name:ident, $data: tt) => {
+        #[rustfmt::skip]
+        pub static $name: Illuminant = Illuminant(Spectrum(
+            SVector::<f64, NS>::from_array_storage(ArrayStorage([$data])),
+        ));
+    };
+    ($name:ident, $desc:literal, $data: tt) => {
+        #[rustfmt::skip]
+        #[doc = $desc]
         pub static $name: Illuminant = Illuminant(Spectrum(
             SVector::<f64, NS>::from_array_storage(ArrayStorage([$data])),
         ));
     };
 }
 
-// D65 CIE Standard Illuminant.
-//
-// Data from <https://cie.co.at/datatable/cie-standard-illuminant-d65>, truncated
-// to a range from 380 to 780 nanometer.  These data, using the `CIE1931` color
-// matching functions, results in a slightly different set of chromaticity
-// values then published historically, which are calculated with a larger domain, and
-// using a step size of 5 nanometer.  As this library uses spectral
-// distributions to allow the use of different observers, and follows the
-// `CIE015:2004` Colorimetry standard, we accept this deviation.
+data_illuminant!(E, "CIE E Standard Illuminant", [1.0; NS]);
+
 #[rustfmt::skip]
 data_illuminant!(D65,
+    "D65 CIE Standard Illuminant.
+    
+    Data from <https://cie.co.at/datatable/cie-standard-illuminant-d65>, truncated
+    to a range from 380 to 780 nanometer.  These data, using the CIE1931 color
+    matching functions, results in a slightly different set of chromaticity
+    values then published historically, which are calculated with a larger domain, and
+    using a step size of 5 nanometer.  As this library uses spectral
+    distributions to allow the use of different observers, and follows the
+    CIE015:2004 Colorimetry standard, we accept this deviation.
+    ",
     [49.9755, 50.4428, 50.91, 51.3773, 51.8446, 52.3118, 52.7791, 53.2464, 53.7137, 54.1809, 54.6482, 57.4589, 60.2695, 63.0802, 65.8909, 68.7015, 71.5122, 74.3229, 77.1336, 79.9442,
     82.7549, 83.628, 84.5011, 85.3742, 86.2473, 87.1204, 87.9936, 88.8667, 89.7398, 90.6129, 91.486, 91.6806, 91.8752, 92.0697, 92.2643, 92.4589, 92.6535, 92.8481, 93.0426, 93.2372,
     93.4318, 92.7568, 92.0819, 91.4069, 90.732, 90.057, 89.3821, 88.7071, 88.0322, 87.3572, 86.6823, 88.5006, 90.3188, 92.1371, 93.9554, 95.7736, 97.5919, 99.4102, 101.228, 103.047,
