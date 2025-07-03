@@ -158,8 +158,8 @@ impl CieLab {
     ///
     /// let xyz1 = XYZ::new([36.0, 70.0, 12.0], Observer::Cie1931);
     /// let xyz2 = XYZ::new([35.0, 71.0, 11.0], Observer::Cie1931);
-    /// let lab1 = CieLab::from_xyz(RelXYZ::with_d65(xyz1));
-    /// let lab2 = CieLab::from_xyz(RelXYZ::with_d65(xyz2));
+    /// let lab1 = CieLab::from_rxyz(RelXYZ::with_d65(xyz1));
+    /// let lab2 = CieLab::from_rxyz(RelXYZ::with_d65(xyz2));
     /// let de = lab1.ciede(&lab2).unwrap();
     /// # approx::assert_abs_diff_eq!(de, 6.57, epsilon = 0.01);
     /// //  ΔE=6.57
@@ -241,7 +241,7 @@ impl CieLab {
     }
 
     pub fn is_black(&self, epsilon: f64) -> bool {
-        let mut black = self.clone();
+        let mut black = *self;
         black.lab = Vector3::new(0.0, 0.0, 0.0);
         let de = self.ciede2000(&black).unwrap(); // same observer and white point
         de < epsilon

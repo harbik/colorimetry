@@ -15,6 +15,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+* Add `iso-hues` example for plotting CieLab iso hue lines in chromaticity diagrams
+* Add `WideRgb::is_within_gamut` with tolerance parameter
+* Add `CieLab::is_black` to test if a CieLab value is black
 * Add `OptimalColors`, `RelXYZGamut`, and `CieLChGamut` to build gamut hashmaps for the envelopes of the XYZ and CieLab color spaces.
 * `xtask` package as a sub-package, as a build and check tool, to use:
 
@@ -25,7 +28,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-* RGB <-> XYZ conversion matrices hard coded through `xtask gen` `gen_rgbxyz.rs` function, using a handlebars template
+* Rename `Colorant::from_xyz` 
+* Rename `CieLab::xyz` to `rxyz`, 
+* Rename `CieLab::xyzn` to `white_point`
+* Rename `Light::xyz100` to `white_point`
+* Rename `XYZ::from_vecs` to `XYZ::from_vec`
+* RGB <-> XYZ conversion matrices for the various color spaces hard coded through `xtask gen` `gen_rgbxyz.rs` function, using a handlebars template
 
 ## [0.0.7] - 2025-6-17
 

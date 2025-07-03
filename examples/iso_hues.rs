@@ -40,25 +40,31 @@ impl<'a> Plot<'a> {
         Ok(())
     }
 
-    fn plot_iso_hue_lines(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        let gamut = CieLChGamut::new(Observer::Cie1931, RgbSpace::Adobe);
-
-        for hbin in (0..360).step_by(5) {
-            let mut points = Vec::with_capacity(CieLChGamut::L_BINS);
-            for lbin in 0..CieLChGamut::L_BINS {
-                let lch = gamut.gamut_lch_bin(hbin, lbin);
-                let xy = lch.xyz().xyz().chromaticity();
-                points.push((xy.x(), xy.y()));
+    fn plot_iso_hue_lines_adobe(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        let gamut = CieLChGamut::new(Cie1931, RgbSpace::Adobe);
+        for h in (0..360).step_by(5) {
+            //  let h = 85;
+            let mut points = Vec::with_capacity(100);
+            for l in (0..1000).rev() {
+                //  let lch = gamut.full(l as f64, h as f64);
+                if let Some(lch) = gamut.rgb_gamut(l as f64 / 10.0, h as f64) {
+                    let [x, y] = lch.rxyz().xyz().chromaticity().to_array();
+                    points.push((x, y));
+                    let [rr, gg, bb] = lch.rxyz().xyz().rgb(RgbSpace::Adobe).values();
+                    println!(
+                        " {:3.0}, {:4.2}, {:5.2}, {x:.5}, {y:.5}, {rr:.3}, {gg:.3}, {bb:.3}",
+                        lch.h(),
+                        lch.l(),
+                        lch.c()
+                    );
+                } else {
+                    break;
+                }
             }
-            self.chart.draw_series(LineSeries::new(points, &BLACK))?;
+            self.chart.draw_series(LineSeries::new(points, &RED))?;
         }
         Ok(())
     }
-
-    // fn save_svg(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-    //     self.root.present()?;
-    //     Ok(())
-    // }
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -72,5 +78,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Plot the spectral locus
     plot.add_spectral_locus(Cie1931).unwrap();
 
-    plot.plot_iso_hue_lines()
+    plot.plot_iso_hue_lines_adobe()?;
+    Ok(())
 }
