@@ -212,8 +212,8 @@ impl CamJCh {
                 MCAT02INV * rgb_c
             }
         };
-        let xyz_out = XYZ::from_vecs(xyz, self.xyzn.observer);
-        let xyzn_out = XYZ::from_vecs(xyzn, self.xyzn.observer);
+        let xyz_out = XYZ::from_vec(xyz, self.xyzn.observer);
+        let xyzn_out = XYZ::from_vec(xyzn, self.xyzn.observer);
         RelXYZ::from_xyz(xyz_out, xyzn_out)
     }
 

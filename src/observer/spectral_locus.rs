@@ -29,7 +29,7 @@ impl SpectralLocus {
         let mut v = Vec::with_capacity(NS + 1);
         for i in 0..NS {
             let xyz = obs_data.column(i).into();
-            let chromaticity = XYZ::from_vecs(xyz, observer).chromaticity();
+            let chromaticity = XYZ::from_vec(xyz, observer).chromaticity();
             v.push(chromaticity.to_array());
         }
         v.push(v[0]); // close the polygon

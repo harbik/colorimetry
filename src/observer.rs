@@ -222,7 +222,7 @@ impl Observer {
     pub fn lab(&self, light: &dyn Light, filter: &dyn Filter) -> CieLab {
         let rxyz = self.rel_xyz(light, filter);
         // unwrap OK as we are using only one observer (self) here
-        CieLab::from_xyz(rxyz)
+        CieLab::from_rxyz(rxyz)
     }
 
     /// Calculates the L*a*b* CIELAB D65 values of a Colorant, using D65 as an illuminant.
@@ -276,7 +276,7 @@ impl Observer {
     /// This method produces the raw XYZ data, not normalized to 100.0
     pub fn xyz_from_spectrum(&self, spectrum: &Spectrum) -> XYZ {
         let xyz = self.data().data * spectrum.0 * self.data().lumconst;
-        XYZ::from_vecs(xyz, self.data().tag)
+        XYZ::from_vec(xyz, self.data().tag)
     }
 
     /// Calculates the lumimous value or Y tristimulus value for a general spectrum.
@@ -300,7 +300,7 @@ impl Observer {
             .data
             .column(wavelength - SPECTRUM_WAVELENGTH_RANGE.start())
             .as_ref();
-        Ok(XYZ::from_vecs(Vector3::new(x, y, z), self.data().tag))
+        Ok(XYZ::from_vec(Vector3::new(x, y, z), self.data().tag))
     }
 
     /// Calculates the relative XYZ tristimulus values of monochromatic stimuli.
@@ -339,7 +339,7 @@ impl Observer {
             }
         }
         let xyzn_vec = obs.column_sum();
-        let xyzn = XYZ::from_vecs(xyzn_vec, self.data().tag);
+        let xyzn = XYZ::from_vec(xyzn_vec, self.data().tag);
         let mut v = Vec::with_capacity(NS);
         for w in SPECTRUM_WAVELENGTH_RANGE {
             let xyz = obs.column(w - SPECTRUM_WAVELENGTH_RANGE.start()).into();
@@ -683,7 +683,7 @@ mod obs_test {
         let d65xyz = Cie1931.xyz_d65().xyz;
         approx::assert_ulps_eq!(
             xyz,
-            crate::xyz::XYZ::from_vecs(d65xyz, crate::observer::Observer::Cie1931)
+            crate::xyz::XYZ::from_vec(d65xyz, crate::observer::Observer::Cie1931)
         );
     }
 
@@ -789,7 +789,7 @@ mod obs_test {
                     assert_abs_diff_eq!(v, 1.0, epsilon = 2E-6);
                 });
 
-                let xyz_round_trip = XYZ::from_vecs(obs.rgb2xyz_matrix(space) * rgb, obs);
+                let xyz_round_trip = XYZ::from_vec(obs.rgb2xyz_matrix(space) * rgb, obs);
                 assert_abs_diff_eq!(d65, xyz_round_trip, epsilon = 2E-6);
             }
         }
@@ -808,7 +808,7 @@ mod obs_test {
             {
                 let want = space.primaries_chromaticity()[i].to_array();
                 let prim_vec = Vector3::from(primary);
-                let xy = XYZ::from_vecs(obs.rgb2xyz_matrix(space) * prim_vec, obs).chromaticity();
+                let xy = XYZ::from_vec(obs.rgb2xyz_matrix(space) * prim_vec, obs).chromaticity();
                 println!("{obs}, {space} {want:?}");
                 assert_abs_diff_eq!(xy.x(), want[0], epsilon = 1E-5);
                 assert_abs_diff_eq!(xy.y(), want[1], epsilon = 1E-5);
