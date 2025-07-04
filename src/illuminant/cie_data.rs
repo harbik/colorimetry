@@ -13,13 +13,13 @@ use nalgebra::{ArrayStorage, SVector};
 /// - `$data`: Comma-separated list of spectral data values.
 macro_rules! data_illuminant {
     ($name:ident, $data: tt) => {
-        #[rustfmt::skip]
+#[rustfmt::skip]
         pub static $name: Illuminant = Illuminant(Spectrum(
             SVector::<f64, NS>::from_array_storage(ArrayStorage([$data])),
         ));
     };
     ($name:ident, $desc:literal, $data: tt) => {
-        #[rustfmt::skip]
+#[rustfmt::skip]
         #[doc = $desc]
         pub static $name: Illuminant = Illuminant(Spectrum(
             SVector::<f64, NS>::from_array_storage(ArrayStorage([$data])),
@@ -31,8 +31,7 @@ data_illuminant!(E, "CIE E Standard Illuminant", [1.0; NS]);
 
 #[rustfmt::skip]
 data_illuminant!(D65,
-    "D65 CIE Standard Illuminant.
-    
+    r"D65 CIE Standard Illuminant.
     Data from <https://cie.co.at/datatable/cie-standard-illuminant-d65>, truncated
     to a range from 380 to 780 nanometer.  These data, using the CIE1931 color
     matching functions, results in a slightly different set of chromaticity
