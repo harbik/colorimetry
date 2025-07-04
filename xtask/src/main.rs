@@ -1,15 +1,22 @@
 use clap::{Parser, Subcommand};
 use std::process::Command;
 
+mod gen_observer;
+mod gen_rgbspace;
 mod gen_rgbxyz;
 
+/// Represents the command-line arguments for the xtask utility.
 #[derive(Parser)]
-#[command(name = "xtask", about = "Custom build tasks")]
+#[command(
+    name = "xtask",
+    about = "Custom build tasks for the colorimetry library"
+)]
 struct XtaskArgs {
     #[command(subcommand)]
     command: Commands,
 }
 
+// Update Commands enum to include Gen with subcommand
 #[derive(Subcommand)]
 enum Commands {
     /// Check formatting, clippy, and build
@@ -22,51 +29,77 @@ enum Commands {
     Wasm,
     /// Generates data structures which are expensive to generate,
     /// and which are used in the library.
-    Gen,
+    Gen {
+        #[command(subcommand)]
+        subcommand: GenCommands,
+    },
+}
+
+#[derive(Subcommand)]
+enum GenCommands {
+    /// Generate RGB-XYZ matrices
+    RgbTransforms,
+    /// Generate Observer Data
+    Observers,
+    /// Generate Color Space Data
+    Colorspaces,
+}
+
+impl Commands {
+    fn handle(&self) {
+        match self {
+            Commands::Check => {
+                run("cargo", &["fmt", "--", "--check"]);
+                run(
+                    "cargo",
+                    &[
+                        "clippy",
+                        "--all-targets",
+                        "--all-features",
+                        "--",
+                        "-D",
+                        "warnings",
+                    ],
+                );
+                run("cargo", &["check", "--all-targets"]);
+                run("cargo", &["rdme", "--check"]);
+            }
+            Commands::Test => {
+                run("cargo", &["test", "--all-features"]);
+                run("cargo", &["test", "--no-default-features"]);
+            }
+            Commands::Doc => {
+                check_or_force_rdme();
+                run_env(
+                    "cargo",
+                    &["doc", "--all-features", "--no-deps"],
+                    &[("RUSTDOCFLAGS", "--deny warnings")],
+                )
+                .expect("failed to run cargo doc");
+                println!("✅ Documentation build complete");
+            }
+            Commands::Wasm => {
+                build_wasm();
+            }
+            Commands::Gen { subcommand } => match subcommand {
+                GenCommands::RgbTransforms => {
+                    gen_rgbxyz::matrices().unwrap();
+                    run("rustfmt", &["src/observer/rgbxyz.rs"]);
+                }
+                GenCommands::Observers => {
+                    gen_observer::main();
+                }
+                GenCommands::Colorspaces => {
+                    gen_rgbspace::main();
+                }
+            },
+        }
+    }
 }
 
 fn main() {
     let args = XtaskArgs::parse();
-
-    match args.command {
-        Commands::Check => {
-            run("cargo", &["fmt", "--", "--check"]);
-            run(
-                "cargo",
-                &[
-                    "clippy",
-                    "--all-targets",
-                    "--all-features",
-                    "--",
-                    "-D",
-                    "warnings",
-                ],
-            );
-            run("cargo", &["check", "--all-targets"]);
-            run("cargo", &["rdme", "--check"]);
-        }
-        Commands::Test => {
-            run("cargo", &["test", "--all-features"]);
-            run("cargo", &["test", "--no-default-features"]);
-        }
-        Commands::Doc => {
-            check_or_force_rdme();
-            run_env(
-                "cargo",
-                &["doc", "--all-features", "--no-deps"],
-                &[("RUSTDOCFLAGS", "--deny warnings")],
-            )
-            .expect("failed to run cargo doc");
-            println!("✅ Documentation build complete");
-        }
-        Commands::Wasm => {
-            build_wasm();
-        }
-        Commands::Gen => {
-            gen_rgbxyz::matrices().unwrap();
-            run("rustfmt", &["src/observer/rgbxyz.rs"]);
-        }
-    }
+    args.command.handle();
 }
 
 fn build_wasm() {
@@ -86,10 +119,10 @@ fn check_or_force_rdme() {
     let status = Command::new("cargo")
         .args(["rdme", "--check"])
         .status()
-        .expect("failed to run cargo rdme --check");
+        .expect("faid to run cargo rdme --check");
 
     if status.success() {
-        println!("✅ README is up to date");
+        println!("✅ README is up to date")
     } else {
         println!("⚠️ README is out of date, regenerating...");
         let force_status = Command::new("cargo")
@@ -126,6 +159,7 @@ fn run_env(cmd: &str, args: &[&str], env: &[(&str, &str)]) -> Result<(), std::io
     let status = c.status()?;
     if !status.success() {
         std::process::exit(status.code().unwrap_or(1));
+    } else {
+        Ok(())
     }
-    Ok(())
 }
