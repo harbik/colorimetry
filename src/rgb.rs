@@ -56,6 +56,7 @@ mod gamma;
 mod rgbspace;
 mod widergb;
 
+pub use gamma::GammaCurve;
 pub use rgbspace::RgbSpace;
 pub use widergb::WideRgb;
 
