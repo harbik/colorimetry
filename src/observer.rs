@@ -384,7 +384,7 @@ impl Observer {
     /// through Observer::xyz2rgb.
     pub fn calc_xyz2rgb_matrix(&self, rgbspace: RgbSpace) -> Matrix3<f64> {
         // unwrap: only used with library color spaces
-        self.rgb2xyz_matrix(rgbspace).try_inverse().unwrap()
+        self.calc_rgb2xyz_matrix(rgbspace).try_inverse().unwrap()
     }
 
     //  pub fn rgb(&self, rgbspace: RgbSpace) -> Matrix3<f64> {
