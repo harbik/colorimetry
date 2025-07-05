@@ -3,6 +3,7 @@ use nalgebra::Vector3;
 
 use crate::{
     lab::CieLab,
+    observer::Observer,
     rgb::{RgbSpace, WideRgb},
     xyz::{RelXYZ, XYZ},
 };
@@ -35,6 +36,10 @@ impl CieLCh {
 
     pub fn white_point(&self) -> XYZ {
         self.white_point
+    }
+
+    pub fn observer(&self) -> Observer {
+        self.white_point.observer()
     }
 
     pub fn values(&self) -> [f64; 3] {
