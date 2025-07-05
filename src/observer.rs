@@ -77,6 +77,7 @@ use strum::{AsRefStr, EnumIter};
 #[cfg(not(feature = "supplemental-observers"))]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
 #[derive(Clone, Copy, Default, PartialEq, Eq, Hash, Debug, EnumIter, AsRefStr)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[non_exhaustive]
 pub enum Observer {
     #[default]
@@ -86,6 +87,7 @@ pub enum Observer {
 #[cfg(feature = "supplemental-observers")]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
 #[derive(Clone, Copy, Default, PartialEq, Eq, Hash, Debug, EnumIter, AsRefStr)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[non_exhaustive]
 pub enum Observer {
     #[default]

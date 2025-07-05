@@ -52,6 +52,7 @@ use nalgebra::{ArrayStorage, Vector3};
 mod wasm;
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
 /// Represents a color by its tristimulus value XYZ color space.
 ///
