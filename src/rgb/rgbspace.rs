@@ -1,6 +1,7 @@
 use std::fmt;
 use std::sync::OnceLock;
 
+use crate::spectrum::Spectrum;
 use crate::xyz::Chromaticity;
 use crate::{
     colorant::Colorant, illuminant::CieIlluminant, illuminant::D65, math::Triangle,
@@ -26,6 +27,7 @@ pub enum RgbSpace {
     SRGB,
     Adobe,
     DisplayP3,
+    CieRGB,
 }
 
 impl RgbSpace {
@@ -35,6 +37,7 @@ impl RgbSpace {
             Self::SRGB => "sRGB",
             Self::Adobe => "Adobe RGB",
             Self::DisplayP3 => "Display P3",
+            Self::CieRGB => "CIE RGB",
         }
     }
 
@@ -48,6 +51,7 @@ impl RgbSpace {
             Self::SRGB => RgbSpaceData::srgb(),
             Self::Adobe => RgbSpaceData::adobe_rgb(),
             Self::DisplayP3 => RgbSpaceData::display_p3(),
+            Self::CieRGB => RgbSpaceData::cie_rgb(),
         }
     }
 
@@ -69,10 +73,16 @@ impl RgbSpace {
             Chromaticity::new(0.265, 0.69),
             Chromaticity::new(0.15, 0.06),
         ];
+        const CIE_RGB_PRIMARIES: [Chromaticity; 3] = [
+            Chromaticity::new(0.7347, 0.2653),
+            Chromaticity::new(0.27368, 0.71742),
+            Chromaticity::new(0.16653, 0.00888),
+        ];
         match self {
             Self::SRGB => SRGB_PRIMARIES,
             Self::Adobe => ADOBE_PRIMARIES,
             Self::DisplayP3 => DISPLAY_P3_PRIMARIES,
+            Self::CieRGB => CIE_RGB_PRIMARIES,
         }
     }
 
@@ -82,6 +92,7 @@ impl RgbSpace {
             Self::SRGB => CieIlluminant::D65,
             Self::Adobe => CieIlluminant::D65,
             Self::DisplayP3 => CieIlluminant::D65,
+            Self::CieRGB => CieIlluminant::E,
         }
     }
 
@@ -97,6 +108,8 @@ impl RgbSpace {
     }
 }
 
+// Implementing the Display trait for RgbSpace to provide a string representation.
+// To get the EnumIter to work with strum, use the AsRefStr trait, which is Derived
 impl fmt::Display for RgbSpace {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.name())
@@ -128,16 +141,14 @@ pub struct RgbSpaceData {
 }
 
 impl RgbSpaceData {
-    /**
-    Creates a new `RgbSpace` using an array of three spectra as first
-    argument, representing the spectral distributions of the red, green, and
-    blue primary stimuli, the white spectrum as second argument, and a gamma
-    function as last arguments.  The spectral primaries or white spectrum
-    can have arbitrary power, as they are normalized before using in
-    calculation, in particular when using the RGB to XYZ transforms, and
-    vice versa (see the `rgb2xyz(rgbid: &RgbSpaceId)` and `xyz2rgb(rgbid: &RgbSpaceId)`
-    methods of `Observer`).
-    */
+    /// Creates a new `RgbSpace` using an array of three spectra as first
+    /// argument, representing the spectral distributions of the red, green, and
+    /// blue primary stimuli, the white spectrum as second argument, and a gamma
+    /// function as last arguments.  The spectral primaries or white spectrum
+    /// can have arbitrary power, as they are normalized before using in
+    /// calculation, in particular when using the RGB to XYZ transforms, and
+    /// vice versa (see the `rgb2xyz(rgbid: &RgbSpaceId)` and `xyz2rgb(rgbid: &RgbSpaceId)`
+    /// methods of `Observer`).
     pub fn new(primaries: [Stimulus; 3], white: CieIlluminant, gamma: GammaCurve) -> Self {
         Self {
             primaries,
@@ -146,15 +157,13 @@ impl RgbSpaceData {
         }
     }
 
-    /**
-     Get primaries as colorants.
-
-     This is the primaries stimulus divided by the reference white.
-
-     # Panics
-
-     If the RGB space reference white has 0.0 values in it, then this cause a division by zero.
-    */
+    /// Get primaries as colorants.
+    ///
+    ///  This is the primaries stimulus divided by the reference white.
+    ///
+    ///  # Panics
+    ///
+    ///  If the RGB space reference white has 0.0 values in it, then this cause a division by zero.
     pub fn primaries_as_colorants(&self) -> [Colorant; 3] {
         let white = self
             .white
@@ -167,15 +176,13 @@ impl RgbSpaceData {
         sa.map(Colorant)
     }
 
-    /**
-    The sRGB color space, created by HP and Microsoft in 1996.  It is the
-    default color space used in an image, or a Web-page, if no color space
-    is specified in a tag or in a color profile.
-    In this instance, the primaries are composed of Daylight D65 filtered Gaussian filters.
-    For the green and blue these are single Gaussians.
-    For red primary a combination of a blue and red Gaussian is used, with
-    the blue being equal to the blue primary.
-    */
+    /// The sRGB color space, created by HP and Microsoft in 1996.  It is the
+    /// default color space used in an image, or a Web-page, if no color space
+    /// is specified in a tag or in a color profile.
+    /// In this instance, the primaries are composed of Daylight D65 filtered Gaussian filters.
+    /// For the green and blue these are single Gaussians.
+    /// For red primary a combination of a blue and red Gaussian is used, with
+    /// the blue being equal to the blue primary.
     pub fn srgb() -> &'static RgbSpaceData {
         static SRGB: OnceLock<RgbSpaceData> = OnceLock::new();
         /*
@@ -201,14 +208,13 @@ impl RgbSpaceData {
             }
         })
     }
-    /**
-    The Adobe RGB color space.
 
-    The primaries are composed of Daylight D65 filtered Gaussian filters.
-    For the green and blue these are single Gaussians.
-    For red primary a combination of a blue and red Gaussian is used, with
-    the blue being equal to the blue primary.
-    */
+    /// The Adobe RGB color space.
+    ///
+    /// The primaries are composed of Daylight D65 filtered Gaussian filters.
+    /// For the green and blue these are single Gaussians.
+    /// For red primary a combination of a blue and red Gaussian is used, with
+    /// the blue being equal to the blue primary.
     pub fn adobe_rgb() -> &'static RgbSpaceData {
         static ADOBE_RGB: OnceLock<RgbSpaceData> = OnceLock::new();
         // Red Gaussian center wavelength and width, and blue lumen fraction
@@ -233,13 +239,16 @@ impl RgbSpaceData {
         })
     }
 
-    /**
-    The Display P3 color space.
-    The primaries are composed of Daylight D65 filtered Gaussian filters.
-    For the green and blue these are single Gaussians.
-    For red primary a combination of a blue and red Gaussian is used, with
-    the blue being equal to the blue primary.
-    */
+    /// The Display P3 color space.
+    ///
+    /// Used in Apple devices, such as iPhones and iPads.
+    /// The Display P3 color space is a wide-gamut RGB color space that is
+    /// designed to be compatible with the DCI-P3 color space used in digital cinema.
+    /// It is based on the same primaries as DCI-P3, but with a different white point,
+    /// which is D65 instead of DCI-P3's DCI white point.
+    ///
+    /// The primaries are composed of Daylight D65 filtered Gaussian filters.
+    /// For the green and blue these are single Gaussians.
     pub fn display_p3() -> &'static RgbSpaceData {
         static DISPLAY_P3: OnceLock<RgbSpaceData> = OnceLock::new();
         // Red Gaussian center wavelength and width, and blue lumen fraction
@@ -256,6 +265,37 @@ impl RgbSpaceData {
             let white = CieIlluminant::D65;
             let gamma =
                 GammaCurve::new(vec![2.4, 1.0 / 1.055, 0.055 / 1.055, 1.0 / 12.92, 0.04045]);
+            Self {
+                primaries,
+                white,
+                gamma,
+            }
+        })
+    }
+
+    /// The CIE RGB color space.
+    /// This color space is defined by the CIE and is based on the
+    /// CIE 1931 standard observer. It is not commonly used in practice, but
+    /// it is useful for color management and color science applications.
+    ///
+    /// The primaries are monochromatic stimuli at wavelength 700 nm (red),
+    /// 546.1 nm (green), and 435.8 nm (blue), with the white point being
+    /// CIE Illuminant E, which is a uniform white light source.
+    ///
+    /// The gamma curve is not used in CIE RGB, so it is an empty vector.
+    pub fn cie_rgb() -> &'static RgbSpaceData {
+        static CIE_RGB: OnceLock<RgbSpaceData> = OnceLock::new();
+
+        CIE_RGB.get_or_init(|| {
+            let primaries = [
+                Stimulus::new(Spectrum::from_wavelength_map(&[(700, 1.0)])), // 700.0 nm
+                Stimulus::new(Spectrum::from_wavelength_map(&[(546, 0.9), (547, 0.1)])), // 546.1 nm
+                Stimulus::new(Spectrum::from_wavelength_map(&[(435, 0.2), (436, 0.8)])), // 435.8 nm
+            ];
+            let white = CieIlluminant::E;
+            let gamma = GammaCurve::new(vec![]);
+            // CIE RGB does not use a gamma curve, so we use an empty vector.
+            // Use with float values only!
             Self {
                 primaries,
                 white,
@@ -300,5 +340,6 @@ mod rgbspace_tests {
         assert_eq!(RgbSpace::SRGB.as_ref(), "SRGB");
         assert_eq!(RgbSpace::DisplayP3.as_ref(), "DisplayP3");
         assert_eq!(RgbSpace::Adobe.as_ref(), "Adobe");
+        assert_eq!(RgbSpace::CieRGB.as_ref(), "CieRGB");
     }
 }

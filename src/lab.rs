@@ -34,9 +34,7 @@ use std::f64::consts::PI;
 mod lch;
 pub use lch::CieLCh;
 
-#[cfg(feature = "gamut-tables")]
 mod gamut;
-#[cfg(feature = "gamut-tables")]
 pub use gamut::CieLChGamut;
 
 use crate::{

@@ -81,7 +81,7 @@ impl Spectrum {
     ///     (600, 0.75),
     ///     (700, 1.0),
     /// ]);
-    /// let spd = Spectrum::from_map(&data);
+    /// let spd = Spectrum::from_wavelength_map(&data);
     /// assert_eq!(spd[380], 0.0);
     /// assert_eq!(spd[400], 0.25);
     /// assert_eq!(spd[500], 0.5);
@@ -90,7 +90,10 @@ impl Spectrum {
     /// ```
     pub fn from_wavelength_map(data: &[(usize, f64)]) -> Self {
         if !(1..NS).contains(&data.len()) && data.len() != NS {
-            panic!("Need a map with a length between 1 and NS, got a length of {}", data.len());
+            panic!(
+                "Need a map with a length between 1 and NS, got a length of {}",
+                data.len()
+            );
         }
         let mut spd = [0f64; NS];
         for (i, v) in data {
