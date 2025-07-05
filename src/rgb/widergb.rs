@@ -119,6 +119,23 @@ impl WideRgb {
     }
 
     /// Converts the RGB value to a tri-stimulus XYZ value
+    ///
+    /// This method applies the observer's RGB to XYZ conversion matrix to the RGB values,
+    /// resulting in XYZ values scaled by the white point's Y value (100.0).
+    ///  # Returns
+    /// An `XYZ` instance representing the color in the XYZ color space.
+    /// ```
+    /// # use colorimetry::rgb::WideRgb;
+    /// # use approx::assert_abs_diff_eq;
+    /// # use colorimetry::xyz::XYZ;
+    /// # use colorimetry::observer::Observer::Cie1931;
+    /// # use colorimetry::rgb::RgbSpace::SRGB;
+    /// let xyz = Cie1931.xyz_d65();
+    /// let wide_rgb = xyz.rgb(SRGB);
+    /// let xyz_back = wide_rgb.xyz();
+    /// assert_abs_diff_eq!(xyz, xyz_back, epsilon = 5E-4); // Example assertion, actual values depend on the observer and space
+    /// ```
+    ///
     pub fn xyz(&self) -> XYZ {
         const YW: f64 = 100.0;
         let xyz = self.observer.rgb2xyz_matrix(self.space) * self.rgb;
@@ -143,6 +160,31 @@ impl WideRgb {
     /// ```
     pub fn is_in_gamut(&self) -> bool {
         self.values().iter().all(|v| (0.0..=1.0).contains(v))
+    }
+
+    /// Returns whether or not this Wide RGB instance is within the RGB gamut or not,
+    /// excluding the border values. Use `epsilon` to define the margin
+    /// ```rust
+    /// # use colorimetry::rgb::WideRgb;
+    ///
+    /// let in_gamut = WideRgb::new(0.0, 0.3, 0.3, None, None);
+    /// assert!(in_gamut.is_within_gamut(0.001));
+    ///
+    /// let in_gamut = WideRgb::new(0.99, 0.3, 0.3, None, None);
+    /// assert!(in_gamut.is_within_gamut(0.001));
+    ///
+    /// let in_gamut = WideRgb::new(0.5, 0.5, 0.9999, None, None);
+    /// assert!(!in_gamut.is_within_gamut(0.01));
+    ///
+    /// let in_gamut = WideRgb::new(0.5, 0.5, 0.989, None, None);
+    /// assert!(in_gamut.is_within_gamut(0.01));
+    /// ```
+    pub fn is_within_gamut(&self, epsilon: f64) -> bool {
+        self.values().iter().all(|&v| v < 1.0 - epsilon)
+    }
+
+    pub fn is_black(&self, epsilon: f64) -> bool {
+        self.rgb.iter().all(|&v| v.abs() < epsilon)
     }
 
     /// Returns itself as an [`Rgb`] instance with all channel values unchanged, if this wide RGB

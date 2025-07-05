@@ -56,6 +56,8 @@ pub enum Error {
     InvalidHue(f64),
     #[error("Invalid Hue Bin (0..72): {0}")]
     InvalidHueBin(u8),
+    #[error("Index Out Of Range: {0} should be betwen{1} and {2}")]
+    IndexOutOfRange(usize, usize, usize),
 }
 
 impl From<&str> for Error {

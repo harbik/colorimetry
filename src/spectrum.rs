@@ -63,6 +63,55 @@ impl Spectrum {
         ))
     }
 
+    /// Constructs a Spectrum from a sparse map of wavelength-value pairs.
+    /// The method name reflects that the input is a map from wavelength to value.
+    /// The map must contain at least one and at most 401 entries, with keys in the range from 380 to 780
+    /// nanometers, inclusive.
+    /// # Panics
+    /// Panics if the map contains less than 1 or more than 401 entries, or if any key is outside the
+    /// range from 380 to 780 nanometers.
+    /// # Example
+    /// ```rust
+    /// use colorimetry::prelude::*;
+    /// use std::collections::BTreeMap;
+    /// let data = ([
+    ///     (380, 0.0),
+    ///     (400, 0.25),
+    ///     (500, 0.5),
+    ///     (600, 0.75),
+    ///     (700, 1.0),
+    /// ]);
+    /// let spd = Spectrum::from_wavelength_map(&data);
+    /// assert_eq!(spd[380], 0.0);
+    /// assert_eq!(spd[400], 0.25);
+    /// assert_eq!(spd[500], 0.5);
+    /// assert_eq!(spd[600], 0.75);
+    /// assert_eq!(spd[700], 1.0);
+    /// ```
+    pub fn from_wavelength_map(data: &[(usize, f64)]) -> Self {
+        if !(1..NS).contains(&data.len()) && data.len() != NS {
+            panic!(
+                "Need a map with a length between 1 and NS, got a length of {}",
+                data.len()
+            );
+        }
+        let mut spd = [0f64; NS];
+        for (i, v) in data {
+            if *i < *SPECTRUM_WAVELENGTH_RANGE.start() || *i > *SPECTRUM_WAVELENGTH_RANGE.end() {
+                panic!(
+                    "Wavelength {} out of range, must be between {} and {}",
+                    i,
+                    SPECTRUM_WAVELENGTH_RANGE.start(),
+                    SPECTRUM_WAVELENGTH_RANGE.end()
+                );
+            }
+            spd[*i - SPECTRUM_WAVELENGTH_RANGE.start()] = *v;
+        }
+        Self(SVector::<f64, NS>::from_array_storage(
+            nalgebra::ArrayStorage([spd]),
+        ))
+    }
+
     /// This function maps spectral data with irregular intervals or intervals different than 1
     /// nanometer to the standard spectrum as used in this library.
     ///

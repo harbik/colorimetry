@@ -80,8 +80,17 @@ impl XYZ {
     }
 
     /// Defines [XYZ] values from [nalgebra::Vector3] values directly.
-    pub const fn from_vecs(xyz: Vector3<f64>, observer: Observer) -> XYZ {
+    pub const fn from_vec(xyz: Vector3<f64>, observer: Observer) -> XYZ {
         Self { observer, xyz }
+    }
+
+    pub fn is_valid(&self) -> bool {
+        if self.xyz.iter().any(|v| *v < 0.0 || !v.is_finite()) {
+            return false;
+        }
+        self.observer
+            .spectral_locus()
+            .contains(self.chromaticity().to_array())
     }
 
     // Creates a new `XYZ` value from chromaticity coordinates, an optional luminous value, and an optional observer.
@@ -111,7 +120,7 @@ impl XYZ {
         } else {
             let scale = l / y;
             let xyz = Vector3::new(x * scale, l, (1.0 - x - y) * scale);
-            Ok(Self::from_vecs(xyz, observer))
+            Ok(Self::from_vec(xyz, observer))
         }
     }
 
@@ -133,7 +142,7 @@ impl XYZ {
     pub fn try_add(&self, other: XYZ) -> Result<XYZ, Error> {
         if self.observer == other.observer {
             let data = self.xyz + other.xyz;
-            Ok(XYZ::from_vecs(data, self.observer))
+            Ok(XYZ::from_vec(data, self.observer))
         } else {
             Err(Error::RequireSameObserver)
         }
@@ -453,12 +462,12 @@ mod xyz_test {
     fn ulps_xyz_test() {
         use approx::assert_ulps_eq;
         use nalgebra::Vector3;
-        let xyz0 = XYZ::from_vecs(Vector3::zeros(), Observer::Cie1931);
+        let xyz0 = XYZ::from_vec(Vector3::zeros(), Observer::Cie1931);
 
-        let xyz1 = XYZ::from_vecs(Vector3::new(0.0, 0.0, f64::EPSILON), Observer::Cie1931);
+        let xyz1 = XYZ::from_vec(Vector3::new(0.0, 0.0, f64::EPSILON), Observer::Cie1931);
         assert_ulps_eq!(xyz0, xyz1, epsilon = 1E-5);
 
-        let xyz2 = XYZ::from_vecs(
+        let xyz2 = XYZ::from_vec(
             Vector3::new(0.0, 0.0, 2.0 * f64::EPSILON),
             Observer::Cie1931,
         );
@@ -467,7 +476,7 @@ mod xyz_test {
         // different observer
         #[cfg(feature = "supplemental-observers")]
         {
-            let xyz3 = XYZ::from_vecs(Vector3::zeros(), Observer::Cie1964);
+            let xyz3 = XYZ::from_vec(Vector3::zeros(), Observer::Cie1964);
             approx::assert_ulps_ne!(xyz0, xyz3);
         }
     }

@@ -195,7 +195,7 @@ impl Colorant {
         let illuminant = illuminant_opt.unwrap_or(&crate::illuminant::D65);
         let obs = obs_opt.unwrap_or_default();
         let rxyz = obs.rel_xyz(illuminant, self);
-        CieLab::from_xyz(rxyz)
+        CieLab::from_rxyz(rxyz)
     }
 }
 

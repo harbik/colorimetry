@@ -55,7 +55,7 @@ pub trait Light {
 
     /// Calculates the tristimulus values of the light source for a given observer,
     /// using an luminous value of 100.
-    fn xyzn100(&self, observer: Observer) -> XYZ {
+    fn white_point(&self, observer: Observer) -> XYZ {
         self.xyzn(observer, Some(100.0))
     }
 

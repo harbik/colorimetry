@@ -140,9 +140,9 @@ fn gauss_with_anchor(space: RgbSpace, i: usize, j: usize) -> Result<Vec<f64>, St
 /// * `b` - Result for blue channel, printed in blue in the terminal
 fn report(desc: &str, r: [f64; 3], g: [f64; 2], b: [f64; 2]) {
     println!("\n{}", desc.bold().underline());
-    println!("{:?}", format!("{r:?}").red());
-    println!("{:?}", format!("{g:?}").green());
-    println!("{:?}", format!("{b:?}").blue());
+    println!("{}", format!("{r:?}").red());
+    println!("{}", format!("{g:?}").green());
+    println!("{}", format!("{b:?}").blue());
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {

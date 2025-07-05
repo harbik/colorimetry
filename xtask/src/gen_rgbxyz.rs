@@ -45,8 +45,8 @@ pub fn render_rgb_template() -> String {
             let m_xyz2rgb = observer.calc_xyz2rgb_matrix(rgbspace);
             let observer = format!("{:?}", observer);
             let rgbspace = format!("{:?}", rgbspace);
-            let matrix = format!("{:.6?}", m_rgb2xyz);
-            let matrix_inv = format!("{:.6?}", m_xyz2rgb);
+            let matrix = format!("{:?}", m_rgb2xyz);
+            let matrix_inv = format!("{:?}", m_xyz2rgb);
             let identifier_inv = format!(
                 "XYZ2RGB_{}_{}",
                 observer.to_uppercase(),

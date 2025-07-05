@@ -43,81 +43,31 @@
 //!
 //! These standard observers form the backbone of color spaces, chromaticity diagrams, and all standardized color measurements.  
 
-mod observers;
+pub mod observer_data;
+
 mod rgbxyz;
 
 mod optimal;
 pub use optimal::OptimalColors;
+
+mod spectral_locus;
+pub use spectral_locus::SpectralLocus;
 
 use crate::{
     cam::{CieCam02, CieCam16, ViewConditions},
     error::Error,
     illuminant::{CieIlluminant, Planck},
     lab::CieLab,
+    observer::observer_data::ObserverData,
     rgb::RgbSpace,
     spectrum::{to_wavelength, Spectrum, NS, SPECTRUM_WAVELENGTH_RANGE},
     traits::{Filter, Light},
     xyz::{RelXYZ, XYZ},
 };
-use nalgebra::{Matrix3, SMatrix, Vector3};
-use std::{fmt, ops::RangeInclusive, sync::OnceLock};
+use nalgebra::{Matrix3, Vector3};
+use std::{fmt, ops::RangeInclusive};
 
 use strum::{AsRefStr, EnumIter};
-
-///     A data structure to define Standard Observers, such as the CIE 1931 2º and
-///     the CIE 2015 standard observers.
-///
-///     These are defined in the form of the three color matching functions,
-///     typically denoted by $\hat{x}(\lamda)$,$\hat{y}{\lambda}$, and $\hat{z}(\lambda)$.
-///     Traditionally, the CIE1931 Colorimetric Standard Observer is used almost exclusively,
-///     but is known to be not a good representation of human vision in the blue region of the
-///     spectrum. We also know now that the way you see color varies with age, and your healty,
-///     and that not everyone sees to same color.
-///
-///     In this library colors are represented by spectral distributions, to allow color modelling
-///     with newer, and better standard observers, such as the CIE2015 Observer, derived from
-///     the sensitivities of the cones in the retina of your eye, the biological color receptors
-///     of light.
-///
-///     It's main purpose is to calculate `XYZ` tristimulus values for a general stimulus,
-///     in from of a `Spectrum`.
-pub struct ObserverData {
-    pub data: SMatrix<f64, 3, NS>,
-    pub lumconst: f64,
-    pub tag: Observer,
-    pub name: &'static str,
-    pub d65: OnceLock<XYZ>,
-    pub d50: OnceLock<XYZ>,
-
-    /// The range of indices for which the spectral locus of this observer returns unique
-    /// chromaticity coordinates. See documentation for the
-    /// [`ObserverData::spectral_locus_range`] method for details.
-    pub spectral_locus_range: RangeInclusive<usize>,
-}
-
-impl ObserverData {
-    /// Creates a new `ObserverData` object, with the given color matching functions.
-    ///
-    /// Only visible to the crate itself since it cannot be used nicely from the outside
-    /// (since the `tag` is not something anyone else can create new varians of).
-    const fn new(
-        tag: Observer,
-        name: &'static str,
-        lumconst: f64,
-        spectral_locus_range: RangeInclusive<usize>,
-        data: SMatrix<f64, 3, NS>,
-    ) -> Self {
-        Self {
-            data,
-            lumconst,
-            tag,
-            name,
-            d65: OnceLock::new(),
-            d50: OnceLock::new(),
-            spectral_locus_range,
-        }
-    }
-}
 
 /// Light-weight identifier added to the `XYZ` and `RGB` datasets,
 ///    representing the colorimetric standard observer used.
@@ -149,19 +99,28 @@ impl Observer {
     /// Get a reference to the data for the specified `Observer`.
     fn data(&self) -> &'static ObserverData {
         match self {
-            Observer::Cie1931 => &observers::CIE1931,
+            Observer::Cie1931 => &observer_data::CIE1931,
             #[cfg(feature = "supplemental-observers")]
-            Observer::Cie1964 => &observers::CIE1964,
+            Observer::Cie1964 => &observer_data::CIE1964,
             #[cfg(feature = "supplemental-observers")]
-            Observer::Cie2015 => &observers::CIE2015,
+            Observer::Cie2015 => &observer_data::CIE2015,
             #[cfg(feature = "supplemental-observers")]
-            Observer::Cie2015_10 => &observers::CIE2015_10,
+            Observer::Cie2015_10 => &observer_data::CIE2015_10,
         }
     }
 
     /// Returns the name of the observer.
     pub fn name(&self) -> &'static str {
         self.data().name
+    }
+
+    /// Returns the spectral locus for this observer.
+    ///
+    /// The spectral locus is the boundary of the area of all physical colors in a chromiticity diagram.
+    pub fn spectral_locus(&self) -> &SpectralLocus {
+        self.data()
+            .spectral_locus
+            .get_or_init(|| SpectralLocus::new(*self))
     }
 
     pub fn rel_xyz(&self, light: &dyn Light, filter: &dyn Filter) -> RelXYZ {
@@ -208,7 +167,7 @@ impl Observer {
     pub fn lab(&self, light: &dyn Light, filter: &dyn Filter) -> CieLab {
         let rxyz = self.rel_xyz(light, filter);
         // unwrap OK as we are using only one observer (self) here
-        CieLab::from_xyz(rxyz)
+        CieLab::from_rxyz(rxyz)
     }
 
     /// Calculates the L*a*b* CIELAB D65 values of a Colorant, using D65 as an illuminant.
@@ -262,7 +221,7 @@ impl Observer {
     /// This method produces the raw XYZ data, not normalized to 100.0
     pub fn xyz_from_spectrum(&self, spectrum: &Spectrum) -> XYZ {
         let xyz = self.data().data * spectrum.0 * self.data().lumconst;
-        XYZ::from_vecs(xyz, self.data().tag)
+        XYZ::from_vec(xyz, self.data().tag)
     }
 
     /// Calculates the lumimous value or Y tristimulus value for a general spectrum.
@@ -286,31 +245,37 @@ impl Observer {
             .data
             .column(wavelength - SPECTRUM_WAVELENGTH_RANGE.start())
             .as_ref();
-        Ok(XYZ::from_vecs(Vector3::new(x, y, z), self.data().tag))
+        Ok(XYZ::from_vec(Vector3::new(x, y, z), self.data().tag))
     }
 
-    /// Calculates the relative XYZ tristimulus values of monochromatic (narrowband) spectra
-    /// across the visible spectrum, forming what is known as the *spectral locus*.
+    /// Calculates the relative XYZ tristimulus values of monochromatic stimuli.
     ///
-    /// This method multiplies the standard observer data by the given reference illuminant
-    /// (assumed to have an illuminance of 100.0 lux) and computes XYZ values for each 1 nm step.
-    /// The resulting colors represent idealized, fully saturated spectral stimuli—typically
-    /// used in chromaticity diagrams like CIE 1931 (x, y) or CIELAB (L*, a*, b*).
+    /// Monochromatic stimuli are pure spectral colors, like those seen when white light
+    /// is dispersed by a prism. This method computes their XYZ values under a given illuminant.
     ///
-    /// ### Notes
-    /// - Each wavelength is treated as a delta function (spectral width = 1 nm), so the resulting
-    ///   XYZ values are very low in magnitude—i.e., they appear perceptually "dark."
-    /// - The XYZ values are normalized relative to the total white point derived from the illuminant.
-    /// - The resulting data can be used to draw the outer boundary of the visible chromaticity space,
-    ///   or to draw spectral color diagrams using white adaptation correction.
+    /// # Details
+    /// - Computes XYZ values for wavelengths from 380nm to 780nm in 1nm steps
+    /// - Multiplies observer color matching functions by illuminant spectrum
+    /// - Normalizes results relative to the illuminant's white point
+    /// - Scales output to 100 lux illuminance
     ///
-    /// ### Parameters
-    /// - `ref_white`: The reference illuminant used for normalizing the output (e.g. D65 or D50).
+    /// # Difference from Spectral Locus
+    /// While the spectral locus shows only chromaticity coordinates (x,y) of pure spectral
+    /// colors, this method provides full XYZ values including luminance information.
     ///
-    /// ### Returns
-    /// A vector of `(wavelength, RelXYZ)` tuples, where each `RelXYZ` represents the relative
-    /// tristimulus values of that wavelength under the given illuminant, scaled to 100 lux.
-    pub fn spectral_locus(&self, ref_white: CieIlluminant) -> Vec<(usize, RelXYZ)> {
+    /// # Implementation Notes
+    /// - Each wavelength is treated as a monochromatic stimulus (delta function)
+    /// - Results are typically low in magnitude due to the narrow bandwidth
+    /// - Values are normalized relative to the illuminant's total energy
+    ///
+    /// # Parameters
+    /// - `ref_white`: Reference illuminant (e.g., D65, D50) for normalization
+    ///
+    /// # Returns
+    /// Vector of (wavelength, RelXYZ) pairs, where:
+    /// - wavelength: nanometers (380-780nm)
+    /// - RelXYZ: relative tristimulus values scaled to 100 lux
+    pub fn monochromes(&self, ref_white: CieIlluminant) -> Vec<(usize, RelXYZ)> {
         let mut obs = self.data().data;
         let white = &ref_white.illuminant().as_ref().0;
         for r in 0..3 {
@@ -319,7 +284,7 @@ impl Observer {
             }
         }
         let xyzn_vec = obs.column_sum();
-        let xyzn = XYZ::from_vecs(xyzn_vec, self.data().tag);
+        let xyzn = XYZ::from_vec(xyzn_vec, self.data().tag);
         let mut v = Vec::with_capacity(NS);
         for w in SPECTRUM_WAVELENGTH_RANGE {
             let xyz = obs.column(w - SPECTRUM_WAVELENGTH_RANGE.start()).into();
@@ -330,7 +295,7 @@ impl Observer {
     }
 
     pub fn trimmed_spectral_locus(&self, ref_white: CieIlluminant) -> Vec<(usize, RelXYZ)> {
-        let sl_full = self.spectral_locus(ref_white);
+        let sl_full = self.monochromes(ref_white);
         let valid_range = self.spectral_locus_wavelength_range();
         sl_full
             .into_iter()
@@ -419,7 +384,7 @@ impl Observer {
     /// through Observer::xyz2rgb.
     pub fn calc_xyz2rgb_matrix(&self, rgbspace: RgbSpace) -> Matrix3<f64> {
         // unwrap: only used with library color spaces
-        self.rgb2xyz_matrix(rgbspace).try_inverse().unwrap()
+        self.calc_rgb2xyz_matrix(rgbspace).try_inverse().unwrap()
     }
 
     //  pub fn rgb(&self, rgbspace: RgbSpace) -> Matrix3<f64> {
@@ -663,7 +628,7 @@ mod obs_test {
         let d65xyz = Cie1931.xyz_d65().xyz;
         approx::assert_ulps_eq!(
             xyz,
-            crate::xyz::XYZ::from_vecs(d65xyz, crate::observer::Observer::Cie1931)
+            crate::xyz::XYZ::from_vec(d65xyz, crate::observer::Observer::Cie1931)
         );
     }
 
@@ -719,7 +684,7 @@ mod obs_test {
         use crate::illuminant::CieIlluminant;
         use crate::observer::Observer::Cie1931;
 
-        let sl = Cie1931.spectral_locus(CieIlluminant::D65);
+        let sl = Cie1931.monochromes(CieIlluminant::D65);
         // Check the first and last points of the spectral locus
         // Data obtained from spreadsheet using data directly downloaded from cie.co.at
         assert_eq!(sl.len(), 401);
@@ -769,7 +734,7 @@ mod obs_test {
                     assert_abs_diff_eq!(v, 1.0, epsilon = 2E-6);
                 });
 
-                let xyz_round_trip = XYZ::from_vecs(obs.rgb2xyz_matrix(space) * rgb, obs);
+                let xyz_round_trip = XYZ::from_vec(obs.rgb2xyz_matrix(space) * rgb, obs);
                 assert_abs_diff_eq!(d65, xyz_round_trip, epsilon = 2E-6);
             }
         }
@@ -788,7 +753,7 @@ mod obs_test {
             {
                 let want = space.primaries_chromaticity()[i].to_array();
                 let prim_vec = Vector3::from(primary);
-                let xy = XYZ::from_vecs(obs.rgb2xyz_matrix(space) * prim_vec, obs).chromaticity();
+                let xy = XYZ::from_vec(obs.rgb2xyz_matrix(space) * prim_vec, obs).chromaticity();
                 println!("{obs}, {space} {want:?}");
                 assert_abs_diff_eq!(xy.x(), want[0], epsilon = 1E-5);
                 assert_abs_diff_eq!(xy.y(), want[1], epsilon = 1E-5);

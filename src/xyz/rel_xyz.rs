@@ -100,7 +100,7 @@ impl RelXYZ {
 
     /// Returns the XYZ tristimulus values of the color represented by this `RelXYZ` instance.
     pub fn xyz(&self) -> XYZ {
-        XYZ::from_vecs(self.xyz, self.white_point.observer)
+        XYZ::from_vec(self.xyz, self.white_point.observer)
     }
 
     /// Returns the reference white point of this `RelXYZ` instance.
@@ -148,12 +148,16 @@ impl RelXYZ {
     /// If the input XYZ is too far from the reference white, or contains negative components,
     /// the LAB model may produce invalid results or large reversibility errors.
     pub fn is_valid(&self) -> bool {
-        let lab = CieLab::from_xyz(*self);
-        let xyz_back = lab.xyz();
-        let same = self.abs_diff_eq(&xyz_back, 1E-5);
-        same && xyz_back.values()[0]
-            .into_iter()
-            .all(|v| v >= 0.0 && v.is_finite())
+        // Check if chromaticity is within the spectral locus
+        if !self.xyz().is_valid() {
+            return false;
+        }
+        // Convert to CIELAB and back to XYZ, check for consistency
+        // This is a round-trip conversion to ensure the CieLab values are valid
+        // and can be represented in the CIELAB color space.
+        let lab = CieLab::from_rxyz(*self);
+        let xyz_back = lab.rxyz();
+        self.abs_diff_eq(&xyz_back, 1E-12)
     }
 }
 
@@ -174,7 +178,7 @@ impl AbsDiffEq for RelXYZ {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::observer::Observer::Cie1931;
+    use crate::{observer::Observer::Cie1931, xyz::Chromaticity};
     use approx::assert_abs_diff_eq;
 
     #[test]
@@ -236,10 +240,10 @@ mod tests {
     fn test_spectral_locus_round_trip() {
         use crate::{illuminant::CieIlluminant, observer::Observer::Cie1931};
 
-        let sl = Cie1931.spectral_locus(CieIlluminant::D65);
+        let sl = Cie1931.monochromes(CieIlluminant::D65);
         for (_w, rxyz) in sl {
-            let lab = CieLab::from_xyz(rxyz);
-            let xyz_back = lab.xyz();
+            let lab = CieLab::from_rxyz(rxyz);
+            let xyz_back = lab.rxyz();
             approx::assert_abs_diff_eq!(rxyz, xyz_back, epsilon = 1E-6)
         }
     }
@@ -248,12 +252,30 @@ mod tests {
     fn test_spectral_locus_round_trip_print() {
         use crate::{illuminant::CieIlluminant, observer::Observer::Cie1931};
 
-        let sl = Cie1931.spectral_locus(CieIlluminant::D65);
+        let sl = Cie1931.monochromes(CieIlluminant::D65);
         for (w, rxyz) in sl {
             print!("{}, {:.4?}", w, rxyz.values()[0]);
-            let lab = CieLab::from_xyz(rxyz);
-            let xyz_back = lab.xyz();
+            let lab = CieLab::from_rxyz(rxyz);
+            let xyz_back = lab.rxyz();
             println!("{:.4?}", xyz_back.values()[0]);
         }
+    }
+
+    #[test]
+    fn test_is_valid() {
+        let white = XYZ::new([95.047, 100.0, 108.883], Cie1931); // D65
+        let valid_rel_xyz = RelXYZ::new([41.24, 21.26, 1.93], white);
+        assert!(valid_rel_xyz.is_valid());
+
+        let mut invalid_rel_xyz = RelXYZ::new([200.0, -50.0, 300.0], white);
+        assert!(!invalid_rel_xyz.is_valid());
+
+        let xyz = XYZ::from_chromaticity(Chromaticity::new(0.05, 0.05), None, None).unwrap();
+        invalid_rel_xyz = RelXYZ::with_d65(xyz);
+        assert!(!invalid_rel_xyz.is_valid());
+
+        let xyz = XYZ::from_chromaticity(Chromaticity::new(0.03, 0.85), None, None).unwrap();
+        invalid_rel_xyz = RelXYZ::with_d65(xyz);
+        assert!(!invalid_rel_xyz.is_valid());
     }
 }
