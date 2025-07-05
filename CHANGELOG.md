@@ -15,10 +15,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-* Add `iso-hues` example for plotting CieLab iso hue lines in chromaticity diagrams
+* Add `CieLChGamut`, to calculate the Chroma limit for a particular Lightness and hue value.
+* Add `GammaCurve` to API, and add zero argument vector to indicate color spaces without a gamma correction (such as CieRGB), which only use floating point representations
+* Add skeletons for `cargo xtask gen observers` and `colorspaces` to generate datafiles, to replace generation on start-up in future
+* Add `CIE RGB` observer, using the CIE E Illuminant
+* Add `CIE E` Standard Illuminant
+* Add `Spectrum::from_wavelength_map` to create a spectrum from a set of wavelength and value pairs.
+* Add `cielab-hues` and `cielab-areas` examples for plotting CieLab iso-hue lines and lightness lines in xy-chromaticity diagrams
 * Add `WideRgb::is_within_gamut` with tolerance parameter
 * Add `CieLab::is_black` to test if a CieLab value is black
-* Add `OptimalColors`, `RelXYZGamut`, and `CieLChGamut` to build gamut hashmaps for the envelopes of the XYZ and CieLab color spaces.
+* Add `OptimalColors`, `RelXYZGamut to build gamut hashmaps for the envelopes of the XYZ and CieLab color spaces.
 * `xtask` package as a sub-package, as a build and check tool, to use:
 
   * `cargo xtask check` to check the files using `clippy`, `fmt`, and `rdme`,
@@ -28,12 +34,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-* Rename `Colorant::from_xyz` 
-* Rename `CieLab::xyz` to `rxyz`, 
+* Rename `Colorant::from_xyz` to `from_rxyz`
+* Rename `CieLab::xyz` to `rxyz`
 * Rename `CieLab::xyzn` to `white_point`
 * Rename `Light::xyz100` to `white_point`
 * Rename `XYZ::from_vecs` to `XYZ::from_vec`
 * RGB <-> XYZ conversion matrices for the various color spaces hard coded through `xtask gen` `gen_rgbxyz.rs` function, using a handlebars template
+
+### Fixed
+
+* Fix `Observer::calc_xyz2rgb` to use `calc_rgb2xyz_matrix` to bootstrap transformation matrices, instead of using the xtask generated version
 
 ## [0.0.7] - 2025-6-17
 
