@@ -16,6 +16,7 @@ impl GammaCurve {
             f64::NAN
         } else {
             match self.p.len() {
+                0 => x,
                 1 => {
                     let g = self.p[0];
                     x.powf(g)
@@ -65,6 +66,9 @@ impl GammaCurve {
     pub fn encode(&self, x: f64) -> f64 {
         let x = x.clamp(0.0, 1.0);
         match self.p.len() {
+            0 => {
+                x // no gamma correction
+            }
             1 => {
                 let g = self.p[0];
                 x.powf(1.0 / g)
