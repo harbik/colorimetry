@@ -41,8 +41,8 @@ enum GenCommands {
     RgbTransforms,
     /// Generate Observer Data
     Observers,
-    /// Generate Color Space Data
-    Colorspaces,
+    /// Generate RGB Space Data
+    RgbSpaces,
 }
 
 impl Commands {
@@ -83,14 +83,25 @@ impl Commands {
             }
             Commands::Gen { subcommand } => match subcommand {
                 GenCommands::RgbTransforms => {
-                    gen_rgbxyz::matrices().unwrap();
+                    gen_rgbxyz::main().unwrap();
                     run("rustfmt", &["src/observer/rgbxyz.rs"]);
                 }
                 GenCommands::Observers => {
                     gen_observer::main();
                 }
-                GenCommands::Colorspaces => {
-                    gen_rgbspace::main();
+                GenCommands::RgbSpaces => {
+                    gen_rgbspace::main().expect("Failed to generate rgbspace data");
+                    // Use glob to format all .rs files in src/rgb/rgbspace
+                    for entry in
+                        glob::glob("src/rgb/rgbspace/*.rs").expect("Failed to read glob pattern")
+                    {
+                        match entry {
+                            Ok(path) => {
+                                run("rustfmt", &[path.to_str().unwrap()]);
+                            }
+                            Err(e) => eprintln!("Glob error: {}", e),
+                        }
+                    }
                 }
             },
         }

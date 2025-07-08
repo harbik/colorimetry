@@ -449,19 +449,16 @@ mod tests {
         test_observer_spectral_locus_wavelength_range(Observer::Cie1931);
     }
 
-    #[cfg(feature = "supplemental-observers")]
     #[test]
     fn cie1964() {
         test_observer_spectral_locus_wavelength_range(Observer::Cie1964);
     }
 
-    #[cfg(feature = "supplemental-observers")]
     #[test]
     fn cie2015() {
         test_observer_spectral_locus_wavelength_range(Observer::Cie2015);
     }
 
-    #[cfg(feature = "supplemental-observers")]
     #[test]
     fn cie2015_10() {
         test_observer_spectral_locus_wavelength_range(Observer::Cie2015_10);

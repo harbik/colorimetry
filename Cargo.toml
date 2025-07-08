@@ -35,13 +35,12 @@ wasm-bindgen = "0.2"
 js-sys = "0.3.69"
 
 [features]
-defaults = ["cie-illuminants", "supplemental-observers", "gamut-tables"]
+defaults = ["cie-illuminants", "gamut-tables"]
 cie-illuminants = []
 cct = []
-supplemental-observers = []
 cri = ["cct"]
 munsell = []
-cfi = ["cct", "supplemental-observers"]
+cfi = ["cct"]
 gamut-tables = []
 serde = ["dep:serde", "dep:serde_json", "nalgebra/serde-serialize"]
 

@@ -36,7 +36,8 @@ use std::{
 
 use crate::{observer::Observer, rgb::Rgb, spectrum::Spectrum, traits::Light};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Stimulus(pub(crate) Spectrum);
 
 impl Deref for Stimulus {
@@ -49,7 +50,7 @@ impl Deref for Stimulus {
 
 impl Stimulus {
     /// Creates a new Stimulus from a spectrum.
-    pub fn new(spectrum: Spectrum) -> Self {
+    pub const fn new(spectrum: Spectrum) -> Self {
         Self(spectrum)
     }
 
@@ -108,7 +109,7 @@ impl Sum for Stimulus {
 /// not only the CIE 1931 standard observer.
 impl From<Rgb> for Stimulus {
     fn from(rgb: Rgb) -> Self {
-        let prim = &rgb.space.data().primaries;
+        let prim = rgb.space.primaries();
         let rgb2xyz = rgb.observer.rgb2xyz_matrix(rgb.space);
         let yrgb = rgb2xyz.row(1);
         rgb.rgb

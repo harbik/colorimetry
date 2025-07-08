@@ -474,11 +474,7 @@ mod xyz_test {
         );
         approx::assert_ulps_ne!(xyz0, xyz2);
 
-        // different observer
-        #[cfg(feature = "supplemental-observers")]
-        {
-            let xyz3 = XYZ::from_vec(Vector3::zeros(), Observer::Cie1964);
-            approx::assert_ulps_ne!(xyz0, xyz3);
-        }
+        let xyz3 = XYZ::from_vec(Vector3::zeros(), Observer::Cie1964);
+        approx::assert_ulps_ne!(xyz0, xyz3);
     }
 }
