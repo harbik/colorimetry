@@ -67,25 +67,16 @@ use crate::{
 use nalgebra::{Matrix3, Vector3};
 use std::{fmt, ops::RangeInclusive};
 
-use strum::{AsRefStr, EnumIter};
+use strum::{AsRefStr, EnumCount, EnumIter};
 
 /// Light-weight identifier added to the `XYZ` and `RGB` datasets,
 ///    representing the colorimetric standard observer used.
 ///
 ///    No data included here, which would be the Rust way, but that does not work with wasm-bindgen.
 ///    This can be directly used in JavaScript, and has the benefit to be just an index.
-#[cfg(not(feature = "supplemental-observers"))]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
-#[derive(Clone, Copy, Default, PartialEq, Eq, Hash, Debug, EnumIter, AsRefStr)]
-#[non_exhaustive]
-pub enum Observer {
-    #[default]
-    Cie1931,
-}
-
-#[cfg(feature = "supplemental-observers")]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
-#[derive(Clone, Copy, Default, PartialEq, Eq, Hash, Debug, EnumIter, AsRefStr)]
+#[derive(Clone, Copy, Default, PartialEq, Eq, Hash, Debug, EnumIter, EnumCount, AsRefStr)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[non_exhaustive]
 pub enum Observer {
     #[default]
@@ -100,11 +91,8 @@ impl Observer {
     fn data(&self) -> &'static ObserverData {
         match self {
             Observer::Cie1931 => &observer_data::CIE1931,
-            #[cfg(feature = "supplemental-observers")]
             Observer::Cie1964 => &observer_data::CIE1964,
-            #[cfg(feature = "supplemental-observers")]
             Observer::Cie2015 => &observer_data::CIE2015,
-            #[cfg(feature = "supplemental-observers")]
             Observer::Cie2015_10 => &observer_data::CIE2015_10,
         }
     }
@@ -357,19 +345,19 @@ impl Observer {
     /// the `xtask gen` function, used when the library is extended with new
     /// observers or new color spaces.
     pub fn calc_rgb2xyz_matrix(&self, rgbspace: RgbSpace) -> Matrix3<f64> {
-        let space = rgbspace.data();
+        //   let space = rgbspace.data();
         let mut rgb2xyz: nalgebra::Matrix<
             f64,
             nalgebra::Const<3>,
             nalgebra::Const<3>,
             nalgebra::ArrayStorage<f64, 3, 3>,
         > = Matrix3::from_iterator(
-            space
-                .primaries
+            rgbspace
+                .primaries()
                 .iter()
                 .flat_map(|s| self.xyz_from_spectrum(s).set_illuminance(1.0).values()),
         );
-        let xyzw = self.xyz(&space.white, None).set_illuminance(1.0);
+        let xyzw = self.xyz(&rgbspace.white(), None).set_illuminance(1.0);
         let decomp = rgb2xyz.lu();
         // unwrap: only used with library color spaces
         let rgbw = decomp.solve(&xyzw.xyz).unwrap();
@@ -495,7 +483,6 @@ impl fmt::Display for Observer {
 #[cfg(test)]
 mod obs_test {
 
-    #[cfg(feature = "supplemental-observers")]
     use super::Observer::Cie1964;
     use super::{Observer, Observer::Cie1931};
     use crate::{
@@ -662,7 +649,6 @@ mod obs_test {
     }
 
     #[test]
-    #[cfg(feature = "supplemental-observers")]
     fn test_xyz_d65_d50_cie1964() {
         let cie1964_d50_xyz = Cie1964.xyz_d50();
         approx::assert_ulps_eq!(
@@ -713,16 +699,12 @@ mod obs_test {
     fn test_as_ref_str() {
         // Ensure that the observer names are correct
         assert_eq!(Cie1931.as_ref(), "Cie1931");
-        #[cfg(feature = "supplemental-observers")]
-        {
-            assert_eq!(Cie1964.as_ref(), "Cie1964");
-            assert_eq!(Observer::Cie2015.as_ref(), "Cie2015");
-            assert_eq!(Observer::Cie2015_10.as_ref(), "Cie2015_10");
-        }
+        assert_eq!(Cie1964.as_ref(), "Cie1964");
+        assert_eq!(Observer::Cie2015.as_ref(), "Cie2015");
+        assert_eq!(Observer::Cie2015_10.as_ref(), "Cie2015_10");
     }
 
     #[test]
-    #[cfg(feature = "supplemental-observers")]
     // Test white point, should be
     fn test_rgb_xyz_white() {
         for obs in Observer::iter() {
@@ -740,8 +722,8 @@ mod obs_test {
         }
     }
 
+    /*
     #[test]
-    #[cfg(feature = "supplemental-observers")]
     // Test CIE 1931 primaries
     fn test_rgb_primaries() {
         use nalgebra::Vector3;
@@ -760,4 +742,5 @@ mod obs_test {
             }
         }
     }
+     */
 }

@@ -52,6 +52,7 @@ use nalgebra::{ArrayStorage, Vector3};
 mod wasm;
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
 /// Represents a color by its tristimulus value XYZ color space.
 ///
@@ -473,11 +474,7 @@ mod xyz_test {
         );
         approx::assert_ulps_ne!(xyz0, xyz2);
 
-        // different observer
-        #[cfg(feature = "supplemental-observers")]
-        {
-            let xyz3 = XYZ::from_vec(Vector3::zeros(), Observer::Cie1964);
-            approx::assert_ulps_ne!(xyz0, xyz3);
-        }
+        let xyz3 = XYZ::from_vec(Vector3::zeros(), Observer::Cie1964);
+        approx::assert_ulps_ne!(xyz0, xyz3);
     }
 }

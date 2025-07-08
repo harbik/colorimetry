@@ -15,9 +15,6 @@ impl Observer {
         match (self, rgb_space) {
             {{#each entries}}
                 {{#if is_inv}}
-                    {{#if supplemental_observers}}
-                        #[cfg(feature = "supplemental-observers")]
-                    {{/if}}
                 (Observer::{{observer}}, RgbSpace::{{rgbspace}}) => &{{identifier}},
                 {{/if}}
             {{/each}}
@@ -31,9 +28,6 @@ impl Observer {
         match (self, rgb_space) {
             {{#each entries}}
                 {{#unless is_inv}}
-                    {{#if supplemental_observers}}
-                        #[cfg(feature = "supplemental-observers")]
-                    {{/if}}
                 (Observer::{{observer}}, RgbSpace::{{rgbspace}}) => &{{identifier}},
                 {{/unless}}
             {{/each}}
@@ -42,9 +36,6 @@ impl Observer {
 }
 
 {{#each entries}}
-    {{#if supplemental_observers}}
-        #[cfg(feature = "supplemental-observers")]
-    {{/if}}
     static {{identifier}} : Matrix3<f64> = Matrix3::from_array_storage(ArrayStorage({{matrix}}));
 {{/each}}
 

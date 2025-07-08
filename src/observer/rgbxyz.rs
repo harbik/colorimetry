@@ -16,29 +16,17 @@ impl Observer {
             (Observer::Cie1931, RgbSpace::Adobe) => &XYZ2RGB_CIE1931_ADOBE,
             (Observer::Cie1931, RgbSpace::DisplayP3) => &XYZ2RGB_CIE1931_DISPLAYP3,
             (Observer::Cie1931, RgbSpace::CieRGB) => &XYZ2RGB_CIE1931_CIERGB,
-            #[cfg(feature = "supplemental-observers")]
             (Observer::Cie1964, RgbSpace::SRGB) => &XYZ2RGB_CIE1964_SRGB,
-            #[cfg(feature = "supplemental-observers")]
             (Observer::Cie1964, RgbSpace::Adobe) => &XYZ2RGB_CIE1964_ADOBE,
-            #[cfg(feature = "supplemental-observers")]
             (Observer::Cie1964, RgbSpace::DisplayP3) => &XYZ2RGB_CIE1964_DISPLAYP3,
-            #[cfg(feature = "supplemental-observers")]
             (Observer::Cie1964, RgbSpace::CieRGB) => &XYZ2RGB_CIE1964_CIERGB,
-            #[cfg(feature = "supplemental-observers")]
             (Observer::Cie2015, RgbSpace::SRGB) => &XYZ2RGB_CIE2015_SRGB,
-            #[cfg(feature = "supplemental-observers")]
             (Observer::Cie2015, RgbSpace::Adobe) => &XYZ2RGB_CIE2015_ADOBE,
-            #[cfg(feature = "supplemental-observers")]
             (Observer::Cie2015, RgbSpace::DisplayP3) => &XYZ2RGB_CIE2015_DISPLAYP3,
-            #[cfg(feature = "supplemental-observers")]
             (Observer::Cie2015, RgbSpace::CieRGB) => &XYZ2RGB_CIE2015_CIERGB,
-            #[cfg(feature = "supplemental-observers")]
             (Observer::Cie2015_10, RgbSpace::SRGB) => &XYZ2RGB_CIE2015_10_SRGB,
-            #[cfg(feature = "supplemental-observers")]
             (Observer::Cie2015_10, RgbSpace::Adobe) => &XYZ2RGB_CIE2015_10_ADOBE,
-            #[cfg(feature = "supplemental-observers")]
             (Observer::Cie2015_10, RgbSpace::DisplayP3) => &XYZ2RGB_CIE2015_10_DISPLAYP3,
-            #[cfg(feature = "supplemental-observers")]
             (Observer::Cie2015_10, RgbSpace::CieRGB) => &XYZ2RGB_CIE2015_10_CIERGB,
         }
     }
@@ -52,29 +40,17 @@ impl Observer {
             (Observer::Cie1931, RgbSpace::Adobe) => &RGB2XYZ_CIE1931_ADOBE,
             (Observer::Cie1931, RgbSpace::DisplayP3) => &RGB2XYZ_CIE1931_DISPLAYP3,
             (Observer::Cie1931, RgbSpace::CieRGB) => &RGB2XYZ_CIE1931_CIERGB,
-            #[cfg(feature = "supplemental-observers")]
             (Observer::Cie1964, RgbSpace::SRGB) => &RGB2XYZ_CIE1964_SRGB,
-            #[cfg(feature = "supplemental-observers")]
             (Observer::Cie1964, RgbSpace::Adobe) => &RGB2XYZ_CIE1964_ADOBE,
-            #[cfg(feature = "supplemental-observers")]
             (Observer::Cie1964, RgbSpace::DisplayP3) => &RGB2XYZ_CIE1964_DISPLAYP3,
-            #[cfg(feature = "supplemental-observers")]
             (Observer::Cie1964, RgbSpace::CieRGB) => &RGB2XYZ_CIE1964_CIERGB,
-            #[cfg(feature = "supplemental-observers")]
             (Observer::Cie2015, RgbSpace::SRGB) => &RGB2XYZ_CIE2015_SRGB,
-            #[cfg(feature = "supplemental-observers")]
             (Observer::Cie2015, RgbSpace::Adobe) => &RGB2XYZ_CIE2015_ADOBE,
-            #[cfg(feature = "supplemental-observers")]
             (Observer::Cie2015, RgbSpace::DisplayP3) => &RGB2XYZ_CIE2015_DISPLAYP3,
-            #[cfg(feature = "supplemental-observers")]
             (Observer::Cie2015, RgbSpace::CieRGB) => &RGB2XYZ_CIE2015_CIERGB,
-            #[cfg(feature = "supplemental-observers")]
             (Observer::Cie2015_10, RgbSpace::SRGB) => &RGB2XYZ_CIE2015_10_SRGB,
-            #[cfg(feature = "supplemental-observers")]
             (Observer::Cie2015_10, RgbSpace::Adobe) => &RGB2XYZ_CIE2015_10_ADOBE,
-            #[cfg(feature = "supplemental-observers")]
             (Observer::Cie2015_10, RgbSpace::DisplayP3) => &RGB2XYZ_CIE2015_10_DISPLAYP3,
-            #[cfg(feature = "supplemental-observers")]
             (Observer::Cie2015_10, RgbSpace::CieRGB) => &RGB2XYZ_CIE2015_10_CIERGB,
         }
     }
@@ -144,13 +120,11 @@ static XYZ2RGB_CIE1931_CIERGB: Matrix3<f64> = Matrix3::from_array_storage(ArrayS
     ],
     [-0.5558680910286669, 0.08580078858334667, 0.9266421990534374],
 ]));
-#[cfg(feature = "supplemental-observers")]
 static RGB2XYZ_CIE1964_SRGB: Matrix3<f64> = Matrix3::from_array_storage(ArrayStorage([
     [0.3697641509360967, 0.1944882593891977, 0.019166370822843396],
     [0.39546626804739093, 0.7029309841017863, 0.10007329312665136],
     [0.18287689662262666, 0.10258075650901596, 0.9538001474980816],
 ]));
-#[cfg(feature = "supplemental-observers")]
 static XYZ2RGB_CIE1964_SRGB: Matrix3<f64> = Matrix3::from_array_storage(ArrayStorage([
     [3.8243618684678764, -1.0631956943699787, 0.03470156376962556],
     [
@@ -164,7 +138,6 @@ static XYZ2RGB_CIE1964_SRGB: Matrix3<f64> = Matrix3::from_array_storage(ArraySto
         1.060115668030964,
     ],
 ]));
-#[cfg(feature = "supplemental-observers")]
 static RGB2XYZ_CIE1964_ADOBE: Matrix3<f64> = Matrix3::from_array_storage(ArrayStorage([
     [
         0.5364881185913286,
@@ -174,7 +147,6 @@ static RGB2XYZ_CIE1964_ADOBE: Matrix3<f64> = Matrix3::from_array_storage(ArraySt
     [0.22123024482474418, 0.6110239201019276, 0.0522519561820725],
     [0.19038895219004148, 0.10679447818340178, 0.9929795071686434],
 ]));
-#[cfg(feature = "supplemental-observers")]
 static XYZ2RGB_CIE1964_ADOBE: Matrix3<f64> = Matrix3::from_array_storage(ArrayStorage([
     [
         2.3054596583699216,
@@ -188,13 +160,11 @@ static XYZ2RGB_CIE1964_ADOBE: Matrix3<f64> = Matrix3::from_array_storage(ArraySt
         1.0177472005816812,
     ],
 ]));
-#[cfg(feature = "supplemental-observers")]
 static RGB2XYZ_CIE1964_DISPLAYP3: Matrix3<f64> = Matrix3::from_array_storage(ArrayStorage([
     [0.4366555878332528, 0.2126063269337179, 5.43606165782478e-6],
     [0.31199124467131506, 0.6755107199536641, 0.03274201634139542],
     [0.19946048310154646, 0.111882953112618, 1.0402923590445228],
 ]));
-#[cfg(feature = "supplemental-observers")]
 static XYZ2RGB_CIE1964_DISPLAYP3: Matrix3<f64> = Matrix3::from_array_storage(ArrayStorage([
     [2.9417637538779045, -0.9307229106041585, 0.02927807060616898],
     [-1.338319990808506, 1.9115400420955626, -0.06015655076330165],
@@ -204,7 +174,6 @@ static XYZ2RGB_CIE1964_DISPLAYP3: Matrix3<f64> = Matrix3::from_array_storage(Arr
         0.9621244121800218,
     ],
 ]));
-#[cfg(feature = "supplemental-observers")]
 static RGB2XYZ_CIE1964_CIERGB: Matrix3<f64> = Matrix3::from_array_storage(ArrayStorage([
     [0.3374626729501852, 0.13100283993678755, 0.0],
     [
@@ -218,7 +187,6 @@ static RGB2XYZ_CIE1964_CIERGB: Matrix3<f64> = Matrix3::from_array_storage(ArrayS
         1.0671188593181975,
     ],
 ]));
-#[cfg(feature = "supplemental-observers")]
 static XYZ2RGB_CIE1964_CIERGB: Matrix3<f64> = Matrix3::from_array_storage(ArrayStorage([
     [3.631996671996747, -0.5672167677759425, 0.003147225165833953],
     [
@@ -228,7 +196,6 @@ static XYZ2RGB_CIE1964_CIERGB: Matrix3<f64> = Matrix3::from_array_storage(ArrayS
     ],
     [-0.6718663199230159, 0.0714183717481871, 0.9367064657430662],
 ]));
-#[cfg(feature = "supplemental-observers")]
 static RGB2XYZ_CIE2015_SRGB: Matrix3<f64> = Matrix3::from_array_storage(ArrayStorage([
     [
         0.41468609931686107,
@@ -238,7 +205,6 @@ static RGB2XYZ_CIE2015_SRGB: Matrix3<f64> = Matrix3::from_array_storage(ArraySto
     [0.3614723958602323, 0.6973439689489354, 0.09901919594261625],
     [0.17139314176990886, 0.08379669553494994, 0.9564382233675702],
 ]));
-#[cfg(feature = "supplemental-observers")]
 static XYZ2RGB_CIE2015_SRGB: Matrix3<f64> = Matrix3::from_array_storage(ArrayStorage([
     [3.303091784760495, -1.0413420804935563, 0.038917361390927975],
     [-1.648638976108673, 1.971831897048809, -0.16975669840202806],
@@ -248,13 +214,11 @@ static XYZ2RGB_CIE2015_SRGB: Matrix3<f64> = Matrix3::from_array_storage(ArraySto
         1.0534448089969444,
     ],
 ]));
-#[cfg(feature = "supplemental-observers")]
 static RGB2XYZ_CIE2015_ADOBE: Matrix3<f64> = Matrix3::from_array_storage(ArrayStorage([
     [0.5799289050032347, 0.3060697115352649, 0.02789712444642832],
     [0.18944117319453113, 0.6068146333441987, 0.05318837096892245],
     [0.17818155874923633, 0.08711565512053623, 0.9943201444767737],
 ]));
-#[cfg(feature = "supplemental-observers")]
 static XYZ2RGB_CIE2015_ADOBE: Matrix3<f64> = Matrix3::from_array_storage(ArrayStorage([
     [2.065204804442671, -1.041342080493556, -0.002238702058308845],
     [
@@ -268,7 +232,6 @@ static XYZ2RGB_CIE2015_ADOBE: Matrix3<f64> = Matrix3::from_array_storage(ArraySt
         1.0138379686030894,
     ],
 ]));
-#[cfg(feature = "supplemental-observers")]
 static RGB2XYZ_CIE2015_DISPLAYP3: Matrix3<f64> = Matrix3::from_array_storage(ArrayStorage([
     [
         0.49025452815924486,
@@ -278,7 +241,6 @@ static RGB2XYZ_CIE2015_DISPLAYP3: Matrix3<f64> = Matrix3::from_array_storage(Arr
     [0.27037747969543247, 0.6705286935292922, 0.03231022896613038],
     [0.18691962909232487, 0.09138782968097317, 1.043081864976793],
 ]));
-#[cfg(feature = "supplemental-observers")]
 static XYZ2RGB_CIE2015_DISPLAYP3: Matrix3<f64> = Matrix3::from_array_storage(ArrayStorage([
     [2.5258416547524343, -0.9006441025636119, 0.02786531261256865],
     [-1.000910976527882, 1.8545800417307785, -0.05743398433681605],
@@ -288,7 +250,6 @@ static XYZ2RGB_CIE2015_DISPLAYP3: Matrix3<f64> = Matrix3::from_array_storage(Arr
         0.9587360559687604,
     ],
 ]));
-#[cfg(feature = "supplemental-observers")]
 static RGB2XYZ_CIE2015_CIERGB: Matrix3<f64> = Matrix3::from_array_storage(ArrayStorage([
     [0.4240882393968791, 0.16224333742135422, 0.0],
     [
@@ -302,7 +263,6 @@ static RGB2XYZ_CIE2015_CIERGB: Matrix3<f64> = Matrix3::from_array_storage(ArrayS
         1.0708488653218986,
     ],
 ]));
-#[cfg(feature = "supplemental-observers")]
 static XYZ2RGB_CIE2015_CIERGB: Matrix3<f64> = Matrix3::from_array_storage(ArrayStorage([
     [
         2.7852718079046808,
@@ -320,13 +280,11 @@ static XYZ2RGB_CIE2015_CIERGB: Matrix3<f64> = Matrix3::from_array_storage(ArrayS
         0.9335521965040487,
     ],
 ]));
-#[cfg(feature = "supplemental-observers")]
 static RGB2XYZ_CIE2015_10_SRGB: Matrix3<f64> = Matrix3::from_array_storage(ArrayStorage([
     [0.3675348425856119, 0.1908642818048551, 0.019348522321998084],
     [0.3965204183523156, 0.7008166116600874, 0.09163600947493737],
     [0.18315164065981338, 0.10831910653505754, 0.9604503037078596],
 ]));
-#[cfg(feature = "supplemental-observers")]
 static XYZ2RGB_CIE2015_10_SRGB: Matrix3<f64> = Matrix3::from_array_storage(ArrayStorage([
     [3.8422155512723424, -1.049929764137594, 0.022770756977617154],
     [-2.1092173943493027, 2.024631792776775, -0.15067821598987913],
@@ -336,13 +294,11 @@ static XYZ2RGB_CIE2015_10_SRGB: Matrix3<f64> = Matrix3::from_array_storage(Array
         1.0538294634541239,
     ],
 ]));
-#[cfg(feature = "supplemental-observers")]
 static RGB2XYZ_CIE2015_10_ADOBE: Matrix3<f64> = Matrix3::from_array_storage(ArrayStorage([
     [0.534929871695446, 0.2777940862935522, 0.028160874464009496],
     [0.221428545824432, 0.609334758392685, 0.04246128016924924],
     [0.19084848407786292, 0.1128711553137628, 1.000812680871536],
 ]));
-#[cfg(feature = "supplemental-observers")]
 static XYZ2RGB_CIE2015_10_ADOBE: Matrix3<f64> = Matrix3::from_array_storage(ArrayStorage([
     [2.3113217821750265, -1.049929764137594, -0.02049082817658043],
     [-0.8156164166708586, 2.024631792776775, -0.06294882896282702],
@@ -352,7 +308,6 @@ static XYZ2RGB_CIE2015_10_ADOBE: Matrix3<f64> = Matrix3::from_array_storage(Arra
         1.0101947845677395,
     ],
 ]));
-#[cfg(feature = "supplemental-observers")]
 static RGB2XYZ_CIE2015_10_DISPLAYP3: Matrix3<f64> = Matrix3::from_array_storage(ArrayStorage([
     [0.4344835057794501, 0.20863761903068528, 9.63443711246293e-6],
     [
@@ -362,7 +317,6 @@ static RGB2XYZ_CIE2015_10_DISPLAYP3: Matrix3<f64> = Matrix3::from_array_storage(
     ],
     [0.1995044672486232, 0.11799045623763911, 1.0462048031331574],
 ]));
-#[cfg(feature = "supplemental-observers")]
 static XYZ2RGB_CIE2015_10_DISPLAYP3: Matrix3<f64> = Matrix3::from_array_storage(ArrayStorage([
     [2.9540424505247698, -0.919158571928243, 0.02213054685220747],
     [
@@ -376,7 +330,6 @@ static XYZ2RGB_CIE2015_10_DISPLAYP3: Matrix3<f64> = Matrix3::from_array_storage(
         0.9568182282608162,
     ],
 ]));
-#[cfg(feature = "supplemental-observers")]
 static RGB2XYZ_CIE2015_10_CIERGB: Matrix3<f64> = Matrix3::from_array_storage(ArrayStorage([
     [0.33074256793888746, 0.12723117683256238, 0.0],
     [
@@ -386,7 +339,6 @@ static RGB2XYZ_CIE2015_10_CIERGB: Matrix3<f64> = Matrix3::from_array_storage(Arr
     ],
     [0.21059415188382766, 0.035196643673728815, 1.068564487245622],
 ]));
-#[cfg(feature = "supplemental-observers")]
 static XYZ2RGB_CIE2015_10_CIERGB: Matrix3<f64> = Matrix3::from_array_storage(ArrayStorage([
     [
         3.715152594632455,

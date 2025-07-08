@@ -252,11 +252,7 @@ mod cam16_round_trip_tests {
 #[cfg(test)]
 mod rgb_test {
     #[test]
-    #[cfg(all(
-        feature = "supplemental-observers",
-        feature = "munsell",
-        feature = "cie-illuminants"
-    ))]
+    #[cfg(all(feature = "munsell", feature = "cie-illuminants"))]
     fn rgb_match() {
         use crate::{
             cam::{ViewConditions, CIE248_HOME_SCREEN},

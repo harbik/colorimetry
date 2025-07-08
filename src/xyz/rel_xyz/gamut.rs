@@ -7,7 +7,6 @@
 //!
 //! # Features
 //! - Default support for CIE 1931 2° observer with D50 and D65 illuminants
-//! - Optional support for additional observers (CIE 1964, CIE 2015) via "supplemental-observers" feature
 //! - High-resolution chromaticity binning (2000x2000 bins)
 
 use std::collections::HashMap;
