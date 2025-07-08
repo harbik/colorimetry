@@ -23,7 +23,6 @@ use adobe_rgb::ADOBE_RGB;
 mod cie_rgb;
 use cie_rgb::CIE_RGB;
 
-
 /// Spectrally based color space, using spectral representations of the primaries and the
 /// reference white.
 ///
@@ -134,7 +133,6 @@ impl RgbSpace {
         let sa = self.primaries().each_ref().map(|v| &v.0 / &white);
         sa.map(Colorant)
     }
-
 }
 
 // Implementing the Display trait for RgbSpace to provide a string representation.
