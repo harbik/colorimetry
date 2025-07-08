@@ -48,6 +48,7 @@ display.
  */
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
 #[derive(Clone, Copy, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Spectrum(pub(crate) SVector<f64, NS>);
 
 impl Spectrum {
@@ -57,7 +58,7 @@ impl Spectrum {
     /// If you have spectral data not exactly matching the range 380-780 nm with 1 nm interval,
     /// you can instead use [`linear_interpolate`](Spectrum::linear_interpolate)
     /// or [`sprague_interpolate`](Spectrum::sprague_interpolate).
-    pub fn new(data: [f64; NS]) -> Self {
+    pub const fn new(data: [f64; NS]) -> Self {
         Self(SVector::<f64, NS>::from_array_storage(
             nalgebra::ArrayStorage([data]),
         ))

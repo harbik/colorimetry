@@ -1,6 +1,7 @@
 #![allow(unused)]
 use std::{collections::HashMap, hash::Hash};
 
+use chrono::Utc;
 use colorimetry::{
     illuminant::D65,
     observer::{self, Observer},
@@ -13,18 +14,25 @@ use colorimetry::{
 use serde::Serialize;
 use strum::IntoEnumIterator;
 
+/// Defines a generic RGB color space data structure
+/// that is used to create a RgbSpaceData instance in the
+/// colorimetry library
 #[derive(Serialize, Debug, Clone)]
-pub struct GenRgbSpaceData {
-    primaries: [Vec<f64>; 3],
-    white: CieIlluminant,
-    gamma: Vec<f64>,
+pub struct TemplateContext {
+    date: String,
     name: String,
     identifier: String,
-    chromaticities: HashMap<Observer, [[f64; 2]; 3]>,
-    white_points: HashMap<Observer, XYZ>, // XYZ coordinates for each observer
+    red_prim: Stimulus,
+    green_prim: Stimulus,
+    blue_prim: Stimulus,
+    white: CieIlluminant,
+    gamma: String,
+    chromaticities: Vec<[[f64; 2]; 3]>,
+    target_chromaticities_cie1931: [[f64; 2]; 3],
+    white_points: Vec<[f64; 3]>,
 }
 
-impl GenRgbSpaceData {
+impl TemplateContext {
     /// The sRGB color space, created by HP and Microsoft in 1996.  It is the
     /// default color space used in an image, or a Web-page, if no color space
     /// is specified in a tag or in a color profile.
@@ -42,17 +50,37 @@ impl GenRgbSpaceData {
         const GREEN: [f64; 2] = [541.2355906535001, 33.66683554608116];
         const BLUE: [f64; 2] = [398.0273721579992, 52.55338039394701];
 
-        let primaries = gaussian_filtered_primaries(D65.as_ref(), RED, GREEN, BLUE);
+        let [red_prim, green_prim, blue_prim] =
+            gaussian_filtered_primaries(D65.as_ref(), RED, GREEN, BLUE);
         let white = CieIlluminant::D65;
-        let gamma = vec![2.4, 1.0 / 1.055, 0.055 / 1.055, 1.0 / 12.92, 0.04045];
+        let gamma = GammaCurve::new(
+            5,
+            [
+                2.4,
+                1.0 / 1.055,
+                0.055 / 1.055,
+                1.0 / 12.92,
+                0.04045,
+                0.0,
+                0.0,
+            ],
+        );
         Self {
+            date: Utc::now().format("%Y-%m-%d").to_string(),
             name: "sRGB".to_string(),
             identifier: "SRGB".to_string(),
-            chromaticities: Self::chromaticities(&primaries),
-            primaries: Self::stimuli_to_vecs(&primaries),
+            chromaticities: Self::chromaticities([&red_prim, &green_prim, &blue_prim]),
+            red_prim,
+            green_prim,
+            blue_prim,
             white,
-            white_points: GenRgbSpaceData::white_points(white),
-            gamma,
+            white_points: TemplateContext::white_points(white),
+            gamma: format!("{gamma:?}"),
+            target_chromaticities_cie1931: [
+                [0.6400, 0.3300], // Red
+                [0.3000, 0.6000], // Green
+                [0.1500, 0.0600], // Blue
+            ],
         }
     }
 
@@ -70,18 +98,27 @@ impl GenRgbSpaceData {
         const GREEN: [f64; 2] = [531.1505632157933, 20.61013919689458];
         const BLUE: [f64; 2] = [398.0273721579992, 52.55338039394701];
 
-        let primaries = gaussian_filtered_primaries(D65.as_ref(), RED, GREEN, BLUE);
+        let [red_prim, green_prim, blue_prim] =
+            gaussian_filtered_primaries(D65.as_ref(), RED, GREEN, BLUE);
         let white = CieIlluminant::D65;
-        let gamma = vec![563.0 / 256.0];
+        let gamma = GammaCurve::new(1, [563.0 / 256.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
         // See https://en.wikipedia.org/wiki/Adobe_RGB_color_space#ICC_PCS_color_image_encoding
         Self {
+            date: Utc::now().format("%Y-%m-%d").to_string(),
             name: "Adobe RGB".to_string(),
             identifier: "ADOBE_RGB".to_string(),
-            chromaticities: Self::chromaticities(&primaries),
-            primaries: Self::stimuli_to_vecs(&primaries),
+            chromaticities: Self::chromaticities([&red_prim, &green_prim, &blue_prim]),
+            red_prim,
+            green_prim,
+            blue_prim,
             white,
-            white_points: GenRgbSpaceData::white_points(white),
-            gamma,
+            white_points: Self::white_points(white),
+            gamma: format!("{gamma:?}"),
+            target_chromaticities_cie1931: [
+                [0.6400, 0.3300], // Red
+                [0.2100, 0.7100], // Green
+                [0.1500, 0.0600], // Blue
+            ],
         }
     }
 
@@ -99,23 +136,49 @@ impl GenRgbSpaceData {
         // Red Gaussian center wavelength and width, and blue lumen fraction
         // added to match the red primary sRGB color space specifiation.
         // See the `examples/primaries/main.rs` how these were calculated.
+        //
+        // The display P3 red coordinate is outside the CIE 1931 gamut using the CIE 1931 1 nanometer
+        // dataset as provided by the CIE.  To still match it, we need to desature it by adding white. It also mixes
+        // in a bit of blue (1.4E-6) to get to to the target.
+        // const D: f64 = 0.0005620; // Desaturation ratio
+
         const RED: [f64; 3] = [637.9658554073235, 23.274151215539906, 1.4261447449730065e-6];
 
         // Blue and Green Gaussian filters.
         const GREEN: [f64; 2] = [539.8416064376327, 21.411199475289777];
         const BLUE: [f64; 2] = [398.0273721579992, 52.55338039394701];
 
-        let primaries = gaussian_filtered_primaries(D65.as_ref(), RED, GREEN, BLUE);
+        let [red_prim, green_prim, blue_prim] =
+            gaussian_filtered_primaries(D65.as_ref(), RED, GREEN, BLUE);
         let white = CieIlluminant::D65;
-        let gamma = vec![2.4, 1.0 / 1.055, 0.055 / 1.055, 1.0 / 12.92, 0.04045];
+        let gamma = GammaCurve::new(
+            5,
+            [
+                2.4,
+                1.0 / 1.055,
+                0.055 / 1.055,
+                1.0 / 12.92,
+                0.04045,
+                0.0,
+                0.0,
+            ],
+        );
         Self {
+            date: Utc::now().format("%Y-%m-%d").to_string(),
             name: "Display P3".to_string(),
             identifier: "DISPLAY_P3".to_string(),
-            chromaticities: Self::chromaticities(&primaries),
-            primaries: Self::stimuli_to_vecs(&primaries),
+            chromaticities: Self::chromaticities([&red_prim, &green_prim, &blue_prim]),
+            red_prim,
+            green_prim,
+            blue_prim,
             white,
-            white_points: GenRgbSpaceData::white_points(white),
-            gamma,
+            white_points: TemplateContext::white_points(white),
+            gamma: format!("{gamma:?}"),
+            target_chromaticities_cie1931: [
+                [0.6800, 0.3200], // Red
+                [0.2650, 0.6900], // Green
+                [0.1500, 0.0600], // Blue
+            ],
         }
     }
 
@@ -130,24 +193,30 @@ impl GenRgbSpaceData {
     ///
     /// The gamma curve is not used in CIE RGB, so it is an empty vector.
     pub fn cie_rgb() -> Self {
-        let primaries = [
-            Stimulus::new(Spectrum::from_wavelength_map(&[(700, 1.0)])), // 700.0 nm
-            Stimulus::new(Spectrum::from_wavelength_map(&[(546, 0.9), (547, 0.1)])), // 546.1 nm
-            Stimulus::new(Spectrum::from_wavelength_map(&[(435, 0.2), (436, 0.8)])), // 435.8 nm
-        ];
+        let red_prim = Stimulus::new(Spectrum::from_wavelength_map(&[(700, 1.0)])); // 700.0 nm
+        let green_prim = Stimulus::new(Spectrum::from_wavelength_map(&[(546, 0.9), (547, 0.1)])); // 546.1 nm
+        let blue_prim = Stimulus::new(Spectrum::from_wavelength_map(&[(435, 0.2), (436, 0.8)])); // 435.8 nm
         let white = CieIlluminant::E;
-        let white_points = GenRgbSpaceData::white_points(white);
-        let gamma = vec![];
-        // CIE RGB does not use a gamma curve, so we use an empty vector.
-        // Use with float values only!
+        let white_points = TemplateContext::white_points(white);
+        let gamma = GammaCurve::new(0, [0.0; 7]); // CIE RGB does not use a gamma curve, so we use an empty vector.
+                                                  // CIE RGB does not use a gamma curve, so we use an empty vector.
+                                                  // Use with float values only!
         Self {
+            date: Utc::now().format("%Y-%m-%d").to_string(),
             name: "CIE RGB".to_string(),
             identifier: "CIE_RGB".to_string(),
-            chromaticities: Self::chromaticities(&primaries),
-            primaries: Self::stimuli_to_vecs(&primaries),
+            chromaticities: Self::chromaticities([&red_prim, &green_prim, &blue_prim]),
             white,
+            red_prim,
+            green_prim,
+            blue_prim,
             white_points,
-            gamma,
+            gamma: format!("{gamma:?}"),
+            target_chromaticities_cie1931: [
+                [0.7347, 0.2653],   // red
+                [0.27368, 0.71741], // green
+                [0.16653, 0.0088],  // blue
+            ],
         }
     }
 
@@ -175,17 +244,17 @@ impl GenRgbSpaceData {
         todo!()
     }
 
-    pub fn white_points(white: CieIlluminant) -> HashMap<Observer, XYZ> {
-        let mut map = HashMap::new();
+    pub fn white_points(white: CieIlluminant) -> Vec<[f64; 3]> {
+        let mut out = Vec::new();
         for observer in Observer::iter() {
             let white_point = white.white_point(observer);
-            map.insert(observer, white_point);
+            out.push(white_point.values());
         }
-        map
+        out
     }
 
-    pub fn chromaticities(stimuli: &[Stimulus; 3]) -> HashMap<Observer, [[f64; 2]; 3]> {
-        let mut chromaticities = HashMap::new();
+    pub fn chromaticities(stimuli: [&Stimulus; 3]) -> Vec<[[f64; 2]; 3]> {
+        let mut out = Vec::new();
         for observer in Observer::iter() {
             let mut values = [[0.0; 2]; 3];
             for (i, stimulus) in stimuli.iter().enumerate() {
@@ -196,9 +265,9 @@ impl GenRgbSpaceData {
                 values[i][0] = xy[0];
                 values[i][1] = xy[1];
             }
-            chromaticities.insert(observer, values);
+            out.push(values);
         }
-        chromaticities
+        out
     }
 
     pub fn stimuli_to_vecs(stimuli: &[Stimulus; 3]) -> [Vec<f64>; 3] {
@@ -208,28 +277,29 @@ impl GenRgbSpaceData {
             stimuli[2].as_ref().values().to_vec(),
         ]
     }
-    pub fn write(&self) {
-        // This function would write the RGB space data to a file or output.
-        // Implementation is omitted for brevity.
-        println!("Writing RGB space data for: {}", self.name);
-        // Example output:
-        println!("Identifier: {}", self.identifier);
-        println!("Primaries: {:?}", self.primaries);
-        println!("White: {:?}", self.white);
-        println!("White Points: {:?}", self.white_points);
-        println!("Gamma curve: {:?}", self.gamma);
-        println!("Chromaticities: {:?}", self.chromaticities);
+    pub fn write(&self) -> Result<(), Box<dyn std::error::Error>> {
+        let mut handlebars = handlebars::Handlebars::new();
+        handlebars.set_strict_mode(true);
+        handlebars
+            .register_template_file("rgbspace", "xtask/templates/rgbspace.rs.hbs")
+            .expect("Failed to register template");
+
+        let contents = handlebars.render("rgbspace", self)?;
+        //   print!("{}", contents);
+        let path = "src/rgb/rgbspace";
+        let file_path = format!("{path}/{}.rs", self.identifier.to_lowercase());
+        std::fs::create_dir_all(path);
+        std::fs::write(file_path, contents)?;
+        Ok(())
     }
 }
 
-pub fn main() {
+pub fn main() -> Result<(), Box<dyn std::error::Error>> {
+    TemplateContext::srgb().write()?;
+    TemplateContext::adobe_rgb().write()?;
+    TemplateContext::display_p3().write()?;
+    TemplateContext::cie_rgb().write()?;
     println!("Generating RGB space data...");
 
-    let rgbspace = GenRgbSpaceData::srgb();
-    println!("Writing RGB space data for: {:?}", rgbspace.name);
-    rgbspace.write();
-    // for each observer
-    for observer in Observer::iter() {
-        println!("{}", observer);
-    }
+    Ok(())
 }

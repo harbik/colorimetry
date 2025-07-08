@@ -12,7 +12,6 @@ struct Entry {
     identifier: String,
     matrix: String,
     is_inv: bool,
-    supplemental_observers: bool,
 }
 
 #[derive(Serialize)]
@@ -25,7 +24,7 @@ use std::fs;
 use std::io;
 use std::path::Path;
 
-pub fn matrices() -> io::Result<()> {
+pub fn main() -> io::Result<()> {
     let contents = render_rgb_template();
     let dir = Path::new("src/observer");
     fs::create_dir_all(dir)?;
@@ -39,7 +38,6 @@ pub fn render_rgb_template() -> String {
     let mut entries = Vec::new();
 
     for observer in Observer::iter() {
-        let supplemental_observers = observer != Observer::Cie1931;
         for rgbspace in RgbSpace::iter() {
             let m_rgb2xyz = observer.calc_rgb2xyz_matrix(rgbspace);
             let m_xyz2rgb = observer.calc_xyz2rgb_matrix(rgbspace);
@@ -64,7 +62,6 @@ pub fn render_rgb_template() -> String {
                 observer: observer.clone(),
                 rgbspace: rgbspace.clone(),
                 is_inv: false,
-                supplemental_observers,
             });
 
             entries.push(Entry {
@@ -73,7 +70,6 @@ pub fn render_rgb_template() -> String {
                 observer,
                 rgbspace,
                 is_inv: true,
-                supplemental_observers,
             });
         }
     }

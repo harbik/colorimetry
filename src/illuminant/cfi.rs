@@ -16,7 +16,6 @@ use super::CCT;
 ///
 /// # Requirements
 /// - Requires the `cfi` feature to access color evaluation samples (CES) used for testing.
-/// - Requires the `supplemental` feature to use the CIE 1964 observer, which is required in this model. Included when you enable the `cfi` feature.
 ///
 /// # Overview
 /// The CIE 2017 Colour Fidelity Index (CFI, or **R<sub>f</sub>**) is a modern metric for evaluating how accurately a light source renders colors.

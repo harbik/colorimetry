@@ -37,10 +37,7 @@ This example calculates the XYZ tristimulus values of the D65 illuminant for bot
   // [95.04, 100.0, 108.86]
 # check!([x, y, z].as_ref(), [95.04, 100.0, 108.86].as_ref(),  epsilon = 5E-3);
 
-# #[cfg(feature = "supplemental-observers")]
-# {
   // D65 Tristimulus values using the CIE2015 10º observer
-  // This requires the `supplemental-observers` feature (enabled by default)
   use colorimetry::observer::Observer::Cie2015_10;
   let xyz_d65_10 = D65
     .xyz(Some(Cie2015_10)).set_illuminance(100.0);
@@ -48,7 +45,6 @@ This example calculates the XYZ tristimulus values of the D65 illuminant for bot
   let [x_10, y_10, z_10] = xyz_d65_10.values();
   //[94.72, 100.0, 107.143]
 # check!([x_10, y_10, z_10].as_ref(), [94.72, 100.0, 107.143].as_ref(), epsilon = 5E-3);
-# }
 ```
 
 </details>
@@ -164,9 +160,6 @@ Here, we compute transformation matrices for the `DisplayP3` color space using b
   // 0.2291, 0.6917, 0.0792,
   // 0.0001, 0.0451, 1.0433,
 
-# #[cfg(feature = "supplemental-observers")]
-# {
-  // requires `supplemental-observers`
   use colorimetry::observer::Observer::Cie2015;
 
   let xyz2rgb_15 = Cie2015.xyz2rgb_matrix(DisplayP3).clone();
@@ -179,7 +172,6 @@ Here, we compute transformation matrices for the `DisplayP3` color space using b
   //  2.5258,  -1.0009, -0.3649,
   // -0.9006,   1.8546, -0.0011,
   //  0.0279,  -0.0574,  0.95874
-# }
 ```
 
 </details>
@@ -194,10 +186,10 @@ The closest match identified is Munsell "5R 5/14", a vivid red hue, with a color
 In practical terms, a ΔE of 3 is considered a close match—just at the threshold where most observers might start to notice a difference under controlled viewing conditions.
 
 ```
-# #[cfg(all(feature= "cri", feature = "supplemental-observers", feature = "munsell"))]
+# #[cfg(all(feature= "cri", feature = "munsell"))]
 # {
 # use approx::assert_abs_diff_eq as check;
-  // requires `cri`, `supplemental-observers`, and `munsell` features
+  // requires `cri` and `munsell` features
   use colorimetry::observer::Observer::Cie2015_10;
   use colorimetry::colorant::{MunsellCollection, TCS};
 
@@ -232,9 +224,9 @@ which more accurately reflects how paint colors appear on walls. The illuminatio
 what you'd actually see on a freshly painted surface.
 
 ```
-# #[cfg(all(feature = "supplemental-observers", feature = "munsell", feature = "cie-illuminants"))]
+# #[cfg(all(feature = "munsell", feature = "cie-illuminants"))]
 # {
-  // requires `supplemental-observers`, and `munsell` features
+  // requires `cie-illuminants`, and `munsell` features
   use colorimetry::{
     cam::{ViewConditions, CIE248_HOME_SCREEN},
     colorant::Munsell,
@@ -328,9 +320,6 @@ what you'd actually see on a freshly painted surface.
 [^3]: Li, C., Luo, M. R., & Cui, G. (2020). The CIE 2017 colour fidelity index for accurate scientific use. Optics express, 28(5), 6589-6609.
 
 # Features
-
-- `supplemental-observers`
-  Adds addiational observers such as `Cie1964`, `Cie2015`, and `Cie2015_10`. Enabled by default.
 
 - `cie-illuminants`
   The `D65` and `D50` illuminants are always included - if you want to use one of the other CIE illuminants, set this feature flag.

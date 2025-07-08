@@ -3,19 +3,13 @@ use std::{ops::RangeInclusive, sync::OnceLock};
 pub mod cie1931;
 pub use cie1931::CIE1931;
 
-#[cfg(feature = "supplemental-observers")]
 pub mod cie1964;
-#[cfg(feature = "supplemental-observers")]
 pub use cie1964::CIE1964;
 
-#[cfg(feature = "supplemental-observers")]
 pub mod cie2015;
-#[cfg(feature = "supplemental-observers")]
 pub use cie2015::CIE2015;
 
-#[cfg(feature = "supplemental-observers")]
 pub mod cie2015_10;
-#[cfg(feature = "supplemental-observers")]
 pub use cie2015_10::CIE2015_10;
 
 use nalgebra::SMatrix;

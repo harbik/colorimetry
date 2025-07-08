@@ -164,7 +164,7 @@ impl Rgb {
         let space = space.unwrap_or_default();
         let [r, g, b] = [r_u8, g_u8, b_u8]
             .map(|v| (v as f64 / 255.0).clamp(0.0, 1.0))
-            .map(|v| space.data().gamma.decode(v));
+            .map(|v| space.gamma().decode(v));
         // unwrap OK as derived from u8 values and clamped to 0.0..1.0
         Rgb::new(r, g, b, observer, Some(space)).unwrap()
     }
@@ -183,7 +183,7 @@ impl Rgb {
         let space = space.unwrap_or_default();
         let [r, g, b] = [r_u16, g_u16, b_u16]
             .map(|v| (v as f64 / 65_535.0).clamp(0.0, 1.0))
-            .map(|v| space.data().gamma.decode(v));
+            .map(|v| space.gamma().decode(v));
         // unwrap OK as derived from u16 values and clamped to 0.0..1.0
         Rgb::new(r, g, b, observer, Some(space)).unwrap()
     }
@@ -249,7 +249,7 @@ impl Light for Rgb {
     /// - The spectral representation is device-dependent and based on the primaries defined by the `RgbSpace`.
     /// - The observer's data is used to apply luminance scaling, enhancing perceptual accuracy.
     fn spectrum(&self) -> Cow<'_, Spectrum> {
-        let prim = &self.space.data().primaries;
+        let prim = self.space.primaries();
         let rgb2xyz = self.observer.rgb2xyz_matrix(self.space);
         let yrgb = rgb2xyz.row(1);
         //        self.rgb.iter().zip(yrgb.iter()).zip(prim.iter()).map(|((v,w),s)|*v * *w * &s.0).sum()
@@ -329,7 +329,7 @@ impl AsRef<Vector3<f64>> for Rgb {
 impl From<Rgb> for [u8; 3] {
     fn from(rgb: Rgb) -> Self {
         let data: &[f64; 3] = rgb.rgb.as_ref();
-        data.map(|v| (rgb.space.data().gamma.encode(v.clamp(0.0, 1.0)) * 255.0).round() as u8)
+        data.map(|v| (rgb.space.gamma().encode(v.clamp(0.0, 1.0)) * 255.0).round() as u8)
     }
 }
 

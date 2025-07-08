@@ -41,8 +41,8 @@ enum GenCommands {
     RgbTransforms,
     /// Generate Observer Data
     Observers,
-    /// Generate Color Space Data
-    Colorspaces,
+    /// Generate RGB Space Data
+    RgbSpaces,
 }
 
 impl Commands {
@@ -83,14 +83,14 @@ impl Commands {
             }
             Commands::Gen { subcommand } => match subcommand {
                 GenCommands::RgbTransforms => {
-                    gen_rgbxyz::matrices().unwrap();
+                    gen_rgbxyz::main().unwrap();
                     run("rustfmt", &["src/observer/rgbxyz.rs"]);
                 }
                 GenCommands::Observers => {
                     gen_observer::main();
                 }
-                GenCommands::Colorspaces => {
-                    gen_rgbspace::main();
+                GenCommands::RgbSpaces => {
+                    gen_rgbspace::main().expect("Failed to generate rgbspace data");
                 }
             },
         }
