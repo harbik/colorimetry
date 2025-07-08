@@ -17,7 +17,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 * Add `CieLChGamut`, to calculate the Chroma limit for a particular Lightness and hue value.
 * Add `GammaCurve` to API, and add zero argument vector to indicate color spaces without a gamma correction (such as CieRGB), which only use floating point representations
-* Add skeletons for `cargo xtask gen observers` and `colorspaces` to generate datafiles, to replace generation on start-up in future
 * Add `CIE RGB` observer, using the CIE E Illuminant
 * Add `CIE E` Standard Illuminant
 * Add `Spectrum::from_wavelength_map` to create a spectrum from a set of wavelength and value pairs.
@@ -27,6 +26,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 * Add `OptimalColors`, `RelXYZGamut to build gamut hashmaps for the envelopes of the XYZ and CieLab color spaces.
 * `xtask` package as a sub-package, as a build and check tool, to use:
 
+  * `cargo xtask gen` to generate source files for `rgb-spaces` and `rgb-transforms`
   * `cargo xtask check` to check the files using `clippy`, `fmt`, and `rdme`,
   * `cargo xtask test` to run test with various feature settings,
   * `cargo xtask doc` to generate the documentation, failing on warnings, and
@@ -44,6 +44,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 * Fix `Observer::calc_xyz2rgb` to use `calc_rgb2xyz_matrix` to bootstrap transformation matrices, instead of using the xtask generated version
+
+### Removed
+
+* `supplemental-observers` feature, all are now always included.
 
 ## [0.0.7] - 2025-6-17
 
@@ -86,8 +90,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 * Various normal distribution (gaussian) helper functions, now all collected as methods of the `Gaussian` struct.
 * Various Planck's law helper functions, now all collected as methods of the `Planck` struct.
-
-### Fixed
 
 ## [0.0.6] - 2025-05-27
 
