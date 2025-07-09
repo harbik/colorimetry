@@ -1,0 +1,9 @@
+[package]
+name = "colorimetry-plot"
+version = "0.0.7"
+edition = "2021"
+
+[dependencies]
+colorimetry = { path = "..", version = "0.0.7" }
+nalgebra = "0.33.2"
+svg = "0.18.0"
