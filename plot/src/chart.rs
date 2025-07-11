@@ -20,12 +20,12 @@ pub struct XYChart<'a> {
 
 impl<'a> XYChart<'a> {
 
-    pub fn add_axis(mut self, side: AxisSide, step: f64, show_labels: bool, class: Option<&str>) -> Self {
+    pub fn add_axis(mut self, description: Option<&str>, side: AxisSide, step: f64, tick_length: u32, show_labels: bool, class: Option<&str>) -> Self {
         let min_max = match side {
             AxisSide::Bottom | AxisSide::Top => self.scale[0],
             AxisSide::Left | AxisSide::Right => self.scale[1],
         };
-        let x_axis = Axis::new(self.target, min_max, step, side, show_labels, class);
+        let x_axis = Axis::new(description, self.target, min_max, step, side, tick_length, show_labels, class);
         self.axes.append(Group::from(x_axis));
         self
     }
