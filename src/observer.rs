@@ -331,6 +331,18 @@ impl Observer {
         self.xyz_from_fn(|l| p.at_wavelength(to_wavelength(l, 0.0, 1.0)))
     }
 
+    /// Calculates the chromaticity coordinates (x, y) of the Planckian locus
+    /// over a range from 1000K to 100_000K.
+    pub fn planckian_locus(&self) -> Vec<(f64, f64)> {
+        let mut v = Vec::with_capacity(100);
+        for i in 1..100 {
+            let cct = 1E6 / (i as f64 * 10.0);
+            let xy = self.xyz_planckian_locus(cct).chromaticity();
+            v.push((xy.x(), xy.y()));
+        }
+        v
+    }
+
     /// The slope of the Plancking locus as a (dX/dT, dY/dT, dZ/dT) contained in
     /// a XYZ object.
     pub fn xyz_planckian_locus_slope(&self, cct: f64) -> XYZ {

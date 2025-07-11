@@ -6,4 +6,5 @@ edition = "2021"
 [dependencies]
 colorimetry = { path = "..", version = "0.0.7" }
 nalgebra = "0.33.2"
+strum = { version = "0.27.1", features = ["derive"] }
 svg = "0.18.0"

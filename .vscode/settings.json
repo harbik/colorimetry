@@ -2,5 +2,6 @@
     "rust-analyzer.debug.engineSettings": {
         
 
-    }
+    },
+    "svg.preview.background": "transparent"
 }
