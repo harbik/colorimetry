@@ -1,24 +1,85 @@
 use std::{fmt::Display, ops::{Deref, DerefMut}};
 
 use svg::{
-    node::{element::{path::Data, Group, Path, Text}},
-    Node,
-};
+    node::element::{path::Data, Group, Path}, Node}
+;
 
-use crate::{axis::{Axis, AxisSide}, canvas::Canvas, last_id, transforms::TransformMatrix};
+use crate::{axis::{Axis, AxisSide}, last_id, layer::Layer, new_id, svgdoc::SvgDocument, transforms::TransformMatrix};
 
 #[derive(Clone)]
-pub struct XYChart<'a> {
-    pub canvas: &'a Canvas,
-    pub xyplot: Group,
-    pub axes: Group,
-    pub annotations: Group,
+pub struct Chart<'a> {
+    pub svgdoc: &'a SvgDocument,
+    pub xyplot: Layer,
+    pub axes: Layer,
+    pub annotations: Layer,
     pub scale: [[f64; 2]; 2],
     pub target: [u32; 4], // left, top, width, height
     pub transform_matrix: TransformMatrix,
 }
 
-impl<'a> XYChart<'a> {
+impl<'a> Chart<'a> {
+
+    /// Creates a new chart on the canvas.
+    ///
+    /// The chart is positioned using a target rectangle defined as `[left, top, width, height]`,
+    /// and scaled using a coordinate system defined as `[[x_min, x_max], [y_min, y_max]]`.
+    ///
+    /// An optional CSS `class` and `style` can also be applied.
+    pub fn new(
+        svgdoc: &'a SvgDocument,
+        target: [u32; 4], // left, top, width, height
+        scale: [[f64; 2]; 2],
+        class: Option<&'a str>,
+        style: Option<&'a str>,
+    ) -> Chart<'a> {
+        // chart alwyas gets an id
+        let id = new_id();
+        let transform_matrix = TransformMatrix::new(target, scale);
+        let mut xyplot = Layer::new().set(
+            "transform",
+            transform_matrix.to_chart_string(),
+        );
+        let mut path = to_path(
+            [
+                (scale[0][0], scale[1][0]),
+                (scale[0][1], scale[1][0]),
+                (scale[0][1], scale[1][1]),
+                (scale[0][0], scale[1][1]),
+            ],
+            true,
+        );
+        // chart always gets a clip path
+        svgdoc.add_clip_path(format!("clip-{}", id), &path);
+        xyplot = xyplot.set("clip-path", format!("url(#clip-{})", id));
+        // don't add a background if no style or class is given
+        if style.is_some() || class.is_some() {
+            if let Some(style) = style {
+                 path = path.set("style", style);
+            }
+            if let Some(class) = class {
+                path = path.set("class", class);
+            }
+            xyplot.append(path);
+        }
+        let annotations = Layer::new()
+            .set("id", format!("annotations-{}", id))
+            .set("class", "annotations");
+
+        let axes = Layer::new()
+            .set("id", format!("axes-{}", id))
+            .set("class", "axes");
+        Chart {
+            svgdoc,
+            xyplot,
+            annotations,
+            axes,
+            scale,
+            target,
+            transform_matrix
+
+        }
+    }
+
 
     pub fn add_axis(mut self, description: Option<&str>, side: AxisSide, step: f64, tick_length: u32, show_labels: bool, class: Option<&str>) -> Self {
         let min_max = match side {
@@ -30,66 +91,11 @@ impl<'a> XYChart<'a> {
         self
     }
 
-    pub fn add_x_axis(self, x_step: f64, margin: u32, class: Option<&str>, style: Option<&str>) -> Self {
-        let [left, top, width, height] = self.target;
-        let [[xmin, xmax], [_ymin, _ymax]] = self.scale;
-
-        let mut x_axis = Group::new();
-        let mut x = xmin;
-        while x<xmax {
-            let x_pos = left as f64 + (x - xmin) / (xmax - xmin) * width as f64;
-            let y_pos = top as f64 + height as f64 + margin as f64;
-            x_axis.append(
-                Text::new(format!("{:.2}", x))
-                .set("x", x_pos)
-                .set("y", y_pos)
-                .set("text-anchor", "middle")
-                .set("dominant-baseline", "hanging")
-            );
-            x += x_step;
-        }
-        if let Some(class) = class {
-            x_axis = x_axis.set("class", class);
-        }
-        if let Some(style) = style {
-            x_axis = x_axis.set("style", style);
-        }
-        self.canvas.add_group(x_axis);
-        self
-    }
-
-    pub fn add_y_axis(self, y_step: f64, margin: u32, class: Option<&str>, style: Option<&str>) -> Self {
-        let [left, top, _width, height] = self.target;
-        let [[_xmin, _xmax], [ymin, ymax]] = self.scale;
-
-        let mut y_axis = Group::new();
-        let mut y = ymin;
-        while y < ymax {
-            let txt = format!("{:.2}",  y );
-            let txt_width = txt.chars().count() as f64 * 0.6 * 12.0; // Approximate width of text 
-            let y_pos = (top + height) as f64 - (y - ymin) / (ymax - ymin) * height as f64;
-            let x_pos = left as f64 - margin as f64 - txt_width as f64;
-            y_axis.append(
-                Text::new(txt)
-                .set("x", x_pos)
-                .set("y", y_pos)
-                .set("text-anchor", "right")
-                .set("dominant-baseline", "middle")
-            );
-            y += y_step;
-        }
-        if let Some(class) = class {
-            y_axis = y_axis.set("class", class);
-        }
-        if let Some(style) = style {
-            y_axis = y_axis.set("style", style);
-        }
-        self.canvas.add_group(y_axis);
-        self
-    }
-
-    pub fn render(self) {
-        self.canvas.render_chart(self);
+    pub fn render(&self) {
+        self.svgdoc.add_layer(self.xyplot.clone());
+        self.svgdoc.add_layer(self.annotations.clone());
+        self.svgdoc.add_layer(self.axes.clone());
+    //    self.svgdoc.render_chart(self);
     }
 
     pub fn draw_grid(self, x_step: f64, y_step: f64, class: Option<&str>, style: Option<&str>) -> Self {
@@ -130,7 +136,7 @@ impl<'a> XYChart<'a> {
             .set("width", width)
             .set("height", height);
         self.xyplot.append(rect);
-        let mut styles = self.canvas.styles.borrow_mut();
+        let mut styles = self.svgdoc.styles.borrow_mut();
         styles.insert(format!("#{}", id), style);
         self
     }
@@ -198,7 +204,7 @@ impl<'a> XYChart<'a> {
     }
 
     /// Add a path that connects the coordinates in an interator and closes the path.
-    pub fn draw_area(
+    pub fn draw_shape(
         self,
         data: impl IntoIterator<Item = (f64, f64)>,
         class: Option<&str>,
@@ -208,15 +214,15 @@ impl<'a> XYChart<'a> {
     }
 
     pub fn add_style(self, select: &str, style: &str) -> Self {
-        let mut styles = self.canvas.styles.borrow_mut();
+        let mut styles = self.svgdoc.styles.borrow_mut();
         styles.insert(select.to_string(), style.to_string());
         self
     }
 }
 
-impl<'a> From<XYChart<'a>> for Group {
-    fn from(chart: XYChart) -> Self {
-        let group = Group::new()
+impl<'a> From<Chart<'a>> for Layer {
+    fn from(chart: Chart) -> Self {
+        let layer = Layer::new()
             .set("id", format!("xyplot-{}", last_id()))
             .set("class", "xyplot")
             .add(chart.xyplot)
@@ -225,27 +231,27 @@ impl<'a> From<XYChart<'a>> for Group {
        // if !chart.canvas.styles.borrow().is_empty() {
        //     group = group.set("style", chart.canvas.styles.borrow().to_string());
        // }
-        group
+        layer
     }
 }
 
-impl Display for XYChart<'_> {
+impl Display for Chart<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.xyplot)
+        write!(f, "{}", self.xyplot.0)
     }
 }
 
-impl<'a> Deref for XYChart<'a> {
+impl<'a> Deref for Chart<'a> {
     type Target = Group;
 
     fn deref(&self) -> &Self::Target {
-        &self.xyplot
+        &self.xyplot.0
     }
 }
 
-impl<'a> DerefMut for XYChart<'a> {
+impl<'a> DerefMut for Chart<'a> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.xyplot
+        &mut self.xyplot.0
     }
 }
 

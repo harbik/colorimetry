@@ -1,8 +1,9 @@
-pub mod canvas;
+pub mod svgdoc;
 pub mod chart;
 pub mod spectrum;
 pub mod transforms;
 pub mod axis;
+pub mod layer;
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 
