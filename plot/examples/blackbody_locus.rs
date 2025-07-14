@@ -21,8 +21,10 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     ;
     
 
-    Chart::new(&svgdoc,[50, 50, 750, 850],
-            [[0.0, 0.75], [0.0, 0.85]],
+    let chart = Chart::new(&svgdoc,[0, 0, 750, 850],
+            0.0..0.75,
+            0.0..0.85,
+            "cie1931_chromaticity_diagram",
             Some("chart-area"),
             None,
         )
@@ -37,7 +39,9 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
         .annotate((1./3., 1./3.), 3.0, 20, SOUTH_EAST, "E", Some("white-point"), None)
         .annotate(d65, 3.0, 20, NORTH_WEST, "D65", Some("white-point"), None)
         .annotate(d50, 3.0, 20, NORTH_WEST, "D50", Some("white-point"), None)
-        .render();
+        ;
+    chart.render();
+    svgdoc.add_symbol(chart.to_symbol("cie1931_chromaticity_diagram"));
 
     svgdoc.save("tmp/blackbody_locus.svg").unwrap();
     Ok(())

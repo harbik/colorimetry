@@ -1,15 +1,14 @@
 use std::{
-    fmt::Display,
-    ops::{Deref, DerefMut},
+    fmt::Display, ops::{Deref, DerefMut, RangeBounds}
 };
 
 use svg::{
-    node::element::{path::Data, Group, Line, Path, Text},
+    node::element::{path::Data, ClipPath, Group, Line, Path, Symbol, Text},
     Node,
 };
 
 use crate::{
-    axis::{Axis, AxisSide},
+    axis::{Axis, AxisSide, ChartRange},
     last_id,
     layer::Layer,
     new_id,
@@ -23,9 +22,12 @@ pub struct Chart<'a> {
     pub xyplot: Layer,
     pub axes: Layer,
     pub annotations: Layer,
-    pub scale: [[f64; 2]; 2],
-    pub target: [u32; 4], // left, top, width, height
+    pub x_range: ChartRange,// min, max for x axis    
+    pub y_range: ChartRange, // min, max for y axis
+    pub view_box: [u32; 4], // left, top, width, height of the plot area 
     pub transform_matrix: TransformMatrix,
+    pub id: String, // unique id for the chart
+    pub clip_paths: Vec<ClipPath>,
 }
 
 impl<'a> Chart<'a> {
@@ -40,26 +42,32 @@ impl<'a> Chart<'a> {
     /// An optional CSS `class` and `style` can also be applied.
     pub fn new(
         svgdoc: &'a SvgDocument,
-        target: [u32; 4], // left, top, width, height
-        scale: [[f64; 2]; 2],
+        view_box: [u32; 4], // left, top, width, height
+       // scale: [[f64; 2]; 2],
+        x_range: impl RangeBounds<f64>,
+        y_range: impl RangeBounds<f64>,
+        id: impl AsRef<str>,
         class: Option<&'a str>,
         style: Option<&'a str>,
     ) -> Chart<'a> {
-        // chart alwyas gets an id
-        let id = new_id();
-        let transform_matrix = TransformMatrix::new(target, scale);
+        // chart always gets an id
+        let id = id.as_ref().to_string();
+        let x_range = ChartRange::new(x_range);
+        let y_range = ChartRange::new(y_range);
+        let mut clip_paths = Vec::new();
+        let transform_matrix = TransformMatrix::new(view_box, x_range, y_range);
         let mut scaled_layer = Layer::new().set("transform", transform_matrix.to_chart_string());
         let mut path = to_path(
             [
-                (scale[0][0], scale[1][0]),
-                (scale[0][1], scale[1][0]),
-                (scale[0][1], scale[1][1]),
-                (scale[0][0], scale[1][1]),
+                (x_range.start, y_range.start),
+                (x_range.end, y_range.start),
+                (x_range.end, y_range.end),
+                (x_range.start, y_range.end),
             ],
             true,
         );
         // chart always gets a clip path
-        svgdoc.add_clip_path(format!("clip-{}", id), &path);
+        clip_paths.push(ClipPath::new().set("id", format!("clip-{}", id)).add(path.clone()));
         scaled_layer = scaled_layer.set("clip-path", format!("url(#clip-{})", id));
         // don't add a background if no style or class is given
         if style.is_some() || class.is_some() {
@@ -79,13 +87,16 @@ impl<'a> Chart<'a> {
             .set("id", format!("axes-{}", id))
             .set("class", "axes");
         Chart {
+            id,
             svgdoc,
             xyplot: scaled_layer,
             annotations,
             axes,
-            scale,
-            target,
+            x_range,
+            y_range,
+            view_box,
             transform_matrix,
+            clip_paths
         }
     }
 
@@ -98,14 +109,14 @@ impl<'a> Chart<'a> {
         show_labels: bool,
         class: Option<&str>,
     ) -> Self {
-        let min_max = match side {
-            AxisSide::Bottom | AxisSide::Top => self.scale[0],
-            AxisSide::Left | AxisSide::Right => self.scale[1],
+        let range = match side {
+            AxisSide::Bottom | AxisSide::Top => self.x_range,
+            AxisSide::Left | AxisSide::Right => self.y_range,
         };
         let x_axis = Axis::new(
             description,
-            self.target,
-            min_max,
+            self.view_box,
+            range,
             step,
             side,
             tick_length,
@@ -116,15 +127,7 @@ impl<'a> Chart<'a> {
         self
     }
 
-    pub fn render(&self) {
-        let chart_layer = Layer::new()
-            .set("id", format!("chart-{}", new_id()))
-            .set("class", "chart")
-            .add(self.axes.clone())
-            .add(self.xyplot.clone())
-            .add(self.annotations.clone());
-        self.svgdoc.add_layer(chart_layer);
-    }
+
 
     pub fn draw_grid(
         self,
@@ -134,17 +137,28 @@ impl<'a> Chart<'a> {
         style: Option<&str>,
     ) -> Self {
         let mut data = Data::new();
+        for x in self.x_range.iter_with_step(x_step) {
+            data = data.move_to((x, self.y_range.start)).line_to((x, self.y_range.end));
+        }
+        /*
         let [[xmin, xmax], [ymin, ymax]] = self.scale;
         let mut x = xmin;
         while x < xmax {
             data = data.move_to((x, ymin)).line_to((x, ymax));
             x += x_step;
         }
+         */
+        for y in self.y_range.iter_with_step(y_step) {
+            data = data.move_to((self.x_range.start, y)).line_to((self.x_range.end, y));
+        }
+        /*
         let mut y = ymin;
+        
         while y < ymax {
             data = data.move_to((xmin, y)).line_to((xmax, y));
             y += y_step;
         }
+         */
         self.data(data, class, style)
     }
 
@@ -287,13 +301,29 @@ impl<'a> Chart<'a> {
         self.draw_path(to_path(data, true), class, style)
     }
 
-    /*
-    pub fn add_style(self, select: &str, style: &str) -> Self {
-        let mut styles = self.svgdoc.styles.borrow_mut();
-        styles.insert(select.to_string(), style.to_string());
-        self
+    pub fn render(&self) {
+        let chart_layer = Layer::new()
+            .set("id", format!("chart-{}", new_id()))
+            .set("class", "chart")
+            .add(self.axes.clone())
+            .add(self.xyplot.clone())
+            .add(self.annotations.clone());
+        self.svgdoc.add_layer(chart_layer);
     }
-     */
+
+    pub fn to_symbol(&self, id: &str) -> Symbol {
+        let mut symbol = Symbol::new()
+            .set("id", id)
+            .set("viewBox", (0, 0, self.view_box[2], self.view_box[3]))
+            .set("class", "chart-symbol")
+            .set("data-range-x", (self.x_range.start, self.x_range.end))
+            .set("data-range-y", (self.y_range.start, self.y_range.end))
+        ;
+
+        symbol.append(self.xyplot.clone());
+        symbol.append(self.annotations.clone());
+        symbol
+    }
 }
 
 impl<'a> From<Chart<'a>> for Layer {

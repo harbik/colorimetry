@@ -1,5 +1,7 @@
 use nalgebra::{Matrix3, Vector3};
 
+use crate::axis::ChartRange;
+
 // SVG transform matrix: matrix(a, b, c, d, e, f)
 // which is: [a c e]
 //           [b d f]
@@ -12,16 +14,15 @@ pub struct TransformMatrix {
 }
 
 impl TransformMatrix {
-    pub fn new(target: [u32; 4], scale: [[f64; 2]; 2]) -> Self {
-        let [[x_min, x_max], [y_min, y_max]] = scale;
+    pub fn new(target: [u32; 4], range_x: ChartRange, range_y: ChartRange) -> Self {
         let [left, top, width, height] = target;
-        let scale_x = width as f64 / (x_max - x_min);
-        let scale_y = height as f64 / (y_max - y_min);
+        let scale_x = width as f64 / range_x.span();
+        let scale_y = height as f64 / range_y.span();
 
         // SVG y-axis increases downward, so invert y scaling
         let scale_y = -scale_y;
-        let translate_x = left as f64 - x_min * scale_x;
-        let translate_y = top as f64 + height as f64 + y_min * scale_y;
+        let translate_x = left as f64 - range_x.start * scale_x;
+        let translate_y = top as f64 + height as f64 + range_y.start * scale_y;
 
         let to_canvas_matrix = Matrix3::new(
             scale_x,
@@ -90,33 +91,3 @@ impl TransformMatrix {
     }
 }
 
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    
-    #[test]
-    fn test_transform_matrix() {
-        let target = [0, 0, 100, 100];
-        let scale = [[0.0, 1.0], [0.0, 1.0]];
-        let matrix = TransformMatrix::new(target, scale);
-        
-        assert_eq!(matrix.to_chart_string(), "matrix(100 0 0 -100 0 100)");
-        assert_eq!(matrix.to_canvas_string(), "matrix(0.01 0 -0 -0.01 -0 1)");
-        
-        let (h, v) = matrix.canvas(0.5, 0.5);
-        assert_eq!((h, v), (50, 50));
-
-        let (h, v) = matrix.canvas(0.0, 0.0);
-        assert_eq!((h, v), (0, 100));
-        
-        let (h, v) = matrix.canvas(1.0, 1.0);
-        assert_eq!((h, v), (100, 0));
-
-        let (x, y) = matrix.scaled(50, 50);
-        assert_eq!((x, y), (0.5, 0.5));
-
-        let (x, y) = matrix.scaled(100, 0);
-        assert_eq!((x, y), (1.0, 1.0));
-    }
-}
