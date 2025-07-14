@@ -1,10 +1,21 @@
-use std::{fmt::Display, ops::{Deref, DerefMut}};
+use std::{
+    fmt::Display,
+    ops::{Deref, DerefMut},
+};
 
 use svg::{
-    node::element::{path::Data, Group, Path}, Node}
-;
+    node::element::{path::Data, Group, Line, Path, Text},
+    Node,
+};
 
-use crate::{axis::{Axis, AxisSide}, last_id, layer::Layer, new_id, svgdoc::SvgDocument, transforms::TransformMatrix};
+use crate::{
+    axis::{Axis, AxisSide},
+    last_id,
+    layer::Layer,
+    new_id,
+    svgdoc::SvgDocument,
+    transforms::TransformMatrix,
+};
 
 #[derive(Clone)]
 pub struct Chart<'a> {
@@ -18,6 +29,8 @@ pub struct Chart<'a> {
 }
 
 impl<'a> Chart<'a> {
+    pub const ANNOTATE_SEP: u32 = 2;
+
 
     /// Creates a new chart on the canvas.
     ///
@@ -35,10 +48,7 @@ impl<'a> Chart<'a> {
         // chart alwyas gets an id
         let id = new_id();
         let transform_matrix = TransformMatrix::new(target, scale);
-        let mut xyplot = Layer::new().set(
-            "transform",
-            transform_matrix.to_chart_string(),
-        );
+        let mut scaled_layer = Layer::new().set("transform", transform_matrix.to_chart_string());
         let mut path = to_path(
             [
                 (scale[0][0], scale[1][0]),
@@ -50,16 +60,16 @@ impl<'a> Chart<'a> {
         );
         // chart always gets a clip path
         svgdoc.add_clip_path(format!("clip-{}", id), &path);
-        xyplot = xyplot.set("clip-path", format!("url(#clip-{})", id));
+        scaled_layer = scaled_layer.set("clip-path", format!("url(#clip-{})", id));
         // don't add a background if no style or class is given
         if style.is_some() || class.is_some() {
             if let Some(style) = style {
-                 path = path.set("style", style);
+                path = path.set("style", style);
             }
             if let Some(class) = class {
                 path = path.set("class", class);
             }
-            xyplot.append(path);
+            scaled_layer.append(path);
         }
         let annotations = Layer::new()
             .set("id", format!("annotations-{}", id))
@@ -70,35 +80,59 @@ impl<'a> Chart<'a> {
             .set("class", "axes");
         Chart {
             svgdoc,
-            xyplot,
+            xyplot: scaled_layer,
             annotations,
             axes,
             scale,
             target,
-            transform_matrix
-
+            transform_matrix,
         }
     }
 
-
-    pub fn add_axis(mut self, description: Option<&str>, side: AxisSide, step: f64, tick_length: u32, show_labels: bool, class: Option<&str>) -> Self {
+    pub fn add_axis(
+        mut self,
+        description: Option<&str>,
+        side: AxisSide,
+        step: f64,
+        tick_length: u32,
+        show_labels: bool,
+        class: Option<&str>,
+    ) -> Self {
         let min_max = match side {
             AxisSide::Bottom | AxisSide::Top => self.scale[0],
             AxisSide::Left | AxisSide::Right => self.scale[1],
         };
-        let x_axis = Axis::new(description, self.target, min_max, step, side, tick_length, show_labels, class);
+        let x_axis = Axis::new(
+            description,
+            self.target,
+            min_max,
+            step,
+            side,
+            tick_length,
+            show_labels,
+            class,
+        );
         self.axes.append(Group::from(x_axis));
         self
     }
 
     pub fn render(&self) {
-        self.svgdoc.add_layer(self.xyplot.clone());
-        self.svgdoc.add_layer(self.annotations.clone());
-        self.svgdoc.add_layer(self.axes.clone());
-    //    self.svgdoc.render_chart(self);
+        let chart_layer = Layer::new()
+            .set("id", format!("chart-{}", new_id()))
+            .set("class", "chart")
+            .add(self.axes.clone())
+            .add(self.xyplot.clone())
+            .add(self.annotations.clone());
+        self.svgdoc.add_layer(chart_layer);
     }
 
-    pub fn draw_grid(self, x_step: f64, y_step: f64, class: Option<&str>, style: Option<&str>) -> Self {
+    pub fn draw_grid(
+        self,
+        x_step: f64,
+        y_step: f64,
+        class: Option<&str>,
+        style: Option<&str>,
+    ) -> Self {
         let mut data = Data::new();
         let [[xmin, xmax], [ymin, ymax]] = self.scale;
         let mut x = xmin;
@@ -114,12 +148,6 @@ impl<'a> Chart<'a> {
         self.data(data, class, style)
     }
 
-    // Add a style to the canvas, for the last created element without a style parameter.
-    pub fn apply_style(self, style: &str) -> Self {
-        let id = last_id();
-        self.add_style(&format!("#{}", id), style)
-    }
-
     pub fn draw_rect(
         mut self,
         id: &str,
@@ -127,66 +155,112 @@ impl<'a> Chart<'a> {
         y: f64,
         width: f64,
         height: f64,
-        style: String,
+        class: Option<&str>,
+        style: Option<&str>,
     ) -> Self {
-        let rect = svg::node::element::Rectangle::new()
+        let mut rect = svg::node::element::Rectangle::new()
             .set("id", id)
             .set("x", x)
             .set("y", y)
             .set("width", width)
             .set("height", height);
+
+        if let Some(class) = class {
+            rect.assign("class", class);
+        }
+        if let Some(style) = style {
+            rect.assign("style", style);
+        }
         self.xyplot.append(rect);
-        let mut styles = self.svgdoc.styles.borrow_mut();
-        styles.insert(format!("#{}", id), style);
         self
     }
 
-    pub fn draw_dot(
+    pub fn annotate(
         mut self,
-        cx: f64,
-        cy: f64,
+        cxy : (f64, f64),
         r: f64,
+        len: u32,
+        angle: i32,
+        text: impl AsRef<str>,
         class: Option<&str>,
         style: Option<&str>,
     ) -> Self {
+        let angle = 360 - ((angle + 360) % 360) as i32;
+        let (cx, cy) = cxy;
         let (cx, cy) = self.transform_matrix.canvas(cx, cy);
-        let mut circle = svg::node::element::Circle::new()
+        let dx = len as f64 * (angle as f64).to_radians().cos();
+        let dy = len as f64 * (angle as f64).to_radians().sin();
+        let circle = svg::node::element::Circle::new()
             .set("cx", cx)
             .set("cy", cy)
             .set("r", r);
+        let line = Line::new()
+            .set("x1", cx)
+            .set("y1", cy)
+            .set("x2", cx as f64 + dx)
+            .set("y2", cy as f64 + dy);
+
+        let dxt = (len + Self::ANNOTATE_SEP) as f64 * (angle as f64).to_radians().cos();
+        let dyt = (len + Self::ANNOTATE_SEP) as f64 * (angle as f64).to_radians().sin();
+        let mut text = Text::new(text.as_ref())
+            .set("x", cx as f64 + dxt)
+            .set("y", cy as f64 + dyt);
+
         if let Some(class) = class {
-            circle = circle.set("class", class);
+            text.assign("class", class);
+        } else {
+            text.assign("class", "default");
+        }
+
+        match angle {
+            0..55 | 305..=360 => { // easat
+                text.assign("text-anchor", "start");
+                text.assign("dominant-baseline", "middle");
+            }
+            55..125 => { // north
+                text.assign("text-anchor", "middle");
+                text.assign("dominant-baseline", "text-before-edge");
+            }
+            125..235 => { // west
+                text.assign("text-anchor", "end");
+                text.assign("dominant-baseline", "middle");
+            }
+            _ => { // south
+                text.assign("text-anchor", "middle");
+                text.assign("dominant-baseline", "text-after-edge");
+            }
+        }
+
+        let mut group = Group::new().add(circle).add(line).add(text);
+
+        if let Some(class) = class {
+            group.assign("class", class);
+        } else {
+            group.assign("class", "default");
         }
         if let Some(style) = style {
-            circle = circle.set("style", style);
+            group.assign("style", style);
         }
-        self.annotations.append(circle);
+        self.annotations.append(group);
         self
     }
 
-    pub fn draw_path(
-        mut self,
-        mut path: Path,
-        class: Option<&str>,
-        style: Option<&str>,
-    ) -> Self {
+    /// Draw a Path using the Chart Coordinates onto the
+    /// `scaled_layer``
+    pub fn draw_path(mut self, mut path: Path, class: Option<&str>, style: Option<&str>) -> Self {
         if let Some(style) = style {
-            path = path.set("style", style);
+            path.assign("style", style);
         }
         if let Some(class) = class {
-            path = path.set("class", class);
+            path.assign("class", class);
         }
         self.xyplot.append(path);
         self
     }
 
-    // Add Data, composed of e.g. move_to and line_to operations, to the Chart
-    pub fn data(
-        self,
-        data: Data,
-        class: Option<&str>,
-        style: Option<&str>,
-    ) -> Self {
+    /// Add Data, composed of e.g. move_to and line_to operations, to the Chart
+    /// using scaled coordinates.
+    pub fn data(self, data: Data, class: Option<&str>, style: Option<&str>) -> Self {
         let path = Path::new()
             .set("d", data)
             .set("vector-effect", "non-scaling-stroke");
@@ -213,11 +287,13 @@ impl<'a> Chart<'a> {
         self.draw_path(to_path(data, true), class, style)
     }
 
+    /*
     pub fn add_style(self, select: &str, style: &str) -> Self {
         let mut styles = self.svgdoc.styles.borrow_mut();
         styles.insert(select.to_string(), style.to_string());
         self
     }
+     */
 }
 
 impl<'a> From<Chart<'a>> for Layer {
@@ -228,9 +304,9 @@ impl<'a> From<Chart<'a>> for Layer {
             .add(chart.xyplot)
             .add(chart.annotations)
             .add(chart.axes);
-       // if !chart.canvas.styles.borrow().is_empty() {
-       //     group = group.set("style", chart.canvas.styles.borrow().to_string());
-       // }
+        // if !chart.canvas.styles.borrow().is_empty() {
+        //     group = group.set("style", chart.canvas.styles.borrow().to_string());
+        // }
         layer
     }
 }

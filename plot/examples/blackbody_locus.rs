@@ -1,8 +1,10 @@
 use colorimetry::observer::Observer;
-use colorimetry_plot::{axis::AxisSide, chart::Chart, svgdoc::SvgDocument};
+use colorimetry_plot::{axis::AxisSide, chart::Chart, svgdoc::{SvgDocument, NORTH_WEST, SOUTH_EAST}};
 
 pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     let observer = Observer::default();
+    let d65 = observer.xyz_d65().chromaticity().to_tuple();
+    let d50 = observer.xyz_d50().chromaticity().to_tuple();
 
     let svgdoc = SvgDocument::new(900, 1000)
         .add_css_rule(".fine-grid", "stroke: #88888888; stroke-width: 0.5;")
@@ -12,8 +14,11 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
             "fill: #DDDDDD; stroke: none; stroke-width: 0;",
         )
         .add_css_rule(".spectral-locus", "fill: white; stroke: black; stroke-width: 2; stroke-linecap: round;")
-        .add_css_rule(".planckian-locus", "fill: none; stroke: gray; stroke-width: 4; stroke-linecap: round;")
-        .add_css_rule("text", "fill: black; stroke: none; font-size: 12pt; font-family: sans-serif;");
+        .add_css_rule(".planckian-locus", "fill: none; stroke: gray; stroke-width: 2; stroke-linecap: round;")
+        .add_css_rule("text", "fill: black; stroke: none; font-size: 12pt; font-family: sans-serif;")
+        .add_css_rule(".white-point", "stroke: black; stroke-width: 1;")
+        .add_css_rule("text.white-point", "fill: black; stroke: None; stroke-width: 0;")
+    ;
     
 
     Chart::new(&svgdoc,[50, 50, 750, 850],
@@ -29,7 +34,9 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
         .draw_grid(0.01, 0.01, Some("fine-grid"), None)
         .draw_grid(0.1, 0.1, Some("grid"), None)
         .draw_line(observer.planckian_locus(), Some("planckian-locus"), None)
-        .draw_dot(1./3., 1./3., 5.0, None, None)
+        .annotate((1./3., 1./3.), 3.0, 20, SOUTH_EAST, "E", Some("white-point"), None)
+        .annotate(d65, 3.0, 20, NORTH_WEST, "D65", Some("white-point"), None)
+        .annotate(d50, 3.0, 20, NORTH_WEST, "D50", Some("white-point"), None)
         .render();
 
     svgdoc.save("tmp/blackbody_locus.svg").unwrap();

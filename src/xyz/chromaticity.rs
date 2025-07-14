@@ -41,6 +41,10 @@ impl Chromaticity {
     pub const fn to_vector(self) -> Vector2<f64> {
         self.xy
     }
+
+    pub fn to_tuple(&self) -> (f64, f64) {
+        (self.xy.x, self.xy.y)
+    }
 }
 
 impl Default for Chromaticity {
