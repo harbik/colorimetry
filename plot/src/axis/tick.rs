@@ -9,7 +9,7 @@ pub struct Tick(pub(crate) f64, pub(crate) f64); // (value, step)
 
 impl Tick {
 
-    pub fn tick(&self, tick_length: u32, target: (i32, i32, u32, u32), pos: f64, side: AxisSide) -> ((f64,f64), (f64,f64)) {
+    pub fn tick(&self, tick_length: i32, target: (i32, i32, u32, u32), pos: f64, side: AxisSide) -> ((f64,f64), (f64,f64)) {
         let left = target.0 as f64;
         let top = target.1 as f64;
         let width = target.2 as f64;
@@ -40,7 +40,7 @@ impl Tick {
     }
 
 
-    pub fn label(&self, tick_length: u32, target: (i32, i32, u32, u32), pos:f64, value: f64, side: AxisSide) -> Text {
+    pub fn label(&self, tick_length: i32, target: (i32, i32, u32, u32), pos:f64, value: f64, side: AxisSide) -> Text {
         let left = target.0 as f64;
         let top = target.1 as f64;
         let width = target.2 as f64;

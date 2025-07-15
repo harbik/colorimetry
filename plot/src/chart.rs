@@ -1,6 +1,7 @@
 use std::{
     fmt::Display,
-    ops::{Deref, DerefMut, RangeBounds}, rc::Rc,
+    ops::{Deref, DerefMut, RangeBounds},
+    rc::Rc,
 };
 
 use svg::{
@@ -16,24 +17,26 @@ use crate::{
 #[derive(Clone)]
 pub struct XYChart {
     pub id: String,          // unique id for the chart
-    pub plot_width: u32,          // width of the plotting area, excluding axes
-    pub plot_height: u32,         // height of the plotting area, excluding axes
+    pub plot_width: u32,     // width of the plotting area, excluding axes
+    pub plot_height: u32,    // height of the plotting area, excluding axes
     pub x_range: ChartRange, // min, max for x axis
     pub y_range: ChartRange, // min, max for y axis
     pub plot: Layer,
     pub axes: Layer,
     pub annotations: Layer,
     pub clip_paths: Vec<ClipPath>,
-    pub margins: [u32; 4], // top, right, bottom, left
+    pub margins: [i32; 4],   // top, right, bottom, left
     pub on_canvas: Rc<dyn Fn((f64, f64)) -> (f64, f64)>,
 }
 
 impl XYChart {
-    pub const ANNOTATE_SEP: u32 = 2;
-    pub const LABEL_HEIGHT: u32 = 25;
-    
+    pub const ANNOTATE_SEP: i32 = 2;
+    pub const LABEL_HEIGHT: i32 = 25;
+
     pub fn new(
         id: impl AsRef<str>,
+        plot_width: u32,
+        plot_height: u32,
         x_range: impl RangeBounds<f64>,
         y_range: impl RangeBounds<f64>,
         class: Option<&str>,
@@ -41,23 +44,25 @@ impl XYChart {
     ) -> XYChart {
         let id = id.as_ref().to_string();
         let x_range = ChartRange::new(x_range);
+        let x_scale_factor = plot_width as f64/ x_range.span();
         let y_range = ChartRange::new(y_range);
-        let plot_width = (x_range.span() * 1000.0) as u32;
-        let plot_height = (y_range.span() * 1000.0) as u32;
+        let y_scale_factor = plot_height as f64 / y_range.span();
+
+        // output coordinates with 0.1px precision
         let on_canvas = Rc::new(move |xy: (f64, f64)| {
             (
-                (xy.0 * 10_000.0).round() / 10.0,
-                plot_height as f64 - (xy.1 * 10_000.0).round() / 10.0,
+                (xy.0 * x_scale_factor * 10.0).round()/10.0,
+                plot_height as f64 - (xy.1 * y_scale_factor * 10.0).round() / 10.0
             )
         });
         let mut clip_paths = Vec::new();
         let mut plot = Layer::new();
         let mut path = to_path(
             [
-                (0.,0.),
-                (plot_width as f64, 0.),
+                (0f64, 0f64),
+                (plot_width as f64, 0f64),
                 (plot_width as f64, plot_height as f64),
-                (0., plot_height as f64),
+                (0f64, plot_height as f64),
             ],
             true,
         );
@@ -95,10 +100,9 @@ impl XYChart {
             annotations,
             axes,
             clip_paths,
-            margins: [0u32; 4], // top, right, bottom, left
+            margins: [0i32; 4], // top, right, bottom, left
             on_canvas,
         }
-
     }
 
     pub fn add_axis(
@@ -106,12 +110,12 @@ impl XYChart {
         description: Option<&str>,
         side: AxisSide,
         step: f64,
-        tick_length: u32,
+        tick_length: i32,
         show_labels: bool,
         class: Option<&str>,
     ) -> Self {
         let mut margin = if show_labels {
-            tick_length + Self::LABEL_HEIGHT 
+            tick_length + Self::LABEL_HEIGHT
         } else {
             tick_length
         };
@@ -178,7 +182,7 @@ impl XYChart {
         mut self,
         cxy: (f64, f64),
         r: f64,
-        len: u32,
+        len: i32,
         angle: i32,
         text: impl AsRef<str>,
         class: Option<&str>,
@@ -264,8 +268,7 @@ impl XYChart {
     /// Add Data, composed of e.g. move_to and line_to operations, to the Chart
     /// using scaled coordinates.
     pub fn data(self, data: Data, class: Option<&str>, style: Option<&str>) -> Self {
-        let path = Path::new()
-            .set("d", data);
+        let path = Path::new().set("d", data);
         self.draw_path(path, class, style)
     }
 
@@ -293,18 +296,19 @@ impl XYChart {
         self.draw_path(to_path(iter_canvas, true), class, style)
     }
 
+    pub fn view_box(&self) -> (i32, i32, u32, u32) {
+        (
+            -(self.margins[3] as i32),
+            -(self.margins[0] as i32),
+            self.plot_width + self.margins[1] as u32 + self.margins[3] as u32,
+            self.plot_height + self.margins[0] as u32 + self.margins[2] as u32,
+        )
+    }
+
     pub fn into_svg(self) -> SVG {
         SVG::new()
             .set("id", self.id.clone())
-            .set(
-                "viewBox",
-                (
-                    -(self.margins[3] as i32),
-                    -(self.margins[0] as i32),
-                    self.plot_width + self.margins[1] + self.margins[3],
-                    self.plot_height + self.margins[0] + self.margins[2],
-                ),
-            )
+            .set("viewBox", self.view_box())
             .add(self.axes)
             .add(self.plot)
             .add(self.annotations)

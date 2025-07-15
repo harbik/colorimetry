@@ -20,7 +20,7 @@ pub struct Axis {
     pub(super) step: f64,
     pub(super) show_labels: bool, // Whether to show labels or not
     pub(super) class: Option<String>,
-    pub(super) tick_length: u32, // Length of the ticks
+    pub(super) tick_length: i32, // Length of the ticks
     pub(super) description: Option<String>, // Description of the axis
 }
 
@@ -32,7 +32,7 @@ impl Axis {
         range: ChartRange,
         step: f64,
         side: AxisSide,
-        tick_length: u32,
+        tick_length: i32,
         show_labels: bool,
         class: Option<&str> // invisible if niot 
     ) -> Self {

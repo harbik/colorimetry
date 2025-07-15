@@ -7,7 +7,7 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     let d65 = observer.xyz_d65().chromaticity().to_tuple();
     let d50 = observer.xyz_d50().chromaticity().to_tuple();
 
-    let mut svgdoc = SvgDocument::new(900, 1100)
+    let mut svgdoc = SvgDocument::new(50)
         .add_css_rule(".fine-grid", "stroke: #88888888; stroke-width: 0.5;")
         .add_css_rule(".grid", "stroke: #88888888; stroke-width: 1.0;")
         .add_css_rule(
@@ -24,8 +24,10 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let chart = XYChart::new(
             "cie1931_chromaticity_diagram",
-            0.0..0.75,
-            0.0..0.85,
+            750,
+            850,
+            0.0..=0.75,
+            0.0..=0.85,
             Some("chart-area"),
             None,
         )
@@ -42,8 +44,7 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
         .annotate(d50, 3.0, 20, NORTH_WEST, "D50", Some("white-point"), None)
         .into_svg();
 
-
-    svgdoc.place(chart, 50, 50, 750, 850);
+    svgdoc.place(chart, 50, 50, None, None);
 
     svgdoc.save("tmp/blackbody_locus.svg").unwrap();
     Ok(())
