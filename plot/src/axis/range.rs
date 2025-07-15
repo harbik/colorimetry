@@ -37,6 +37,7 @@ impl ChartRange {
     }
 
     /// Creates an iterator over the range with a specified step size.
+    /// Produces values aligned with the step size, for use to draw grid lines and ticks.
     pub fn iter_with_step(&self, step: f64) -> ChartRangeIterator {
         let start = (self.start/ step).ceil() * step; // Start from the first tick
         ChartRangeIterator {
@@ -57,12 +58,44 @@ impl Iterator for ChartRangeIterator {
     type Item = f64;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.start < self.end {
+        // include end of range
+        if self.start < self.end || approx::abs_diff_eq!(self.start, self.end, epsilon = 1e-10) {
             let current = self.start;
             self.start += self.step;
             Some(current)
         } else {
             None
         }
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use approx::assert_abs_diff_eq;
+
+    use super::*;
+
+    #[test]
+    fn test_chart_range() {
+        let range = ChartRange::new(0.0..1.0);
+        assert_abs_diff_eq!(range.start, 0.0);
+        assert_abs_diff_eq!(range.end, 1.0);
+        assert_abs_diff_eq!(range.span(), 1.0);
+        assert_abs_diff_eq!(range.scale(0.5), 0.5);
+        assert_abs_diff_eq!(range.scale_descent(0.5), 0.5);
+    }
+
+    #[test]
+    fn test_iter_with_step() {
+        let range = ChartRange::new(0.0..=1.0);
+        let mut iter = range.iter_with_step(0.2);
+        assert_abs_diff_eq!(iter.next().unwrap(), 0.0);
+        assert_abs_diff_eq!(iter.next().unwrap(), 0.2);
+        assert_abs_diff_eq!(iter.next().unwrap(), 0.4);
+        assert_abs_diff_eq!(iter.next().unwrap(), 0.6);
+        assert_abs_diff_eq!(iter.next().unwrap(), 0.8);
+        assert_abs_diff_eq!(iter.next().unwrap(), 1.0);
+        assert_eq!(iter.next(), None);
     }
 }

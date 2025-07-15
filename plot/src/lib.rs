@@ -4,6 +4,7 @@ pub mod spectrum;
 pub mod transforms;
 pub mod axis;
 pub mod layer;
+pub mod chromaticity;
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 

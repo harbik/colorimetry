@@ -8,12 +8,12 @@ use crate::axis::ChartRange;
 //           [0 0 1]
 #[derive(Debug, Clone)]
 /// A struct to handle transformations between chart coordinates and canvas coordinates.
-pub struct TransformMatrix {
+pub struct CoordinateTransform {
     to_canvas_matrix: Matrix3<f64>,
     to_scaled_matrix: Matrix3<f64>,
 }
 
-impl TransformMatrix {
+impl CoordinateTransform {
     pub fn new(target: [u32; 4], range_x: ChartRange, range_y: ChartRange) -> Self {
         let [left, top, width, height] = target;
         let scale_x = width as f64 / range_x.span();
@@ -38,20 +38,21 @@ impl TransformMatrix {
 
         let to_scale_matrix = to_canvas_matrix.try_inverse().expect("Matrix is not invertible");
 
-        TransformMatrix {
+        CoordinateTransform {
             to_canvas_matrix,
             to_scaled_matrix: to_scale_matrix,
         }
     }
 
-    pub fn canvas(
+
+    pub fn on_canvas(
         &self,
         x: f64,
         y: f64,
-    ) -> (u32, u32) {
+    ) -> (f64, f64) {
         let point = Vector3::new(x, y, 1.0);
         let transformed = self.to_canvas_matrix * point;
-        (transformed[(0, 0)] as u32, transformed[(1, 0)] as u32)
+        (transformed[(0, 0)], transformed[(1, 0)])
     }
 
     pub fn scaled(

@@ -1,7 +1,7 @@
 use std::{cell::RefCell, collections::HashMap};
 
 use svg::{
-    node::element::{ClipPath, Path, Style, Symbol},
+    node::element::{ClipPath, Path, Style, Symbol, SVG},
     Document, Node,
 };
 
@@ -19,7 +19,6 @@ pub const NORTH_EAST: i32 = 45;
 pub const SOUTH_WEST: i32 = 225;
 pub const SOUTH_EAST: i32 = 315;
 
-use crate::layer::Layer;
 
 /// Represents an SVG document with a specified width and height.  It contains clip paths, styles,
 /// layers, and symbols that can be used to create SVG graphics.  Although you can directly
@@ -30,7 +29,7 @@ pub struct SvgDocument {
     height: u32, // [width, height]
     pub(super) clip_paths: RefCell<Vec<ClipPath>>,
     pub(super) styles: RefCell<HashMap<String, String>>, // selector, and elements
-    pub(super) layers: RefCell<Vec<Layer>>,
+    pub(super) nodes: RefCell<Vec<Box<dyn Node>>>, // layers and use
     pub(super) symbols: RefCell<Vec<Symbol>>,
 }
 
@@ -47,7 +46,7 @@ impl SvgDocument {
             height,
             clip_paths: RefCell::new(Vec::new()),
             styles: RefCell::new(HashMap::new()),
-            layers: RefCell::new(Vec::new()),
+            nodes: RefCell::new(Vec::new()), // layers, use, and svg elements
             symbols: RefCell::new(Vec::new()),
         }
     }
@@ -60,9 +59,9 @@ impl SvgDocument {
     }
 
     /// Adds a symbol to the SVG document.
-    pub fn add_symbol(&self, symbol: Symbol) {
+    pub fn add_symbol(&self, symbol: impl Into<Symbol>) {
         let mut symbols = self.symbols.borrow_mut();
-        symbols.push(symbol);
+        symbols.push(symbol.into());
     }
 
     pub fn add_css_rule(self, select: &str, style: &str) -> Self {
@@ -73,10 +72,14 @@ impl SvgDocument {
         self
     }
 
-    pub fn add_layer(&self, layer: Layer) {
-        let mut layers = self.layers.borrow_mut();
-        layers.push(layer);
+    // TODO: check node type to select where to add it to
+    /// Adds a node to the SVG document. The node can be any type that implements the `Node` trait.
+    pub fn add(&self, node: impl Into<Box<dyn Node>>) {
+        let a_node = node.into();
+        let mut nodes = self.nodes.borrow_mut();
+        nodes.push(a_node);
     }
+
 
     /// Creates an SVG document with the specified width and height.
     pub fn svg(&self) -> Document {
@@ -111,17 +114,29 @@ impl SvgDocument {
 
         doc.append(defs);
 
-        let layers = self.layers.borrow();
-        for layer in layers.iter() {
-            doc = doc.add(layer.0.clone());
+        let nodes = self.nodes.borrow();
+        for node in nodes.iter() {
+            doc = doc.add(node.clone());
         }
 
         doc
     }
 
+
+    pub fn place(&mut self, svg: impl Into<SVG>, x: u32, y: u32, width: u32, height: u32) {
+        self.add(svg.into()
+            .set("x", x)
+            .set("y", y)
+            .set("width", width)
+            .set("height", height)
+            .set("preserveAspectRatio", "xMinYMin meet"));
+    }
+    
+    /*
     pub fn render(&self) -> String {
         self.svg().to_string()
     }
+     */
 
     pub fn save(&self, filename: &str) -> Result<(), std::io::Error> {
         let doc = self.svg();

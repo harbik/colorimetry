@@ -1,12 +1,13 @@
+
 use colorimetry::observer::Observer;
-use colorimetry_plot::{axis::AxisSide, chart::Chart, svgdoc::{SvgDocument, NORTH_WEST, SOUTH_EAST}};
+use colorimetry_plot::{axis::AxisSide, chart::XYChart, svgdoc::{SvgDocument, NORTH_WEST, SOUTH_EAST}};
 
 pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     let observer = Observer::default();
     let d65 = observer.xyz_d65().chromaticity().to_tuple();
     let d50 = observer.xyz_d50().chromaticity().to_tuple();
 
-    let svgdoc = SvgDocument::new(900, 1000)
+    let mut svgdoc = SvgDocument::new(900, 1100)
         .add_css_rule(".fine-grid", "stroke: #88888888; stroke-width: 0.5;")
         .add_css_rule(".grid", "stroke: #88888888; stroke-width: 1.0;")
         .add_css_rule(
@@ -21,10 +22,10 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     ;
     
 
-    let chart = Chart::new(&svgdoc,[0, 0, 750, 850],
+    let chart = XYChart::new(
+            "cie1931_chromaticity_diagram",
             0.0..0.75,
             0.0..0.85,
-            "cie1931_chromaticity_diagram",
             Some("chart-area"),
             None,
         )
@@ -39,9 +40,10 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
         .annotate((1./3., 1./3.), 3.0, 20, SOUTH_EAST, "E", Some("white-point"), None)
         .annotate(d65, 3.0, 20, NORTH_WEST, "D65", Some("white-point"), None)
         .annotate(d50, 3.0, 20, NORTH_WEST, "D50", Some("white-point"), None)
-        ;
-    chart.render();
-    svgdoc.add_symbol(chart.to_symbol("cie1931_chromaticity_diagram"));
+        .into_svg();
+
+
+    svgdoc.place(chart, 50, 50, 750, 850);
 
     svgdoc.save("tmp/blackbody_locus.svg").unwrap();
     Ok(())

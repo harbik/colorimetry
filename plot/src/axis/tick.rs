@@ -1,6 +1,6 @@
 use std::fmt::{self, Formatter, Result as FmtResult};
 
-use svg::node::element::{Line, Text};
+use svg::node::element::Text;
 
 use crate::axis::AxisSide;
 
@@ -9,8 +9,11 @@ pub struct Tick(pub(crate) f64, pub(crate) f64); // (value, step)
 
 impl Tick {
 
-    pub fn tick(&self, tick_length: u32, target: [u32;4], pos: f64, side: AxisSide) -> Line {
-        let [left, top, width, height] = target.map(|x| x as f64);
+    pub fn tick(&self, tick_length: u32, target: (i32, i32, u32, u32), pos: f64, side: AxisSide) -> ((f64,f64), (f64,f64)) {
+        let left = target.0 as f64;
+        let top = target.1 as f64;
+        let width = target.2 as f64;
+        let height = target.3 as f64;
         let tick_length = tick_length as f64;
         let (x_start, y_start) = match side {
             AxisSide::Bottom => (pos, top + height),
@@ -26,16 +29,22 @@ impl Tick {
             AxisSide::Right => (left + width + tick_length, pos),
         };  
         
+        /*
         Line::new()
             .set("x1", x_start)
             .set("y1", y_start)
             .set("x2", x_end)
             .set("y2", y_end)
+         */
+        ((x_start, y_start), (x_end, y_end))
     }
 
 
-    pub fn label(&self, tick_length: u32, target: [u32;4], pos:f64, value: f64, side: AxisSide) -> Text {
-        let [left, top, width, height] = target.map(|x| x as f64);
+    pub fn label(&self, tick_length: u32, target: (i32, i32, u32, u32), pos:f64, value: f64, side: AxisSide) -> Text {
+        let left = target.0 as f64;
+        let top = target.1 as f64;
+        let width = target.2 as f64;
+        let height = target.3 as f64;
         let tick_length = tick_length as f64;
         let (x_pos, y_pos) = match side {
             AxisSide::Bottom => (pos, top + height + tick_length),

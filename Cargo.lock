@@ -311,6 +311,7 @@ dependencies = [
 name = "colorimetry-plot"
 version = "0.0.1"
 dependencies = [
+ "approx",
  "colorimetry",
  "nalgebra",
  "strum 0.27.1",

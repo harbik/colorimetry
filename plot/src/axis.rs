@@ -1,4 +1,4 @@
-use svg::{node::element::{Group, Text}, Node};
+use svg::{node::element::{path::Data, Group, Text, Path}, Node};
 
 pub mod tick;
 pub use tick::Tick;
@@ -14,7 +14,7 @@ pub enum AxisSide {
 }
 
 pub struct Axis {
-    pub(super) target: [u32; 4], // left, top, width, height
+    pub(super) target: (i32, i32, u32, u32), // left, top, width, height
     pub(super) side: AxisSide,
     pub(super) range: ChartRange, // Range of the axis
     pub(super) step: f64,
@@ -28,7 +28,7 @@ impl Axis {
     
     pub fn new(
         description: Option<&str>,
-        target: [u32; 4], // left, top, width, height
+        target: (i32, i32, u32, u32), // left, top, width, height
         range: ChartRange,
         step: f64,
         side: AxisSide,
@@ -51,7 +51,7 @@ impl Axis {
 
     pub fn to_group(&self) -> Group {
       //  let [x_min, x_max] = self.scale;
-        let [left, top, width, height] = self.target;
+        let (left, top, width, height) = self.target;
         let to_canvas: Box<dyn Fn(f64) -> f64> = {
             let length = match self.side {
                 AxisSide::Left | AxisSide::Right => height as f64, // height
@@ -72,13 +72,20 @@ impl Axis {
         let mut labels = Group::new()
             .set("class", "labels");
 
+        let mut data = Data::new();
         for x in self.range.iter_with_step(self.step) {
             let tick = Tick(x, self.step);
-            ticks.append(tick.tick(self.tick_length, self.target, to_canvas(x), self.side));
+            let (start, end) = tick.tick(self.tick_length, self.target, to_canvas(x), self.side);
+            data = data
+                .move_to(start)
+                .line_to(end)
+            ;
             if self.show_labels {
                 labels.append(tick.label(self.tick_length, self.target, to_canvas(x), round(x), self.side));
             }
         }
+        let path = Path::new().set("d", data.clone());
+        ticks.append(path);
 
         // Create the axis group with the ticks and optional labels
         let mut group = Group::new()
@@ -151,7 +158,7 @@ impl Display for Axis {
 }
 
 
-use std::fmt::{Display, Formatter, Result as FmtResult};
+use std::{fmt::{Display, Formatter, Result as FmtResult}};
 
 use crate::new_id;
 #[cfg(test)]
