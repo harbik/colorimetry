@@ -5,9 +5,11 @@ use svg::{
     Document, Node,
 };
 
+use crate::viewbox::{GetViewBox, ViewBox};
+
 const DEFAULT_CSS: &str = "
     .default {fill: lightgray; stroke: lightgray; stroke-width:1;}
-    text.default  {color: lightgray; stroke: none; stroke-width: 0; font-size: 12pt; font-family: sans-serif;}
+    text.default  {fill: lightgray; stroke: none; stroke-width: 0; font-size: 16px; font-family: san-serif;}
 ";
 
 pub const NORTH : i32 = 90;
@@ -25,8 +27,7 @@ pub const SOUTH_EAST: i32 = 315;
 /// manipulate the SVG document, it is recommended to use higher level objects in this library such
 /// as `Chart` struct for creating scaled charts with x and y axis.
 pub struct SvgDocument {
-    margin: u32,
-    pub(super) placements: Vec<(i32, i32, u32, u32)>, // (x, y, width, height)
+    pub(super) view_box: ViewBox, // (x, y, width, height)
     pub(super) clip_paths: Vec<ClipPath>,
     pub(super) styles: HashMap<String, String>, // selector, and elements
     pub(super) nodes: Vec<Box<dyn Node>>, // layers and use
@@ -40,10 +41,9 @@ impl SvgDocument {
     /// * `height` - The height of the SVG document.
     /// # Returns
     /// A new instance of `SvgDocument`.
-    pub fn new(margin: u32) -> Self {
+    pub fn new() -> Self {
         SvgDocument {
-            margin,
-            placements: Vec::new(),
+            view_box: ViewBox::default(),
             clip_paths: Vec::new(),
             styles: HashMap::new(),
             nodes: Vec::new(), // layers, use, and svg elements
@@ -77,9 +77,9 @@ impl SvgDocument {
     /// Creates an SVG document with the specified width and height.
     pub fn svg(&self) -> Document {
         let mut doc = Document::new()
-          //  .set("viewBox", (0, 0, self.width, self.height))
-            .set("width", "100%")
-            .set("height", "100%");
+            .set("viewBox", self.view_box.to_string())
+            .set("width", self.view_box.width())
+            .set("height", self.view_box.height());
 
         let mut content = self.styles
             .iter()
@@ -110,25 +110,18 @@ impl SvgDocument {
         doc
     }
 
+    pub fn place(&mut self, svg_sub: impl Into<SVG> + GetViewBox) {
+        self.view_box.extend(&svg_sub.view_box());
+        self.add(svg_sub.into());
+    }
 
-    pub fn place(&mut self, svg: impl Into<SVG>, x: u32, y: u32, width: Option<u32>, height: Option<u32>) {
-        let mut svg = svg.into();
-        svg.assign("x",x);
-        svg.assign("y",y);
-        if let Some(w) = width {
-            svg.assign("width", w);
-        }
-        if let Some(h) = height {
-            svg.assign("heigth", h);
-        }
-        self.add(svg)
+    pub fn place_position(&mut self, svg_sub: impl Into<SVG> + GetViewBox, x: i32, y: i32) {
+        self.view_box.extend_with_pos(&svg_sub.view_box(), x, y);
+        let sub_svg = svg_sub.into()
+            .set("x", x)
+            .set("y", y);
+        self.add(sub_svg);
     }
-    
-    /*
-    pub fn render(&self) -> String {
-        self.svg().to_string()
-    }
-     */
 
     pub fn save(&self, filename: &str) -> Result<(), std::io::Error> {
         let doc = self.svg();
@@ -137,4 +130,8 @@ impl SvgDocument {
     }
 }
 
-
+impl GetViewBox for SvgDocument {
+    fn view_box(&self) -> ViewBox {
+        self.view_box.clone()
+    }
+}

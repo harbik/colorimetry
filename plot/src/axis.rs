@@ -99,17 +99,16 @@ impl Axis {
 
         }
 
-        const OFFSET: f64 = 35.0;
         if let Some(description) = self.description.as_ref() {
             let x = match self.side {
-                AxisSide::Left => left as f64 - OFFSET, // Position left of the axis
-                AxisSide::Right => left as f64 + width as f64 + OFFSET, // Position right of the axis
+                AxisSide::Left => left as f64 - XYChart::DESCRIPTION_OFFSET as f64, // Position left of the axis
+                AxisSide::Right => left as f64 + width as f64 + XYChart::DESCRIPTION_OFFSET as f64, // Position right of the axis
                 AxisSide::Top | AxisSide::Bottom => left as f64 + width as f64 / 2.0, // Centered above the axis
             };
             let y = match self.side {
                 AxisSide::Left | AxisSide::Right => top as f64 + height as f64 / 2.0, // Centered vertically
-                AxisSide::Top => top as f64 - OFFSET, // Position above the axis
-                AxisSide::Bottom => top as f64 + height as f64 + OFFSET, // Position below the axis
+                AxisSide::Top => top as f64 - XYChart::DESCRIPTION_OFFSET as f64, // Position above the axis
+                AxisSide::Bottom => top as f64 + height as f64 + XYChart::DESCRIPTION_OFFSET as f64, // Position below the axis
             };
             let mut text = Text::new(description.clone())
                 .set("x", x)
@@ -129,7 +128,7 @@ impl Axis {
                     text = text.set("dominant-baseline", "text-after-edge");
                 },
                 AxisSide::Bottom => {
-                    text = text.set("dominant-baseline", "hanging");
+                    text = text.set("dominant-baseline", "text-before-edge");
                 },
             }
 
@@ -156,7 +155,7 @@ impl Display for Axis {
 
 use std::{fmt::{Display, Formatter, Result as FmtResult}};
 
-use crate::{new_id, round_to_precision};
+use crate::{chart::XYChart, new_id, round_to_precision};
 #[cfg(test)]
 mod tests {
     use super::*;

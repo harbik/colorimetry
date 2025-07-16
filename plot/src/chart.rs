@@ -10,7 +10,7 @@ use svg::{
 };
 
 use crate::{
-    assign_class_and_style, axis::{Axis, AxisSide, ChartRange}, layer::Layer, round_to_default_precision
+    assign_class_and_style, axis::{Axis, AxisSide, ChartRange}, layer::Layer, round_to_default_precision, viewbox::GetViewBox, viewbox::ViewBox
 };
 
 #[derive(Clone)]
@@ -30,7 +30,10 @@ pub struct XYChart {
 
 impl XYChart {
     pub const ANNOTATE_SEP: i32 = 2;
-    pub const LABEL_HEIGHT: i32 = 25;
+    pub const LABEL_HEIGHT: i32 = 16;
+    pub const DESCRIPTION_HEIGHT: i32 = 20;
+    pub const DESCRIPTION_SEP: i32 = 15;
+    pub const DESCRIPTION_OFFSET: i32 = Self::LABEL_HEIGHT + Self::DESCRIPTION_SEP;
 
     pub fn new(
         id: impl AsRef<str>,
@@ -49,7 +52,7 @@ impl XYChart {
         let on_canvas = Rc::new(move |xy: (f64, f64)| {
             let w = plot_width as f64;
             let h = plot_height as f64;
-            to_canvas(xy.0, xy.1, &x_range, &y_range, w, h)
+            convert_to_plot_coordinates(xy.0, xy.1, &x_range, &y_range, w, h)
         });
         let mut clip_paths = Vec::new();
         let mut plot = Layer::new();
@@ -117,21 +120,21 @@ impl XYChart {
         };
 
         if description.is_some() {
-            margin += Self::LABEL_HEIGHT;
+            margin += Self::DESCRIPTION_HEIGHT + Self::DESCRIPTION_OFFSET;
         };
 
         match side {
-            AxisSide::Bottom => {
-                self.margins[2] = self.margins[2].max(margin); // bottom margin
-            }
             AxisSide::Top => {
                 self.margins[0] = self.margins[0].max(margin); // top margin
             }
-            AxisSide::Left => {
-                self.margins[3] = self.margins[3].max(margin); // left margin
-            }
             AxisSide::Right => {
                 self.margins[1] = self.margins[1].max(margin); // right margin
+            }
+            AxisSide::Bottom => {
+                self.margins[2] = self.margins[2].max(margin); // bottom margin
+            }
+            AxisSide::Left => {
+                self.margins[3] = self.margins[3].max(margin); // left margin
             }
         }
         let range = match side {
@@ -171,7 +174,7 @@ impl XYChart {
                 .move_to(on_canvas((self.x_range.start, y)))
                 .line_to(on_canvas((self.x_range.end, y)));
         }
-        self.data(data, class, style)
+        self.draw_data(data, class, style)
     }
 
     pub fn annotate(
@@ -235,15 +238,7 @@ impl XYChart {
         }
 
         let mut group = Group::new().add(circle).add(line).add(text);
-
-        if let Some(class) = class {
-            group.assign("class", class);
-        } else {
-            group.assign("class", "default");
-        }
-        if let Some(style) = style {
-            group.assign("style", style);
-        }
+        assign_class_and_style(&mut group, class, style);
         self.annotations.append(group);
         self
     }
@@ -251,14 +246,6 @@ impl XYChart {
     /// Draw a Path using the Chart Coordinates onto the
     /// `scaled_layer``
     pub fn draw_path(mut self, mut path: Path, class: Option<&str>, style: Option<&str>) -> Self {
-        /*
-        if let Some(style) = style {
-            path.assign("style", style);
-        }
-        if let Some(class) = class {
-            path.assign("class", class);
-        }
-         */
         assign_class_and_style(&mut path, class, style);
         self.plot.append(path);
         self
@@ -266,7 +253,7 @@ impl XYChart {
 
     /// Add Data, composed of e.g. move_to and line_to operations, to the Chart
     /// using scaled coordinates.
-    pub fn data(self, data: Data, class: Option<&str>, style: Option<&str>) -> Self {
+    pub fn draw_data(self, data: Data, class: Option<&str>, style: Option<&str>) -> Self {
         let path = Path::new().set("d", data);
         self.draw_path(path, class, style)
     }
@@ -295,12 +282,14 @@ impl XYChart {
         self.draw_path(to_path(iter_canvas, true), class, style)
     }
 
-    pub fn view_box(&self) -> (i32, i32, u32, u32) {
-        (
+    pub fn view_box(&self) -> ViewBox {
+        ViewBox::new(
             -(self.margins[3] as i32),
             -(self.margins[0] as i32),
-            self.plot_width + self.margins[1] as u32 + self.margins[3] as u32,
-            self.plot_height + self.margins[0] as u32 + self.margins[2] as u32,
+            // add margins[3] twice because of the left shift
+            self.plot_width + self.margins[1] as u32 + 2 * self.margins[3] as u32,
+            // add margins[0] twice because of the top shift
+            self.plot_height + 2 * self.margins[0] as u32 + self.margins[2] as u32,
         )
     }
 
@@ -311,7 +300,7 @@ impl XYChart {
         }
         SVG::new()
             .set("id", self.id.clone())
-            .set("viewBox", self.view_box())
+            .set("viewBox", self.view_box().to_string())
             .add(defs)
             .add(self.axes)
             .add(self.plot)
@@ -356,7 +345,7 @@ pub(super) fn to_path(data: impl IntoIterator<Item = (f64, f64)>, close: bool) -
         .set("d", path_data.clone())
 }
 
-fn to_canvas(x: f64, y: f64, x_range: &ChartRange, y_range: &ChartRange, w: f64, h: f64) -> (f64, f64) {
+fn convert_to_plot_coordinates(x: f64, y: f64, x_range: &ChartRange, y_range: &ChartRange, w: f64, h: f64) -> (f64, f64) {
     let x_canvas = x_range.scale(x) * w;
     let y_canvas = h - (y_range.scale(y) * h);
     (
@@ -368,5 +357,11 @@ fn to_canvas(x: f64, y: f64, x_range: &ChartRange, y_range: &ChartRange, w: f64,
 impl From<XYChart> for SVG {
     fn from(chart: XYChart) -> Self {
         chart.into_svg()
+    }
+}
+
+impl GetViewBox for XYChart {
+    fn view_box(&self) -> ViewBox {
+        self.view_box()
     }
 }

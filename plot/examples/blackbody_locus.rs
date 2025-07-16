@@ -7,7 +7,7 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     let d65 = observer.xyz_d65().chromaticity().to_tuple();
     let d50 = observer.xyz_d50().chromaticity().to_tuple();
 
-    let mut svgdoc = SvgDocument::new(50)
+    let mut svgdoc = SvgDocument::new()
         .add_css_rule(".fine-grid", "stroke: #88888888; stroke-width: 0.5;")
         .add_css_rule(".grid", "stroke: #88888888; stroke-width: 1.0;")
         .add_css_rule(
@@ -24,8 +24,8 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let chart = XYChart::new(
             "cie1931_chromaticity_diagram",
-            750,
-            750,
+            600,
+            600,
             0.25..=0.45,
             0.25..=0.45,
             Some("chart-area"),
@@ -35,6 +35,12 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
         .add_axis(None, AxisSide::Bottom, 0.01,4, false, Some("fine-grid"))
         .add_axis(Some("y Chromaticity"), AxisSide::Left, 0.1, 6,  true, Some("grid"))
         .add_axis(None, AxisSide::Left, 0.01, 4, false, Some("fine-grid"))
+
+//        .add_axis(Some("CIE 1931 x Chromaticity"), AxisSide::Top, 0.1, 6, true, Some("grid"))
+//        .add_axis(None, AxisSide::Top, 0.01,4, false, Some("fine-grid"))
+//        .add_axis(Some("y Chromaticity"), AxisSide::Right, 0.1, 6,  true, Some("grid"))
+ //       .add_axis(None, AxisSide::Right, 0.01, 4, false, Some("fine-grid"))
+
         .draw_shape(observer.spectral_locus().into_iter().take(330), Some("spectral-locus"), None)
         .draw_grid(0.01, 0.01, Some("fine-grid"), None)
         .draw_grid(0.1, 0.1, Some("grid"), None)
@@ -42,9 +48,10 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
         .annotate((1./3., 1./3.), 3.0, 20, SOUTH_EAST, "E", Some("white-point"), None)
         .annotate(d65, 3.0, 20, NORTH_WEST, "D65", Some("white-point"), None)
         .annotate(d50, 3.0, 20, NORTH_WEST, "D50", Some("white-point"), None)
-        .into_svg();
+    ;
 
-    svgdoc.place(chart, 50, 50, Some(600), Some(600));
+    svgdoc.place(chart);
+ //   svgdoc.place_position(chart, 50, 50);
 
     svgdoc.save("tmp/blackbody_locus.svg").unwrap();
     Ok(())
