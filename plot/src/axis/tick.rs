@@ -29,13 +29,6 @@ impl Tick {
             AxisSide::Right => (left + width + tick_length, pos),
         };  
         
-        /*
-        Line::new()
-            .set("x1", x_start)
-            .set("y1", y_start)
-            .set("x2", x_end)
-            .set("y2", y_end)
-         */
         ((x_start, y_start), (x_end, y_end))
     }
 

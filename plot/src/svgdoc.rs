@@ -1,4 +1,4 @@
-use std::{cell::RefCell, collections::HashMap};
+use std::collections::HashMap;
 
 use svg::{
     node::element::{ClipPath, Path, Style, Symbol, SVG},
@@ -136,3 +136,5 @@ impl SvgDocument {
         Ok(())
     }
 }
+
+

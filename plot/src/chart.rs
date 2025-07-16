@@ -10,8 +10,7 @@ use svg::{
 };
 
 use crate::{
-    axis::{Axis, AxisSide, ChartRange},
-    layer::Layer,
+    assign_class_and_style, axis::{Axis, AxisSide, ChartRange}, layer::Layer, round_to_default_precision
 };
 
 #[derive(Clone)]
@@ -44,16 +43,13 @@ impl XYChart {
     ) -> XYChart {
         let id = id.as_ref().to_string();
         let x_range = ChartRange::new(x_range);
-        let x_scale_factor = plot_width as f64/ x_range.span();
         let y_range = ChartRange::new(y_range);
-        let y_scale_factor = plot_height as f64 / y_range.span();
 
         // output coordinates with 0.1px precision
         let on_canvas = Rc::new(move |xy: (f64, f64)| {
-            (
-                (xy.0 * x_scale_factor * 10.0).round()/10.0,
-                plot_height as f64 - (xy.1 * y_scale_factor * 10.0).round() / 10.0
-            )
+            let w = plot_width as f64;
+            let h = plot_height as f64;
+            to_canvas(xy.0, xy.1, &x_range, &y_range, w, h)
         });
         let mut clip_paths = Vec::new();
         let mut plot = Layer::new();
@@ -255,12 +251,15 @@ impl XYChart {
     /// Draw a Path using the Chart Coordinates onto the
     /// `scaled_layer``
     pub fn draw_path(mut self, mut path: Path, class: Option<&str>, style: Option<&str>) -> Self {
+        /*
         if let Some(style) = style {
             path.assign("style", style);
         }
         if let Some(class) = class {
             path.assign("class", class);
         }
+         */
+        assign_class_and_style(&mut path, class, style);
         self.plot.append(path);
         self
     }
@@ -306,9 +305,14 @@ impl XYChart {
     }
 
     pub fn into_svg(self) -> SVG {
+        let mut defs = svg::node::element::Definitions::new();
+        for clip in self.clip_paths.iter() {
+            defs.append(clip.clone());
+        }
         SVG::new()
             .set("id", self.id.clone())
             .set("viewBox", self.view_box())
+            .add(defs)
             .add(self.axes)
             .add(self.plot)
             .add(self.annotations)
@@ -350,6 +354,15 @@ pub(super) fn to_path(data: impl IntoIterator<Item = (f64, f64)>, close: bool) -
     Path::new()
         //  .set("id", id.to_string())
         .set("d", path_data.clone())
+}
+
+fn to_canvas(x: f64, y: f64, x_range: &ChartRange, y_range: &ChartRange, w: f64, h: f64) -> (f64, f64) {
+    let x_canvas = x_range.scale(x) * w;
+    let y_canvas = h - (y_range.scale(y) * h);
+    (
+        round_to_default_precision(x_canvas),
+        round_to_default_precision(y_canvas),
+    )
 }
 
 impl From<XYChart> for SVG {

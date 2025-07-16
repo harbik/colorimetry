@@ -1,2 +1,2 @@
-//mod xy;
-//pub use xy::XYChromaticityDiagram;
+mod xy;
+pub use xy::XYChromaticity;

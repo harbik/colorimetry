@@ -63,10 +63,6 @@ impl Axis {
             }
         };
 
-        let round = |x: f64| {
-            (x * 10000.0).round() / 10000.0 // Round to 4 decimal places
-        };
-
         let mut ticks = Group::new()
             .set("class", "ticks");
         let mut labels = Group::new()
@@ -81,7 +77,7 @@ impl Axis {
                 .line_to(end)
             ;
             if self.show_labels {
-                labels.append(tick.label(self.tick_length, self.target, to_canvas(x), round(x), self.side));
+                labels.append(tick.label(self.tick_length, self.target, to_canvas(x), round_to_precision(x, 4), self.side));
             }
         }
         let path = Path::new().set("d", data.clone());
@@ -160,7 +156,7 @@ impl Display for Axis {
 
 use std::{fmt::{Display, Formatter, Result as FmtResult}};
 
-use crate::new_id;
+use crate::{new_id, round_to_precision};
 #[cfg(test)]
 mod tests {
     use super::*;

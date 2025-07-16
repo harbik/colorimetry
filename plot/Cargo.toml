@@ -5,9 +5,9 @@ edition = "2021"
 
 [dependencies]
 approx = "0.5.1"
+colorimetry = { version = "0.0.7", path = ".." }
 nalgebra = "0.33.2"
 strum = { version = "0.27.1", features = ["derive"] }
 svg = "0.18.0"
 
 [dev-dependencies]
-colorimetry = { path = "..", version = "0.0.7" }
