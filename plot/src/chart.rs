@@ -5,19 +5,18 @@ use std::{
 };
 
 use svg::{
-    node::element::{path::Data, ClipPath, Group, Line, Path, Text, SVG},
+    node::element::{path::Data, ClipPath, Definitions, Group, Line, Path, Text, SVG},
     Node,
 };
 
 use crate::{
-    assign_class_and_style, axis::{Axis, AxisSide, ChartRange}, layer::Layer, round_to_default_precision, viewbox::GetViewBox, viewbox::ViewBox
+    assign_class_and_style, axis::{Axis, AxisSide, ChartRange}, layer::Layer, round_to_default_precision, rendable::Rendable,  view::ViewParameters
 };
 
 #[derive(Clone)]
 pub struct XYChart {
     pub id: String,          // unique id for the chart
-    pub plot_width: u32,     // width of the plotting area, excluding axes
-    pub plot_height: u32,    // height of the plotting area, excluding axes
+    pub view_parameters: ViewParameters,
     pub x_range: ChartRange, // min, max for x axis
     pub y_range: ChartRange, // min, max for y axis
     pub plot: Layer,
@@ -26,6 +25,8 @@ pub struct XYChart {
     pub clip_paths: Vec<ClipPath>,
     pub margins: [i32; 4],   // top, right, bottom, left
     pub on_canvas: Rc<dyn Fn((f64, f64)) -> (f64, f64)>,
+    pub plot_width: u32,
+    pub plot_height: u32,
 }
 
 impl XYChart {
@@ -89,10 +90,12 @@ impl XYChart {
         let axes = Layer::new()
             .set("id", format!("axes-{}", id))
             .set("class", "axes");
+        let view_box = ViewParameters::new(0, 0, plot_width, plot_height, plot_width, plot_height);
         XYChart {
             id,
-            plot_width,
+            view_parameters: view_box,
             plot_height,
+            plot_width,
             x_range,
             y_range,
             plot,
@@ -101,6 +104,7 @@ impl XYChart {
             clip_paths,
             margins: [0i32; 4], // top, right, bottom, left
             on_canvas,
+            
         }
     }
 
@@ -143,7 +147,7 @@ impl XYChart {
         };
         let x_axis = Axis::new(
             description,
-            (0, 0, self.plot_width, self.plot_height),
+            (0, 0, self.view_parameters.width(), self.view_parameters.height()),
             range,
             step,
             side,
@@ -152,6 +156,7 @@ impl XYChart {
             class,
         );
         self.axes.append(Group::from(x_axis));
+        self.update_view();
         self
     }
 
@@ -282,30 +287,21 @@ impl XYChart {
         self.draw_path(to_path(iter_canvas, true), class, style)
     }
 
-    pub fn view_box(&self) -> ViewBox {
-        ViewBox::new(
-            -(self.margins[3] as i32),
-            -(self.margins[0] as i32),
-            // add margins[3] twice because of the left shift
-            self.plot_width + self.margins[1] as u32 + 2 * self.margins[3] as u32,
-            // add margins[0] twice because of the top shift
-            self.plot_height + 2 * self.margins[0] as u32 + self.margins[2] as u32,
-        )
+    pub fn update_view(&mut self) {
+        let vx = -(self.margins[3] as i32);
+        let vy = -(self.margins[0] as i32);
+        // add margins[3] twice because of the left shift
+        let vw = self.plot_width + self.margins[1] as u32 + 2 * self.margins[3] as u32;
+        // add margins[0] twice because of the top shift
+        let vh = self.plot_height + 2 * self.margins[0] as u32 + self.margins[2] as u32;
+
+        self.view_parameters.set_view_box(vx, vy, vw, vh);
+        self.set_width(vw);
+        self.set_height(vh);
+
     }
 
-    pub fn into_svg(self) -> SVG {
-        let mut defs = svg::node::element::Definitions::new();
-        for clip in self.clip_paths.iter() {
-            defs.append(clip.clone());
-        }
-        SVG::new()
-            .set("id", self.id.clone())
-            .set("viewBox", self.view_box().to_string())
-            .add(defs)
-            .add(self.axes)
-            .add(self.plot)
-            .add(self.annotations)
-    }
+
 }
 
 impl Display for XYChart {
@@ -356,12 +352,35 @@ fn convert_to_plot_coordinates(x: f64, y: f64, x_range: &ChartRange, y_range: &C
 
 impl From<XYChart> for SVG {
     fn from(chart: XYChart) -> Self {
-        chart.into_svg()
+        chart.render()
     }
 }
 
-impl GetViewBox for XYChart {
-    fn view_box(&self) -> ViewBox {
-        self.view_box()
+impl Rendable for XYChart {
+    // required parameters
+    fn view_parameters(&self) -> ViewParameters {
+        self.view_parameters.clone()
     }
+
+    fn set_view_parameters(&mut self, view_box: ViewParameters) {
+        self.view_parameters = view_box;
+    }
+
+    fn render(&self) -> SVG {
+        println!("Converting XYChart to SVG with id: {}", self.id);
+        let mut defs = Definitions::new();
+        for clip in self.clip_paths.iter() {
+            defs.append(clip.clone());
+        }
+        SVG::new()
+            .set("id", self.id.clone())
+            .set("width", self.width())
+            .set("height", self.height())
+            .set("viewBox", self.view_parameters().view_box_str())
+            .add(defs)
+            .add(self.axes.clone())
+            .add(self.plot.clone())
+            .add(self.annotations.clone())
+    }
+    
 }

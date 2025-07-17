@@ -5,7 +5,8 @@ pub mod transforms;
 pub mod axis;
 pub mod layer;
 pub mod chromaticity;
-pub mod viewbox;
+pub mod view;
+pub mod rendable;
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 
