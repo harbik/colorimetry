@@ -3,7 +3,7 @@ use svg::{node::element::{path::Data, Group, Text, Path}, Node};
 pub mod tick;
 pub use tick::Tick;
 mod range;
-pub use range::ChartRange;
+pub use range::{ChartRange, ChartRangeWithStep};
 
 #[derive(Debug, Clone, Copy, strum::Display, PartialEq, Eq)]
 pub enum AxisSide {
@@ -13,11 +13,11 @@ pub enum AxisSide {
     Bottom,
 }
 
+
 pub struct Axis {
     pub(super) target: (i32, i32, u32, u32), // left, top, width, height
     pub(super) side: AxisSide,
-    pub(super) range: ChartRange, // Range of the axis
-    pub(super) step: f64,
+    pub(super) range_with_step: ChartRangeWithStep, // Range of the axis
     pub(super) show_labels: bool, // Whether to show labels or not
     pub(super) class: Option<String>,
     pub(super) tick_length: i32, // Length of the ticks
@@ -29,20 +29,18 @@ impl Axis {
     pub fn new(
         description: Option<&str>,
         target: (i32, i32, u32, u32), // left, top, width, height
-        range: ChartRange,
-        step: f64,
+        range_with_step: ChartRangeWithStep,
         side: AxisSide,
         tick_length: i32,
         show_labels: bool,
-        class: Option<&str> // invisible if niot 
+        class: Option<&str> // invisible if not set
     ) -> Self {
 
         Axis {
             description: description.map(|d| d.to_string()),
             target,
             side,
-            range,
-            step,
+            range_with_step,
             show_labels,
             class: class.map(|c| c.to_string()),
             tick_length
@@ -50,16 +48,18 @@ impl Axis {
     }
 
     pub fn to_group(&self) -> Group {
-      //  let [x_min, x_max] = self.scale;
         let (left, top, width, height) = self.target;
+        let range = self.range_with_step.range;
+        let step = self.range_with_step.step;
+        // This closure converts the axis value to canvas coordinates based on the axis side
         let to_canvas: Box<dyn Fn(f64) -> f64> = {
             let length = match self.side {
                 AxisSide::Left | AxisSide::Right => height as f64, // height
                 AxisSide::Top | AxisSide::Bottom => width as f64, // width
             };
             match self.side {
-                AxisSide::Left | AxisSide::Right => Box::new(move |x: f64| (self.range.scale_descent(x) * length) + top as f64),
-                AxisSide::Top | AxisSide::Bottom => Box::new(move |x: f64| (self.range.scale(x) * length) + left as f64),
+                AxisSide::Left | AxisSide::Right => Box::new(move |x: f64| (range.scale_descent(x) * length) + top as f64),
+                AxisSide::Top | AxisSide::Bottom => Box::new(move |y: f64| (range.scale(y) * length) + left as f64),
             }
         };
 
@@ -69,8 +69,8 @@ impl Axis {
             .set("class", "labels");
 
         let mut data = Data::new();
-        for x in self.range.iter_with_step(self.step) {
-            let tick = Tick(x, self.step);
+        for x in self.range_with_step.iter() {
+            let tick = Tick(x, step);
             let (start, end) = tick.tick(self.tick_length, self.target, to_canvas(x), self.side);
             data = data
                 .move_to(start)

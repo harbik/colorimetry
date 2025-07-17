@@ -10,7 +10,7 @@ use svg::{
 };
 
 use crate::{
-    assign_class_and_style, axis::{Axis, AxisSide, ChartRange}, layer::Layer, round_to_default_precision, rendable::Rendable,  view::ViewParameters
+    assign_class_and_style, axis::{Axis, AxisSide, ChartRange, ChartRangeWithStep}, layer::Layer, round_to_default_precision, rendable::Rendable,  view::ViewParameters
 };
 
 #[derive(Clone)]
@@ -145,11 +145,11 @@ impl XYChart {
             AxisSide::Bottom | AxisSide::Top => self.x_range,
             AxisSide::Left | AxisSide::Right => self.y_range,
         };
+        let range_with_step = ChartRangeWithStep::new(range, step);
         let x_axis = Axis::new(
             description,
-            (0, 0, self.view_parameters.width(), self.view_parameters.height()),
-            range,
-            step,
+            (0, 0, self.plot_width, self.plot_height),
+            range_with_step,
             side,
             tick_length,
             show_labels,

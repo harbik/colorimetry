@@ -36,10 +36,10 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
         .add_axis(Some("y Chromaticity"), AxisSide::Left, 0.1, 6,  true, Some("grid"))
         .add_axis(None, AxisSide::Left, 0.01, 4, false, Some("fine-grid"))
 
-//        .add_axis(Some("CIE 1931 x Chromaticity"), AxisSide::Top, 0.1, 6, true, Some("grid"))
-//        .add_axis(None, AxisSide::Top, 0.01,4, false, Some("fine-grid"))
-//        .add_axis(Some("y Chromaticity"), AxisSide::Right, 0.1, 6,  true, Some("grid"))
- //       .add_axis(None, AxisSide::Right, 0.01, 4, false, Some("fine-grid"))
+        .add_axis(Some("CIE 1931 x Chromaticity"), AxisSide::Top, 0.1, 6, true, Some("grid"))
+        .add_axis(None, AxisSide::Top, 0.01,4, false, Some("fine-grid"))
+        .add_axis(Some("y Chromaticity"), AxisSide::Right, 0.1, 6,  true, Some("grid"))
+        .add_axis(None, AxisSide::Right, 0.01, 4, false, Some("fine-grid"))
 
         .draw_shape(observer.spectral_locus().into_iter().take(330), Some("spectral-locus"), None)
         .draw_grid(0.01, 0.01, Some("fine-grid"), None)

@@ -10,7 +10,7 @@ impl Layer {
         Layer(Group::new())
     }
 
-    pub fn add(self, node: impl Into<Box<dyn Node>>) -> Self {
+    pub fn add_layer(self, node: impl Into<Box<dyn Node>>) -> Self {
         Layer(self.0.add(node))
     }
 

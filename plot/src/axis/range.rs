@@ -74,6 +74,29 @@ impl Iterator for ChartRangeIterator {
     }
 }
 
+pub struct ChartRangeWithStep {
+    pub range: ChartRange,
+    pub step: f64,
+}
+
+impl ChartRangeWithStep {
+    pub fn new(range: ChartRange, step: f64) -> Self {
+        Self { range, step }
+    }
+
+    pub fn iter(&self) -> ChartRangeIterator {
+        self.range.iter_with_step(self.step)
+    }
+}
+
+impl<R: RangeBounds<f64>> From<(R, f64)> for ChartRangeWithStep {
+    fn from((range, step): (R, f64)) -> Self {
+        Self {
+            range: ChartRange::new(range),
+            step,
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -126,4 +149,18 @@ mod tests {
         assert_abs_diff_eq!(iter.next().unwrap(), 0.8);
         assert_eq!(iter.next(), None);
     }
+
+    #[test]
+    fn test_range_with_step() {
+        let rws: ChartRangeWithStep = (0.0..=1.0, 0.2).into();
+        let mut iter = rws.iter();
+        assert_abs_diff_eq!(iter.next().unwrap(), 0.0);
+        assert_abs_diff_eq!(iter.next().unwrap(), 0.2);
+        assert_abs_diff_eq!(iter.next().unwrap(), 0.4);
+        assert_abs_diff_eq!(iter.next().unwrap(), 0.6);
+        assert_abs_diff_eq!(iter.next().unwrap(), 0.8);
+        assert_abs_diff_eq!(iter.next().unwrap(), 1.0);
+        assert_eq!(iter.next(), None);
+    }
+
 }
