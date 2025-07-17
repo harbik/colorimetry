@@ -4,12 +4,16 @@ use svg::node::element::Text;
 
 use crate::axis::AxisSide;
 
-
 pub struct Tick(pub(crate) f64, pub(crate) f64); // (value, step)
 
 impl Tick {
-
-    pub fn tick(&self, tick_length: i32, target: (i32, i32, u32, u32), pos: f64, side: AxisSide) -> ((f64,f64), (f64,f64)) {
+    pub fn tick(
+        &self,
+        tick_length: i32,
+        target: (i32, i32, u32, u32),
+        pos: f64,
+        side: AxisSide,
+    ) -> ((f64, f64), (f64, f64)) {
         let left = target.0 as f64;
         let top = target.1 as f64;
         let width = target.2 as f64;
@@ -20,20 +24,26 @@ impl Tick {
             AxisSide::Top => (pos, top),
             AxisSide::Left => (left, pos),
             AxisSide::Right => (left + width, pos),
-        };  
+        };
 
         let (x_end, y_end) = match side {
             AxisSide::Bottom => (pos, top + height + tick_length),
             AxisSide::Top => (pos, top - tick_length),
             AxisSide::Left => (left - tick_length, pos),
             AxisSide::Right => (left + width + tick_length, pos),
-        };  
-        
+        };
+
         ((x_start, y_start), (x_end, y_end))
     }
 
-
-    pub fn label(&self, tick_length: i32, target: (i32, i32, u32, u32), pos:f64, value: f64, side: AxisSide) -> Text {
+    pub fn label(
+        &self,
+        tick_length: i32,
+        target: (i32, i32, u32, u32),
+        pos: f64,
+        value: f64,
+        side: AxisSide,
+    ) -> Text {
         let left = target.0 as f64;
         let top = target.1 as f64;
         let width = target.2 as f64;
@@ -44,32 +54,30 @@ impl Tick {
             AxisSide::Top => (pos, top - tick_length),
             AxisSide::Left => (left - tick_length, pos),
             AxisSide::Right => (left + width + tick_length, pos),
-        };  
-        
-        let mut text = Text::new(format!("{}", value))
+        };
+
+        let mut text = Text::new(format!("{value}"))
             .set("x", x_pos)
             .set("y", y_pos)
             .set("text-anchor", "middle");
 
         match side {
             AxisSide::Bottom => {
-                text = text
-                    .set("dominant-baseline", "text-before-edge");
-            },
+                text = text.set("dominant-baseline", "text-before-edge");
+            }
             AxisSide::Top => {
-                text = text
-                    .set("dominant-baseline", "text-after-edge");
-            },
+                text = text.set("dominant-baseline", "text-after-edge");
+            }
             AxisSide::Left => {
                 text = text
                     .set("dominant-baseline", "text-after-edge")
                     .set("transform", format!("rotate(-90, {x_pos}, {y_pos})"));
-            },
+            }
             AxisSide::Right => {
                 text = text
                     .set("dominant-baseline", "text-after-edge")
                     .set("transform", format!("rotate(90, {x_pos}, {y_pos})"));
-            },
+            }
         }
         text
     }
@@ -98,12 +106,15 @@ pub fn format_axis_tick(value: f64, step: f64, f: &mut Formatter<'_>) -> FmtResu
                 while s < 1.0 {
                     s *= 10.0;
                     digits += 1;
-                    if digits > 10 { break; } // prevent infinite loops
+                    if digits > 10 {
+                        break;
+                    } // prevent infinite loops
                 }
                 digits
             }
         }
     };
 
-    write!(f, "{:.*}", precision, rounded)
+    // write!(f, "{:.*}", precision, rounded)
+    write!(f, "{rounded:.precision$}")
 }

@@ -1,4 +1,3 @@
-
 use svg::node::element::SVG;
 
 use crate::view::ViewParameters;
@@ -7,7 +6,7 @@ pub trait Rendable {
     // Required
     fn view_parameters(&self) -> ViewParameters;
 
-    fn set_view_parameters(&mut self, view_box: ViewParameters); 
+    fn set_view_parameters(&mut self, view_box: ViewParameters);
 
     fn render(&self) -> SVG;
 
@@ -18,7 +17,7 @@ pub trait Rendable {
         vb.set_x(x);
         self.set_view_parameters(vb);
     }
-    
+
     fn set_y(&mut self, y: i32) {
         let mut vb = self.view_parameters();
         vb.set_y(y);
@@ -50,7 +49,7 @@ pub trait Rendable {
         vp.view_box()
     }
 
-    fn set_view_box(&mut self, vx:i32, vy: i32, vw: u32, vh:u32) {
+    fn set_view_box(&mut self, vx: i32, vy: i32, vw: u32, vh: u32) {
         let mut vp = self.view_parameters();
         vp.set_view_box(vx, vy, vw, vh);
         self.set_view_parameters(vp);

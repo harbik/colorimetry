@@ -20,7 +20,11 @@ impl ChartRange {
             Bound::Unbounded => panic!("Unbounded end not allowed"),
         };
 
-        Self { start, end, end_included }
+        Self {
+            start,
+            end,
+            end_included,
+        }
     }
 
     pub fn as_range(&self) -> Range<f64> {
@@ -42,7 +46,7 @@ impl ChartRange {
     /// Creates an iterator over the range with a specified step size.
     /// Produces values aligned with the step size, for use to draw grid lines and ticks.
     pub fn iter_with_step(&self, step: f64) -> ChartRangeIterator {
-        let start = (self.start/ step).ceil() * step; // Start from the first tick
+        let start = (self.start / step).ceil() * step; // Start from the first tick
 
         ChartRangeIterator {
             start,
@@ -64,7 +68,9 @@ impl Iterator for ChartRangeIterator {
     type Item = f64;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.start < self.end || ( self.end_included && approx::abs_diff_eq!(self.start, self.end, epsilon = 1e-10)) {
+        if self.start < self.end
+            || (self.end_included && approx::abs_diff_eq!(self.start, self.end, epsilon = 1e-10))
+        {
             let current = self.start;
             self.start += self.step;
             Some(current)
@@ -162,5 +168,4 @@ mod tests {
         assert_abs_diff_eq!(iter.next().unwrap(), 1.0);
         assert_eq!(iter.next(), None);
     }
-
 }

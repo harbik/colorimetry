@@ -1,26 +1,25 @@
-use std::{collections::HashMap};
+use std::collections::HashMap;
 
 use svg::{
     node::element::{ClipPath, Path, Style, Symbol},
     Document, Node,
 };
 
-use crate::{view:: ViewParameters, rendable::Rendable};
+use crate::{rendable::Rendable, view::ViewParameters};
 
 const DEFAULT_CSS: &str = "
     .default {fill: lightgray; stroke: lightgray; stroke-width:1;}
     text.default  {fill: lightgray; stroke: none; stroke-width: 0; font-size: 16px; font-family: san-serif;}
 ";
 
-pub const NORTH : i32 = 90;
-pub const SOUTH : i32 = 270;
+pub const NORTH: i32 = 90;
+pub const SOUTH: i32 = 270;
 pub const WEST: i32 = 180;
 pub const EAST: i32 = 0;
 pub const NORTH_WEST: i32 = 135;
 pub const NORTH_EAST: i32 = 45;
 pub const SOUTH_WEST: i32 = 225;
 pub const SOUTH_EAST: i32 = 315;
-
 
 /// Represents an SVG document with a specified width and height.  It contains clip paths, styles,
 /// layers, and symbols that can be used to create SVG graphics.  Although you can directly
@@ -56,7 +55,6 @@ impl SvgDocument {
             nodes: Vec::new(), // layers, use, and svg elements
             symbols: Vec::new(),
             plots: Vec::new(),
-
         }
     }
 
@@ -71,7 +69,7 @@ impl SvgDocument {
         self.symbols.push(symbol.into());
     }
 
-    pub fn add_css_rule(mut self, select: &str, style: &str) -> Self{
+    pub fn add_css_rule(mut self, select: &str, style: &str) -> Self {
         self.styles.insert(select.to_string(), style.to_string());
         self
     }
@@ -82,23 +80,23 @@ impl SvgDocument {
         self.nodes.push(node.into());
     }
 
-/*
+    /*
 
-    /// Creates an SVG document with the specified width and height.
+       /// Creates an SVG document with the specified width and height.
 
-    pub fn place(&mut self, svg_sub: impl Rendable) {
-        self.view_parameters.extend(&svg_sub.view_parameters());
-        self.add(svg_sub.render());
-    }
+       pub fn place(&mut self, svg_sub: impl Rendable) {
+           self.view_parameters.extend(&svg_sub.view_parameters());
+           self.add(svg_sub.render());
+       }
 
-    pub fn place_at_position(&mut self, svg_sub: impl Rendable, x: i32, y: i32) {
-        self.view_parameters.extend_with_pos(&svg_sub.view_parameters(), x, y);
-        let sub_svg = svg_sub.render()
-            .set("x", x)
-            .set("y", y);
-        self.add(sub_svg);
-    }
- */
+       pub fn place_at_position(&mut self, svg_sub: impl Rendable, x: i32, y: i32) {
+           self.view_parameters.extend_with_pos(&svg_sub.view_parameters(), x, y);
+           let sub_svg = svg_sub.render()
+               .set("x", x)
+               .set("y", y);
+           self.add(sub_svg);
+       }
+    */
 
     pub fn add_svg(&mut self, svg_sub: Box<dyn Rendable>) {
         self.plots.push(svg_sub);
@@ -107,7 +105,7 @@ impl SvgDocument {
     /*
 
     // TODO TODO Need to set height and width of the subplot!!!
-    // 
+    //
     pub fn place_center(&mut self, svg_sub: impl Rendable) {
         let width = svg_sub.width();
         let height = svg_sub.height();
@@ -125,51 +123,23 @@ impl SvgDocument {
 
     pub fn position(&self) -> Vec<(u32, u32)> {
         match self.plots.len() {
-            1 =>  {
+            1 => {
                 let svg_sub = &self.plots[0];
                 let doc_width = self.width();
                 let doc_height = self.height();
 
                 let width = svg_sub.width();
                 let height = svg_sub.height();
-                let x = doc_width /2 - width /2;
-                let y = doc_height /2 - height /2;
-                vec!((x, y))
+                let x = doc_width / 2 - width / 2;
+                let y = doc_height / 2 - height / 2;
+                vec![(x, y)]
             }
-            _ => todo!()
+            _ => todo!(),
         }
     }
 
     pub fn save(&mut self, filename: &str) -> Result<(), std::io::Error> {
-        /*
-        match self.plots.len() {
-            0 => {
-                // If there are no plots, just render the document
-                return svg::save(filename, &self.render());
-            }
-            1 => {
-                let doc_width = self.width();
-                let doc_height = self.height();
-
-                let svg_sub = &mut self.plots[0];
-                let width = svg_sub.width();
-                let height = svg_sub.height();
-                let x = doc_width /2 - width /2;
-                let y = doc_height /2 - height /2;
-                svg_sub.set_x(x as i32);
-                svg_sub.set_y(y as i32);
-
-                /*
-                let sub_svg_rendered = svg_sub.render()
-                    .set("x", x)
-                    .set("y", y);
-
-                let mut doc = self.render();
-                doc = doc.add(sub_svg_rendered);
-                 */
-
-         */
-        return svg::save(filename, &self.render());
+        svg::save(filename, &self.render())
     }
 }
 
@@ -181,16 +151,17 @@ impl Rendable for SvgDocument {
     fn set_view_parameters(&mut self, view_box: ViewParameters) {
         self.view_parameters = view_box;
     }
-    
+
     fn render(&self) -> Document {
         let mut doc = Document::new()
             .set("viewBox", self.view_parameters.to_string())
             .set("width", self.view_parameters.width())
             .set("height", self.view_parameters.height());
 
-        let mut content = self.styles
+        let mut content = self
+            .styles
             .iter()
-            .map(|(selector, style)| format!("{} {{{}}}", selector, style))
+            .map(|(selector, style)| format!("{selector} {{{style}}}"))
             .collect::<Vec<String>>()
             .join("\n");
 
@@ -212,11 +183,7 @@ impl Rendable for SvgDocument {
 
         // add plots
         for (plot, (x, y)) in self.plots.iter().zip(self.position()) {
-            let rendered_plot = 
-            plot
-                .render()
-                .set("x", x)
-                .set("y", y);
+            let rendered_plot = plot.render().set("x", x).set("y", y);
             doc = doc.add(rendered_plot);
         }
 

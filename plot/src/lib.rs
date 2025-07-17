@@ -1,12 +1,45 @@
-pub mod svgdoc;
-pub mod chart;
-pub mod spectrum;
-pub mod transforms;
+
+//! # Colorimetry Plot Library
+//!
+//! This module provides functionality for generating and manipulating SVG-based plots,
+//! including axes, charts, chromaticity diagrams, layers, renderable objects, spectra,
+//! SVG document handling, coordinate transforms, and view management.
+//!
+//! ## Modules
+//!
+//! - `axis`: Axis rendering and management.
+//! - `chart`: Chart composition and rendering.
+//! - `chromaticity`: Chromaticity diagram utilities.
+//! - `layer`: Layered rendering support.
+//! - `rendable`: Traits and types for renderable objects.
+//! - `spectrum`: Spectrum data and visualization.
+//! - `svgdoc`: SVG document creation and manipulation.
+//! - `transforms`: Coordinate and geometric transforms.
+//! - `view`: Viewport and plot size management.
+//!
+//! ## Utilities
+//!
+//! - Unique ID generation for SVG elements.
+//! - Class and style assignment for SVG nodes.
+//! - Floating-point rounding utilities with configurable precision.
+//!
+//! ## Usage
+//!
+//! Import the desired modules and use the provided functions to construct and manipulate SVG plots.
+//! 
+//! ## License
+//!
+//! This library is dual-licensed under the MIT License and the Apache License (Version 2.0).
+//! You may choose either license when using this library.
 pub mod axis;
-pub mod layer;
+pub mod chart;
 pub mod chromaticity;
-pub mod view;
+pub mod layer;
 pub mod rendable;
+pub mod spectrum;
+pub mod svgdoc;
+pub mod transforms;
+pub mod view;
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 
@@ -21,7 +54,11 @@ pub fn last_id() -> String {
     COUNTER.load(Ordering::Relaxed).to_string()
 }
 
-pub fn assign_class_and_style<T: svg::Node>(node: &mut T , class: Option<&str>, style: Option<&str>) {
+pub fn assign_class_and_style<T: svg::Node>(
+    node: &mut T,
+    class: Option<&str>,
+    style: Option<&str>,
+) {
     if let Some(class) = class {
         node.assign("class", class);
     } else {
@@ -37,7 +74,7 @@ pub fn assign_class_and_style<T: svg::Node>(node: &mut T , class: Option<&str>, 
 ///
 /// # Arguments
 /// * `value` - The value to round.
-/// * `precision` - The precision 
+/// * `precision` - The precision
 ///
 /// # Returns
 /// The rounded value.

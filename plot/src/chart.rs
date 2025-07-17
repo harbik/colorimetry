@@ -10,12 +10,19 @@ use svg::{
 };
 
 use crate::{
-    assign_class_and_style, axis::{Axis, AxisSide, ChartRange, ChartRangeWithStep}, layer::Layer, round_to_default_precision, rendable::Rendable,  view::ViewParameters
+    assign_class_and_style,
+    axis::{Axis, AxisSide, ChartRange, ChartRangeWithStep},
+    layer::Layer,
+    rendable::Rendable,
+    round_to_default_precision,
+    view::ViewParameters,
 };
+
+type CanvasTransform = Rc<dyn Fn((f64, f64)) -> (f64, f64)>;
 
 #[derive(Clone)]
 pub struct XYChart {
-    pub id: String,          // unique id for the chart
+    pub id: String, // unique id for the chart
     pub view_parameters: ViewParameters,
     pub x_range: ChartRange, // min, max for x axis
     pub y_range: ChartRange, // min, max for y axis
@@ -23,8 +30,8 @@ pub struct XYChart {
     pub axes: Layer,
     pub annotations: Layer,
     pub clip_paths: Vec<ClipPath>,
-    pub margins: [i32; 4],   // top, right, bottom, left
-    pub on_canvas: Rc<dyn Fn((f64, f64)) -> (f64, f64)>,
+    pub margins: [i32; 4],          // top, right, bottom, left
+    pub on_canvas: CanvasTransform, // closure to convert coordinates to canvas coordinates
     pub plot_width: u32,
     pub plot_height: u32,
 }
@@ -38,16 +45,14 @@ impl XYChart {
 
     pub fn new(
         id: impl AsRef<str>,
-        plot_width: u32,
-        plot_height: u32,
-        x_range: impl RangeBounds<f64>,
-        y_range: impl RangeBounds<f64>,
-        class: Option<&str>,
-        style: Option<&str>,
+        plot_width_and_height: (u32, u32),
+        ranges: (impl RangeBounds<f64>, impl RangeBounds<f64>),
+        class_and_style: (Option<&str>, Option<&str>),
     ) -> XYChart {
         let id = id.as_ref().to_string();
-        let x_range = ChartRange::new(x_range);
-        let y_range = ChartRange::new(y_range);
+        let (plot_width, plot_height) = plot_width_and_height;
+        let (x_range, y_range) = (ChartRange::new(ranges.0), ChartRange::new(ranges.1));
+        let (class, style) = class_and_style;
 
         // output coordinates with 0.1px precision
         let on_canvas = Rc::new(move |xy: (f64, f64)| {
@@ -69,10 +74,10 @@ impl XYChart {
         // chart always gets a clip path
         clip_paths.push(
             ClipPath::new()
-                .set("id", format!("clip-{}", id))
+                .set("id", format!("clip-{id}"))
                 .add(path.clone()),
         );
-        plot = plot.set("clip-path", format!("url(#clip-{})", id));
+        plot = plot.set("clip-path", format!("url(#clip-{id})"));
         // don't add a background if no style or class is given
         if style.is_some() || class.is_some() {
             if let Some(style) = style {
@@ -84,11 +89,11 @@ impl XYChart {
             plot.append(path);
         }
         let annotations = Layer::new()
-            .set("id", format!("annotations-{}", id))
+            .set("id", format!("annotations-{id}"))
             .set("class", "annotations");
 
         let axes = Layer::new()
-            .set("id", format!("axes-{}", id))
+            .set("id", format!("axes-{id}"))
             .set("class", "axes");
         let view_box = ViewParameters::new(0, 0, plot_width, plot_height, plot_width, plot_height);
         XYChart {
@@ -104,7 +109,6 @@ impl XYChart {
             clip_paths,
             margins: [0i32; 4], // top, right, bottom, left
             on_canvas,
-            
         }
     }
 
@@ -186,13 +190,13 @@ impl XYChart {
         mut self,
         cxy: (f64, f64),
         r: f64,
-        len: i32,
-        angle: i32,
+        angle_and_length: (i32, i32),
         text: impl AsRef<str>,
         class: Option<&str>,
         style: Option<&str>,
     ) -> Self {
-        let angle = 360 - ((angle + 360) % 360) as i32;
+        let (angle, len) = angle_and_length;
+        let angle = 360 - ((angle + 360) % 360);
         let (cx, cy) = cxy;
         let (cx, cy) = (self.on_canvas)((cx, cy));
         let dx = len as f64 * (angle as f64).to_radians().cos();
@@ -204,14 +208,14 @@ impl XYChart {
         let line = Line::new()
             .set("x1", cx)
             .set("y1", cy)
-            .set("x2", cx as f64 + dx)
-            .set("y2", cy as f64 + dy);
+            .set("x2", cx + dx)
+            .set("y2", cy + dy);
 
         let dxt = (len + Self::ANNOTATE_SEP) as f64 * (angle as f64).to_radians().cos();
         let dyt = (len + Self::ANNOTATE_SEP) as f64 * (angle as f64).to_radians().sin();
         let mut text = Text::new(text.as_ref())
-            .set("x", cx as f64 + dxt)
-            .set("y", cy as f64 + dyt);
+            .set("x", cx + dxt)
+            .set("y", cy + dyt);
 
         if let Some(class) = class {
             text.assign("class", class);
@@ -288,8 +292,8 @@ impl XYChart {
     }
 
     pub fn update_view(&mut self) {
-        let vx = -(self.margins[3] as i32);
-        let vy = -(self.margins[0] as i32);
+        let vx = -(self.margins[3]);
+        let vy = -(self.margins[0]);
         // add margins[3] twice because of the left shift
         let vw = self.plot_width + self.margins[1] as u32 + 2 * self.margins[3] as u32;
         // add margins[0] twice because of the top shift
@@ -298,10 +302,7 @@ impl XYChart {
         self.view_parameters.set_view_box(vx, vy, vw, vh);
         self.set_width(vw);
         self.set_height(vh);
-
     }
-
-
 }
 
 impl Display for XYChart {
@@ -341,7 +342,14 @@ pub(super) fn to_path(data: impl IntoIterator<Item = (f64, f64)>, close: bool) -
         .set("d", path_data.clone())
 }
 
-fn convert_to_plot_coordinates(x: f64, y: f64, x_range: &ChartRange, y_range: &ChartRange, w: f64, h: f64) -> (f64, f64) {
+fn convert_to_plot_coordinates(
+    x: f64,
+    y: f64,
+    x_range: &ChartRange,
+    y_range: &ChartRange,
+    w: f64,
+    h: f64,
+) -> (f64, f64) {
     let x_canvas = x_range.scale(x) * w;
     let y_canvas = h - (y_range.scale(y) * h);
     (
@@ -382,5 +390,4 @@ impl Rendable for XYChart {
             .add(self.plot.clone())
             .add(self.annotations.clone())
     }
-    
 }

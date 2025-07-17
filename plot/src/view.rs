@@ -39,11 +39,10 @@ impl ViewParameters {
         self.vy = vy;
         self.vw = vw;
         self.vh = vh;
-
     }
 
     // Optional SVG x value
-    pub fn x(&self) ->  Option<i32> {
+    pub fn x(&self) -> Option<i32> {
         self.x
     }
 
@@ -52,14 +51,13 @@ impl ViewParameters {
     }
 
     // Optinal SVG y value
-    pub fn y(&self) ->  Option<i32> {
+    pub fn y(&self) -> Option<i32> {
         self.y
     }
 
     pub fn set_y(&mut self, y: i32) {
         self.y = Some(y);
     }
-
 
     pub fn width(&self) -> u32 {
         self.width
@@ -77,7 +75,6 @@ impl ViewParameters {
         self.height = height;
     }
 
-    
     pub fn extend(&mut self, other: &ViewParameters) {
         self.vx = self.vx.min(other.vx);
         self.vy = self.vy.min(other.vy);

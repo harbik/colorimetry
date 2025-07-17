@@ -36,7 +36,9 @@ impl CoordinateTransform {
             1.0,
         );
 
-        let to_scale_matrix = to_canvas_matrix.try_inverse().expect("Matrix is not invertible");
+        let to_scale_matrix = to_canvas_matrix
+            .try_inverse()
+            .expect("Matrix is not invertible");
 
         CoordinateTransform {
             to_canvas_matrix,
@@ -44,29 +46,18 @@ impl CoordinateTransform {
         }
     }
 
-
-    pub fn on_canvas(
-        &self,
-        x: f64,
-        y: f64,
-    ) -> (f64, f64) {
+    pub fn on_canvas(&self, x: f64, y: f64) -> (f64, f64) {
         let point = Vector3::new(x, y, 1.0);
         let transformed = self.to_canvas_matrix * point;
         (transformed[(0, 0)], transformed[(1, 0)])
     }
 
-    pub fn scaled(
-        &self,
-        h: u32,
-        v: u32,
-    ) -> (f64, f64) {
+    pub fn scaled(&self, h: u32, v: u32) -> (f64, f64) {
         let point = Vector3::new(h as f64, v as f64, 1.0);
-        let &[x,y, _] : &[f64;3] = (self.to_scaled_matrix * point).as_ref();
+        let &[x, y, _]: &[f64; 3] = (self.to_scaled_matrix * point).as_ref();
         (x, y)
-
     }
 
- 
     pub fn to_chart_string(&self) -> String {
         format!(
             "matrix({} {} {} {} {} {})",
@@ -91,4 +82,3 @@ impl CoordinateTransform {
         )
     }
 }
-
