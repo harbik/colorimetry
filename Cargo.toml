@@ -76,4 +76,4 @@ all-features = true
 [[bin]]
 name = "color"
 path = "bin/color.rs"
-required-features = ["serde", "csv"]
+required-features = ["csv"]
