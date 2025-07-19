@@ -318,7 +318,6 @@ dependencies = [
  "clap",
  "colored",
  "criterion",
- "csv",
  "geo",
  "js-sys",
  "libm",
@@ -330,6 +329,15 @@ dependencies = [
  "strum 0.25.0",
  "thiserror 1.0.63",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "colorimetry-cli"
+version = "0.0.1"
+dependencies = [
+ "clap",
+ "colorimetry",
+ "csv",
 ]
 
 [[package]]

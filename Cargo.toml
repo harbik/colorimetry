@@ -16,6 +16,7 @@ exclude = [".github", ".vscode", "pkg"]
 [workspace]
 members = [
     "plot",
+    "cli",
     "xtask",
     "."  # main crate
 ]
@@ -28,9 +29,10 @@ thiserror = "1.0.63"
 strum = {version = "0.25", features = ["derive"]} # for enum iteration and derive macros
 num-traits = "0.2.19"
 geo = "0.29.3"
+
+# Optional dependencies, used by xtask for example
 serde = { version = "1.0.219", features = ["derive"], optional = true}
 serde_json = { version = "1.0.140", optional = true}
-csv = { version = "1.3", default-features = false, optional = true}
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = "0.2"
@@ -45,7 +47,6 @@ munsell = []
 cfi = ["cct"]
 gamut-tables = []
 serde = ["dep:serde", "dep:serde_json", "nalgebra/serde-serialize"]
-csv = ["dep:csv"]
 
 [dev-dependencies] # for examples and tests
 argmin = "0.10.0"
@@ -72,8 +73,3 @@ harness = false
 
 [package.metadata.docs.rs]
 all-features = true
-
-[[bin]]
-name = "colorpoint"
-path = "bin/colorpoint.rs"
-required-features = ["csv"]
