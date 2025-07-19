@@ -74,6 +74,6 @@ harness = false
 all-features = true
 
 [[bin]]
-name = "color"
-path = "bin/color.rs"
+name = "colorpoint"
+path = "bin/colorpoint.rs"
 required-features = ["csv"]
