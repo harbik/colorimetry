@@ -35,13 +35,14 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
             "fill: black; stroke: None; stroke-width: 0;",
         );
 
-    let chart = XYChart::new(
+    let mut chart = XYChart::new(
         "cie1931_chromaticity_diagram",
         (500, 500),
         (0.25..=0.45, 0.25..=0.45),
         (Some("chart-area"), None),
-    )
-    .add_axis(
+    );
+    chart
+        .add_axis(
         Some("CIE 1931 x Chromaticity"),
         AxisSide::Bottom,
         0.1,
@@ -96,7 +97,7 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     .annotate(d65, 3.0, (NORTH_WEST, 20), "D65", Some("white-point"), None)
     .annotate(d50, 3.0, (NORTH_WEST, 20), "D50", Some("white-point"), None);
 
-    svgdoc.add_svg(Box::new(chart));
+    svgdoc.add_svg(Box::new(chart.clone()));
     //    svgdoc.place_center(chart);
 
     svgdoc.save("tmp/blackbody_locus.svg").unwrap();

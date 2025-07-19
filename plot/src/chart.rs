@@ -5,7 +5,7 @@ use std::{
 };
 
 use svg::{
-    node::element::{path::Data, ClipPath, Definitions, Group, Line, Path, Text, SVG},
+    node::element::{path::Data, ClipPath, Definitions, Group, Image, Line, Path, Text, SVG},
     Node,
 };
 
@@ -18,7 +18,7 @@ use crate::{
     view::ViewParameters,
 };
 
-type CanvasTransform = Rc<dyn Fn((f64, f64)) -> (f64, f64)>;
+pub type CanvasTransform = Rc<dyn Fn((f64, f64)) -> (f64, f64)>;
 
 #[derive(Clone)]
 pub struct XYChart {
@@ -113,14 +113,14 @@ impl XYChart {
     }
 
     pub fn add_axis(
-        mut self,
+        &mut self,
         description: Option<&str>,
         side: AxisSide,
         step: f64,
         tick_length: i32,
         show_labels: bool,
         class: Option<&str>,
-    ) -> Self {
+    ) -> &mut Self {
         let mut margin = if show_labels {
             tick_length + Self::LABEL_HEIGHT
         } else {
@@ -165,12 +165,12 @@ impl XYChart {
     }
 
     pub fn draw_grid(
-        self,
+        &mut self,
         x_step: f64,
         y_step: f64,
         class: Option<&str>,
         style: Option<&str>,
-    ) -> Self {
+    ) -> &mut Self {
         let mut data = Data::new();
         let on_canvas = self.on_canvas.clone();
         for x in self.x_range.iter_with_step(x_step) {
@@ -186,15 +186,26 @@ impl XYChart {
         self.draw_data(data, class, style)
     }
 
+    pub fn draw_image(
+        &mut self,
+        image: impl Into<Image>,
+        class: Option<&str>,
+        style: Option<&str>,
+    ) -> &mut Self {
+        assign_class_and_style(&mut self.plot.0, class, style);
+        self.plot.append(image.into());
+        self
+    }
+
     pub fn annotate(
-        mut self,
+        &mut self,
         cxy: (f64, f64),
         r: f64,
         angle_and_length: (i32, i32),
         text: impl AsRef<str>,
         class: Option<&str>,
         style: Option<&str>,
-    ) -> Self {
+    ) -> &mut Self {
         let (angle, len) = angle_and_length;
         let angle = 360 - ((angle + 360) % 360);
         let (cx, cy) = cxy;
@@ -254,7 +265,7 @@ impl XYChart {
 
     /// Draw a Path using the Chart Coordinates onto the
     /// `scaled_layer``
-    pub fn draw_path(mut self, mut path: Path, class: Option<&str>, style: Option<&str>) -> Self {
+    pub fn draw_path(&mut self, mut path: Path, class: Option<&str>, style: Option<&str>) -> &mut Self {
         assign_class_and_style(&mut path, class, style);
         self.plot.append(path);
         self
@@ -262,18 +273,18 @@ impl XYChart {
 
     /// Add Data, composed of e.g. move_to and line_to operations, to the Chart
     /// using scaled coordinates.
-    pub fn draw_data(self, data: Data, class: Option<&str>, style: Option<&str>) -> Self {
+    pub fn draw_data(&mut self, data: Data, class: Option<&str>, style: Option<&str>) -> &mut Self {
         let path = Path::new().set("d", data);
         self.draw_path(path, class, style)
     }
 
     /// Add a path to the chart, using coordinates from an iterator.
     pub fn draw_line(
-        self,
+        &mut self,
         data: impl IntoIterator<Item = (f64, f64)>,
         class: Option<&str>,
         style: Option<&str>,
-    ) -> Self {
+    ) -> &mut Self {
         let on_canvas = self.on_canvas.clone();
         let iter_canvas = data.into_iter().map(|xy| (on_canvas)(xy));
         self.draw_path(to_path(iter_canvas, false), class, style)
@@ -281,11 +292,11 @@ impl XYChart {
 
     /// Add a path that connects the coordinates in an interator and closes the path.
     pub fn draw_shape(
-        self,
+        &mut self,
         data: impl IntoIterator<Item = (f64, f64)>,
         class: Option<&str>,
         style: Option<&str>,
-    ) -> Self {
+    ) -> &mut Self {
         let on_canvas = self.on_canvas.clone();
         let iter_canvas = data.into_iter().map(|xy| (on_canvas)(xy));
         self.draw_path(to_path(iter_canvas, true), class, style)

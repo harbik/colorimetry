@@ -1,4 +1,3 @@
-
 //! # Colorimetry Plot Library
 //!
 //! This module provides functionality for generating and manipulating SVG-based plots,
@@ -26,7 +25,7 @@
 //! ## Usage
 //!
 //! Import the desired modules and use the provided functions to construct and manipulate SVG plots.
-//! 
+//!
 //! ## License
 //!
 //! This library is dual-licensed under the MIT License and the Apache License (Version 2.0).
