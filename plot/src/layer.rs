@@ -18,40 +18,24 @@ impl Layer {
         Layer(self.0.set(key, value.into()))
     }
 
-    /*
-    pub fn to_group(self) -> Group {
-        self.0
-    }
-     */
-}
-
-/*
-impl From<Layer> for Group {
-    fn from(layer: Layer) -> Self {
-        layer.to_group()
+    pub fn set_class_and_style(self, class: Option<&str>, style: Option<&str>) -> Self {
+        let mut layer = self;
+        if let Some(c) = class {
+            layer = layer.set("class", c);
+        }
+        if let Some(s) = style {
+            layer = layer.set("style", s);
+        }
+        layer
     }
 }
 
-impl From<Group> for Layer {
-    fn from(group: Group) -> Self {
-        Layer(group)
-    }
-}
-*/
 
 impl From<Layer> for Box<dyn Node> {
     fn from(layer: Layer) -> Self {
         Box::new(layer.0)
     }
 }
-
-/*
-impl From<Layer> for Element {
-    fn from(layer: Layer) -> Self {
-        layer.to_group().into()
-    }
-}
- */
 
 impl std::fmt::Display for Layer {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

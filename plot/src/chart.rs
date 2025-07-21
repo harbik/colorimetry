@@ -36,15 +36,18 @@ pub struct XYChart {
     pub plot_width: u32,
     pub plot_height: u32,
 
-    // derived
-    pub view_parameters: ViewParameters,
-    pub plot: Layer,
-    pub axes: Layer,
-    pub annotations: Layer,
-    pub clip_paths: Vec<ClipPath>,
-    pub margins: [i32; 4], // top, right, bottom, left
+    // require inputs
     pub to_plot: CoordinateTransform,
     pub to_world: CoordinateTransform,
+
+    // initially empty, filled by the chart methods
+    pub view_parameters: ViewParameters,
+    pub plot_layer: Layer,
+    pub axes_layer: Layer,
+    pub annotations_layer: Layer,
+    pub clip_paths: Vec<ClipPath>,
+    pub margins: [i32; 4], // top, right, bottom, left
+
 }
 
 impl XYChart {
@@ -77,8 +80,10 @@ impl XYChart {
             let h = plot_height as f64;
             plot_to_world_coordinates(xy.0, xy.1, &x_range, &y_range, w, h)
         });
+
         let mut clip_paths = Vec::new();
-        let mut plot = Layer::new();
+        let mut plot_layer = Layer::new();
+
         let mut path = to_path(
             [
                 (0f64, 0f64),
@@ -94,7 +99,8 @@ impl XYChart {
                 .set("id", format!("clip-{id}"))
                 .add(path.clone()),
         );
-        plot = plot.set("clip-path", format!("url(#clip-{id})"));
+        plot_layer = plot_layer.set("clip-path", format!("url(#clip-{id})"));
+        
         // don't add a background if no style or class is given
         if style.is_some() || class.is_some() {
             if let Some(style) = style {
@@ -103,13 +109,14 @@ impl XYChart {
             if let Some(class) = class {
                 path = path.set("class", class);
             }
-            plot.append(path);
+            plot_layer.append(path);
         }
-        let annotations = Layer::new()
+        
+        let annotations_layer = Layer::new()
             .set("id", format!("annotations-{id}"))
             .set("class", "annotations");
 
-        let axes = Layer::new()
+        let axes_layer = Layer::new()
             .set("id", format!("axes-{id}"))
             .set("class", "axes");
         let view_box = ViewParameters::new(0, 0, plot_width, plot_height, plot_width, plot_height);
@@ -120,9 +127,9 @@ impl XYChart {
             plot_width,
             x_range,
             y_range,
-            plot,
-            annotations,
-            axes,
+            plot_layer,
+            annotations_layer,
+            axes_layer,
             clip_paths,
             margins: [0i32; 4], // top, right, bottom, left
             to_plot,
@@ -177,7 +184,7 @@ impl XYChart {
             show_labels,
             class,
         );
-        self.axes.append(Group::from(x_axis));
+        self.axes_layer.append(Group::from(x_axis));
         self.update_view();
         self
     }
@@ -212,7 +219,7 @@ impl XYChart {
     ) -> Self {
         let mut image: Image = image.into();
         image = set_class_and_style(image, class, style);
-        self.plot.append(image);
+        self.plot_layer.append(image);
         self
     }
 
@@ -278,7 +285,7 @@ impl XYChart {
 
         let mut group = Group::new().add(circle).add(line).add(text);
         group = set_class_and_style(group, class, style);
-        self.annotations.append(group);
+        self.annotations_layer.append(group);
         self
     }
 
@@ -291,7 +298,7 @@ impl XYChart {
         style: Option<&str>,
     ) -> Self {
         path = set_class_and_style(path, class, style);
-        self.plot.append(path);
+        self.plot_layer.append(path);
         self
     }
 
@@ -342,26 +349,10 @@ impl XYChart {
 
 impl Display for XYChart {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.plot.0)
+        write!(f, "{}", self.plot_layer.0)
     }
 }
 
-/*
-impl Deref for XYChart {
-    type Target = Group;
-
-    fn deref(&self) -> &Self::Target {
-        &self.plot.0
-    }
-}
-
-impl DerefMut for XYChart {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.plot.0
-    }
-}
-
- */
 pub(super) fn to_path(data: impl IntoIterator<Item = (f64, f64)>, close: bool) -> Path {
     let mut path_data = Data::new();
     for xy in data {
@@ -447,9 +438,9 @@ impl Rendable for XYChart {
             .set("height", self.height())
             .set("viewBox", self.view_parameters().view_box_str())
             .add(defs)
-            .add(self.axes.clone())
-            .add(self.plot.clone())
-            .add(self.annotations.clone())
+            .add(self.axes_layer.clone())
+            .add(self.plot_layer.clone())
+            .add(self.annotations_layer.clone())
     }
 }
 
@@ -474,11 +465,21 @@ macro_rules! delegate_xy_chart_methods {
 
             pub fn draw_line(
                 mut self,
-                points: impl Iterator<Item = (f64, f64)>,
+                points: impl IntoIterator<Item = (f64, f64)>,
                 class: Option<&str>,
                 style: Option<&str>,
             ) -> Self {
                 self.$field = self.$field.draw_line(points, class, style);
+                self
+            }
+
+            pub fn draw_shape(
+                mut self,
+                points: impl IntoIterator<Item = (f64, f64)>,
+                class: Option<&str>,
+                style: Option<&str>,
+            ) -> Self {
+                self.$field = self.$field.draw_shape(points, class, style);
                 self
             }
 
@@ -512,15 +513,6 @@ macro_rules! delegate_xy_chart_methods {
                 self
             }
 
-            pub fn draw_shape(
-                mut self,
-                points: impl Iterator<Item = (f64, f64)>,
-                class: Option<&str>,
-                style: Option<&str>,
-            ) -> Self {
-                self.$field = self.$field.draw_shape(points, class, style);
-                self
-            }
 
             // Axis methods
             pub fn add_axis(

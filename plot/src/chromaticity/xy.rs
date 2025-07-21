@@ -42,28 +42,19 @@ impl XYChromaticity {
         XYChromaticity { observer, xy_chart }
     }
 
-    pub fn draw_spectral_locus(mut self, class: Option<&str>, style: Option<&str>) -> Self {
-        let locus = self.observer.spectral_locus();
-        self.xy_chart = self.xy_chart.draw_shape(locus, class, style);
-        self
+    pub fn draw_spectral_locus(self, class: Option<&str>, style: Option<&str>) -> Self {
+        let obs = self.observer.clone();
+        let locus = obs.spectral_locus();
+        self.draw_shape(locus, class, style)
     }
     
-    pub fn draw_planckian_locus(mut self, class: Option<&str>, style: Option<&str>) -> Self {
+    pub fn draw_planckian_locus(self, class: Option<&str>, style: Option<&str>) -> Self {
         let locus = self.observer.planckian_locus();
-        self.xy_chart = self.xy_chart.draw_line(locus, class, style);
-        self
-    }
-
-    /// Draw white points on the chromaticity diagram as an iterator of CieIlluminant, and i32 angle and length pairs.
-    pub fn annotate_white_points(
-        &mut self,
-        point: impl IntoIterator<Item = (CieIlluminant, (i32, i32))>,
-    ) -> &mut Self {
-        todo!()
+        self.draw_line(locus, class, style)
     }
 
     pub fn draw_rgb_gamut(
-        mut self,
+        self,
         rgb_space: RgbSpace,
         class: Option<&str>,
         style: Option<&str>,
@@ -74,27 +65,18 @@ impl XYChromaticity {
             self.xy_chart.to_plot.clone(),
             self.xy_chart.to_world.clone(),
         );
-        self = self.draw_image(gamut_fill, class, style);
-        self
+        self.draw_image(gamut_fill, class, style)
+    }
+
+    /// Draw white points on the chromaticity diagram as an iterator of CieIlluminant, and i32 angle and length pairs.
+    pub fn annotate_white_points(
+        &mut self,
+        point: impl IntoIterator<Item = (CieIlluminant, (i32, i32))>,
+    ) -> &mut Self {
+        todo!()
     }
 }
 
-/*
-/// Implements Deref and DerefMut traits for XYChromaticity, allowing it to use the methods from XYChart.
-impl Deref for XYChromaticity {
-    type Target = XYChart;
-
-    fn deref(&self) -> &Self::Target {
-        &self.xy_chart
-    }
-}
-
-impl DerefMut for XYChromaticity {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.xy_chart
-    }
-}
- */
 
 /// Implements the XYChromaticity as a Rendable object, allowing it to be rendered as an SVG.
 impl Rendable for XYChromaticity {
