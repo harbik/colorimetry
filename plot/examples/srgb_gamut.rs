@@ -22,15 +22,13 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
             "fill: black; stroke: None; stroke-width: 0;",
         );
 
-    let mut xy_chromaticity = XYChromaticity::new(
+    let xy_chromaticity = XYChromaticity::new(
         "cie1931_chromaticity_diagram",
         observer,
         (750, 850),
         (0.0..=0.75, 0.0..=0.85),
         (Some("chart-area"), None),
-    );
-
-    xy_chromaticity
+    )
         .add_axis(
             Some("CIE 1931 x Chromaticity"),
             AxisSide::Bottom,

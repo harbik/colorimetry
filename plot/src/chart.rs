@@ -8,7 +8,7 @@
 
 use std::{
     fmt::Display,
-    ops::{Deref, DerefMut, RangeBounds},
+    ops::RangeBounds,
     rc::Rc,
 };
 
@@ -131,14 +131,14 @@ impl XYChart {
     }
 
     pub fn add_axis(
-        &mut self,
+        mut self,
         description: Option<&str>,
         side: AxisSide,
         step: f64,
         tick_length: i32,
         show_labels: bool,
         class: Option<&str>,
-    ) -> &mut Self {
+    ) -> Self {
         let mut margin = if show_labels {
             tick_length + Self::LABEL_HEIGHT
         } else {
@@ -183,12 +183,12 @@ impl XYChart {
     }
 
     pub fn draw_grid(
-        &mut self,
+        self,
         x_step: f64,
         y_step: f64,
         class: Option<&str>,
         style: Option<&str>,
-    ) -> &mut Self {
+    ) -> Self {
         let mut data = Data::new();
         let on_canvas = self.to_plot.clone();
         for x in self.x_range.iter_with_step(x_step) {
@@ -205,11 +205,11 @@ impl XYChart {
     }
 
     pub fn draw_image(
-        &mut self,
+        mut self,
         image: impl Into<Image>,
         class: Option<&str>,
         style: Option<&str>,
-    ) -> &mut Self {
+    ) -> Self {
         let mut image: Image = image.into();
         image = set_class_and_style(image, class, style);
         self.plot.append(image);
@@ -217,14 +217,14 @@ impl XYChart {
     }
 
     pub fn annotate(
-        &mut self,
+        mut self,
         cxy: (f64, f64),
         r: f64,
         angle_and_length: (i32, i32),
         text: impl AsRef<str>,
         class: Option<&str>,
         style: Option<&str>,
-    ) -> &mut Self {
+    ) -> Self {
         let (angle, len) = angle_and_length;
         let angle = 360 - ((angle + 360) % 360);
         let (cx, cy) = cxy;
@@ -285,11 +285,11 @@ impl XYChart {
     /// Draw a Path using the Chart Coordinates onto the
     /// `scaled_layer``
     pub fn draw_path(
-        &mut self,
+        mut self,
         mut path: Path,
         class: Option<&str>,
         style: Option<&str>,
-    ) -> &mut Self {
+    ) -> Self {
         path = set_class_and_style(path, class, style);
         self.plot.append(path);
         self
@@ -297,18 +297,18 @@ impl XYChart {
 
     /// Add Data, composed of e.g. move_to and line_to operations, to the Chart
     /// using scaled coordinates.
-    pub fn draw_data(&mut self, data: Data, class: Option<&str>, style: Option<&str>) -> &mut Self {
+    pub fn draw_data(self, data: Data, class: Option<&str>, style: Option<&str>) -> Self {
         let path = Path::new().set("d", data);
         self.draw_path(path, class, style)
     }
 
     /// Add a path to the chart, using coordinates from an iterator.
     pub fn draw_line(
-        &mut self,
+        self,
         data: impl IntoIterator<Item = (f64, f64)>,
         class: Option<&str>,
         style: Option<&str>,
-    ) -> &mut Self {
+    ) -> Self {
         let on_canvas = self.to_plot.clone();
         let iter_canvas = data.into_iter().map(|xy| (on_canvas)(xy));
         self.draw_path(to_path(iter_canvas, false), class, style)
@@ -316,11 +316,11 @@ impl XYChart {
 
     /// Add a path that connects the coordinates in an interator and closes the path.
     pub fn draw_shape(
-        &mut self,
+        self,
         data: impl IntoIterator<Item = (f64, f64)>,
         class: Option<&str>,
         style: Option<&str>,
-    ) -> &mut Self {
+    ) -> Self {
         let on_canvas = self.to_plot.clone();
         let iter_canvas = data.into_iter().map(|xy| (on_canvas)(xy));
         self.draw_path(to_path(iter_canvas, true), class, style)
@@ -346,6 +346,7 @@ impl Display for XYChart {
     }
 }
 
+/*
 impl Deref for XYChart {
     type Target = Group;
 
@@ -360,6 +361,7 @@ impl DerefMut for XYChart {
     }
 }
 
+ */
 pub(super) fn to_path(data: impl IntoIterator<Item = (f64, f64)>, close: bool) -> Path {
     let mut path_data = Data::new();
     for xy in data {
@@ -460,92 +462,92 @@ macro_rules! delegate_xy_chart_methods {
         impl $struct_type {
             // Basic drawing methods
             pub fn draw_grid(
-                &mut self,
+                mut self,
                 x_step: f64,
                 y_step: f64,
                 class: Option<&str>,
                 style: Option<&str>,
-            ) -> &mut Self {
-                self.$field.draw_grid(x_step, y_step, class, style);
+            ) -> Self {
+                self.$field = self.$field.draw_grid(x_step, y_step, class, style);
                 self
             }
 
             pub fn draw_line(
-                &mut self,
+                mut self,
                 points: impl Iterator<Item = (f64, f64)>,
                 class: Option<&str>,
                 style: Option<&str>,
-            ) -> &mut Self {
-                self.$field.draw_line(points, class, style);
+            ) -> Self {
+                self.$field = self.$field.draw_line(points, class, style);
                 self
             }
 
             pub fn draw_data(
-                &mut self,
+                mut self,
                 data: svg::node::element::path::Data,
                 class: Option<&str>,
                 style: Option<&str>,
-            ) -> &mut Self {
-                self.$field.draw_data(data, class, style);
+            ) -> Self {
+                self.$field = self.$field.draw_data(data, class, style);
                 self
             }
 
             pub fn draw_path(
-                &mut self,
+                mut self,
                 path: svg::node::element::Path,
                 class: Option<&str>,
                 style: Option<&str>,
-            ) -> &mut Self {
-                self.$field.draw_path(path, class, style);
+            ) -> Self {
+                self.$field = self.$field.draw_path(path, class, style);
                 self
             }
 
             pub fn draw_image(
-                &mut self,
+                mut self,
                 image: impl Into<svg::node::element::Image>,
                 class: Option<&str>,
                 style: Option<&str>,
-            ) -> &mut Self {
-                self.$field.draw_image(image, class, style);
+            ) -> Self {
+                self.$field = self.$field.draw_image(image, class, style);
                 self
             }
 
             pub fn draw_shape(
-                &mut self,
+                mut self,
                 points: impl Iterator<Item = (f64, f64)>,
                 class: Option<&str>,
                 style: Option<&str>,
-            ) -> &mut Self {
-                self.$field.draw_shape(points, class, style);
+            ) -> Self {
+                self.$field = self.$field.draw_shape(points, class, style);
                 self
             }
 
             // Axis methods
             pub fn add_axis(
-                &mut self,
+                mut self,
                 description: Option<&str>,
                 side: $crate::axis::AxisSide,
                 step: f64,
                 tick_length: i32,
                 show_labels: bool,
                 class: Option<&str>,
-            ) -> &mut Self {
-                self.$field
+            ) -> Self {
+                self.$field = self.$field
                     .add_axis(description, side, step, tick_length, show_labels, class);
                 self
             }
 
             // Annotation methods
             pub fn annotate(
-                &mut self,
+                mut self,
                 cxy: (f64, f64),
                 r: f64,
                 angle_and_length: (i32, i32),
                 text: impl AsRef<str>,
                 class: Option<&str>,
                 style: Option<&str>,
-            ) -> &mut Self {
-                self.$field
+            ) -> Self {
+                self.$field = self.$field
                     .annotate(cxy, r, angle_and_length, text, class, style);
                 self
             }

@@ -35,13 +35,12 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
             "fill: black; stroke: None; stroke-width: 0;",
         );
 
-    let mut chart = XYChart::new(
+    let chart = XYChart::new(
         "cie1931_chromaticity_diagram",
         (500, 500),
         (0.25..=0.45, 0.25..=0.45),
         (Some("chart-area"), None),
-    );
-    chart
+    )
         .add_axis(
             Some("CIE 1931 x Chromaticity"),
             AxisSide::Bottom,

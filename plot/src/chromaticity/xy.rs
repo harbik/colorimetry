@@ -42,14 +42,15 @@ impl XYChromaticity {
         XYChromaticity { observer, xy_chart }
     }
 
-    pub fn draw_spectral_locus(&mut self, class: Option<&str>, style: Option<&str>) -> &mut Self {
+    pub fn draw_spectral_locus(mut self, class: Option<&str>, style: Option<&str>) -> Self {
         let locus = self.observer.spectral_locus();
-        self.xy_chart.draw_shape(locus, class, style);
+        self.xy_chart = self.xy_chart.draw_shape(locus, class, style);
         self
     }
-    pub fn draw_planckian_locus(&mut self, class: Option<&str>, style: Option<&str>) -> &mut Self {
+    
+    pub fn draw_planckian_locus(mut self, class: Option<&str>, style: Option<&str>) -> Self {
         let locus = self.observer.planckian_locus();
-        self.xy_chart.draw_line(locus, class, style);
+        self.xy_chart = self.xy_chart.draw_line(locus, class, style);
         self
     }
 
@@ -62,18 +63,18 @@ impl XYChromaticity {
     }
 
     pub fn draw_rgb_gamut(
-        &mut self,
+        mut self,
         rgb_space: RgbSpace,
         class: Option<&str>,
         style: Option<&str>,
-    ) -> &mut Self {
+    ) -> Self {
         let gamut_fill = PngImageData::from_rgb_space(
             self.observer,
             rgb_space,
             self.xy_chart.to_plot.clone(),
             self.xy_chart.to_world.clone(),
         );
-        self.draw_image(gamut_fill, class, style);
+        self = self.draw_image(gamut_fill, class, style);
         self
     }
 }
