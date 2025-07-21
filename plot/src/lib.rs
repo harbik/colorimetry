@@ -53,19 +53,25 @@ pub fn last_id() -> String {
     COUNTER.load(Ordering::Relaxed).to_string()
 }
 
-pub fn assign_class_and_style<T: svg::Node>(
-    node: &mut T,
-    class: Option<&str>,
-    style: Option<&str>,
-) {
-    if let Some(class) = class {
-        node.assign("class", class);
-    } else {
-        node.assign("class", "default");
+/// Sets the class and style attributes on an SVG node.
+///
+/// # Arguments
+/// * `node` - The SVG node to modify.
+/// * `class` - Optional class name to set. Defaults to "default" if None.
+/// * `style` - Optional style string to set. No style is set if None.
+///
+/// # Returns
+/// The modified SVG node.
+pub fn set_class_and_style<T>(mut node: T, class: Option<&str>, style: Option<&str>) -> T
+where
+    T: svg::Node,
+{
+    node.assign("class", class.unwrap_or("default"));
+
+    if let Some(style_value) = style {
+        node.assign("style", style_value);
     }
-    if let Some(style) = style {
-        node.assign("style", style);
-    }
+    node
 }
 
 /// Rounds a floating-point value to the specified precision.

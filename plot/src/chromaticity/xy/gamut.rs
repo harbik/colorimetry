@@ -5,12 +5,12 @@ use base64::engine::general_purpose;
 use base64::engine::Engine;
 use colorimetry::rgb::Rgb;
 use colorimetry::rgb::WideRgb;
-use image::ImageEncoder;
-// Import the Engine trait for .encode()
+use colorimetry::xyz::XYZ;
 use colorimetry::{math::Triangle, observer::Observer, rgb::RgbSpace};
+use image::ImageEncoder;
 use image::{codecs::png::PngEncoder, Rgba, RgbaImage};
 
-use crate::chart::CanvasTransform;
+use crate::chart::CoordinateTransform;
 use svg::node::element::Image;
 
 pub struct PngImageData {
@@ -38,9 +38,10 @@ impl PngImageData {
     pub fn from_rgb_space(
         observer: Observer,
         space: RgbSpace,
-        on_canvas: CanvasTransform,
+        to_plot: CoordinateTransform,
+        to_world: CoordinateTransform,
     ) -> Self {
-        png_from_rgb_space(observer, space, on_canvas)
+        png_from_rgb_space(observer, space, to_plot, to_world)
     }
 
     pub fn png(&self) -> &str {
@@ -56,7 +57,6 @@ impl PngImageData {
     }
 }
 
-
 /// Converts PngImageData to an SVG Image element.
 impl From<PngImageData> for Image {
     fn from(data: PngImageData) -> Self {
@@ -69,12 +69,12 @@ impl From<PngImageData> for Image {
     }
 }
 
-
 /// Generates a PNG image of the RGB gamut for a given observer and RGB space,
 fn png_from_rgb_space(
     observer: Observer,
     space: RgbSpace,
-    on_canvas: CanvasTransform,
+    to_plot: CoordinateTransform,
+    to_world: CoordinateTransform,
 ) -> PngImageData {
     // get chromaticity coordinate of the primaries
     let chromaticities = space.chromaticities(observer);
@@ -83,7 +83,7 @@ fn png_from_rgb_space(
     let canvas_gamut_coordinates = chromaticities
         .iter()
         .map(|c| c.to_tuple())
-        .map(|xy| on_canvas(xy))
+        .map(|xy| to_plot(xy))
         .map(|(x, y)| [x as u32, y as u32])
         .collect::<Vec<_>>();
 
@@ -121,18 +121,14 @@ fn png_from_rgb_space(
     // Fill the image with the triangle gradient
     for v in 0..height {
         for h in 0..width {
-            let x = h as f64 + h_min as f64;
-            let y = v as f64 + v_min as f64;
-
-            if canvas_gamut_triangle.contains(x, y) {
-                // Calculate barycentric coordinates
-                let [uu, vv, ww] = canvas_gamut_triangle.barycentric_coordinates(x, y);
-                
-                let wrgb = WideRgb::new(uu, vv, ww, Some(observer), Some(space));
+            if canvas_gamut_triangle.contains((h + h_min) as f64, (v + v_min) as f64) {
+                let (x, y) = to_world((h as f64 + h_min as f64, v as f64 + v_min as f64));
+                let xyz = XYZ::new([x, y, 1.0 - x - y], observer).set_illuminance(100.0);
+                let wrgb = xyz.rgb(space);
                 let [r, g, b] = wrgb.compress().into();
-                image.put_pixel(h, v, Rgba([r, g, b , 255]));
+                image.put_pixel(h, v, Rgba([r, g, b, 255]));
             } else {
-                image.put_pixel(h, v, Rgba([0, 0, 0, 0])); // Background color
+                image.put_pixel(h, v, Rgba([0, 0, 0, 0])); // fully transparent pixel
             }
         }
     }

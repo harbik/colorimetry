@@ -1,7 +1,5 @@
 use colorimetry::{observer::Observer, rgb::RgbSpace::SRGB};
-use colorimetry_plot::{
-    axis::AxisSide, chromaticity::XYChromaticity, svgdoc::SvgDocument
-};
+use colorimetry_plot::{axis::AxisSide, chromaticity::XYChromaticity, svgdoc::SvgDocument};
 
 pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     let observer = Observer::default();
@@ -9,13 +7,10 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut svgdoc = SvgDocument::new(1000, 1100)
         .add_css_rule(".fine-grid", "stroke: #AAA; stroke-width: 0.5;")
         .add_css_rule(".grid", "stroke: #AAA; stroke-width: 1.0;")
-        .add_css_rule(
-            ".chart-area",
-            "fill: #888; stroke: none; stroke-width: 0;",
-        )
+        .add_css_rule(".chart-area", "fill: #888; stroke: none; stroke-width: 0;")
         .add_css_rule(
             ".spectral-locus",
-            "fill: AAA; stroke: none; stroke-width: 0; stroke-linecap: round;",
+            "fill: #DDD; stroke: none; stroke-width: 0; stroke-linecap: round;",
         )
         .add_css_rule(
             "text",
@@ -34,6 +29,7 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
         (0.0..=0.75, 0.0..=0.85),
         (Some("chart-area"), None),
     );
+
     xy_chromaticity
         .add_axis(
             Some("CIE 1931 x Chromaticity"),
@@ -52,14 +48,11 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
             true,
             Some("grid"),
         )
-        .add_axis(None, AxisSide::Left, 0.01, 4, false, Some("fine-grid"));
-
-    xy_chromaticity
+        .add_axis(None, AxisSide::Left, 0.01, 4, false, Some("fine-grid"))
         .draw_spectral_locus(Some("spectral-locus"), None)
         .draw_rgb_gamut(SRGB, None, None)
         .draw_grid(0.01, 0.01, Some("fine-grid"), None)
-        .draw_grid(0.1, 0.1, Some("grid"), None)
-        ;
+        .draw_grid(0.1, 0.1, Some("grid"), None);
 
     svgdoc.add_svg(Box::new(xy_chromaticity));
 

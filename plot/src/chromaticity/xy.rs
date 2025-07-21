@@ -7,6 +7,7 @@ use crate::{
     axis::AxisSide,
     chart::XYChart,
     chromaticity::xy::{self, gamut::PngImageData},
+    delegate_xy_chart_methods,
     rendable::Rendable,
     svgdoc::SvgDocument,
 };
@@ -15,13 +16,15 @@ use colorimetry::{
     prelude::CieIlluminant,
     rgb::RgbSpace,
 };
-use svg::node::element::SVG;
+use svg::node::element::{Image, SVG};
 
 #[derive(Clone)]
 pub struct XYChromaticity {
     pub(crate) observer: Observer,
     pub(crate) xy_chart: XYChart,
 }
+
+delegate_xy_chart_methods!(XYChromaticity, xy_chart);
 
 impl XYChromaticity {
     pub const ANNOTATE_SEP: u32 = 2;
@@ -36,10 +39,7 @@ impl XYChromaticity {
         let (class, style) = class_and_style;
         let xy_chart = XYChart::new(id.as_ref(), width_and_height, ranges, class_and_style);
 
-        XYChromaticity {
-            observer,
-            xy_chart
-        }
+        XYChromaticity { observer, xy_chart }
     }
 
     pub fn draw_spectral_locus(&mut self, class: Option<&str>, style: Option<&str>) -> &mut Self {
@@ -67,13 +67,18 @@ impl XYChromaticity {
         class: Option<&str>,
         style: Option<&str>,
     ) -> &mut Self {
-        let gamut_fill =
-            PngImageData::from_rgb_space(self.observer, rgb_space, self.xy_chart.on_canvas.clone());
+        let gamut_fill = PngImageData::from_rgb_space(
+            self.observer,
+            rgb_space,
+            self.xy_chart.to_plot.clone(),
+            self.xy_chart.to_world.clone(),
+        );
         self.draw_image(gamut_fill, class, style);
         self
     }
 }
 
+/*
 /// Implements Deref and DerefMut traits for XYChromaticity, allowing it to use the methods from XYChart.
 impl Deref for XYChromaticity {
     type Target = XYChart;
@@ -88,6 +93,7 @@ impl DerefMut for XYChromaticity {
         &mut self.xy_chart
     }
 }
+ */
 
 /// Implements the XYChromaticity as a Rendable object, allowing it to be rendered as an SVG.
 impl Rendable for XYChromaticity {

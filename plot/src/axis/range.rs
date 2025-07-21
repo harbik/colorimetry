@@ -39,8 +39,16 @@ impl ChartRange {
         (value - self.start) / self.span()
     }
 
+    pub fn unscale(&self, value: f64) -> f64 {
+        self.start + value * self.span()
+    }
+
     pub fn scale_descent(&self, value: f64) -> f64 {
         (self.end - value) / self.span()
+    }
+
+    pub fn unscale_descent(&self, value: f64) -> f64 {
+        self.end - value * self.span()
     }
 
     /// Creates an iterator over the range with a specified step size.

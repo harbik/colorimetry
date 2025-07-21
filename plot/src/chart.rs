@@ -1,3 +1,11 @@
+// TODO
+//
+// Deref for other plots? Or copy the XYChart methods to the derived structs?
+// using a immplement_xy_chart_methods! macro?
+// Deref gives back XYChart, which is confusing in for example XYChromaticity as you have to reset to XYChromaticity to access the observer dependent methods.
+//
+// Use Builder pattern for the charts? Make all the user input data optional
+
 use std::{
     fmt::Display,
     ops::{Deref, DerefMut, RangeBounds},
@@ -10,30 +18,33 @@ use svg::{
 };
 
 use crate::{
-    assign_class_and_style,
     axis::{Axis, AxisSide, ChartRange, ChartRangeWithStep},
     layer::Layer,
     rendable::Rendable,
-    round_to_default_precision,
+    round_to_default_precision, set_class_and_style,
     view::ViewParameters,
 };
 
-pub type CanvasTransform = Rc<dyn Fn((f64, f64)) -> (f64, f64)>;
+pub type CoordinateTransform = Rc<dyn Fn((f64, f64)) -> (f64, f64)>;
 
 #[derive(Clone)]
 pub struct XYChart {
-    pub id: String, // unique id for the chart
-    pub view_parameters: ViewParameters,
+    // inputs
+    pub id: String,          // unique id for the chart
     pub x_range: ChartRange, // min, max for x axis
     pub y_range: ChartRange, // min, max for y axis
+    pub plot_width: u32,
+    pub plot_height: u32,
+
+    // derived
+    pub view_parameters: ViewParameters,
     pub plot: Layer,
     pub axes: Layer,
     pub annotations: Layer,
     pub clip_paths: Vec<ClipPath>,
-    pub margins: [i32; 4],          // top, right, bottom, left
-    pub on_canvas: CanvasTransform, // closure to convert coordinates to canvas coordinates
-    pub plot_width: u32,
-    pub plot_height: u32,
+    pub margins: [i32; 4], // top, right, bottom, left
+    pub to_plot: CoordinateTransform,
+    pub to_world: CoordinateTransform,
 }
 
 impl XYChart {
@@ -55,10 +66,16 @@ impl XYChart {
         let (class, style) = class_and_style;
 
         // output coordinates with 0.1px precision
-        let on_canvas = Rc::new(move |xy: (f64, f64)| {
+        let to_plot = Rc::new(move |xy: (f64, f64)| {
             let w = plot_width as f64;
             let h = plot_height as f64;
-            convert_to_plot_coordinates(xy.0, xy.1, &x_range, &y_range, w, h)
+            world_to_plot_coordinates(xy.0, xy.1, &x_range, &y_range, w, h)
+        });
+
+        let to_world = Rc::new(move |xy: (f64, f64)| {
+            let w = plot_width as f64;
+            let h = plot_height as f64;
+            plot_to_world_coordinates(xy.0, xy.1, &x_range, &y_range, w, h)
         });
         let mut clip_paths = Vec::new();
         let mut plot = Layer::new();
@@ -108,7 +125,8 @@ impl XYChart {
             axes,
             clip_paths,
             margins: [0i32; 4], // top, right, bottom, left
-            on_canvas,
+            to_plot,
+            to_world,
         }
     }
 
@@ -172,7 +190,7 @@ impl XYChart {
         style: Option<&str>,
     ) -> &mut Self {
         let mut data = Data::new();
-        let on_canvas = self.on_canvas.clone();
+        let on_canvas = self.to_plot.clone();
         for x in self.x_range.iter_with_step(x_step) {
             data = data
                 .move_to(on_canvas((x, self.y_range.start)))
@@ -192,8 +210,9 @@ impl XYChart {
         class: Option<&str>,
         style: Option<&str>,
     ) -> &mut Self {
-        assign_class_and_style(&mut self.plot.0, class, style);
-        self.plot.append(image.into());
+        let mut image: Image = image.into();
+        image = set_class_and_style(image, class, style);
+        self.plot.append(image);
         self
     }
 
@@ -209,7 +228,7 @@ impl XYChart {
         let (angle, len) = angle_and_length;
         let angle = 360 - ((angle + 360) % 360);
         let (cx, cy) = cxy;
-        let (cx, cy) = (self.on_canvas)((cx, cy));
+        let (cx, cy) = (self.to_plot)((cx, cy));
         let dx = len as f64 * (angle as f64).to_radians().cos();
         let dy = len as f64 * (angle as f64).to_radians().sin();
         let circle = svg::node::element::Circle::new()
@@ -258,15 +277,20 @@ impl XYChart {
         }
 
         let mut group = Group::new().add(circle).add(line).add(text);
-        assign_class_and_style(&mut group, class, style);
+        group = set_class_and_style(group, class, style);
         self.annotations.append(group);
         self
     }
 
     /// Draw a Path using the Chart Coordinates onto the
     /// `scaled_layer``
-    pub fn draw_path(&mut self, mut path: Path, class: Option<&str>, style: Option<&str>) -> &mut Self {
-        assign_class_and_style(&mut path, class, style);
+    pub fn draw_path(
+        &mut self,
+        mut path: Path,
+        class: Option<&str>,
+        style: Option<&str>,
+    ) -> &mut Self {
+        path = set_class_and_style(path, class, style);
         self.plot.append(path);
         self
     }
@@ -285,7 +309,7 @@ impl XYChart {
         class: Option<&str>,
         style: Option<&str>,
     ) -> &mut Self {
-        let on_canvas = self.on_canvas.clone();
+        let on_canvas = self.to_plot.clone();
         let iter_canvas = data.into_iter().map(|xy| (on_canvas)(xy));
         self.draw_path(to_path(iter_canvas, false), class, style)
     }
@@ -297,7 +321,7 @@ impl XYChart {
         class: Option<&str>,
         style: Option<&str>,
     ) -> &mut Self {
-        let on_canvas = self.on_canvas.clone();
+        let on_canvas = self.to_plot.clone();
         let iter_canvas = data.into_iter().map(|xy| (on_canvas)(xy));
         self.draw_path(to_path(iter_canvas, true), class, style)
     }
@@ -353,7 +377,9 @@ pub(super) fn to_path(data: impl IntoIterator<Item = (f64, f64)>, close: bool) -
         .set("d", path_data.clone())
 }
 
-fn convert_to_plot_coordinates(
+/// Converts from world coordinates to plot coordinates.
+/// The x and y coordinates are scaled to the plot width and height.
+fn world_to_plot_coordinates(
     x: f64,
     y: f64,
     x_range: &ChartRange,
@@ -367,6 +393,28 @@ fn convert_to_plot_coordinates(
         round_to_default_precision(x_canvas),
         round_to_default_precision(y_canvas),
     )
+}
+
+pub fn plot_to_world_coordinates(
+    x: f64,
+    y: f64,
+    x_range: &ChartRange,
+    y_range: &ChartRange,
+    w: f64,
+    h: f64,
+) -> (f64, f64) {
+    let x_world = x_range.unscale(x / w);
+    let y_world = y_range.unscale_descent(y / h);
+    (x_world, y_world)
+}
+#[test]
+fn test_plot_to_world_coordinates() {
+    use approx::assert_abs_diff_eq;
+    let x_range = ChartRange::new(0.0..=1.0);
+    let y_range = ChartRange::new(0.0..=1.0);
+    let (x, y) = plot_to_world_coordinates(100.0, 200.0, &x_range, &y_range, 400.0, 300.0);
+    assert_abs_diff_eq!(x, 0.25, epsilon = 1e-10);
+    assert_abs_diff_eq!(y, 1.0 / 3.0, epsilon = 1e-10);
 }
 
 impl From<XYChart> for SVG {
@@ -401,4 +449,106 @@ impl Rendable for XYChart {
             .add(self.plot.clone())
             .add(self.annotations.clone())
     }
+}
+
+/// Macro to delegate all XYChart methods to a field of a struct, to avoid using Deref and DerefMut
+/// Add methods here when adding new methods to XYChart
+/// Usage: `delegate_xy_chart_methods!(MyStruct, chart_field);`
+#[macro_export]
+macro_rules! delegate_xy_chart_methods {
+    ($struct_type:ty, $field:ident) => {
+        impl $struct_type {
+            // Basic drawing methods
+            pub fn draw_grid(
+                &mut self,
+                x_step: f64,
+                y_step: f64,
+                class: Option<&str>,
+                style: Option<&str>,
+            ) -> &mut Self {
+                self.$field.draw_grid(x_step, y_step, class, style);
+                self
+            }
+
+            pub fn draw_line(
+                &mut self,
+                points: impl Iterator<Item = (f64, f64)>,
+                class: Option<&str>,
+                style: Option<&str>,
+            ) -> &mut Self {
+                self.$field.draw_line(points, class, style);
+                self
+            }
+
+            pub fn draw_data(
+                &mut self,
+                data: svg::node::element::path::Data,
+                class: Option<&str>,
+                style: Option<&str>,
+            ) -> &mut Self {
+                self.$field.draw_data(data, class, style);
+                self
+            }
+
+            pub fn draw_path(
+                &mut self,
+                path: svg::node::element::Path,
+                class: Option<&str>,
+                style: Option<&str>,
+            ) -> &mut Self {
+                self.$field.draw_path(path, class, style);
+                self
+            }
+
+            pub fn draw_image(
+                &mut self,
+                image: impl Into<svg::node::element::Image>,
+                class: Option<&str>,
+                style: Option<&str>,
+            ) -> &mut Self {
+                self.$field.draw_image(image, class, style);
+                self
+            }
+
+            pub fn draw_shape(
+                &mut self,
+                points: impl Iterator<Item = (f64, f64)>,
+                class: Option<&str>,
+                style: Option<&str>,
+            ) -> &mut Self {
+                self.$field.draw_shape(points, class, style);
+                self
+            }
+
+            // Axis methods
+            pub fn add_axis(
+                &mut self,
+                description: Option<&str>,
+                side: $crate::axis::AxisSide,
+                step: f64,
+                tick_length: i32,
+                show_labels: bool,
+                class: Option<&str>,
+            ) -> &mut Self {
+                self.$field
+                    .add_axis(description, side, step, tick_length, show_labels, class);
+                self
+            }
+
+            // Annotation methods
+            pub fn annotate(
+                &mut self,
+                cxy: (f64, f64),
+                r: f64,
+                angle_and_length: (i32, i32),
+                text: impl AsRef<str>,
+                class: Option<&str>,
+                style: Option<&str>,
+            ) -> &mut Self {
+                self.$field
+                    .annotate(cxy, r, angle_and_length, text, class, style);
+                self
+            }
+        }
+    };
 }

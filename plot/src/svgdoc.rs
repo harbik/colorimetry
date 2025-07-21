@@ -80,46 +80,9 @@ impl SvgDocument {
         self.nodes.push(node.into());
     }
 
-    /*
-
-       /// Creates an SVG document with the specified width and height.
-
-       pub fn place(&mut self, svg_sub: impl Rendable) {
-           self.view_parameters.extend(&svg_sub.view_parameters());
-           self.add(svg_sub.render());
-       }
-
-       pub fn place_at_position(&mut self, svg_sub: impl Rendable, x: i32, y: i32) {
-           self.view_parameters.extend_with_pos(&svg_sub.view_parameters(), x, y);
-           let sub_svg = svg_sub.render()
-               .set("x", x)
-               .set("y", y);
-           self.add(sub_svg);
-       }
-    */
-
     pub fn add_svg(&mut self, svg_sub: Box<dyn Rendable>) {
         self.plots.push(svg_sub);
     }
-
-    /*
-
-    // TODO TODO Need to set height and width of the subplot!!!
-    //
-    pub fn place_center(&mut self, svg_sub: impl Rendable) {
-        let width = svg_sub.width();
-        let height = svg_sub.height();
-        let doc_width = self.width();
-        let doc_height = self.height();
-        let x = doc_width /2 - width /2;
-        let y = doc_height /2 - height /2;
-
-        let sub_svg = svg_sub.render()
-            .set("x", x)
-            .set("y", y);
-        self.add(sub_svg);
-    }
-     */
 
     pub fn position(&self) -> Vec<(u32, u32)> {
         match self.plots.len() {

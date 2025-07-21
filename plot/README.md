@@ -28,9 +28,12 @@ SVG document handling, coordinate transforms, and view management.
 - Floating-point rounding utilities with configurable precision.
 
 ### Usage
+
 Import the desired modules and use the provided functions to construct and manipulate SVG plots.
 
 ### License
 
+This library is dual-licensed under the MIT License and the Apache License (Version 2.0).
+You may choose either license when using this library.
 
 <!-- cargo-rdme end -->
