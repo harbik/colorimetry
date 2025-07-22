@@ -13,13 +13,25 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
             "fill: #DDD; stroke: none; stroke-width: 0; stroke-linecap: round;",
         )
         .add_css_rule(
+            ".spectral-locus-ticks",
+            "fill:none; stroke:#888; stroke-width:1; stroke-linecap: round;",
+        )
+        .add_css_rule(
+            ".planckian",
+            "fill: none; stroke: black; stroke-width: 1; stroke-linecap: round;",
+        )
+        .add_css_rule(
             "text",
             "fill: black; stroke: none; font-size: 12pt; font-family: sans-serif;",
+        )
+        .add_css_rule(
+            "text.spectral-locus-labels",
+            "fill:#DDD; stroke:none; stroke-width:0;",
         )
         .add_css_rule(".white-point", "stroke: black; stroke-width: 1;")
         .add_css_rule(
             "text.white-point",
-            "fill: black; stroke: None; stroke-width: 0;",
+            "fill:black; stroke:none; stroke-width:0;",
         );
 
     let xy_chromaticity = XYChromaticity::new(
@@ -29,28 +41,32 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
         (0.0..=0.75, 0.0..=0.85),
         (Some("chart-area"), None),
     )
-        .add_axis(
-            Some("CIE 1931 x Chromaticity"),
-            AxisSide::Bottom,
-            0.1,
-            6,
-            true,
-            Some("grid"),
-        )
-        .add_axis(None, AxisSide::Bottom, 0.01, 4, false, Some("fine-grid"))
-        .add_axis(
-            Some("y Chromaticity"),
-            AxisSide::Left,
-            0.1,
-            6,
-            true,
-            Some("grid"),
-        )
-        .add_axis(None, AxisSide::Left, 0.01, 4, false, Some("fine-grid"))
-        .draw_spectral_locus(Some("spectral-locus"), None)
-        .draw_rgb_gamut(SRGB, None, None)
-        .draw_grid(0.01, 0.01, Some("fine-grid"), None)
-        .draw_grid(0.1, 0.1, Some("grid"), None);
+    .add_axis(
+        Some("CIE 1931 x Chromaticity"),
+        AxisSide::Bottom,
+        0.1,
+        6,
+        true,
+        Some("grid"),
+    )
+    .add_axis(None, AxisSide::Bottom, 0.01, 4, false, Some("fine-grid"))
+    .add_axis(
+        Some("CIE 1931 y Chromaticity"),
+        AxisSide::Left,
+        0.1,
+        6,
+        true,
+        Some("grid"),
+    )
+    .add_axis(None, AxisSide::Left, 0.01, 4, false, Some("fine-grid"))
+    .draw_spectral_locus(Some("spectral-locus"), None)
+    .draw_spectral_locus_ticks(440..651, 10, 15, Some("spectral-locus-ticks"), None)
+    .draw_spectral_locus_ticks(460..631, 1, 7, Some("spectral-locus-ticks"), None)
+    .draw_spectral_locus_labels(460..=620, 10, 2, Some("spectral-locus-labels"), None)
+    .draw_rgb_gamut(SRGB, None, None)
+    .draw_planckian_locus(Some("planckian"), None)
+    .draw_grid(0.01, 0.01, Some("fine-grid"), None)
+    .draw_grid(0.1, 0.1, Some("grid"), None);
 
     svgdoc.add_svg(Box::new(xy_chromaticity));
 

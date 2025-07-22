@@ -30,7 +30,6 @@ impl Layer {
     }
 }
 
-
 impl From<Layer> for Box<dyn Node> {
     fn from(layer: Layer) -> Self {
         Box::new(layer.0)

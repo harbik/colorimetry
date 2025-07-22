@@ -8,8 +8,8 @@ use svg::{
 use crate::{rendable::Rendable, view::ViewParameters};
 
 const DEFAULT_CSS: &str = "
-    .default {fill: lightgray; stroke: lightgray; stroke-width:1;}
-    text.default  {fill: lightgray; stroke: none; stroke-width: 0; font-size: 16px; font-family: san-serif;}
+    .default {fill: none; stroke: chartreuse; stroke-width:1;}
+    text.default  {fill: chartreuse; stroke: none; stroke-width: 0; font-size: 16px; font-family: san-serif;}
 ";
 
 pub const NORTH: i32 = 90;

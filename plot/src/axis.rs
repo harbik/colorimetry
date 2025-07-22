@@ -6,7 +6,7 @@ use svg::{
 pub mod tick;
 pub use tick::Tick;
 mod range;
-pub use range::{ChartRange, ChartRangeWithStep};
+pub use range::{ScaleRange, ScaleRangeWithStep};
 
 #[derive(Debug, Clone, Copy, strum::Display, PartialEq, Eq)]
 pub enum AxisSide {
@@ -19,7 +19,7 @@ pub enum AxisSide {
 pub struct Axis {
     pub(super) target: (i32, i32, u32, u32), // left, top, width, height
     pub(super) side: AxisSide,
-    pub(super) range_with_step: ChartRangeWithStep, // Range of the axis
+    pub(super) range_with_step: ScaleRangeWithStep, // Range of the axis
     pub(super) show_labels: bool,                   // Whether to show labels or not
     pub(super) class: Option<String>,
     pub(super) tick_length: i32,            // Length of the ticks
@@ -30,7 +30,7 @@ impl Axis {
     pub fn new(
         description: Option<&str>,
         target: (i32, i32, u32, u32), // left, top, width, height
-        range_with_step: ChartRangeWithStep,
+        range_with_step: ScaleRangeWithStep,
         side: AxisSide,
         tick_length: i32,
         show_labels: bool,

@@ -6,11 +6,7 @@
 //
 // Use Builder pattern for the charts? Make all the user input data optional
 
-use std::{
-    fmt::Display,
-    ops::RangeBounds,
-    rc::Rc,
-};
+use std::{fmt::Display, ops::RangeBounds, rc::Rc};
 
 use svg::{
     node::element::{path::Data, ClipPath, Definitions, Group, Image, Line, Path, Text, SVG},
@@ -18,7 +14,7 @@ use svg::{
 };
 
 use crate::{
-    axis::{Axis, AxisSide, ChartRange, ChartRangeWithStep},
+    axis::{Axis, AxisSide, ScaleRange, ScaleRangeWithStep},
     layer::Layer,
     rendable::Rendable,
     round_to_default_precision, set_class_and_style,
@@ -31,8 +27,8 @@ pub type CoordinateTransform = Rc<dyn Fn((f64, f64)) -> (f64, f64)>;
 pub struct XYChart {
     // inputs
     pub id: String,          // unique id for the chart
-    pub x_range: ChartRange, // min, max for x axis
-    pub y_range: ChartRange, // min, max for y axis
+    pub x_range: ScaleRange, // min, max for x axis
+    pub y_range: ScaleRange, // min, max for y axis
     pub plot_width: u32,
     pub plot_height: u32,
 
@@ -47,7 +43,6 @@ pub struct XYChart {
     pub annotations_layer: Layer,
     pub clip_paths: Vec<ClipPath>,
     pub margins: [i32; 4], // top, right, bottom, left
-
 }
 
 impl XYChart {
@@ -65,7 +60,7 @@ impl XYChart {
     ) -> XYChart {
         let id = id.as_ref().to_string();
         let (plot_width, plot_height) = plot_width_and_height;
-        let (x_range, y_range) = (ChartRange::new(ranges.0), ChartRange::new(ranges.1));
+        let (x_range, y_range) = (ScaleRange::new(ranges.0), ScaleRange::new(ranges.1));
         let (class, style) = class_and_style;
 
         // output coordinates with 0.1px precision
@@ -100,7 +95,7 @@ impl XYChart {
                 .add(path.clone()),
         );
         plot_layer = plot_layer.set("clip-path", format!("url(#clip-{id})"));
-        
+
         // don't add a background if no style or class is given
         if style.is_some() || class.is_some() {
             if let Some(style) = style {
@@ -111,7 +106,7 @@ impl XYChart {
             }
             plot_layer.append(path);
         }
-        
+
         let annotations_layer = Layer::new()
             .set("id", format!("annotations-{id}"))
             .set("class", "annotations");
@@ -174,7 +169,7 @@ impl XYChart {
             AxisSide::Bottom | AxisSide::Top => self.x_range,
             AxisSide::Left | AxisSide::Right => self.y_range,
         };
-        let range_with_step = ChartRangeWithStep::new(range, step);
+        let range_with_step = ScaleRangeWithStep::new(range, step);
         let x_axis = Axis::new(
             description,
             (0, 0, self.plot_width, self.plot_height),
@@ -291,12 +286,7 @@ impl XYChart {
 
     /// Draw a Path using the Chart Coordinates onto the
     /// `scaled_layer``
-    pub fn draw_path(
-        mut self,
-        mut path: Path,
-        class: Option<&str>,
-        style: Option<&str>,
-    ) -> Self {
+    pub fn draw_path(mut self, mut path: Path, class: Option<&str>, style: Option<&str>) -> Self {
         path = set_class_and_style(path, class, style);
         self.plot_layer.append(path);
         self
@@ -375,8 +365,8 @@ pub(super) fn to_path(data: impl IntoIterator<Item = (f64, f64)>, close: bool) -
 fn world_to_plot_coordinates(
     x: f64,
     y: f64,
-    x_range: &ChartRange,
-    y_range: &ChartRange,
+    x_range: &ScaleRange,
+    y_range: &ScaleRange,
     w: f64,
     h: f64,
 ) -> (f64, f64) {
@@ -391,8 +381,8 @@ fn world_to_plot_coordinates(
 pub fn plot_to_world_coordinates(
     x: f64,
     y: f64,
-    x_range: &ChartRange,
-    y_range: &ChartRange,
+    x_range: &ScaleRange,
+    y_range: &ScaleRange,
     w: f64,
     h: f64,
 ) -> (f64, f64) {
@@ -403,8 +393,8 @@ pub fn plot_to_world_coordinates(
 #[test]
 fn test_plot_to_world_coordinates() {
     use approx::assert_abs_diff_eq;
-    let x_range = ChartRange::new(0.0..=1.0);
-    let y_range = ChartRange::new(0.0..=1.0);
+    let x_range = ScaleRange::new(0.0..=1.0);
+    let y_range = ScaleRange::new(0.0..=1.0);
     let (x, y) = plot_to_world_coordinates(100.0, 200.0, &x_range, &y_range, 400.0, 300.0);
     assert_abs_diff_eq!(x, 0.25, epsilon = 1e-10);
     assert_abs_diff_eq!(y, 1.0 / 3.0, epsilon = 1e-10);
@@ -513,7 +503,6 @@ macro_rules! delegate_xy_chart_methods {
                 self
             }
 
-
             // Axis methods
             pub fn add_axis(
                 mut self,
@@ -524,8 +513,9 @@ macro_rules! delegate_xy_chart_methods {
                 show_labels: bool,
                 class: Option<&str>,
             ) -> Self {
-                self.$field = self.$field
-                    .add_axis(description, side, step, tick_length, show_labels, class);
+                self.$field =
+                    self.$field
+                        .add_axis(description, side, step, tick_length, show_labels, class);
                 self
             }
 
@@ -539,7 +529,8 @@ macro_rules! delegate_xy_chart_methods {
                 class: Option<&str>,
                 style: Option<&str>,
             ) -> Self {
-                self.$field = self.$field
+                self.$field = self
+                    .$field
                     .annotate(cxy, r, angle_and_length, text, class, style);
                 self
             }

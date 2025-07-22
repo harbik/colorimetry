@@ -1,6 +1,6 @@
 use nalgebra::{Matrix3, Vector3};
 
-use crate::axis::ChartRange;
+use crate::axis::ScaleRange;
 
 // SVG transform matrix: matrix(a, b, c, d, e, f)
 // which is: [a c e]
@@ -14,7 +14,7 @@ pub struct CoordinateTransform {
 }
 
 impl CoordinateTransform {
-    pub fn new(target: [u32; 4], range_x: ChartRange, range_y: ChartRange) -> Self {
+    pub fn new(target: [u32; 4], range_x: ScaleRange, range_y: ScaleRange) -> Self {
         let [left, top, width, height] = target;
         let scale_x = width as f64 / range_x.span();
         let scale_y = height as f64 / range_y.span();

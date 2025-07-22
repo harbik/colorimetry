@@ -1,13 +1,13 @@
 use std::ops::{Bound, Range, RangeBounds};
 
 #[derive(Debug, Clone, Copy)]
-pub struct ChartRange {
+pub struct ScaleRange {
     pub start: f64,
     pub end: f64,
     pub end_included: bool,
 }
 
-impl ChartRange {
+impl ScaleRange {
     pub fn new<R: RangeBounds<f64>>(range: R) -> Self {
         let start = match range.start_bound() {
             Bound::Included(&s) => s,
@@ -53,10 +53,10 @@ impl ChartRange {
 
     /// Creates an iterator over the range with a specified step size.
     /// Produces values aligned with the step size, for use to draw grid lines and ticks.
-    pub fn iter_with_step(&self, step: f64) -> ChartRangeIterator {
+    pub fn iter_with_step(&self, step: f64) -> ScaleRangeIterator {
         let start = (self.start / step).ceil() * step; // Start from the first tick
 
-        ChartRangeIterator {
+        ScaleRangeIterator {
             start,
             end: self.end,
             step,
@@ -65,14 +65,14 @@ impl ChartRange {
     }
 }
 
-pub struct ChartRangeIterator {
+pub struct ScaleRangeIterator {
     start: f64,
     end: f64,
     end_included: bool,
     step: f64,
 }
 
-impl Iterator for ChartRangeIterator {
+impl Iterator for ScaleRangeIterator {
     type Item = f64;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -88,25 +88,25 @@ impl Iterator for ChartRangeIterator {
     }
 }
 
-pub struct ChartRangeWithStep {
-    pub range: ChartRange,
+pub struct ScaleRangeWithStep {
+    pub range: ScaleRange,
     pub step: f64,
 }
 
-impl ChartRangeWithStep {
-    pub fn new(range: ChartRange, step: f64) -> Self {
+impl ScaleRangeWithStep {
+    pub fn new(range: ScaleRange, step: f64) -> Self {
         Self { range, step }
     }
 
-    pub fn iter(&self) -> ChartRangeIterator {
+    pub fn iter(&self) -> ScaleRangeIterator {
         self.range.iter_with_step(self.step)
     }
 }
 
-impl<R: RangeBounds<f64>> From<(R, f64)> for ChartRangeWithStep {
+impl<R: RangeBounds<f64>> From<(R, f64)> for ScaleRangeWithStep {
     fn from((range, step): (R, f64)) -> Self {
         Self {
-            range: ChartRange::new(range),
+            range: ScaleRange::new(range),
             step,
         }
     }
@@ -120,7 +120,7 @@ mod tests {
 
     #[test]
     fn test_chart_range() {
-        let range = ChartRange::new(0.0..1.0);
+        let range = ScaleRange::new(0.0..1.0);
         assert_abs_diff_eq!(range.end, 1.0);
         assert_abs_diff_eq!(range.span(), 1.0);
         assert_abs_diff_eq!(range.scale(0.5), 0.5);
@@ -129,7 +129,7 @@ mod tests {
 
     #[test]
     fn test_iter_with_step() {
-        let range = ChartRange::new(0.0..=1.0);
+        let range = ScaleRange::new(0.0..=1.0);
         let mut iter = range.iter_with_step(0.2);
         assert_abs_diff_eq!(iter.next().unwrap(), 0.0);
         assert_abs_diff_eq!(iter.next().unwrap(), 0.2);
@@ -142,7 +142,7 @@ mod tests {
 
     #[test]
     fn test_iter_with_step_excluding_end() {
-        let range = ChartRange::new(0.0..1.0);
+        let range = ScaleRange::new(0.0..1.0);
         let mut iter = range.iter_with_step(0.2);
         assert_abs_diff_eq!(iter.next().unwrap(), 0.0);
         assert_abs_diff_eq!(iter.next().unwrap(), 0.2);
@@ -154,7 +154,7 @@ mod tests {
 
     #[test]
     fn test_iter_with_open_start() {
-        let range = ChartRange::new(..1.0);
+        let range = ScaleRange::new(..1.0);
         let mut iter = range.iter_with_step(0.2);
         assert_abs_diff_eq!(iter.next().unwrap(), 0.0);
         assert_abs_diff_eq!(iter.next().unwrap(), 0.2);
@@ -166,7 +166,7 @@ mod tests {
 
     #[test]
     fn test_range_with_step() {
-        let rws: ChartRangeWithStep = (0.0..=1.0, 0.2).into();
+        let rws: ScaleRangeWithStep = (0.0..=1.0, 0.2).into();
         let mut iter = rws.iter();
         assert_abs_diff_eq!(iter.next().unwrap(), 0.0);
         assert_abs_diff_eq!(iter.next().unwrap(), 0.2);
