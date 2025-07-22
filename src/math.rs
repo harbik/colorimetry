@@ -5,6 +5,8 @@
 //! stimuli, colorants, and to perform photometric and radiometric calculations.
 //!
 
+use approx::abs_diff_eq;
+
 use crate::Error;
 use core::f64;
 use std::f64::consts::PI;
@@ -323,6 +325,124 @@ impl Triangle {
         !abc.iter().any(|v| !(0.0..=1.0).contains(v))
     }
 }
+
+/// A quadratic curve passing through three points.
+///
+/// This implementation uses a quadratic Bézier curve representation, which can handle cases
+/// where the points are not functions of x (e.g., vertical tangents). The three points
+/// provided at creation, `p0`, `p1`, and `p2`, are assumed to correspond to the curve at
+/// parameter `t` values of 0, 0.5, and 1, respectively.
+pub struct QuadraticCurve {
+    // Control points for the Bézier curve
+    c0: (f64, f64),
+    c1: (f64, f64),
+    c2: (f64, f64),
+}
+
+impl QuadraticCurve {
+    /// Creates a new quadratic curve that passes through three given points.
+    ///
+    /// The points `p0`, `p1`, and `p2` are mapped to the curve at `t=0`, `t=0.5`, and `t=1`.
+    ///
+    /// # Errors
+    ///
+    /// Returns `Error::RequiresDistinctPoints` if the points are not distinct, which would
+    /// result in a degenerate curve.
+    pub fn new(p0: (f64, f64), p1: (f64, f64), p2: (f64, f64)) -> Result<Self, Error> {
+        if (abs_diff_eq!(p0.0, p1.0, epsilon = f64::EPSILON) && abs_diff_eq!(p0.1, p1.1, epsilon = f64::EPSILON))
+            || (abs_diff_eq!(p1.0, p2.0, epsilon = f64::EPSILON) && abs_diff_eq!(p1.1, p2.1, epsilon = f64::EPSILON))
+            || (abs_diff_eq!(p0.0, p2.0, epsilon = f64::EPSILON) && abs_diff_eq!(p0.1, p2.1, epsilon = f64::EPSILON))
+        {
+            return Err(Error::RequiresDistinctPoints);
+        }
+        // Determine control points for a quadratic Bézier curve passing through p0, p1, p2
+        // at t=0, t=0.5, and t=1.
+        // p0 -> c0
+        // p2 -> c2
+        // p1 = (1-0.5)^2*c0 + 2*(1-0.5)*0.5*c1 + 0.5^2*c2
+        // p1 = 0.25*c0 + 0.5*c1 + 0.25*c2
+        // 0.5*c1 = p1 - 0.25*c0 - 0.25*c2
+        // c1 = 2*p1 - 0.5*c0 - 0.5*c2
+        let c0 = p0;
+        let c2 = p2;
+        let c1 = (
+            2.0 * p1.0 - 0.5 * (p0.0 + p2.0),
+            2.0 * p1.1 - 0.5 * (p0.1 + p2.1),
+        );
+
+        Ok(Self { c0, c1, c2 })
+    }
+
+    /// Evaluates the curve at a parameter `t`.
+    ///
+    /// The parameter `t` typically ranges from 0 to 1.
+    /// - `t=0` returns the start point `p0`.
+    /// - `t=0.5` returns the mid-point `p1`.
+    /// - `t=1` returns the end point `p2`.
+    pub fn value(&self, t: f64) -> (f64, f64) {
+        let omt = 1.0 - t;
+        let x = omt.powi(2) * self.c0.0 + 2.0 * omt * t * self.c1.0 + t.powi(2) * self.c2.0;
+        let y = omt.powi(2) * self.c0.1 + 2.0 * omt * t * self.c1.1 + t.powi(2) * self.c2.1;
+        (x, y)
+    }
+
+    /// Calculates the derivative of the curve with respect to `t`.
+    ///
+    /// This gives the tangent vector `(dx/dt, dy/dt)` at parameter `t`.
+    pub fn derivative(&self, t: f64) -> (f64, f64) {
+        let dx_dt = 2.0 * (1.0 - t) * (self.c1.0 - self.c0.0) + 2.0 * t * (self.c2.0 - self.c1.0);
+        let dy_dt = 2.0 * (1.0 - t) * (self.c1.1 - self.c0.1) + 2.0 * t * (self.c2.1 - self.c1.1);
+        (dx_dt, dy_dt)
+    }
+
+    /// Calculates the slope of the tangent to the curve at parameter `t`.
+    ///
+    /// The slope is `dy/dx`. Returns `f64::INFINITY` for a vertical tangent.
+    pub fn slope_angle(&self, t: f64) -> f64 {
+        let (dx_dt, dy_dt) = self.derivative(t);
+        dy_dt.atan2(dx_dt)
+    }
+
+}
+
+#[test]
+fn quadratic_curve_test() {
+
+    use approx::assert_ulps_eq;
+    // Standard parabola y = x^2
+    let curve = QuadraticCurve::new((-1.0, 1.0), (0.0, 0.0), (1.0, 1.0)).unwrap();
+    // at t=0.5 (x=0), slope should be 0
+    assert_ulps_eq!(curve.slope_angle(0.5), 0.0);
+    // at t=1 (x=1), slope should be 2*x = 2
+    assert_ulps_eq!(curve.slope_angle(1.0), 2.0);
+    // at t=0 (x=-1), slope should be 2*x = -2
+    assert_ulps_eq!(curve.slope_angle(0.0), -2.0);
+
+    // Rotated parabola, opening to the right: x = y^2
+    let curve_rot = QuadraticCurve::new((1.0, -1.0), (0.0, 0.0), (1.0, 1.0)).unwrap();
+    // at t=0.5 (y=0), slope should be infinite
+    assert_eq!(curve_rot.slope_angle(0.5), f64::INFINITY);
+    // at t=1 (y=1), slope is dy/dx = 1/(dx/dy) = 1/(2y) = 0.5
+    assert_ulps_eq!(curve_rot.slope_angle(1.0), 0.5);
+    // at t=0 (y=-1), slope is 1/(2y) = -0.5
+    assert_ulps_eq!(curve_rot.slope_angle(0.0), -0.5);
+
+    // Check that value() returns the original points
+    let p0 = (-1.0, 1.0);
+    let p1 = (0.0, 0.0);
+    let p2 = (1.0, 1.0);
+    let curve_val = QuadraticCurve::new(p0, p1, p2).unwrap();
+    let v0 = curve_val.value(0.0);
+    assert_ulps_eq!(v0.0, p0.0);
+    assert_ulps_eq!(v0.1, p0.1);
+    let v1 = curve_val.value(0.5);
+    assert_ulps_eq!(v1.0, p1.0);
+    assert_ulps_eq!(v1.1, p1.1);
+    let v2 = curve_val.value(1.0);
+    assert_ulps_eq!(v2.0, p2.0);
+    assert_ulps_eq!(v2.1, p2.1);
+}
+
 
 #[test]
 fn triangle_test() {
