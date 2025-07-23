@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 
 use svg::{
     node::element::{ClipPath, Path, Style, Symbol},
@@ -28,7 +27,7 @@ pub const SOUTH_EAST: i32 = 315;
 #[derive(Default)]
 pub struct SvgDocument {
     pub(super) view_parameters: ViewParameters,
-    pub(super) styles: HashMap<String, String>, // selector, and elements
+    pub(super) css: String, // selector, and elements
     pub(super) clip_paths: Vec<ClipPath>,
     pub(super) symbols: Vec<Symbol>,
     pub(super) plots: Vec<Box<dyn Rendable>>,
@@ -42,7 +41,7 @@ impl SvgDocument {
     /// * `height` - The height of the SVG document.
     /// # Returns
     /// A new instance of `SvgDocument`.
-    pub fn new(width: u32, height: u32) -> Self {
+    pub fn new(width: u32, height: u32, css: &str ) -> Self {
         let mut view_parameters = ViewParameters::default();
         view_parameters.set_width(width);
         view_parameters.set_height(height);
@@ -51,7 +50,7 @@ impl SvgDocument {
         SvgDocument {
             view_parameters,
             clip_paths: Vec::new(),
-            styles: HashMap::new(),
+            css: css.to_string(),
             nodes: Vec::new(), // layers, use, and svg elements
             symbols: Vec::new(),
             plots: Vec::new(),
@@ -59,29 +58,35 @@ impl SvgDocument {
     }
 
     /// Adds a path to the SVG document as a clip path with the specified ID.
-    pub fn add_clip_path(&mut self, id: String, path: &Path) {
+    pub fn add_clip_path(mut self, id: String, path: &Path) -> Self {
         let clip = ClipPath::new().set("id", id).add(path.clone());
         self.clip_paths.push(clip);
-    }
-
-    /// Adds a symbol to the SVG document.
-    pub fn add_symbol(&mut self, symbol: impl Into<Symbol>) {
-        self.symbols.push(symbol.into());
-    }
-
-    pub fn add_css_rule(mut self, select: &str, style: &str) -> Self {
-        self.styles.insert(select.to_string(), style.to_string());
         self
     }
 
-    // TODO: check node type to select where to add it to
-    /// Adds a node to the SVG document. The node can be any type that implements the `Node` trait.
-    pub fn add(&mut self, node: impl Into<Box<dyn Node>>) {
-        self.nodes.push(node.into());
+    /// Adds a symbol to the SVG document.
+    pub fn add_symbol(mut self, symbol: impl Into<Symbol>) -> Self {
+        self.symbols.push(symbol.into());
+        self
     }
 
-    pub fn add_svg(&mut self, svg_sub: Box<dyn Rendable>) {
+    /*
+    pub fn add_css(mut self, style: &str) -> Self {
+        self.css.push(style.to_string());
+        self
+    }
+     */
+
+    // TODO: check node type to select where to add it to
+    /// Adds a node to the SVG document. The node can be any type that implements the `Node` trait.
+    pub fn add(mut self, node: impl Into<Box<dyn Node>>) -> Self {
+        self.nodes.push(node.into());
+        self
+    }
+
+    pub fn add_svg(mut self, svg_sub: Box<dyn Rendable>) -> Self {
         self.plots.push(svg_sub);
+        self
     }
 
     pub fn position(&self) -> Vec<(u32, u32)> {
@@ -101,8 +106,8 @@ impl SvgDocument {
         }
     }
 
-    pub fn save(&mut self, filename: &str) -> Result<(), std::io::Error> {
-        svg::save(filename, &self.render())
+    pub fn save(self, filename: &str) -> Result<(), Box<dyn std::error::Error>> {
+        Ok(svg::save(filename, &self.render())?)
     }
 }
 
@@ -121,15 +126,7 @@ impl Rendable for SvgDocument {
             .set("width", self.view_parameters.width())
             .set("height", self.view_parameters.height());
 
-        let mut content = self
-            .styles
-            .iter()
-            .map(|(selector, style)| format!("{selector} {{{style}}}"))
-            .collect::<Vec<String>>()
-            .join("\n");
-
-        content.push_str(DEFAULT_CSS);
-        doc = doc.add(Style::new(content));
+        doc = doc.add(Style::new(format!("{}\n{}", self.css, DEFAULT_CSS)));
 
         //  add definitions for clip paths and symbols
         let mut defs = svg::node::element::Definitions::new();

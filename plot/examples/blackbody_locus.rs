@@ -5,41 +5,66 @@ use colorimetry_plot::{
     svgdoc::{SvgDocument, NORTH_WEST, SOUTH_EAST},
 };
 
+const STYLE: &str = "
+    :root {
+        --chart-background-color: #888;
+        --spectral-locus-color: #DDD;
+        --axis-color: #DDD;
+        --grid-color: #AAA;
+    }
+    .fine-grid {
+        stroke: var(--grid-color);
+        stroke-width: 0.5;
+    }
+    .grid {
+        stroke: var(--grid-color);
+        stroke-width: 1.0;
+    }
+    .chart {
+        fill: var(--chart-background-color);
+        stroke: black;
+        stroke-width: 5;
+    }
+    .spectral-locus {
+        fill: white;
+        stroke: black;
+        stroke-width: 2;
+        stroke-linecap: round;
+    }
+    .planckian-locus {
+        fill: none;
+        stroke: gray;
+        stroke-width: 2;
+        stroke-linecap: round;
+    }
+    text {
+        fill: black;
+        stroke: none;
+        font-size: 12pt;
+        font-family:sans-serif;
+    }
+    .white-point {
+        stroke: black;
+        stroke-width: 1;
+    }
+    text.white-point {
+        fill: black;
+        stroke: none;
+        stroke-width: 0;
+    }
+";
+
 pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     let observer = Observer::default();
     let d65 = observer.xyz_d65().chromaticity().to_tuple();
     let d50 = observer.xyz_d50().chromaticity().to_tuple();
 
-    let mut svgdoc = SvgDocument::new(800, 800)
-        .add_css_rule(".fine-grid", "stroke: #88888888; stroke-width: 0.5;")
-        .add_css_rule(".grid", "stroke: #88888888; stroke-width: 1.0;")
-        .add_css_rule(
-            ".chart-area",
-            "fill: #DDDDDD; stroke: none; stroke-width: 0;",
-        )
-        .add_css_rule(
-            ".spectral-locus",
-            "fill: white; stroke: black; stroke-width: 2; stroke-linecap: round;",
-        )
-        .add_css_rule(
-            ".planckian-locus",
-            "fill: none; stroke: gray; stroke-width: 2; stroke-linecap: round;",
-        )
-        .add_css_rule(
-            "text",
-            "fill: black; stroke: none; font-size: 12pt; font-family: sans-serif;",
-        )
-        .add_css_rule(".white-point", "stroke: black; stroke-width: 1;")
-        .add_css_rule(
-            "text.white-point",
-            "fill: black; stroke: None; stroke-width: 0;",
-        );
 
     let chart = XYChart::new(
         "cie1931_chromaticity_diagram",
         (500, 500),
         (0.25..=0.45, 0.25..=0.45),
-        (Some("chart-area"), None),
+        (Some("chart"), None),
     )
     .add_axis(
         Some("CIE 1931 x Chromaticity"),
@@ -48,8 +73,10 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
         6,
         true,
         Some("grid"),
+        None
     )
-    .add_axis(None, AxisSide::Bottom, 0.01, 4, false, Some("fine-grid"))
+    .add_ticks(0.01, 0.01, 4, Some("fine-grid"), None)
+    .add_ticks(0.1, 0.1, 6, Some("fine-grid"), None)
     .add_axis(
         Some("y Chromaticity"),
         AxisSide::Left,
@@ -57,8 +84,8 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
         6,
         true,
         Some("grid"),
+        None
     )
-    .add_axis(None, AxisSide::Left, 0.01, 4, false, Some("fine-grid"))
     .add_axis(
         Some("CIE 1931 x Chromaticity"),
         AxisSide::Top,
@@ -66,8 +93,8 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
         6,
         true,
         Some("grid"),
+        None
     )
-    .add_axis(None, AxisSide::Top, 0.01, 4, false, Some("fine-grid"))
     .add_axis(
         Some("y Chromaticity"),
         AxisSide::Right,
@@ -75,8 +102,8 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
         6,
         true,
         Some("grid"),
+        None
     )
-    .add_axis(None, AxisSide::Right, 0.01, 4, false, Some("fine-grid"))
     .draw_shape(
         observer.spectral_locus().into_iter().take(330),
         Some("spectral-locus"),
@@ -96,9 +123,8 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     .annotate(d65, 3.0, (NORTH_WEST, 20), "D65", Some("white-point"), None)
     .annotate(d50, 3.0, (NORTH_WEST, 20), "D50", Some("white-point"), None);
 
-    svgdoc.add_svg(Box::new(chart.clone()));
-    //    svgdoc.place_center(chart);
+    SvgDocument::new(800, 800, STYLE)
+        .add_svg(Box::new(chart.clone()))
+        .save("tmp/blackbody_locus.svg")
 
-    svgdoc.save("tmp/blackbody_locus.svg").unwrap();
-    Ok(())
 }

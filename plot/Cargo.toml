@@ -2,6 +2,9 @@
 name = "colorimetry-plot"
 version = "0.0.1"
 edition = "2021"
+authors = ["Gerard Harbers", "Harbers Bik LLC"]
+repository = "https://github.com/harbik/colorimetry/plot"
+license = "MIT OR Apache-2.0"
 
 [dependencies]
 approx = "0.5.1"
@@ -11,5 +14,3 @@ strum = { version = "0.27.1", features = ["derive"] }
 svg = "0.18.0"
 image = { version = "0.25", default-features = false, features = ["png"] }
 base64 = "0.21"
-
-[dev-dependencies]

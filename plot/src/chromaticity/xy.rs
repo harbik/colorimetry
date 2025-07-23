@@ -73,7 +73,7 @@ impl XYChromaticity {
             let pxy2 = (pxy1.0 + length * angle.sin(), pxy1.1 + length * angle.cos());
             data = data.line_to(pxy2);
         }
-        self_as_mut.draw_data(data, class, style)
+        self_as_mut.draw_data("plot", data, class, style)
     }
 
     pub fn draw_spectral_locus_labels(

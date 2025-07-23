@@ -1,10 +1,3 @@
-// TODO
-//
-// Deref for other plots? Or copy the XYChart methods to the derived structs?
-// using a immplement_xy_chart_methods! macro?
-// Deref gives back XYChart, which is confusing in for example XYChromaticity as you have to reset to XYChromaticity to access the observer dependent methods.
-//
-// Use Builder pattern for the charts? Make all the user input data optional
 
 use std::{fmt::Display, ops::RangeBounds, rc::Rc};
 
@@ -38,6 +31,8 @@ pub struct XYChart {
 
     // initially empty, filled by the chart methods
     pub view_parameters: ViewParameters,
+    
+    // todo: make layers a hashmap: <"String", "Layer">
     pub plot_layer: Layer,
     pub axes_layer: Layer,
     pub annotations_layer: Layer,
@@ -132,6 +127,48 @@ impl XYChart {
         }
     }
 
+    /// Adds ticks to all the sides of the plot.
+    /// A negative length value produces inward ticks, and a positive value outward ticks.
+    pub fn add_ticks(mut self, x_step: f64, y_step: f64, length: i32, class: Option<&str>, style: Option<&str>) -> Self {
+        let mut data = Data::new();
+        let to_plot = self.to_plot.clone();
+        for x in self.x_range.iter_with_step(x_step) {
+
+            let (px, py) = to_plot((x, self.y_range.start));
+            data = data
+                .move_to((px, py))
+                .line_to((px, py + length as f64));
+
+            let (px, py) = to_plot((x, self.y_range.end));
+            data = data
+                .move_to((px, py))
+                .line_to((px, py - length as f64));
+        }
+        for y in self.y_range.iter_with_step(y_step) {
+
+            let (px, py) = to_plot((self.x_range.start, y));
+            data = data
+                .move_to((px, py))
+                .line_to((px - length as f64, py));
+
+            let (px, py) = to_plot((self.x_range.end, y));
+            data = data
+                .move_to((px, py))
+                .line_to((px + length as f64, py));
+        }
+        // Extend view coordinates if required
+        if length > 0 {
+            self.margins.iter_mut().for_each(|v|{
+                if *v < length {
+                    *v = length;
+                }
+            });
+            self.update_view();
+        }
+        self.draw_data("axes", data, class, style)
+        
+    }
+
     pub fn add_axis(
         mut self,
         description: Option<&str>,
@@ -140,6 +177,7 @@ impl XYChart {
         tick_length: i32,
         show_labels: bool,
         class: Option<&str>,
+        style: Option<&str>,
     ) -> Self {
         let mut margin = if show_labels {
             tick_length + Self::LABEL_HEIGHT
@@ -170,6 +208,7 @@ impl XYChart {
             AxisSide::Left | AxisSide::Right => self.y_range,
         };
         let range_with_step = ScaleRangeWithStep::new(range, step);
+        
         let x_axis = Axis::new(
             description,
             (0, 0, self.plot_width, self.plot_height),
@@ -179,6 +218,7 @@ impl XYChart {
             show_labels,
             class,
         );
+        
         self.axes_layer.append(Group::from(x_axis));
         self.update_view();
         self
@@ -203,7 +243,7 @@ impl XYChart {
                 .move_to(on_canvas((self.x_range.start, y)))
                 .line_to(on_canvas((self.x_range.end, y)));
         }
-        self.draw_data(data, class, style)
+        self.draw_data("plot", data, class, style)
     }
 
     pub fn draw_image(
@@ -284,19 +324,22 @@ impl XYChart {
         self
     }
 
-    /// Draw a Path using the Chart Coordinates onto the
-    /// `scaled_layer``
-    pub fn draw_path(mut self, mut path: Path, class: Option<&str>, style: Option<&str>) -> Self {
+    /// Draw a Path using the Chart Coordinates onto the selected layer
+    pub fn draw_path(mut self, layer: &str,  mut path: Path, class: Option<&str>, style: Option<&str>) -> Self {
         path = set_class_and_style(path, class, style);
-        self.plot_layer.append(path);
+        match layer {
+            "axes" => self.axes_layer.append(path),
+            "plot" => self.plot_layer.append(path),
+            "annotations" => self.annotations_layer.append(path),
+            _ => panic!("layer must be one of 'axes' 'plot', or 'annotations'")
+        }
         self
     }
 
-    /// Add Data, composed of e.g. move_to and line_to operations, to the Chart
-    /// using scaled coordinates.
-    pub fn draw_data(self, data: Data, class: Option<&str>, style: Option<&str>) -> Self {
+    /// Add Data, composed of e.g. move_to and line_to operations, to chose layer
+    pub fn draw_data(self, layer: &str, data: Data, class: Option<&str>, style: Option<&str>) -> Self {
         let path = Path::new().set("d", data);
-        self.draw_path(path, class, style)
+        self.draw_path(layer, path, class, style)
     }
 
     /// Add a path to the chart, using coordinates from an iterator.
@@ -308,7 +351,7 @@ impl XYChart {
     ) -> Self {
         let on_canvas = self.to_plot.clone();
         let iter_canvas = data.into_iter().map(|xy| (on_canvas)(xy));
-        self.draw_path(to_path(iter_canvas, false), class, style)
+        self.draw_path("plot", to_path(iter_canvas, false), class, style)
     }
 
     /// Add a path that connects the coordinates in an interator and closes the path.
@@ -320,7 +363,7 @@ impl XYChart {
     ) -> Self {
         let on_canvas = self.to_plot.clone();
         let iter_canvas = data.into_iter().map(|xy| (on_canvas)(xy));
-        self.draw_path(to_path(iter_canvas, true), class, style)
+        self.draw_path("plot", to_path(iter_canvas, true), class, style)
     }
 
     pub fn update_view(&mut self) {
@@ -475,21 +518,23 @@ macro_rules! delegate_xy_chart_methods {
 
             pub fn draw_data(
                 mut self,
+                layer: &str,
                 data: svg::node::element::path::Data,
                 class: Option<&str>,
                 style: Option<&str>,
             ) -> Self {
-                self.$field = self.$field.draw_data(data, class, style);
+                self.$field = self.$field.draw_data(layer, data, class, style);
                 self
             }
 
             pub fn draw_path(
                 mut self,
+                layer: &str,
                 path: svg::node::element::Path,
                 class: Option<&str>,
                 style: Option<&str>,
             ) -> Self {
-                self.$field = self.$field.draw_path(path, class, style);
+                self.$field = self.$field.draw_path(layer, path, class, style);
                 self
             }
 
@@ -502,7 +547,20 @@ macro_rules! delegate_xy_chart_methods {
                 self.$field = self.$field.draw_image(image, class, style);
                 self
             }
+            pub fn add_ticks(
+                mut self, 
+                x_step: f64, 
+                y_step: f64, 
+                length: i32, 
+                class: Option<&str>, 
+                style: Option<&str>
+            ) -> Self {
+                self.$field =
+                    self.$field
+                        .add_ticks(x_step, y_step, length, class, style);
+                self
 
+            }
             // Axis methods
             pub fn add_axis(
                 mut self,
@@ -512,10 +570,11 @@ macro_rules! delegate_xy_chart_methods {
                 tick_length: i32,
                 show_labels: bool,
                 class: Option<&str>,
+                style: Option<&str>
             ) -> Self {
                 self.$field =
                     self.$field
-                        .add_axis(description, side, step, tick_length, show_labels, class);
+                        .add_axis(description, side, step, tick_length, show_labels, class, style);
                 self
             }
 
