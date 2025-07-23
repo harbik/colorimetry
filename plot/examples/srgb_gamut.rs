@@ -108,7 +108,7 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     .draw_grid(0.01, 0.01, Some("fine-grid"), None)
     .draw_grid(0.1, 0.1, Some("grid"), None);
 
-    Ok(SvgDocument::new(1000, 1100, STYLE)
+    SvgDocument::new(1000, 1100, STYLE)
         .add_svg(Box::new(xy_chromaticity))
-        .save("tmp/srgb_gamut.svg")?)
+        .save("tmp/srgb_gamut.svg")
 }

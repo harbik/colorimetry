@@ -5,9 +5,11 @@
 
 ## Colorimetry Plot Library
 
-This module provides functionality for generating and manipulating SVG-based plots,
-including axes, charts, chromaticity diagrams, layers, renderable objects, spectra,
-SVG document handling, coordinate transforms, and view management.
+This colormimetry library provides functionality for generating SVG-based color plots,
+with both low-level and higher lelvel API, based on top of the Rust-SVG library.
+It includes generating basic 2D (x,y) charts composed of several layers, and more complex chromaticity diagrams with
+the spectral locus, and gamut fills.
+Plots are build up in `Layers` using transformations `to_plot` and `to_world`.
 
 ### Modules
 
