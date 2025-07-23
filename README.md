@@ -325,7 +325,24 @@ colorimetry = { version = "0.0.7", features = ["cri", "munsell"] }
 
 </details>
 
-### Developer Tasks with `xtask`
+## Command Line Tool
+
+This library has an associated command-line tool, `colorimetry`, contained in the "colorimetry-cli" crate.
+
+To use it you have to install it using `cargo`, which in turn requires that you have Rust and Cargo installed.
+You can install them by following the instructions at <https://www.rust-lang.org/tools/install>.
+
+After ensuring that you have Rust and Cargo installed, you can install the `colorimetry` command-line tool like this:
+```bash
+cargo install colorimetry-cli
+```
+
+Run the following command to see the available options and features for the `colorimetry` tool:
+```bash
+colorimetry --help
+```
+
+## Developer Tasks with `xtask`
 
 This project uses a Rust-based `xtask` utility for common development tasks:
 
@@ -336,7 +353,7 @@ This project uses a Rust-based `xtask` utility for common development tasks:
 
 More commands will be added as the project evolves.
 
-### License
+## License
 
 All content &copy;2025 Harbers Bik LLC, and licensed under either of the
 
@@ -347,7 +364,7 @@ All content &copy;2025 Harbers Bik LLC, and licensed under either of the
 
 at your option.
 
-### Contribution
+## Contribution
 
 Unless you explicitly state otherwise, any Contribution intentionally submitted
 for inclusion in the Work by you, as defined in the Apache-2.0 license, shall be
