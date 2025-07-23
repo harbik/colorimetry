@@ -1,4 +1,45 @@
+use std::fmt::{self, Formatter, Result as FmtResult};
 use std::ops::{Bound, Range, RangeBounds};
+
+pub struct ScaleValue(pub f64, pub f64);
+
+impl fmt::Display for ScaleValue {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        format_axis_tick(self.0, self.1, f)
+    }
+}
+
+/// Round value to the nearest tick step and format using the formatter's precision.
+pub fn format_axis_tick(value: f64, step: f64, f: &mut Formatter<'_>) -> FmtResult {
+    let rounded = (value / step).round() * step;
+    if approx::abs_diff_eq!(rounded, 0.0, epsilon = 1e-10) {
+        // Handle zero case explicitly to avoid formatting issues
+        return write!(f, "0");
+    }
+    // Determine precision from tick step if not explicitly set
+    let precision = match f.precision() {
+        Some(p) => p,
+        None => {
+            if step >= 1.0 {
+                0
+            } else {
+                // Count decimal digits in step: e.g. 0.01 → 2
+                let mut digits = 0;
+                let mut s = step;
+                while s < 1.0 {
+                    s *= 10.0;
+                    digits += 1;
+                    if digits > 10 {
+                        break;
+                    } // prevent infinite loops
+                }
+                digits
+            }
+        }
+    };
+
+    write!(f, "{rounded:.precision$}")
+}
 
 #[derive(Debug, Clone, Copy)]
 pub struct ScaleRange {

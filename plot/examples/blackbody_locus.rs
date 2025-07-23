@@ -1,6 +1,5 @@
 use colorimetry::observer::Observer;
 use colorimetry_plot::{
-    axis::AxisSide,
     chart::XYChart,
     svgdoc::{SvgDocument, NORTH_WEST, SOUTH_EAST},
 };
@@ -59,51 +58,18 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     let d65 = observer.xyz_d65().chromaticity().to_tuple();
     let d50 = observer.xyz_d50().chromaticity().to_tuple();
 
-
     let chart = XYChart::new(
         "cie1931_chromaticity_diagram",
         (500, 500),
         (0.25..=0.45, 0.25..=0.45),
         (Some("chart"), None),
     )
-    .add_axis(
-        Some("CIE 1931 x Chromaticity"),
-        AxisSide::Bottom,
-        0.1,
-        6,
-        true,
-        Some("grid"),
-        None
-    )
     .add_ticks(0.01, 0.01, 4, Some("fine-grid"), None)
     .add_ticks(0.1, 0.1, 6, Some("fine-grid"), None)
-    .add_axis(
-        Some("y Chromaticity"),
-        AxisSide::Left,
-        0.1,
-        6,
-        true,
-        Some("grid"),
-        None
-    )
-    .add_axis(
-        Some("CIE 1931 x Chromaticity"),
-        AxisSide::Top,
-        0.1,
-        6,
-        true,
-        Some("grid"),
-        None
-    )
-    .add_axis(
-        Some("y Chromaticity"),
-        AxisSide::Right,
-        0.1,
-        6,
-        true,
-        Some("grid"),
-        None
-    )
+    .add_x_labels(0.1, 3)
+    .add_y_labels(0.1, 3)
+    .x_axis_description("CIE 1931 x Chromaticity")
+    .y_axis_description("CIE 1931 y Chromaticity")
     .draw_shape(
         observer.spectral_locus().into_iter().take(330),
         Some("spectral-locus"),
@@ -126,5 +92,4 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     SvgDocument::new(800, 800, STYLE)
         .add_svg(Box::new(chart.clone()))
         .save("tmp/blackbody_locus.svg")
-
 }

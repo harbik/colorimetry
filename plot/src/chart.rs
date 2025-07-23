@@ -1,5 +1,9 @@
+mod delegate;
 
-use std::{fmt::Display, ops::RangeBounds, rc::Rc};
+mod range;
+pub use range::{ScaleRange, ScaleRangeIterator, ScaleRangeWithStep, ScaleValue};
+
+use std::{collections::HashMap, ops::RangeBounds, rc::Rc};
 
 use svg::{
     node::element::{path::Data, ClipPath, Definitions, Group, Image, Line, Path, Text, SVG},
@@ -7,10 +11,7 @@ use svg::{
 };
 
 use crate::{
-    axis::{Axis, AxisSide, ScaleRange, ScaleRangeWithStep},
-    layer::Layer,
-    rendable::Rendable,
-    round_to_default_precision, set_class_and_style,
+    layer::Layer, rendable::Rendable, round_to_default_precision, set_class_and_style,
     view::ViewParameters,
 };
 
@@ -22,8 +23,8 @@ pub struct XYChart {
     pub id: String,          // unique id for the chart
     pub x_range: ScaleRange, // min, max for x axis
     pub y_range: ScaleRange, // min, max for y axis
-    pub plot_width: u32,
-    pub plot_height: u32,
+    pub plot_width: u32,     // width and height of the true plot area,
+    pub plot_height: u32,    // excluding axis and margins
 
     // require inputs
     pub to_plot: CoordinateTransform,
@@ -31,11 +32,8 @@ pub struct XYChart {
 
     // initially empty, filled by the chart methods
     pub view_parameters: ViewParameters,
-    
-    // todo: make layers a hashmap: <"String", "Layer">
-    pub plot_layer: Layer,
-    pub axes_layer: Layer,
-    pub annotations_layer: Layer,
+
+    pub layers: HashMap<&'static str, Layer>,
     pub clip_paths: Vec<ClipPath>,
     pub margins: [i32; 4], // top, right, bottom, left
 }
@@ -44,7 +42,7 @@ impl XYChart {
     pub const ANNOTATE_SEP: i32 = 2;
     pub const LABEL_HEIGHT: i32 = 16;
     pub const DESCRIPTION_HEIGHT: i32 = 20;
-    pub const DESCRIPTION_SEP: i32 = 15;
+    pub const DESCRIPTION_SEP: i32 = 20;
     pub const DESCRIPTION_OFFSET: i32 = Self::LABEL_HEIGHT + Self::DESCRIPTION_SEP;
 
     pub fn new(
@@ -72,7 +70,6 @@ impl XYChart {
         });
 
         let mut clip_paths = Vec::new();
-        let mut plot_layer = Layer::new();
 
         let mut path = to_path(
             [
@@ -89,7 +86,8 @@ impl XYChart {
                 .set("id", format!("clip-{id}"))
                 .add(path.clone()),
         );
-        plot_layer = plot_layer.set("clip-path", format!("url(#clip-{id})"));
+        let mut plot_layer = Layer::new();
+        plot_layer.assign("clip-path", format!("url(#clip-{id})"));
 
         // don't add a background if no style or class is given
         if style.is_some() || class.is_some() {
@@ -102,13 +100,18 @@ impl XYChart {
             plot_layer.append(path);
         }
 
-        let annotations_layer = Layer::new()
-            .set("id", format!("annotations-{id}"))
-            .set("class", "annotations");
+        // create the layers
+        let mut layers = HashMap::new();
+        layers.insert("plot", plot_layer);
 
-        let axes_layer = Layer::new()
-            .set("id", format!("axes-{id}"))
-            .set("class", "axes");
+        let mut annotations_layer = Layer::new();
+        annotations_layer.assign("class", "annotations");
+        layers.insert("annotations", annotations_layer);
+
+        let mut axes_layer = Layer::new();
+        axes_layer.assign("class", "axes");
+        layers.insert("axes", axes_layer);
+
         let view_box = ViewParameters::new(0, 0, plot_width, plot_height, plot_width, plot_height);
         XYChart {
             id,
@@ -117,9 +120,7 @@ impl XYChart {
             plot_width,
             x_range,
             y_range,
-            plot_layer,
-            annotations_layer,
-            axes_layer,
+            layers,
             clip_paths,
             margins: [0i32; 4], // top, right, bottom, left
             to_plot,
@@ -129,36 +130,33 @@ impl XYChart {
 
     /// Adds ticks to all the sides of the plot.
     /// A negative length value produces inward ticks, and a positive value outward ticks.
-    pub fn add_ticks(mut self, x_step: f64, y_step: f64, length: i32, class: Option<&str>, style: Option<&str>) -> Self {
+    pub fn add_ticks(
+        mut self,
+        x_step: f64,
+        y_step: f64,
+        length: i32,
+        class: Option<&str>,
+        style: Option<&str>,
+    ) -> Self {
         let mut data = Data::new();
         let to_plot = self.to_plot.clone();
         for x in self.x_range.iter_with_step(x_step) {
-
             let (px, py) = to_plot((x, self.y_range.start));
-            data = data
-                .move_to((px, py))
-                .line_to((px, py + length as f64));
+            data = data.move_to((px, py)).line_to((px, py + length as f64));
 
             let (px, py) = to_plot((x, self.y_range.end));
-            data = data
-                .move_to((px, py))
-                .line_to((px, py - length as f64));
+            data = data.move_to((px, py)).line_to((px, py - length as f64));
         }
         for y in self.y_range.iter_with_step(y_step) {
-
             let (px, py) = to_plot((self.x_range.start, y));
-            data = data
-                .move_to((px, py))
-                .line_to((px - length as f64, py));
+            data = data.move_to((px, py)).line_to((px - length as f64, py));
 
             let (px, py) = to_plot((self.x_range.end, y));
-            data = data
-                .move_to((px, py))
-                .line_to((px + length as f64, py));
+            data = data.move_to((px, py)).line_to((px + length as f64, py));
         }
         // Extend view coordinates if required
         if length > 0 {
-            self.margins.iter_mut().for_each(|v|{
+            self.margins.iter_mut().for_each(|v| {
                 if *v < length {
                     *v = length;
                 }
@@ -166,9 +164,96 @@ impl XYChart {
             self.update_view();
         }
         self.draw_data("axes", data, class, style)
-        
+    }
+    pub fn add_x_labels(mut self, step: f64, offset: usize) -> Self {
+        let range_with_step = ScaleRangeWithStep::new(self.x_range, step);
+        let y = self.y_range.start;
+        let to_plot = self.to_plot.clone();
+        let mut x_labels = Group::new().set("class", "x-labels");
+        for x in range_with_step.iter() {
+            let display_value = format!("{}", ScaleValue(x, step));
+            let (px, py) = to_plot((x, y));
+            let txt = Text::new(display_value)
+                .set("x", px)
+                .set("y", py + offset as f64)
+                .set("text-anchor", "middle")
+                .set("dominant-baseline", "text-before-edge");
+            x_labels.append(txt);
+        }
+        self.layers.get_mut("axes").unwrap().append(x_labels);
+        self.margins[2] = self.margins[2].max(Self::LABEL_HEIGHT + offset as i32);
+        self.update_view();
+        self
+    }
+    pub fn add_y_labels(mut self, step: f64, offset: usize) -> Self {
+        let range_with_step = ScaleRangeWithStep::new(self.y_range, step);
+        let x = self.x_range.start;
+        let to_plot = self.to_plot.clone();
+        let mut y_labels = Group::new().set("class", "y-labels");
+        for y in range_with_step.iter() {
+            let display_value = format!("{}", ScaleValue(y, step));
+            let (px, py) = to_plot((x, y));
+            let txt = Text::new(display_value)
+                .set("x", px - offset as f64)
+                .set("y", py)
+                .set("text-anchor", "middle")
+                .set("dominant-baseline", "text-after-edge")
+                .set(
+                    "transform",
+                    format!("rotate(-90, {}, {})", px - offset as f64, py),
+                );
+            y_labels.append(txt);
+        }
+        self.layers.get_mut("axes").unwrap().append(y_labels);
+        self.margins[3] = self.margins[3].max(Self::LABEL_HEIGHT + offset as i32);
+        self.update_view();
+        self
     }
 
+    pub fn x_axis_description(mut self, description: &str) -> Self {
+        let x_middle = (self.x_range.start + self.x_range.end) / 2.0;
+        let y = self.y_range.start;
+        let (px, py) = (self.to_plot)((x_middle, y));
+        let text = Text::new(description)
+            .set("x", px)
+            .set("y", py + Self::DESCRIPTION_OFFSET as f64)
+            .set("text-anchor", "middle")
+            .set("dominant-baseline", "text-before-edge")
+            .set("class", "axis-description");
+        self.layers.get_mut("axes").unwrap().append(text);
+        self.margins[0] = self.margins[0].max(Self::DESCRIPTION_HEIGHT + Self::DESCRIPTION_OFFSET);
+        self.update_view();
+        self
+    }
+
+    /// Add a y-axis description, positioned to the left of the axis.
+    ///
+    /// The description is centered vertically along the y-axis.
+    pub fn y_axis_description(mut self, description: &str) -> Self {
+        let y_middle = (self.y_range.start + self.y_range.end) / 2.0;
+        let x = self.x_range.start;
+        let (px, py) = (self.to_plot)((x, y_middle));
+        let text = Text::new(description)
+            .set("x", px - Self::DESCRIPTION_OFFSET as f64)
+            .set("y", py)
+            .set("text-anchor", "middle")
+            .set("dominant-baseline", "text-after-edge")
+            .set("class", "axis-description")
+            .set(
+                "transform",
+                format!(
+                    "rotate(-90, {}, {})",
+                    px - Self::DESCRIPTION_OFFSET as f64,
+                    py
+                ),
+            );
+        self.layers.get_mut("axes").unwrap().append(text);
+        self.margins[3] = self.margins[3].max(Self::DESCRIPTION_HEIGHT + Self::DESCRIPTION_OFFSET);
+        self.update_view();
+        self
+    }
+
+    /*
     pub fn add_axis(
         mut self,
         description: Option<&str>,
@@ -208,7 +293,7 @@ impl XYChart {
             AxisSide::Left | AxisSide::Right => self.y_range,
         };
         let range_with_step = ScaleRangeWithStep::new(range, step);
-        
+
         let x_axis = Axis::new(
             description,
             (0, 0, self.plot_width, self.plot_height),
@@ -218,11 +303,12 @@ impl XYChart {
             show_labels,
             class,
         );
-        
-        self.axes_layer.append(Group::from(x_axis));
+
+        self.layers.get_mut("axes").unwrap().append(Group::from(x_axis));
         self.update_view();
         self
     }
+     */
 
     pub fn draw_grid(
         self,
@@ -254,7 +340,7 @@ impl XYChart {
     ) -> Self {
         let mut image: Image = image.into();
         image = set_class_and_style(image, class, style);
-        self.plot_layer.append(image);
+        self.layers.get_mut("plot").unwrap().append(image);
         self
     }
 
@@ -320,24 +406,35 @@ impl XYChart {
 
         let mut group = Group::new().add(circle).add(line).add(text);
         group = set_class_and_style(group, class, style);
-        self.annotations_layer.append(group);
+        self.layers.get_mut("annotations").unwrap().append(group);
         self
     }
 
     /// Draw a Path using the Chart Coordinates onto the selected layer
-    pub fn draw_path(mut self, layer: &str,  mut path: Path, class: Option<&str>, style: Option<&str>) -> Self {
-        path = set_class_and_style(path, class, style);
-        match layer {
-            "axes" => self.axes_layer.append(path),
-            "plot" => self.plot_layer.append(path),
-            "annotations" => self.annotations_layer.append(path),
-            _ => panic!("layer must be one of 'axes' 'plot', or 'annotations'")
+    pub fn draw_path(
+        mut self,
+        layer: &str,
+        mut path: Path,
+        class: Option<&str>,
+        style: Option<&str>,
+    ) -> Self {
+        if let Some(layer) = self.layers.get_mut(layer) {
+            path = set_class_and_style(path, class, style);
+            layer.append(path);
+        } else {
+            panic!("unknown layer");
         }
         self
     }
 
     /// Add Data, composed of e.g. move_to and line_to operations, to chose layer
-    pub fn draw_data(self, layer: &str, data: Data, class: Option<&str>, style: Option<&str>) -> Self {
+    pub fn draw_data(
+        self,
+        layer: &str,
+        data: Data,
+        class: Option<&str>,
+        style: Option<&str>,
+    ) -> Self {
         let path = Path::new().set("d", data);
         self.draw_path(layer, path, class, style)
     }
@@ -380,11 +477,13 @@ impl XYChart {
     }
 }
 
+/*
 impl Display for XYChart {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.plot_layer.0)
     }
 }
+ */
 
 pub(super) fn to_path(data: impl IntoIterator<Item = (f64, f64)>, close: bool) -> Path {
     let mut path_data = Data::new();
@@ -471,128 +570,8 @@ impl Rendable for XYChart {
             .set("height", self.height())
             .set("viewBox", self.view_parameters().view_box_str())
             .add(defs)
-            .add(self.axes_layer.clone())
-            .add(self.plot_layer.clone())
-            .add(self.annotations_layer.clone())
+            .add(self.layers.get("axes").unwrap().clone())
+            .add(self.layers.get("plot").unwrap().clone())
+            .add(self.layers.get("annotations").unwrap().clone())
     }
-}
-
-/// Macro to delegate all XYChart methods to a field of a struct, to avoid using Deref and DerefMut
-/// Add methods here when adding new methods to XYChart
-/// Usage: `delegate_xy_chart_methods!(MyStruct, chart_field);`
-#[macro_export]
-macro_rules! delegate_xy_chart_methods {
-    ($struct_type:ty, $field:ident) => {
-        impl $struct_type {
-            // Basic drawing methods
-            pub fn draw_grid(
-                mut self,
-                x_step: f64,
-                y_step: f64,
-                class: Option<&str>,
-                style: Option<&str>,
-            ) -> Self {
-                self.$field = self.$field.draw_grid(x_step, y_step, class, style);
-                self
-            }
-
-            pub fn draw_line(
-                mut self,
-                points: impl IntoIterator<Item = (f64, f64)>,
-                class: Option<&str>,
-                style: Option<&str>,
-            ) -> Self {
-                self.$field = self.$field.draw_line(points, class, style);
-                self
-            }
-
-            pub fn draw_shape(
-                mut self,
-                points: impl IntoIterator<Item = (f64, f64)>,
-                class: Option<&str>,
-                style: Option<&str>,
-            ) -> Self {
-                self.$field = self.$field.draw_shape(points, class, style);
-                self
-            }
-
-            pub fn draw_data(
-                mut self,
-                layer: &str,
-                data: svg::node::element::path::Data,
-                class: Option<&str>,
-                style: Option<&str>,
-            ) -> Self {
-                self.$field = self.$field.draw_data(layer, data, class, style);
-                self
-            }
-
-            pub fn draw_path(
-                mut self,
-                layer: &str,
-                path: svg::node::element::Path,
-                class: Option<&str>,
-                style: Option<&str>,
-            ) -> Self {
-                self.$field = self.$field.draw_path(layer, path, class, style);
-                self
-            }
-
-            pub fn draw_image(
-                mut self,
-                image: impl Into<svg::node::element::Image>,
-                class: Option<&str>,
-                style: Option<&str>,
-            ) -> Self {
-                self.$field = self.$field.draw_image(image, class, style);
-                self
-            }
-            pub fn add_ticks(
-                mut self, 
-                x_step: f64, 
-                y_step: f64, 
-                length: i32, 
-                class: Option<&str>, 
-                style: Option<&str>
-            ) -> Self {
-                self.$field =
-                    self.$field
-                        .add_ticks(x_step, y_step, length, class, style);
-                self
-
-            }
-            // Axis methods
-            pub fn add_axis(
-                mut self,
-                description: Option<&str>,
-                side: $crate::axis::AxisSide,
-                step: f64,
-                tick_length: i32,
-                show_labels: bool,
-                class: Option<&str>,
-                style: Option<&str>
-            ) -> Self {
-                self.$field =
-                    self.$field
-                        .add_axis(description, side, step, tick_length, show_labels, class, style);
-                self
-            }
-
-            // Annotation methods
-            pub fn annotate(
-                mut self,
-                cxy: (f64, f64),
-                r: f64,
-                angle_and_length: (i32, i32),
-                text: impl AsRef<str>,
-                class: Option<&str>,
-                style: Option<&str>,
-            ) -> Self {
-                self.$field = self
-                    .$field
-                    .annotate(cxy, r, angle_and_length, text, class, style);
-                self
-            }
-        }
-    };
 }

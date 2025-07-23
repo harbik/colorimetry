@@ -1,7 +1,7 @@
 use colorimetry::{observer::Observer, rgb::RgbSpace::SRGB};
-use colorimetry_plot::{axis::AxisSide, chromaticity::XYChromaticity, svgdoc::SvgDocument};
+use colorimetry_plot::{chromaticity::XYChromaticity, svgdoc::SvgDocument};
 
-const STYLE : &str = "
+const STYLE: &str = "
     :root {
         --plot-background-color: #888;
         --spectral-locus-color: #DDD;
@@ -34,8 +34,9 @@ const STYLE : &str = "
         stroke-linecap: round;
     }
     .planckian {
-        fill: none; stroke:
-        black; stroke-width: 1;
+        stroke: var(--plot-background-color);
+        fill: none;
+        stroke-width: 2;
         stroke-linecap: round;
     }
     text {
@@ -60,20 +61,19 @@ const STYLE : &str = "
     }
 ";
 
-
 pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     let observer = Observer::default();
-
 
     let xy_chromaticity = XYChromaticity::new(
         "cie1931_chromaticity_diagram",
         observer,
-        (750, 850),
-        (0.0..=0.75, 0.0..=0.85),
+        (775, 875),
+        (-0.025..=0.75, 0.0..=0.875),
         (Some("chart-area"), None),
     )
     .add_ticks(0.01, 0.01, 5, Some("fine-grid"), None)
     .add_ticks(0.1, 0.1, 10, Some("grid"), None)
+    /*
     .add_axis(
         Some("CIE 1931 x Chromaticity"),
         AxisSide::Bottom,
@@ -83,6 +83,12 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
         Some("grid"),
         None
     )
+     */
+    .add_x_labels(0.1, 10)
+    .x_axis_description("CIE 1931 x Chromaticity")
+    .add_y_labels(0.1, 10)
+    .y_axis_description("CIE 1931 y Chromaticity")
+    /*
     .add_axis(
         Some("CIE 1931 y Chromaticity"),
         AxisSide::Left,
@@ -92,6 +98,7 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
         Some("grid"),
         None
     )
+     */
     .draw_spectral_locus(Some("spectral-locus"), None)
     .draw_spectral_locus_ticks(440..651, 10, 15, Some("spectral-locus-ticks"), None)
     .draw_spectral_locus_ticks(460..631, 1, 7, Some("spectral-locus-ticks"), None)

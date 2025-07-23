@@ -7,8 +7,8 @@ use std::{
 };
 
 use crate::{
-    axis::{AxisSide, ScaleRange, ScaleRangeWithStep},
     chart::XYChart,
+    chart::{ScaleRange, ScaleRangeWithStep},
     chromaticity::xy::{self, gamut::PngImageData},
     delegate_xy_chart_methods,
     rendable::Rendable,
@@ -108,7 +108,12 @@ impl XYChromaticity {
                     format!("rotate({:.3} {:.3} {:.3})", rotation_angle, pxy2.0, pxy2.1),
                 )
                 .set("class", class.unwrap_or("spectral-locus-labels"));
-            self_as_mut.xy_chart.plot_layer.append(text);
+            self_as_mut
+                .xy_chart
+                .layers
+                .get_mut("plot")
+                .unwrap()
+                .append(text);
         }
         self_as_mut
     }

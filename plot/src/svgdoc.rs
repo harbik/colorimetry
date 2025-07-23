@@ -1,4 +1,3 @@
-
 use svg::{
     node::element::{ClipPath, Path, Style, Symbol},
     Document, Node,
@@ -41,7 +40,7 @@ impl SvgDocument {
     /// * `height` - The height of the SVG document.
     /// # Returns
     /// A new instance of `SvgDocument`.
-    pub fn new(width: u32, height: u32, css: &str ) -> Self {
+    pub fn new(width: u32, height: u32, css: &str) -> Self {
         let mut view_parameters = ViewParameters::default();
         view_parameters.set_width(width);
         view_parameters.set_height(height);
