@@ -38,9 +38,8 @@ impl XYChromaticity {
         observer: Observer,
         width_and_height: (u32, u32),
         ranges: (impl RangeBounds<f64>, impl RangeBounds<f64>),
-        style_attr: StyleAttr,
     ) -> XYChromaticity {
-        let xy_chart = XYChart::new(width_and_height, ranges, style_attr);
+        let xy_chart = XYChart::new(width_and_height, ranges);
 
         XYChromaticity { observer, xy_chart }
     }
@@ -51,7 +50,7 @@ impl XYChromaticity {
         self.plot_shape(locus, style_attr)
     }
 
-    pub fn draw_spectral_locus_ticks(
+    pub fn plot_spectral_locus_ticks(
         self,
         range: impl RangeBounds<usize>,
         step: usize,
@@ -72,7 +71,7 @@ impl XYChromaticity {
         self_as_mut.draw_data("plot", data, style_attr)
     }
 
-    pub fn draw_spectral_locus_labels(
+    pub fn plot_spectral_locus_labels(
         self,
         range: impl RangeBounds<usize> + Clone,
         step: usize,

@@ -57,7 +57,6 @@ impl XYChart {
     pub fn new(
         plot_width_and_height: (u32, u32),
         ranges: (impl RangeBounds<f64>, impl RangeBounds<f64>),
-        style_attr: StyleAttr,
     ) -> XYChart {
         let (plot_width, plot_height) = plot_width_and_height;
         let (x_range, y_range) = (ScaleRange::new(ranges.0), ScaleRange::new(ranges.1));
@@ -75,10 +74,8 @@ impl XYChart {
             plot_to_world_coordinates(xy.0, xy.1, &x_range, &y_range, w, h)
         });
 
-        // set up the clip path for the plot area, and a background rectangle
-        // typically used for setting background color of the plot area.
-        let mut clip_paths = Vec::new();
-        let mut path = to_path(
+        // plot area path, which is the rectangle of the plot area
+        let path = to_path(
             [
                 (0f64, 0f64),
                 (plot_width as f64, 0f64),
@@ -88,6 +85,23 @@ impl XYChart {
             true,
         );
 
+        // create the layers
+        let mut layers = HashMap::new();
+
+        // use first the path to get an unclipped rectangle on the axes layer.
+        // can not use plot area path, because it is clipped, which clips the border.
+        let mut axes_layer = Layer::new();
+        axes_layer.assign("class", "axes");
+
+        let plot_area = path.clone()
+            .set("class", "plot-area");
+        axes_layer.append(plot_area); 
+        layers.insert("axes", axes_layer);
+
+
+        // set up the clip path for the plot area
+        let mut clip_paths = Vec::new();
+
         // use unique id for the clip path
         let clip_id = new_id();
         clip_paths.push(
@@ -96,33 +110,22 @@ impl XYChart {
                 .add(path.clone()),
         );
         
-        // create a background rectangle for the plot area
-        // and assign the style attributes to it
+        // create the clipped plot layer
+        // everything drawn on the plot layer will be clipped to this path.
         let mut plot_layer = Layer::new();
         plot_layer.assign("clip-path", format!("url(#clip-{})", clip_id));
-        style_attr.assign(&mut path);
-        plot_layer.append(path);
+       // plot_layer.append(path);
 
-        // create the layers
-        let mut layers = HashMap::new();
         layers.insert("plot", plot_layer);
 
         let mut annotations_layer = Layer::new();
         annotations_layer.assign("class", "annotations");
         layers.insert("annotations", annotations_layer);
 
-        let mut axes_layer = Layer::new();
-        axes_layer.assign("class", "axes");
-        layers.insert("axes", axes_layer);
 
         let view_box = ViewParameters::new(0, 0, plot_width, plot_height, plot_width, plot_height);
-        let id = if let Some(id) = style_attr.id() {
-           Some(id.to_string())
-        } else {
-           None 
-        };
         XYChart {
-            id,
+            id: None,
             view_parameters: view_box,
             plot_height,
             plot_width,
@@ -134,6 +137,11 @@ impl XYChart {
             to_plot,
             to_world,
         }
+    }
+
+    pub fn set_id(mut self, id: impl Into<String>) -> Self {
+        self.id = Some(id.into());
+        self
     }
 
     /// Adds ticks to all the sides of the plot.
@@ -427,14 +435,6 @@ impl XYChart {
     }
 }
 
-/*
-impl Display for XYChart {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.plot_layer.0)
-    }
-}
- */
-
 pub(super) fn to_path(data: impl IntoIterator<Item = (f64, f64)>, close: bool) -> Path {
     let mut path_data = Data::new();
     for xy in data {
@@ -519,7 +519,7 @@ impl Rendable for XYChart {
             .set("xmlns", "http://www.w3.org/2000/svg")
             .set("xmlns:xlink", "http://www.w3.org/1999/xlink")
             .set("version", "1.1")
-            .set("class", "chart");
+            .set("class", "chart"); // full chart area
         if let Some(id) = &self.id {
             svg = svg.set("id", id.as_str());
         }

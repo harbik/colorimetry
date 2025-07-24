@@ -1,3 +1,5 @@
+use std::process;
+
 use svg::{
     node::element::{ClipPath, Path, Style, Symbol},
     Document, Node,
@@ -6,8 +8,8 @@ use svg::{
 use crate::{rendable::Rendable, view::ViewParameters};
 
 const DEFAULT_CSS: &str = "
-    .default {fill: none; stroke: chartreuse; stroke-width:1;}
-    text.default  {fill: chartreuse; stroke: none; stroke-width: 0; font-size: 16px; font-family: san-serif;}
+    * { fill:none; stroke:black; stroke-width:1px; }
+    text  {fill:black; stroke: none; stroke-width: 0; font-size: 16px; font-family: san-serif; }
 ";
 
 pub const NORTH: i32 = 90;
@@ -89,6 +91,15 @@ impl SvgDocument {
 
                 let width = svg_sub.width();
                 let height = svg_sub.height();
+
+                if width > doc_width || height > doc_height {
+                    eprintln!("Error: SVG sub-element is larger than the document size.");
+                    eprintln!("Document size: {}x{}, Sub-element size: {}x{}",
+                        doc_width, doc_height, width, height);
+                    eprintln!("Please adjust the size of the SVG sub-element or the document.");
+                    process::exit(1); // Exit with error code 1
+                }
+
                 let x = doc_width / 2 - width / 2;
                 let y = doc_height / 2 - height / 2;
                 vec![(x, y)]
@@ -121,7 +132,15 @@ impl Rendable for SvgDocument {
             .set("version", "1.1")
             .set("class", "colorimetry-plot");
 
-        doc = doc.add(Style::new(format!("{}\n{}", self.css, DEFAULT_CSS)));
+        let scss_content = format!("{}\n{}", DEFAULT_CSS, self.css);
+        let css_content = match grass::from_string(scss_content, &grass::Options::default()) {
+            Ok(css) => css,
+            Err(e) => {
+            eprintln!("Failed to compile SCSS: {}", e);
+            process::exit(1); // Exit with error code 1
+            }
+        };
+        doc = doc.add(Style::new(css_content));
 
         //  add definitions for clip paths and symbols
         let mut defs = svg::node::element::Definitions::new();

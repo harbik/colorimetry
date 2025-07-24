@@ -17,13 +17,6 @@ impl StyleAttr {
         if let Some(style) = self.style.clone() {
             node.assign("style", style);
         }
-        // If neither class nor style is set, assign a default class
-        // This is useful for elements that need a default style as else they are hidden on the plot
-        // In this libarary we use "default" as a fallback class, showing the otherwise hidden elements
-        // with a bright green color ('chartreuse') in the plot.
-        if self.class.is_none() && self.style.is_none() {
-            node.assign("class", "default");
-        }
     }
 
     pub fn id(&self) -> Option<&str> {
