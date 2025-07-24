@@ -64,21 +64,21 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
         (0.25..=0.45, 0.25..=0.45),
         (Some("chart"), None),
     )
-    .add_ticks(0.01, 0.01, 4, Some("fine-grid"), None)
-    .add_ticks(0.1, 0.1, 6, Some("fine-grid"), None)
-    .add_x_labels(0.1, 3)
-    .add_y_labels(0.1, 3)
+    .ticks(0.01, 0.01, 4, Some("fine-grid"), None)
+    .ticks(0.1, 0.1, 6, Some("fine-grid"), None)
+    .x_labels(0.1, 3)
+    .y_labels(0.1, 3)
     .x_axis_description("CIE 1931 x Chromaticity")
     .y_axis_description("CIE 1931 y Chromaticity")
-    .draw_shape(
+    .plot_shape(
         observer.spectral_locus().into_iter().take(330),
         Some("spectral-locus"),
         None,
     )
-    .draw_grid(0.01, 0.01, Some("fine-grid"), None)
-    .draw_grid(0.1, 0.1, Some("grid"), None)
-    .draw_line(observer.planckian_locus(), Some("planckian-locus"), None)
-    .annotate(
+    .plot_grid(0.01, 0.01, Some("fine-grid"), None)
+    .plot_grid(0.1, 0.1, Some("grid"), None)
+    .plot_poly_line(observer.planckian_locus(), Some("planckian-locus"), None)
+    .label_pin(
         (1. / 3., 1. / 3.),
         3.0,
         (SOUTH_EAST, 20),
@@ -86,8 +86,8 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
         Some("white-point"),
         None,
     )
-    .annotate(d65, 3.0, (NORTH_WEST, 20), "D65", Some("white-point"), None)
-    .annotate(d50, 3.0, (NORTH_WEST, 20), "D50", Some("white-point"), None);
+    .label_pin(d65, 3.0, (NORTH_WEST, 20), "D65", Some("white-point"), None)
+    .label_pin(d50, 3.0, (NORTH_WEST, 20), "D50", Some("white-point"), None);
 
     SvgDocument::new(800, 800, STYLE)
         .add_svg(Box::new(chart.clone()))

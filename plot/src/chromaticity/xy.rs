@@ -48,10 +48,10 @@ impl XYChromaticity {
         XYChromaticity { observer, xy_chart }
     }
 
-    pub fn draw_spectral_locus(self, class: Option<&str>, style: Option<&str>) -> Self {
+    pub fn plot_spectral_locus(self, class: Option<&str>, style: Option<&str>) -> Self {
         let obs = self.observer;
         let locus = obs.spectral_locus();
-        self.draw_shape(locus, class, style)
+        self.plot_shape(locus, class, style)
     }
 
     pub fn draw_spectral_locus_ticks(
@@ -118,12 +118,12 @@ impl XYChromaticity {
         self_as_mut
     }
 
-    pub fn draw_planckian_locus(self, class: Option<&str>, style: Option<&str>) -> Self {
+    pub fn plot_planckian_locus(self, class: Option<&str>, style: Option<&str>) -> Self {
         let locus = self.observer.planckian_locus();
-        self.draw_line(locus, class, style)
+        self.plot_poly_line(locus, class, style)
     }
 
-    pub fn draw_rgb_gamut(
+    pub fn plot_rgb_gamut(
         self,
         rgb_space: RgbSpace,
         class: Option<&str>,
@@ -135,7 +135,7 @@ impl XYChromaticity {
             self.xy_chart.to_plot.clone(),
             self.xy_chart.to_world.clone(),
         );
-        self.draw_image(gamut_fill, class, style)
+        self.plot_image(gamut_fill, class, style)
     }
 
     /// Draw white points on the chromaticity diagram as an iterator of CieIlluminant, and i32 angle and length pairs.

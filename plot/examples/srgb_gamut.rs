@@ -71,42 +71,20 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
         (-0.025..=0.75, 0.0..=0.875),
         (Some("chart-area"), None),
     )
-    .add_ticks(0.01, 0.01, 5, Some("fine-grid"), None)
-    .add_ticks(0.1, 0.1, 10, Some("grid"), None)
-    /*
-    .add_axis(
-        Some("CIE 1931 x Chromaticity"),
-        AxisSide::Bottom,
-        0.1,
-        6,
-        true,
-        Some("grid"),
-        None
-    )
-     */
-    .add_x_labels(0.1, 10)
+    .ticks(0.01, 0.01, 5, Some("fine-grid"), None)
+    .ticks(0.1, 0.1, 10, Some("grid"), None)
+    .x_labels(0.1, 10)
     .x_axis_description("CIE 1931 x Chromaticity")
-    .add_y_labels(0.1, 10)
+    .y_labels(0.1, 10)
     .y_axis_description("CIE 1931 y Chromaticity")
-    /*
-    .add_axis(
-        Some("CIE 1931 y Chromaticity"),
-        AxisSide::Left,
-        0.1,
-        6,
-        true,
-        Some("grid"),
-        None
-    )
-     */
-    .draw_spectral_locus(Some("spectral-locus"), None)
+    .plot_spectral_locus(Some("spectral-locus"), None)
     .draw_spectral_locus_ticks(440..651, 10, 15, Some("spectral-locus-ticks"), None)
     .draw_spectral_locus_ticks(460..631, 1, 7, Some("spectral-locus-ticks"), None)
     .draw_spectral_locus_labels(460..=620, 10, 2, Some("spectral-locus-labels"), None)
-    .draw_rgb_gamut(SRGB, None, None)
-    .draw_planckian_locus(Some("planckian"), None)
-    .draw_grid(0.01, 0.01, Some("fine-grid"), None)
-    .draw_grid(0.1, 0.1, Some("grid"), None);
+    .plot_rgb_gamut(SRGB, None, None)
+    .plot_planckian_locus(Some("planckian"), None)
+    .plot_grid(0.01, 0.01, Some("fine-grid"), None)
+    .plot_grid(0.1, 0.1, Some("grid"), None);
 
     SvgDocument::new(1000, 1100, STYLE)
         .add_svg(Box::new(xy_chromaticity))

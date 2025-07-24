@@ -39,6 +39,9 @@ pub mod rendable;
 pub mod spectrum;
 pub mod svgdoc;
 pub mod view;
+pub mod style_attr;
+
+pub use crate::style_attr::StyleAttr;
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 

@@ -7,34 +7,34 @@ macro_rules! delegate_xy_chart_methods {
         impl $struct_type {
             // Basic drawing methods
 
-            pub fn draw_grid(
+            pub fn plot_grid(
                 mut self,
                 x_step: f64,
                 y_step: f64,
                 class: Option<&str>,
                 style: Option<&str>,
             ) -> Self {
-                self.$field = self.$field.draw_grid(x_step, y_step, class, style);
+                self.$field = self.$field.plot_grid(x_step, y_step, class, style);
                 self
             }
 
-            pub fn draw_line(
+            pub fn plot_poly_line(
                 mut self,
                 points: impl IntoIterator<Item = (f64, f64)>,
                 class: Option<&str>,
                 style: Option<&str>,
             ) -> Self {
-                self.$field = self.$field.draw_line(points, class, style);
+                self.$field = self.$field.plot_poly_line(points, class, style);
                 self
             }
 
-            pub fn draw_shape(
+            pub fn plot_shape(
                 mut self,
                 points: impl IntoIterator<Item = (f64, f64)>,
                 class: Option<&str>,
                 style: Option<&str>,
             ) -> Self {
-                self.$field = self.$field.draw_shape(points, class, style);
+                self.$field = self.$field.plot_shape(points, class, style);
                 self
             }
 
@@ -60,16 +60,16 @@ macro_rules! delegate_xy_chart_methods {
                 self
             }
 
-            pub fn draw_image(
+            pub fn plot_image(
                 mut self,
                 image: impl Into<svg::node::element::Image>,
                 class: Option<&str>,
                 style: Option<&str>,
             ) -> Self {
-                self.$field = self.$field.draw_image(image, class, style);
+                self.$field = self.$field.plot_image(image, class, style);
                 self
             }
-            pub fn add_ticks(
+            pub fn ticks(
                 mut self,
                 x_step: f64,
                 y_step: f64,
@@ -77,17 +77,17 @@ macro_rules! delegate_xy_chart_methods {
                 class: Option<&str>,
                 style: Option<&str>,
             ) -> Self {
-                self.$field = self.$field.add_ticks(x_step, y_step, length, class, style);
+                self.$field = self.$field.ticks(x_step, y_step, length, class, style);
                 self
             }
 
-            pub fn add_x_labels(mut self, step: f64, offset: usize) -> Self {
-                self.$field = self.$field.add_x_labels(step, offset);
+            pub fn x_labels(mut self, step: f64, offset: usize) -> Self {
+                self.$field = self.$field.x_labels(step, offset);
                 self
             }
 
-            pub fn add_y_labels(mut self, step: f64, offset: usize) -> Self {
-                self.$field = self.$field.add_y_labels(step, offset);
+            pub fn y_labels(mut self, step: f64, offset: usize) -> Self {
+                self.$field = self.$field.y_labels(step, offset);
                 self
             }
 
@@ -101,27 +101,8 @@ macro_rules! delegate_xy_chart_methods {
                 self
             }
 
-            /*
-            // Axis methods
-            pub fn add_axis(
-                mut self,
-                description: Option<&str>,
-                side: $crate::axis::AxisSide,
-                step: f64,
-                tick_length: i32,
-                show_labels: bool,
-                class: Option<&str>,
-                style: Option<&str>
-            ) -> Self {
-                self.$field =
-                    self.$field
-                        .add_axis(description, side, step, tick_length, show_labels, class, style);
-                self
-            }
-             */
-
             // Annotation methods
-            pub fn annotate(
+            pub fn label_pin(
                 mut self,
                 cxy: (f64, f64),
                 r: f64,
@@ -132,7 +113,7 @@ macro_rules! delegate_xy_chart_methods {
             ) -> Self {
                 self.$field = self
                     .$field
-                    .annotate(cxy, r, angle_and_length, text, class, style);
+                    .label_pin(cxy, r, angle_and_length, text, class, style);
                 self
             }
         }

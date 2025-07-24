@@ -130,7 +130,7 @@ impl XYChart {
 
     /// Adds ticks to all the sides of the plot.
     /// A negative length value produces inward ticks, and a positive value outward ticks.
-    pub fn add_ticks(
+    pub fn ticks(
         mut self,
         x_step: f64,
         y_step: f64,
@@ -165,7 +165,9 @@ impl XYChart {
         }
         self.draw_data("axes", data, class, style)
     }
-    pub fn add_x_labels(mut self, step: f64, offset: usize) -> Self {
+
+    /// Adds x labels to the axes layer of the chart
+    pub fn x_labels(mut self, step: f64, offset: usize) -> Self {
         let range_with_step = ScaleRangeWithStep::new(self.x_range, step);
         let y = self.y_range.start;
         let to_plot = self.to_plot.clone();
@@ -185,7 +187,9 @@ impl XYChart {
         self.update_view();
         self
     }
-    pub fn add_y_labels(mut self, step: f64, offset: usize) -> Self {
+
+    /// Adds x labels to the axes layer of the chart
+    pub fn y_labels(mut self, step: f64, offset: usize) -> Self {
         let range_with_step = ScaleRangeWithStep::new(self.y_range, step);
         let x = self.x_range.start;
         let to_plot = self.to_plot.clone();
@@ -210,6 +214,7 @@ impl XYChart {
         self
     }
 
+    /// Add an x-axis description, positioned below the axis, onto the axes layer.
     pub fn x_axis_description(mut self, description: &str) -> Self {
         let x_middle = (self.x_range.start + self.x_range.end) / 2.0;
         let y = self.y_range.start;
@@ -226,8 +231,7 @@ impl XYChart {
         self
     }
 
-    /// Add a y-axis description, positioned to the left of the axis.
-    ///
+    /// Add a y-axis description, positioned to the left of the axis, onto the axes layer.
     /// The description is centered vertically along the y-axis.
     pub fn y_axis_description(mut self, description: &str) -> Self {
         let y_middle = (self.y_range.start + self.y_range.end) / 2.0;
@@ -253,64 +257,10 @@ impl XYChart {
         self
     }
 
-    /*
-    pub fn add_axis(
-        mut self,
-        description: Option<&str>,
-        side: AxisSide,
-        step: f64,
-        tick_length: i32,
-        show_labels: bool,
-        class: Option<&str>,
-        style: Option<&str>,
-    ) -> Self {
-        let mut margin = if show_labels {
-            tick_length + Self::LABEL_HEIGHT
-        } else {
-            tick_length
-        };
-
-        if description.is_some() {
-            margin += Self::DESCRIPTION_HEIGHT + Self::DESCRIPTION_OFFSET;
-        };
-
-        match side {
-            AxisSide::Top => {
-                self.margins[0] = self.margins[0].max(margin); // top margin
-            }
-            AxisSide::Right => {
-                self.margins[1] = self.margins[1].max(margin); // right margin
-            }
-            AxisSide::Bottom => {
-                self.margins[2] = self.margins[2].max(margin); // bottom margin
-            }
-            AxisSide::Left => {
-                self.margins[3] = self.margins[3].max(margin); // left margin
-            }
-        }
-        let range = match side {
-            AxisSide::Bottom | AxisSide::Top => self.x_range,
-            AxisSide::Left | AxisSide::Right => self.y_range,
-        };
-        let range_with_step = ScaleRangeWithStep::new(range, step);
-
-        let x_axis = Axis::new(
-            description,
-            (0, 0, self.plot_width, self.plot_height),
-            range_with_step,
-            side,
-            tick_length,
-            show_labels,
-            class,
-        );
-
-        self.layers.get_mut("axes").unwrap().append(Group::from(x_axis));
-        self.update_view();
-        self
-    }
-     */
-
-    pub fn draw_grid(
+    /// Draw a grid on the plot area, using the specified step sizes for x and y axes.
+    /// The grid lines are drawn as paths on the plot layer.
+    /// The grid can be placed before or after other object on the plot layer, by the order of the method calls.
+    pub fn plot_grid(
         self,
         x_step: f64,
         y_step: f64,
@@ -332,7 +282,7 @@ impl XYChart {
         self.draw_data("plot", data, class, style)
     }
 
-    pub fn draw_image(
+    pub fn plot_image(
         mut self,
         image: impl Into<Image>,
         class: Option<&str>,
@@ -344,7 +294,9 @@ impl XYChart {
         self
     }
 
-    pub fn annotate(
+    /// Annotate a point on the chart with a circle, a line, and text, using the annotations layer,
+    /// which is on top of all the other layers, and is unconstrained by and clip paths.
+    pub fn label_pin(
         mut self,
         cxy: (f64, f64),
         r: f64,
@@ -410,7 +362,8 @@ impl XYChart {
         self
     }
 
-    /// Draw a Path using the Chart Coordinates onto the selected layer
+    /// Draw a Path onto the selected layer, without
+    /// using any scaling.
     pub fn draw_path(
         mut self,
         layer: &str,
@@ -427,7 +380,8 @@ impl XYChart {
         self
     }
 
-    /// Add Data, composed of e.g. move_to and line_to operations, to chose layer
+    /// Add Data, composed of e.g. move_to and line_to operations, to a specified layer.
+    /// This is low level convenience method for drawing paths with data.
     pub fn draw_data(
         self,
         layer: &str,
@@ -439,8 +393,9 @@ impl XYChart {
         self.draw_path(layer, path, class, style)
     }
 
-    /// Add a path to the chart, using coordinates from an iterator.
-    pub fn draw_line(
+    /// Add a line to the chart, for a set of world coordinates, as specified by x and y ranges, from an iterator,
+    /// onto the plot layer.
+    pub fn plot_poly_line(
         self,
         data: impl IntoIterator<Item = (f64, f64)>,
         class: Option<&str>,
@@ -451,8 +406,9 @@ impl XYChart {
         self.draw_path("plot", to_path(iter_canvas, false), class, style)
     }
 
-    /// Add a path that connects the coordinates in an interator and closes the path.
-    pub fn draw_shape(
+    /// Plot a shape from a set of coordinates from an iterator.
+    /// It will close the path.
+    pub fn plot_shape(
         self,
         data: impl IntoIterator<Item = (f64, f64)>,
         class: Option<&str>,

@@ -69,14 +69,6 @@ impl SvgDocument {
         self
     }
 
-    /*
-    pub fn add_css(mut self, style: &str) -> Self {
-        self.css.push(style.to_string());
-        self
-    }
-     */
-
-    // TODO: check node type to select where to add it to
     /// Adds a node to the SVG document. The node can be any type that implements the `Node` trait.
     pub fn add_node(mut self, node: impl Into<Box<dyn Node>>) -> Self {
         self.nodes.push(node.into());
