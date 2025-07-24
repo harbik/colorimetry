@@ -1,4 +1,3 @@
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StyleAttr {
     pub class: Option<String>,
@@ -9,7 +8,8 @@ pub struct StyleAttr {
 impl StyleAttr {
     /// Converts to a single string like: `class="foo" style="stroke:red;"`
     pub fn assign<T>(&self, node: &mut T)
-    where T: svg::Node,
+    where
+        T: svg::Node,
     {
         if let Some(class) = self.class.clone() {
             node.assign("class", class);
@@ -23,8 +23,6 @@ impl StyleAttr {
         self.id.as_deref()
     }
 }
-
-
 
 /// Creates a [`StyleAttr`] struct for use in HTML or SVG element attributes.
 ///
@@ -209,6 +207,5 @@ mod tests {
         let c = style_attr!(class: "bar", style: "fill:blue;");
         assert_eq!(c.class.as_deref(), Some("bar"));
         assert_eq!(c.style.as_deref(), Some("fill:blue;"));
-
     }
 }

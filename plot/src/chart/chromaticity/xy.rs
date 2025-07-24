@@ -11,7 +11,8 @@ use crate::{
     chart::{ScaleRange, ScaleRangeWithStep, XYChart},
     delegate_xy_chart_methods,
     rendable::Rendable,
-    svgdoc::SvgDocument, StyleAttr,
+    svgdoc::SvgDocument,
+    StyleAttr,
 };
 use colorimetry::{
     observer::{self, Observer},
@@ -55,7 +56,7 @@ impl XYChromaticity {
         range: impl RangeBounds<usize>,
         step: usize,
         length: usize,
-        style_attr: StyleAttr
+        style_attr: StyleAttr,
     ) -> Self {
         let length = length as f64;
         let mut self_as_mut = self;
@@ -76,7 +77,7 @@ impl XYChromaticity {
         range: impl RangeBounds<usize> + Clone,
         step: usize,
         distance: usize,
-        style_attr: StyleAttr
+        style_attr: StyleAttr,
     ) -> Self {
         let d = distance as f64;
         let mut self_as_mut = self;
@@ -117,11 +118,7 @@ impl XYChromaticity {
         self.plot_poly_line(locus, style_attr)
     }
 
-    pub fn plot_rgb_gamut(
-        self,
-        rgb_space: RgbSpace,
-        style_attr: StyleAttr
-    ) -> Self {
+    pub fn plot_rgb_gamut(self, rgb_space: RgbSpace, style_attr: StyleAttr) -> Self {
         let gamut_fill = PngImageData::from_rgb_space(
             self.observer,
             rgb_space,

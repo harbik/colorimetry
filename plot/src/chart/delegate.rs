@@ -7,12 +7,7 @@ macro_rules! delegate_xy_chart_methods {
         impl $struct_type {
             // Basic drawing methods
 
-            pub fn plot_grid(
-                mut self,
-                x_step: f64,
-                y_step: f64,
-                style_attr: StyleAttr,
-            ) -> Self {
+            pub fn plot_grid(mut self, x_step: f64, y_step: f64, style_attr: StyleAttr) -> Self {
                 self.$field = self.$field.plot_grid(x_step, y_step, style_attr);
                 self
             }

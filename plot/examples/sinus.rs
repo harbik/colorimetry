@@ -1,7 +1,4 @@
-
-use colorimetry_plot::{
-    chart::XYChart, rendable::Rendable, style_attr, svgdoc::SvgDocument
-};
+use colorimetry_plot::{chart::XYChart, rendable::Rendable, style_attr, svgdoc::SvgDocument};
 
 const STYLE: &str = include_str!("sinus.scss");
 
@@ -10,29 +7,27 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     let pi2 = 2.0 * pi;
 
     const N: i32 = 100;
-    let sin: Vec<(f64, f64)> = (0..N).map(|i| {
-        let x = i as f64 * pi2 / (N as f64 - 1.0);
-        (x, x.sin())
-    }).collect();
+    let sin: Vec<(f64, f64)> = (0..N)
+        .map(|i| {
+            let x = i as f64 * pi2 / (N as f64 - 1.0);
+            (x, x.sin())
+        })
+        .collect();
 
-
-    let chart = XYChart::new(
-        (600, 300),
-        (..pi2, -1.1..1.1),
-    )
-    .x_labels(1.0, 10)
-    .y_labels(0.5, 10)
-    .x_axis_description("x")
-    .y_axis_description("sin(x)")
-    .plot_grid(0.2, 0.1, style_attr!(class: "fine-grid"))
-    .plot_grid(1.0, 0.5, style_attr!(class: "grid"))
-    .plot_poly_line(sin, style_attr!(class:"curve"))
-    .plot_poly_line(vec![(0.0, 0.0), (pi2, 0.0)], style_attr!(class:"base-line"));
+    let chart = XYChart::new((600, 300), (..pi2, -1.1..1.1))
+        .x_labels(1.0, 10)
+        .y_labels(0.5, 10)
+        .x_axis_description("x")
+        .y_axis_description("sin(x)")
+        .plot_grid(0.2, 0.1, style_attr!(class: "fine-grid"))
+        .plot_grid(1.0, 0.5, style_attr!(class: "grid"))
+        .plot_poly_line(sin, style_attr!(class:"curve"))
+        .plot_poly_line(vec![(0.0, 0.0), (pi2, 0.0)], style_attr!(class:"base-line"));
 
     let margin = 50;
     let width = chart.width() + margin;
     let height = chart.height() + margin;
-    SvgDocument::new(width, height,STYLE)
+    SvgDocument::new(width, height, STYLE)
         .add_svg(Box::new(chart))
         .save("tmp/sinus.svg")
 }

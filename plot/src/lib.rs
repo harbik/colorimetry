@@ -36,9 +36,9 @@ pub mod chart;
 pub mod layer;
 pub mod rendable;
 pub mod spectrum;
+pub mod style_attr;
 pub mod svgdoc;
 pub mod view;
-pub mod style_attr;
 
 pub use crate::style_attr::StyleAttr;
 

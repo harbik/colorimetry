@@ -14,7 +14,8 @@ use svg::{
 };
 
 use crate::{
-    layer::Layer, new_id, rendable::Rendable, round_to_default_precision, view::ViewParameters, StyleAttr
+    layer::Layer, new_id, rendable::Rendable, round_to_default_precision, view::ViewParameters,
+    StyleAttr,
 };
 
 pub type CoordinateTransform = Rc<dyn Fn((f64, f64)) -> (f64, f64)>;
@@ -93,11 +94,9 @@ impl XYChart {
         let mut axes_layer = Layer::new();
         axes_layer.assign("class", "axes");
 
-        let plot_area = path.clone()
-            .set("class", "plot-area");
-        axes_layer.append(plot_area); 
+        let plot_area = path.clone().set("class", "plot-area");
+        axes_layer.append(plot_area);
         layers.insert("axes", axes_layer);
-
 
         // set up the clip path for the plot area
         let mut clip_paths = Vec::new();
@@ -106,22 +105,21 @@ impl XYChart {
         let clip_id = new_id();
         clip_paths.push(
             ClipPath::new()
-                .set("id", format!("clip-{}", clip_id))
+                .set("id", format!("clip-{clip_id}"))
                 .add(path.clone()),
         );
-        
+
         // create the clipped plot layer
         // everything drawn on the plot layer will be clipped to this path.
         let mut plot_layer = Layer::new();
-        plot_layer.assign("clip-path", format!("url(#clip-{})", clip_id));
-       // plot_layer.append(path);
+        plot_layer.assign("clip-path", format!("url(#clip-{clip_id})"));
+        // plot_layer.append(path);
 
         layers.insert("plot", plot_layer);
 
         let mut annotations_layer = Layer::new();
         annotations_layer.assign("class", "annotations");
         layers.insert("annotations", annotations_layer);
-
 
         let view_box = ViewParameters::new(0, 0, plot_width, plot_height, plot_width, plot_height);
         XYChart {
@@ -146,13 +144,7 @@ impl XYChart {
 
     /// Adds ticks to all the sides of the plot.
     /// A negative length value produces inward ticks, and a positive value outward ticks.
-    pub fn ticks(
-        mut self,
-        x_step: f64,
-        y_step: f64,
-        length: i32,
-        style_attr: StyleAttr,
-    ) -> Self {
+    pub fn ticks(mut self, x_step: f64, y_step: f64, length: i32, style_attr: StyleAttr) -> Self {
         let mut data = Data::new();
         let to_plot = self.to_plot.clone();
         for x in self.x_range.iter_with_step(x_step) {
@@ -275,12 +267,7 @@ impl XYChart {
     /// Draw a grid on the plot area, using the specified step sizes for x and y axes.
     /// The grid lines are drawn as paths on the plot layer.
     /// The grid can be placed before or after other object on the plot layer, by the order of the method calls.
-    pub fn plot_grid(
-        self,
-        x_step: f64,
-        y_step: f64,
-        style_attr: StyleAttr,
-    ) -> Self {
+    pub fn plot_grid(self, x_step: f64, y_step: f64, style_attr: StyleAttr) -> Self {
         let mut data = Data::new();
         let on_canvas = self.to_plot.clone();
         for x in self.x_range.iter_with_step(x_step) {
@@ -296,11 +283,7 @@ impl XYChart {
         self.draw_data("plot", data, style_attr)
     }
 
-    pub fn plot_image(
-        mut self,
-        image: impl Into<Image>,
-        style_attr: StyleAttr,
-    ) -> Self {
+    pub fn plot_image(mut self, image: impl Into<Image>, style_attr: StyleAttr) -> Self {
         let mut image: Image = image.into();
         style_attr.assign(&mut image);
         self.layers.get_mut("plot").unwrap().append(image);
@@ -370,12 +353,7 @@ impl XYChart {
 
     /// Draw a Path onto the selected layer, without
     /// using any scaling.
-    pub fn draw_path(
-        mut self,
-        layer: &str,
-        mut path: Path,
-        style_attr: StyleAttr
-    ) -> Self {
+    pub fn draw_path(mut self, layer: &str, mut path: Path, style_attr: StyleAttr) -> Self {
         if let Some(layer) = self.layers.get_mut(layer) {
             style_attr.assign(&mut path);
             layer.append(path);
@@ -387,12 +365,7 @@ impl XYChart {
 
     /// Add Data, composed of e.g. move_to and line_to operations, to a specified layer.
     /// This is low level convenience method for drawing paths with data.
-    pub fn draw_data(
-        self,
-        layer: &str,
-        data: Data,
-        style_attr: StyleAttr
-    ) -> Self {
+    pub fn draw_data(self, layer: &str, data: Data, style_attr: StyleAttr) -> Self {
         let path = Path::new().set("d", data);
         self.draw_path(layer, path, style_attr)
     }
@@ -513,7 +486,7 @@ impl Rendable for XYChart {
         for clip in self.clip_paths.iter() {
             defs.append(clip.clone());
         }
-        
+
         let mut svg = SVG::new();
         svg = svg
             .set("xmlns", "http://www.w3.org/2000/svg")
@@ -524,8 +497,7 @@ impl Rendable for XYChart {
             svg = svg.set("id", id.as_str());
         }
 
-        svg
-            .set("width", self.width())
+        svg.set("width", self.width())
             .set("height", self.height())
             .set("viewBox", self.view_parameters().view_box_str())
             .add(defs)

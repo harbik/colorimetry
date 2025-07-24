@@ -94,8 +94,8 @@ impl SvgDocument {
 
                 if width > doc_width || height > doc_height {
                     eprintln!("Error: SVG sub-element is larger than the document size.");
-                    eprintln!("Document size: {}x{}, Sub-element size: {}x{}",
-                        doc_width, doc_height, width, height);
+                    eprintln!(
+                        "Document size: {doc_width}x{doc_height}, Sub-element size: {width}x{height}");
                     eprintln!("Please adjust the size of the SVG sub-element or the document.");
                     process::exit(1); // Exit with error code 1
                 }
@@ -136,8 +136,8 @@ impl Rendable for SvgDocument {
         let css_content = match grass::from_string(scss_content, &grass::Options::default()) {
             Ok(css) => css,
             Err(e) => {
-            eprintln!("Failed to compile SCSS: {}", e);
-            process::exit(1); // Exit with error code 1
+                eprintln!("Failed to compile SCSS: {e}");
+                process::exit(1); // Exit with error code 1
             }
         };
         doc = doc.add(Style::new(css_content));
