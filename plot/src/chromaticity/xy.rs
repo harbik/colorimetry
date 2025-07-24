@@ -7,12 +7,11 @@ use std::{
 };
 
 use crate::{
-    chart::XYChart,
-    chart::{ScaleRange, ScaleRangeWithStep},
+    chart::{ScaleRange, ScaleRangeWithStep, XYChart},
     chromaticity::xy::{self, gamut::PngImageData},
     delegate_xy_chart_methods,
     rendable::Rendable,
-    svgdoc::SvgDocument,
+    svgdoc::SvgDocument, StyleAttr,
 };
 use colorimetry::{
     observer::{self, Observer},
@@ -40,18 +39,17 @@ impl XYChromaticity {
         observer: Observer,
         width_and_height: (u32, u32),
         ranges: (impl RangeBounds<f64>, impl RangeBounds<f64>),
-        class_and_style: (Option<&str>, Option<&str>),
+        style_attr: StyleAttr,
     ) -> XYChromaticity {
-        let (class, style) = class_and_style;
-        let xy_chart = XYChart::new(id.as_ref(), width_and_height, ranges, class_and_style);
+        let xy_chart = XYChart::new(id.as_ref(), width_and_height, ranges, style_attr);
 
         XYChromaticity { observer, xy_chart }
     }
 
-    pub fn plot_spectral_locus(self, class: Option<&str>, style: Option<&str>) -> Self {
+    pub fn plot_spectral_locus(self, style_attr: StyleAttr) -> Self {
         let obs = self.observer;
         let locus = obs.spectral_locus();
-        self.plot_shape(locus, class, style)
+        self.plot_shape(locus, style_attr)
     }
 
     pub fn draw_spectral_locus_ticks(
@@ -59,8 +57,7 @@ impl XYChromaticity {
         range: impl RangeBounds<usize>,
         step: usize,
         length: usize,
-        class: Option<&str>,
-        style: Option<&str>,
+        style_attr: StyleAttr
     ) -> Self {
         let length = length as f64;
         let mut self_as_mut = self;
@@ -73,7 +70,7 @@ impl XYChromaticity {
             let pxy2 = (pxy1.0 + length * angle.sin(), pxy1.1 + length * angle.cos());
             data = data.line_to(pxy2);
         }
-        self_as_mut.draw_data("plot", data, class, style)
+        self_as_mut.draw_data("plot", data, style_attr)
     }
 
     pub fn draw_spectral_locus_labels(
@@ -81,8 +78,7 @@ impl XYChromaticity {
         range: impl RangeBounds<usize> + Clone,
         step: usize,
         distance: usize,
-        class: Option<&str>,
-        style: Option<&str>,
+        style_attr: StyleAttr
     ) -> Self {
         let d = distance as f64;
         let mut self_as_mut = self;
@@ -98,7 +94,7 @@ impl XYChromaticity {
             let pxy2 = (pxy1.0 - d * angle.sin(), pxy1.1 - d * angle.cos());
             let label = format!("{v:.0}");
             let rotation_angle = -angle.to_degrees();
-            let text = Text::new(label)
+            let mut text = Text::new(label)
                 .set("x", pxy2.0)
                 .set("y", pxy2.1)
                 .set("text-anchor", "middle")
@@ -106,8 +102,8 @@ impl XYChromaticity {
                 .set(
                     "transform",
                     format!("rotate({:.3} {:.3} {:.3})", rotation_angle, pxy2.0, pxy2.1),
-                )
-                .set("class", class.unwrap_or("spectral-locus-labels"));
+                );
+            style_attr.assign(&mut text);
             self_as_mut
                 .xy_chart
                 .layers
@@ -118,16 +114,15 @@ impl XYChromaticity {
         self_as_mut
     }
 
-    pub fn plot_planckian_locus(self, class: Option<&str>, style: Option<&str>) -> Self {
+    pub fn plot_planckian_locus(self, style_attr: StyleAttr) -> Self {
         let locus = self.observer.planckian_locus();
-        self.plot_poly_line(locus, class, style)
+        self.plot_poly_line(locus, style_attr)
     }
 
     pub fn plot_rgb_gamut(
         self,
         rgb_space: RgbSpace,
-        class: Option<&str>,
-        style: Option<&str>,
+        style_attr: StyleAttr
     ) -> Self {
         let gamut_fill = PngImageData::from_rgb_space(
             self.observer,
@@ -135,7 +130,7 @@ impl XYChromaticity {
             self.xy_chart.to_plot.clone(),
             self.xy_chart.to_world.clone(),
         );
-        self.plot_image(gamut_fill, class, style)
+        self.plot_image(gamut_fill, style_attr)
     }
 
     /// Draw white points on the chromaticity diagram as an iterator of CieIlluminant, and i32 angle and length pairs.

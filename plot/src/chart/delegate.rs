@@ -11,30 +11,27 @@ macro_rules! delegate_xy_chart_methods {
                 mut self,
                 x_step: f64,
                 y_step: f64,
-                class: Option<&str>,
-                style: Option<&str>,
+                style_attr: StyleAttr,
             ) -> Self {
-                self.$field = self.$field.plot_grid(x_step, y_step, class, style);
+                self.$field = self.$field.plot_grid(x_step, y_step, style_attr);
                 self
             }
 
             pub fn plot_poly_line(
                 mut self,
                 points: impl IntoIterator<Item = (f64, f64)>,
-                class: Option<&str>,
-                style: Option<&str>,
+                style_attr: StyleAttr,
             ) -> Self {
-                self.$field = self.$field.plot_poly_line(points, class, style);
+                self.$field = self.$field.plot_poly_line(points, style_attr);
                 self
             }
 
             pub fn plot_shape(
                 mut self,
                 points: impl IntoIterator<Item = (f64, f64)>,
-                class: Option<&str>,
-                style: Option<&str>,
+                style_attr: StyleAttr,
             ) -> Self {
-                self.$field = self.$field.plot_shape(points, class, style);
+                self.$field = self.$field.plot_shape(points, style_attr);
                 self
             }
 
@@ -42,10 +39,9 @@ macro_rules! delegate_xy_chart_methods {
                 mut self,
                 layer: &str,
                 data: svg::node::element::path::Data,
-                class: Option<&str>,
-                style: Option<&str>,
+                style_attr: StyleAttr,
             ) -> Self {
-                self.$field = self.$field.draw_data(layer, data, class, style);
+                self.$field = self.$field.draw_data(layer, data, style_attr);
                 self
             }
 
@@ -53,20 +49,18 @@ macro_rules! delegate_xy_chart_methods {
                 mut self,
                 layer: &str,
                 path: svg::node::element::Path,
-                class: Option<&str>,
-                style: Option<&str>,
+                style_attr: StyleAttr,
             ) -> Self {
-                self.$field = self.$field.draw_path(layer, path, class, style);
+                self.$field = self.$field.draw_path(layer, path, style_attr);
                 self
             }
 
             pub fn plot_image(
                 mut self,
                 image: impl Into<svg::node::element::Image>,
-                class: Option<&str>,
-                style: Option<&str>,
+                style_attr: StyleAttr,
             ) -> Self {
-                self.$field = self.$field.plot_image(image, class, style);
+                self.$field = self.$field.plot_image(image, style_attr);
                 self
             }
             pub fn ticks(
@@ -74,10 +68,9 @@ macro_rules! delegate_xy_chart_methods {
                 x_step: f64,
                 y_step: f64,
                 length: i32,
-                class: Option<&str>,
-                style: Option<&str>,
+                style_attr: StyleAttr,
             ) -> Self {
-                self.$field = self.$field.ticks(x_step, y_step, length, class, style);
+                self.$field = self.$field.ticks(x_step, y_step, length, style_attr);
                 self
             }
 
@@ -108,12 +101,11 @@ macro_rules! delegate_xy_chart_methods {
                 r: f64,
                 angle_and_length: (i32, i32),
                 text: impl AsRef<str>,
-                class: Option<&str>,
-                style: Option<&str>,
+                style_attr: StyleAttr,
             ) -> Self {
                 self.$field = self
                     .$field
-                    .label_pin(cxy, r, angle_and_length, text, class, style);
+                    .label_pin(cxy, r, angle_and_length, text, style_attr);
                 self
             }
         }

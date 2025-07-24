@@ -11,8 +11,8 @@ use svg::{
 };
 
 use crate::{
-    layer::Layer, rendable::Rendable, round_to_default_precision, set_class_and_style,
-    view::ViewParameters,
+    layer::Layer, rendable::Rendable, round_to_default_precision,
+    view::ViewParameters, StyleAttr,
 };
 
 pub type CoordinateTransform = Rc<dyn Fn((f64, f64)) -> (f64, f64)>;
@@ -49,12 +49,11 @@ impl XYChart {
         id: impl AsRef<str>,
         plot_width_and_height: (u32, u32),
         ranges: (impl RangeBounds<f64>, impl RangeBounds<f64>),
-        class_and_style: (Option<&str>, Option<&str>),
+        style_attr: StyleAttr,
     ) -> XYChart {
         let id = id.as_ref().to_string();
         let (plot_width, plot_height) = plot_width_and_height;
         let (x_range, y_range) = (ScaleRange::new(ranges.0), ScaleRange::new(ranges.1));
-        let (class, style) = class_and_style;
 
         // output coordinates with 0.1px precision
         let to_plot = Rc::new(move |xy: (f64, f64)| {
@@ -69,8 +68,9 @@ impl XYChart {
             plot_to_world_coordinates(xy.0, xy.1, &x_range, &y_range, w, h)
         });
 
+        // set up the clip path for the plot area, and a background rectangle
+        // typically used for setting background color of the plot area.
         let mut clip_paths = Vec::new();
-
         let mut path = to_path(
             [
                 (0f64, 0f64),
@@ -80,25 +80,17 @@ impl XYChart {
             ],
             true,
         );
-        // chart always gets a clip path
         clip_paths.push(
             ClipPath::new()
                 .set("id", format!("clip-{id}"))
                 .add(path.clone()),
         );
+        
+        // create a background rectangle for the plot area
         let mut plot_layer = Layer::new();
         plot_layer.assign("clip-path", format!("url(#clip-{id})"));
-
-        // don't add a background if no style or class is given
-        if style.is_some() || class.is_some() {
-            if let Some(style) = style {
-                path = path.set("style", style);
-            }
-            if let Some(class) = class {
-                path = path.set("class", class);
-            }
-            plot_layer.append(path);
-        }
+        style_attr.assign(&mut path);
+        plot_layer.append(path);
 
         // create the layers
         let mut layers = HashMap::new();
@@ -135,8 +127,7 @@ impl XYChart {
         x_step: f64,
         y_step: f64,
         length: i32,
-        class: Option<&str>,
-        style: Option<&str>,
+        style_attr: StyleAttr,
     ) -> Self {
         let mut data = Data::new();
         let to_plot = self.to_plot.clone();
@@ -163,7 +154,7 @@ impl XYChart {
             });
             self.update_view();
         }
-        self.draw_data("axes", data, class, style)
+        self.draw_data("axes", data, style_attr)
     }
 
     /// Adds x labels to the axes layer of the chart
@@ -264,8 +255,7 @@ impl XYChart {
         self,
         x_step: f64,
         y_step: f64,
-        class: Option<&str>,
-        style: Option<&str>,
+        style_attr: StyleAttr,
     ) -> Self {
         let mut data = Data::new();
         let on_canvas = self.to_plot.clone();
@@ -279,17 +269,16 @@ impl XYChart {
                 .move_to(on_canvas((self.x_range.start, y)))
                 .line_to(on_canvas((self.x_range.end, y)));
         }
-        self.draw_data("plot", data, class, style)
+        self.draw_data("plot", data, style_attr)
     }
 
     pub fn plot_image(
         mut self,
         image: impl Into<Image>,
-        class: Option<&str>,
-        style: Option<&str>,
+        style_attr: StyleAttr,
     ) -> Self {
         let mut image: Image = image.into();
-        image = set_class_and_style(image, class, style);
+        style_attr.assign(&mut image);
         self.layers.get_mut("plot").unwrap().append(image);
         self
     }
@@ -302,8 +291,7 @@ impl XYChart {
         r: f64,
         angle_and_length: (i32, i32),
         text: impl AsRef<str>,
-        class: Option<&str>,
-        style: Option<&str>,
+        style_attr: StyleAttr,
     ) -> Self {
         let (angle, len) = angle_and_length;
         let angle = 360 - ((angle + 360) % 360);
@@ -326,12 +314,6 @@ impl XYChart {
         let mut text = Text::new(text.as_ref())
             .set("x", cx + dxt)
             .set("y", cy + dyt);
-
-        if let Some(class) = class {
-            text.assign("class", class);
-        } else {
-            text.assign("class", "default");
-        }
 
         match angle {
             0..55 | 305..=360 => {
@@ -357,7 +339,7 @@ impl XYChart {
         }
 
         let mut group = Group::new().add(circle).add(line).add(text);
-        group = set_class_and_style(group, class, style);
+        style_attr.assign(&mut group);
         self.layers.get_mut("annotations").unwrap().append(group);
         self
     }
@@ -368,11 +350,10 @@ impl XYChart {
         mut self,
         layer: &str,
         mut path: Path,
-        class: Option<&str>,
-        style: Option<&str>,
+        style_attr: StyleAttr
     ) -> Self {
         if let Some(layer) = self.layers.get_mut(layer) {
-            path = set_class_and_style(path, class, style);
+            style_attr.assign(&mut path);
             layer.append(path);
         } else {
             panic!("unknown layer");
@@ -386,11 +367,10 @@ impl XYChart {
         self,
         layer: &str,
         data: Data,
-        class: Option<&str>,
-        style: Option<&str>,
+        style_attr: StyleAttr
     ) -> Self {
         let path = Path::new().set("d", data);
-        self.draw_path(layer, path, class, style)
+        self.draw_path(layer, path, style_attr)
     }
 
     /// Add a line to the chart, for a set of world coordinates, as specified by x and y ranges, from an iterator,
@@ -398,12 +378,11 @@ impl XYChart {
     pub fn plot_poly_line(
         self,
         data: impl IntoIterator<Item = (f64, f64)>,
-        class: Option<&str>,
-        style: Option<&str>,
+        style_attr: StyleAttr,
     ) -> Self {
         let on_canvas = self.to_plot.clone();
         let iter_canvas = data.into_iter().map(|xy| (on_canvas)(xy));
-        self.draw_path("plot", to_path(iter_canvas, false), class, style)
+        self.draw_path("plot", to_path(iter_canvas, false), style_attr)
     }
 
     /// Plot a shape from a set of coordinates from an iterator.
@@ -411,12 +390,11 @@ impl XYChart {
     pub fn plot_shape(
         self,
         data: impl IntoIterator<Item = (f64, f64)>,
-        class: Option<&str>,
-        style: Option<&str>,
+        style_attr: StyleAttr,
     ) -> Self {
         let on_canvas = self.to_plot.clone();
         let iter_canvas = data.into_iter().map(|xy| (on_canvas)(xy));
-        self.draw_path("plot", to_path(iter_canvas, true), class, style)
+        self.draw_path("plot", to_path(iter_canvas, true), style_attr)
     }
 
     pub fn update_view(&mut self) {

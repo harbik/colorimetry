@@ -7,7 +7,7 @@ pub struct StyleAttr {
 
 impl StyleAttr {
     /// Converts to a single string like: `class="foo" style="stroke:red;"`
-    pub fn node_assign<T>(&self, mut node: T)
+    pub fn assign<T>(&self, node: &mut T)
     where T: svg::Node,
     {
         if let Some(class) = self.class.clone() {
@@ -15,6 +15,9 @@ impl StyleAttr {
         }
         if let Some(style) = self.style.clone() {
             node.assign("style", style);
+        }
+        if self.class.is_none() && self.style.is_none() {
+            node.assign("class", "default");
         }
     }
 }
@@ -25,29 +28,11 @@ impl StyleAttr {
 ///
 /// This macro supports multiple invocation patterns:
 ///
-/// ### 1. Shorthand identifier for `class`
-///
 /// ```rust
-/// use colorimetry-plot::style_attr;
-/// let style = style_attr!(highlight);
-/// assert_eq!(style.class.as_deref(), Some("highlight"));
-/// assert_eq!(style.style, None);
-/// ```
-///
-/// ### 2. Key-value pairs for `class` and/or `style`
-///
-/// ```rust
+/// use colorimetry_plot::{style_attr, StyleAttr};
 /// let style = style_attr!(class: "button", style: "fill:red;");
 /// assert_eq!(style.class.as_deref(), Some("button"));
 /// assert_eq!(style.style.as_deref(), Some("fill:red;"));
-/// ```
-///
-/// ### 3. Raw style string as token tree
-///
-/// ```rust
-/// let style = style_attr!(stroke:blue; fill:none;);
-/// assert_eq!(style.class, None);
-/// assert_eq!(style.style.as_deref(), Some("stroke:blue; fill:none;"));
 /// ```
 ///
 /// This is useful for freeform style attributes that don’t follow key-value
@@ -70,23 +55,22 @@ impl StyleAttr {
 /// # Examples
 ///
 /// ```rust
-/// let a = style_attr!(highlight);
+/// use colorimetry_plot::{style_attr, StyleAttr};
+/// let a = style_attr!(); // No style specfied
 /// let b = style_attr!(class: "foo");
 /// let c = style_attr!(style: "stroke:red;");
 /// let d = style_attr!(class: "bar", style: "fill:blue;");
-/// let e = style_attr!(stroke:black; fill:none;);
 /// ```
 #[macro_export]
 macro_rules! style_attr {
-    // Case 1: shorthand identifier -> class
-    ($ident:ident) => {
+    // No arguments, defaults to empty class and style
+    () => {
         $crate::StyleAttr {
-            class: Some(stringify!($ident).to_string()),
+            class: None,
             style: None,
         }
     };
 
-    // Case 2: named key-value pairs for class/style only
     ( $( class : $class_val:expr ),+ $(,)? ) => {
         $crate::StyleAttr {
             class: Some([$($class_val),+].join(" ")),
@@ -115,14 +99,6 @@ macro_rules! style_attr {
     ( $( $key:ident : $val:expr ),+ $(,)? ) => {
         compile_error!("Unknown key in style_attr! macro. Only 'class' and 'style' are supported.");
     };
-
-    // Case 3: fallback token tree (e.g. style_attr!(color:red; stroke:blue;))
-    ($($style:tt)+) => {
-        $crate::StyleAttr {
-            class: None,
-            style: Some(format!($($style)+)),
-        }
-    };
 }
 
 #[cfg(test)]
@@ -130,24 +106,17 @@ mod tests {
 
     #[test]
     fn test_style_attr_macro() {
-        let a = style_attr!(highlight);
-        assert_eq!(a.class.as_deref(), Some("highlight"));
+        let a = style_attr!(class: "foo");
+        assert_eq!(a.class.as_deref(), Some("foo"));
         assert_eq!(a.style, None);
 
-        let b = style_attr!(class: "foo");
-        assert_eq!(b.class.as_deref(), Some("foo"));
-        assert_eq!(b.style, None);
+        let b = style_attr!(style: "stroke:red;");
+        assert_eq!(b.class, None);
+        assert_eq!(b.style.as_deref(), Some("stroke:red;"));
 
-        let c = style_attr!(style: "stroke:red;");
-        assert_eq!(c.class, None);
-        assert_eq!(c.style.as_deref(), Some("stroke:red;"));
+        let c = style_attr!(class: "bar", style: "fill:blue;");
+        assert_eq!(c.class.as_deref(), Some("bar"));
+        assert_eq!(c.style.as_deref(), Some("fill:blue;"));
 
-        let d = style_attr!(class: "bar", style: "fill:blue;");
-        assert_eq!(d.class.as_deref(), Some("bar"));
-        assert_eq!(d.style.as_deref(), Some("fill:blue;"));
-
-        let e = style_attr!("stroke:black; fill:none;");
-        assert_eq!(e.class, None);
-        assert_eq!(e.style.as_deref(), Some("stroke:black; fill:none;"));
     }
 }
