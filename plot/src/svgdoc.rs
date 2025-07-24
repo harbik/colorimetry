@@ -115,7 +115,11 @@ impl Rendable for SvgDocument {
         let mut doc = Document::new()
             .set("viewBox", self.view_parameters.to_string())
             .set("width", self.view_parameters.width())
-            .set("height", self.view_parameters.height());
+            .set("height", self.view_parameters.height())
+            .set("xmlns", "http://www.w3.org/2000/svg")
+            .set("xmlns:xlink", "http://www.w3.org/1999/xlink")
+            .set("version", "1.1")
+            .set("class", "colorimetry-plot");
 
         doc = doc.add(Style::new(format!("{}\n{}", self.css, DEFAULT_CSS)));
 
