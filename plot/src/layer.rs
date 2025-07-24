@@ -18,6 +18,7 @@ impl Layer {
         Layer(self.0.set(key, value.into()))
     }
 
+    /*
     pub fn set_class_and_style(self, class: Option<&str>, style: Option<&str>) -> Self {
         let mut layer = self;
         if let Some(c) = class {
@@ -28,6 +29,7 @@ impl Layer {
         }
         layer
     }
+     */
 }
 
 impl From<Layer> for Box<dyn Node> {

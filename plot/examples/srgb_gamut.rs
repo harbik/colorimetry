@@ -1,5 +1,5 @@
 use colorimetry::{observer::Observer, rgb::RgbSpace::SRGB};
-use colorimetry_plot::{chromaticity::XYChromaticity, style_attr, svgdoc::SvgDocument};
+use colorimetry_plot::{chart::XYChromaticity, style_attr, svgdoc::SvgDocument};
 
 const STYLE: &str = "
     :root {
@@ -65,7 +65,6 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     let observer = Observer::default();
 
     let xy_chromaticity = XYChromaticity::new(
-        "cie1931_chromaticity_diagram",
         observer,
         (775, 875),
         (-0.025..=0.75, 0.0..=0.875),

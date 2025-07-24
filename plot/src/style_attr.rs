@@ -3,6 +3,7 @@
 pub struct StyleAttr {
     pub class: Option<String>,
     pub style: Option<String>,
+    pub id: Option<String>,
 }
 
 impl StyleAttr {
@@ -16,9 +17,17 @@ impl StyleAttr {
         if let Some(style) = self.style.clone() {
             node.assign("style", style);
         }
+        // If neither class nor style is set, assign a default class
+        // This is useful for elements that need a default style as else they are hidden on the plot
+        // In this libarary we use "default" as a fallback class, showing the otherwise hidden elements
+        // with a bright green color ('chartreuse') in the plot.
         if self.class.is_none() && self.style.is_none() {
             node.assign("class", "default");
         }
+    }
+
+    pub fn id(&self) -> Option<&str> {
+        self.id.as_deref()
     }
 }
 
@@ -60,44 +69,134 @@ impl StyleAttr {
 /// let b = style_attr!(class: "foo");
 /// let c = style_attr!(style: "stroke:red;");
 /// let d = style_attr!(class: "bar", style: "fill:blue;");
+/// let e = style_attr!(id: "line3");
 /// ```
 #[macro_export]
 macro_rules! style_attr {
-    // No arguments, defaults to empty class and style
+    // No arguments, defaults to empty fields
     () => {
         $crate::StyleAttr {
             class: None,
             style: None,
+            id: None,
         }
     };
 
+    // Only class
     ( $( class : $class_val:expr ),+ $(,)? ) => {
         $crate::StyleAttr {
             class: Some([$($class_val),+].join(" ")),
             style: None,
+            id: None,
         }
     };
+    // Only style
     ( $( style : $style_val:expr ),+ $(,)? ) => {
         $crate::StyleAttr {
             class: None,
             style: Some([$($style_val),+].join(" ")),
+            id: None,
         }
     };
+    // Only id
+    ( $( id : $id_val:expr ),+ $(,)? ) => {
+        $crate::StyleAttr {
+            class: None,
+            style: None,
+            id: Some([$($id_val),+].join(" ")),
+        }
+    };
+    // class + style
     ( class : $class_val:expr, style : $style_val:expr $(,)? ) => {
         $crate::StyleAttr {
             class: Some($class_val.to_string()),
             style: Some($style_val.to_string()),
+            id: None,
         }
     };
     ( style : $style_val:expr, class : $class_val:expr $(,)? ) => {
         $crate::StyleAttr {
             class: Some($class_val.to_string()),
             style: Some($style_val.to_string()),
+            id: None,
+        }
+    };
+    // class + id
+    ( class : $class_val:expr, id : $id_val:expr $(,)? ) => {
+        $crate::StyleAttr {
+            class: Some($class_val.to_string()),
+            style: None,
+            id: Some($id_val.to_string()),
+        }
+    };
+    ( id : $id_val:expr, class : $class_val:expr $(,)? ) => {
+        $crate::StyleAttr {
+            class: Some($class_val.to_string()),
+            style: None,
+            id: Some($id_val.to_string()),
+        }
+    };
+    // style + id
+    ( style : $style_val:expr, id : $id_val:expr $(,)? ) => {
+        $crate::StyleAttr {
+            class: None,
+            style: Some($style_val.to_string()),
+            id: Some($id_val.to_string()),
+        }
+    };
+    ( id : $id_val:expr, style : $style_val:expr $(,)? ) => {
+        $crate::StyleAttr {
+            class: None,
+            style: Some($style_val.to_string()),
+            id: Some($id_val.to_string()),
+        }
+    };
+    // class + style + id (any order)
+    ( class : $class_val:expr, style : $style_val:expr, id : $id_val:expr $(,)? ) => {
+        $crate::StyleAttr {
+            class: Some($class_val.to_string()),
+            style: Some($style_val.to_string()),
+            id: Some($id_val.to_string()),
+        }
+    };
+    ( class : $class_val:expr, id : $id_val:expr, style : $style_val:expr $(,)? ) => {
+        $crate::StyleAttr {
+            class: Some($class_val.to_string()),
+            style: Some($style_val.to_string()),
+            id: Some($id_val.to_string()),
+        }
+    };
+    ( style : $style_val:expr, class : $class_val:expr, id : $id_val:expr $(,)? ) => {
+        $crate::StyleAttr {
+            class: Some($class_val.to_string()),
+            style: Some($style_val.to_string()),
+            id: Some($id_val.to_string()),
+        }
+    };
+    ( style : $style_val:expr, id : $id_val:expr, class : $class_val:expr $(,)? ) => {
+        $crate::StyleAttr {
+            class: Some($class_val.to_string()),
+            style: Some($style_val.to_string()),
+            id: Some($id_val.to_string()),
+        }
+    };
+    ( id : $id_val:expr, class : $class_val:expr, style : $style_val:expr $(,)? ) => {
+        $crate::StyleAttr {
+            class: Some($class_val.to_string()),
+            style: Some($style_val.to_string()),
+            id: Some($id_val.to_string()),
+        }
+    };
+    ( id : $id_val:expr, style : $style_val:expr, class : $class_val:expr $(,)? ) => {
+        $crate::StyleAttr {
+            class: Some($class_val.to_string()),
+            style: Some($style_val.to_string()),
+            id: Some($id_val.to_string()),
         }
     };
     // Catch-all for unknown keys
     ( $( $key:ident : $val:expr ),+ $(,)? ) => {
-        compile_error!("Unknown key in style_attr! macro. Only 'class' and 'style' are supported.");
+        compile_error!("Unknown key in style_attr! macro. Only 'class', 'style', and 'id' are supported.");
     };
 }
 

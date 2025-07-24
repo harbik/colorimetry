@@ -1,5 +1,6 @@
 #![allow(unused)]
 mod gamut;
+use gamut::PngImageData;
 
 use std::{
     ops::Range,
@@ -8,7 +9,6 @@ use std::{
 
 use crate::{
     chart::{ScaleRange, ScaleRangeWithStep, XYChart},
-    chromaticity::xy::{self, gamut::PngImageData},
     delegate_xy_chart_methods,
     rendable::Rendable,
     svgdoc::SvgDocument, StyleAttr,
@@ -35,13 +35,12 @@ impl XYChromaticity {
     pub const ANNOTATE_SEP: u32 = 2;
 
     pub fn new(
-        id: impl AsRef<str>,
         observer: Observer,
         width_and_height: (u32, u32),
         ranges: (impl RangeBounds<f64>, impl RangeBounds<f64>),
         style_attr: StyleAttr,
     ) -> XYChromaticity {
-        let xy_chart = XYChart::new(id.as_ref(), width_and_height, ranges, style_attr);
+        let xy_chart = XYChart::new(width_and_height, ranges, style_attr);
 
         XYChromaticity { observer, xy_chart }
     }

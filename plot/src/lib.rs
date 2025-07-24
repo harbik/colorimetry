@@ -33,7 +33,6 @@
 //! This library is dual-licensed under the MIT License and the Apache License (Version 2.0).
 //! You may choose either license when using this library.
 pub mod chart;
-pub mod chromaticity;
 pub mod layer;
 pub mod rendable;
 pub mod spectrum;

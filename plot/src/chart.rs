@@ -1,5 +1,8 @@
 mod delegate;
 
+mod chromaticity;
+pub use chromaticity::XYChromaticity;
+
 mod range;
 pub use range::{ScaleRange, ScaleRangeIterator, ScaleRangeWithStep, ScaleValue};
 
@@ -11,16 +14,22 @@ use svg::{
 };
 
 use crate::{
-    layer::Layer, rendable::Rendable, round_to_default_precision,
-    view::ViewParameters, StyleAttr,
+    layer::Layer, new_id, rendable::Rendable, round_to_default_precision, view::ViewParameters, StyleAttr
 };
 
 pub type CoordinateTransform = Rc<dyn Fn((f64, f64)) -> (f64, f64)>;
 
+/// An XYChart is a two-dimensional chart that can plot data
+/// in a Cartesian coordinate system, with x and y axes.
+/// It supports various features such as
+/// adding ticks, labels, grid lines, and annotations.
+/// It can also render images and shapes on the plot area.
+/// It is designed to be flexible and extensible,
+/// allowing users to customize the appearance and behavior of the chart.
 #[derive(Clone)]
 pub struct XYChart {
     // inputs
-    pub id: String,          // unique id for the chart
+    pub id: Option<String>,  // unique id for the chart
     pub x_range: ScaleRange, // min, max for x axis
     pub y_range: ScaleRange, // min, max for y axis
     pub plot_width: u32,     // width and height of the true plot area,
@@ -46,12 +55,10 @@ impl XYChart {
     pub const DESCRIPTION_OFFSET: i32 = Self::LABEL_HEIGHT + Self::DESCRIPTION_SEP;
 
     pub fn new(
-        id: impl AsRef<str>,
         plot_width_and_height: (u32, u32),
         ranges: (impl RangeBounds<f64>, impl RangeBounds<f64>),
         style_attr: StyleAttr,
     ) -> XYChart {
-        let id = id.as_ref().to_string();
         let (plot_width, plot_height) = plot_width_and_height;
         let (x_range, y_range) = (ScaleRange::new(ranges.0), ScaleRange::new(ranges.1));
 
@@ -80,15 +87,19 @@ impl XYChart {
             ],
             true,
         );
+
+        // use unique id for the clip path
+        let clip_id = new_id();
         clip_paths.push(
             ClipPath::new()
-                .set("id", format!("clip-{id}"))
+                .set("id", format!("clip-{}", clip_id))
                 .add(path.clone()),
         );
         
         // create a background rectangle for the plot area
+        // and assign the style attributes to it
         let mut plot_layer = Layer::new();
-        plot_layer.assign("clip-path", format!("url(#clip-{id})"));
+        plot_layer.assign("clip-path", format!("url(#clip-{})", clip_id));
         style_attr.assign(&mut path);
         plot_layer.append(path);
 
@@ -105,6 +116,11 @@ impl XYChart {
         layers.insert("axes", axes_layer);
 
         let view_box = ViewParameters::new(0, 0, plot_width, plot_height, plot_width, plot_height);
+        let id = if let Some(id) = style_attr.id() {
+           Some(id.to_string())
+        } else {
+           None 
+        };
         XYChart {
             id,
             view_parameters: view_box,
@@ -493,13 +509,22 @@ impl Rendable for XYChart {
     }
 
     fn render(&self) -> SVG {
-        println!("Converting XYChart to SVG with id: {}", self.id);
         let mut defs = Definitions::new();
         for clip in self.clip_paths.iter() {
             defs.append(clip.clone());
         }
-        SVG::new()
-            .set("id", self.id.clone())
+        
+        let mut svg = SVG::new();
+        svg = svg
+            .set("xmlns", "http://www.w3.org/2000/svg")
+            .set("xmlns:xlink", "http://www.w3.org/1999/xlink")
+            .set("version", "1.1")
+            .set("class", "chart");
+        if let Some(id) = &self.id {
+            svg = svg.set("id", id.as_str());
+        }
+
+        svg
             .set("width", self.width())
             .set("height", self.height())
             .set("viewBox", self.view_parameters().view_box_str())

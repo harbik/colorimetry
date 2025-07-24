@@ -58,13 +58,13 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     let d50 = observer.xyz_d50().chromaticity().to_tuple();
 
     let chart = XYChart::new(
-        "cie1931_chromaticity_diagram",
         (500, 500),
         (0.25..=0.45, 0.25..=0.45),
         style_attr!(class: "chart"),
     )
     .ticks(0.01, 0.01, 4, style_attr!(class:"fine-grid"))
-    .ticks(0.1, 0.1, 6, style_attr!(class:"fine-grid"))
+    .ticks(0.1, 0.05, 8, style_attr!(class:"grid"))
+    .ticks(0.1, 0.1, 12, style_attr!(class:"grid"))
     .x_labels(0.1, 3)
     .y_labels(0.1, 3)
     .x_axis_description("CIE 1931 x Chromaticity")
