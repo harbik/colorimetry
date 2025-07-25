@@ -1,4 +1,3 @@
-
 //! Spectral Locus module provides functionality to work with the spectral locus in colorimetry.
 //!
 //! The spectral locus represents the boundary of visible colors in a chromaticity diagram,
@@ -15,7 +14,12 @@ use std::ops::RangeBounds;
 
 use geo::{Contains, Polygon};
 
-use crate::{math::QuadraticCurve, observer::Observer, spectrum::{NS, SPECTRUM_WAVELENGTH_RANGE}, xyz::XYZ};
+use crate::{
+    math::QuadraticCurve,
+    observer::Observer,
+    spectrum::{NS, SPECTRUM_WAVELENGTH_RANGE},
+    xyz::XYZ,
+};
 
 /// Represents the spectral locus, which includes:
 /// - An observer for spectral data.
@@ -63,13 +67,17 @@ impl SpectralLocus {
     /// - `((f64, f64), f64)`
     ///   - The chromaticity coordinate (x, y) of the locus point.
     ///   - The slope angle (in radians) at that point.
-    pub fn iter_range_with_slope<'a>(&'a self, range: impl RangeBounds<usize>, step: usize) -> SpectralLocusSlopeIterator<'a> {
+    pub fn iter_range_with_slope<'a>(
+        &'a self,
+        range: impl RangeBounds<usize>,
+        step: usize,
+    ) -> SpectralLocusSlopeIterator<'a> {
         let min_wavelength = *SPECTRUM_WAVELENGTH_RANGE.start();
         let clip = |s, lim| {
-            if s  > min_wavelength {
+            if s > min_wavelength {
                 s - min_wavelength
             } else {
-               lim 
+                lim
             }
         };
         let start = match range.start_bound() {
@@ -79,21 +87,20 @@ impl SpectralLocus {
         };
         let end = match range.end_bound() {
             std::ops::Bound::Included(&e) => clip(e + 1, NS - 1),
-            std::ops::Bound::Excluded(&e) => clip(e, NS -1),
-            std::ops::Bound::Unbounded =>  NS - 1 ,
+            std::ops::Bound::Excluded(&e) => clip(e, NS - 1),
+            std::ops::Bound::Unbounded => NS - 1,
         };
 
         if end <= start {
             panic!("End of range must be greater than start");
         }
-        
+
         SpectralLocusSlopeIterator {
             locus: self,
             index: start,
             step,
             end,
         }
-
     }
 
     pub fn polygon(&self) -> &Polygon {
@@ -157,7 +164,8 @@ impl Iterator for SpectralLocusSlopeIterator<'_> {
                         (coord_min.x, coord_min.y),
                         (coord.x, coord.y),
                         (coord_plus.x, coord_plus.y),
-                    ).unwrap();
+                    )
+                    .unwrap();
                     qurve.slope_angle(0.5)
                 }
                 n if n == NS - 1 => {
@@ -191,7 +199,8 @@ impl<'a> DoubleEndedIterator for SpectralLocusSlopeIterator<'a> {
                         (coord_min.x, coord_min.y),
                         (coord.x, coord.y),
                         (coord_plus.x, coord_plus.y),
-                    ).unwrap();
+                    )
+                    .unwrap();
                     qurve.slope_angle(0.5)
                 }
                 n if n == NS - 1 => {
@@ -255,7 +264,7 @@ mod test {
     fn test_spectral_locus_slope_iterator() {
         let locus = SpectralLocus::new(Cie1931);
         let mut iter = locus.iter_range_with_slope(400..700, 10);
-        
+
         // Check the first point
         let (point, angle) = iter.next().unwrap();
         assert_abs_diff_eq!(point.0, 0.173336, epsilon = 0.00005);
@@ -268,5 +277,4 @@ mod test {
         assert_abs_diff_eq!(point.1, 0.265609, epsilon = 0.00005);
         assert_abs_diff_eq!(angle, -0.785398, epsilon = 0.00005); // slope at last point
     }
-
 }

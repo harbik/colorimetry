@@ -349,9 +349,12 @@ impl QuadraticCurve {
     /// Returns `Error::RequiresDistinctPoints` if the points are not distinct, which would
     /// result in a degenerate curve.
     pub fn new(p0: (f64, f64), p1: (f64, f64), p2: (f64, f64)) -> Result<Self, Error> {
-        if (abs_diff_eq!(p0.0, p1.0, epsilon = f64::EPSILON) && abs_diff_eq!(p0.1, p1.1, epsilon = f64::EPSILON))
-            || (abs_diff_eq!(p1.0, p2.0, epsilon = f64::EPSILON) && abs_diff_eq!(p1.1, p2.1, epsilon = f64::EPSILON))
-            || (abs_diff_eq!(p0.0, p2.0, epsilon = f64::EPSILON) && abs_diff_eq!(p0.1, p2.1, epsilon = f64::EPSILON))
+        if (abs_diff_eq!(p0.0, p1.0, epsilon = f64::EPSILON)
+            && abs_diff_eq!(p0.1, p1.1, epsilon = f64::EPSILON))
+            || (abs_diff_eq!(p1.0, p2.0, epsilon = f64::EPSILON)
+                && abs_diff_eq!(p1.1, p2.1, epsilon = f64::EPSILON))
+            || (abs_diff_eq!(p0.0, p2.0, epsilon = f64::EPSILON)
+                && abs_diff_eq!(p0.1, p2.1, epsilon = f64::EPSILON))
         {
             return Err(Error::RequiresDistinctPoints);
         }
@@ -402,12 +405,10 @@ impl QuadraticCurve {
         let (dx_dt, dy_dt) = self.derivative(t);
         dy_dt.atan2(dx_dt)
     }
-
 }
 
 #[test]
 fn quadratic_curve_test() {
-
     use approx::assert_ulps_eq;
     // Standard parabola y = x^2
     let curve = QuadraticCurve::new((-1.0, 1.0), (0.0, 0.0), (1.0, 1.0)).unwrap();
@@ -442,7 +443,6 @@ fn quadratic_curve_test() {
     assert_ulps_eq!(v2.0, p2.0);
     assert_ulps_eq!(v2.1, p2.1);
 }
-
 
 #[test]
 fn triangle_test() {

@@ -4,7 +4,7 @@
 //! with both low-level and higher level API, based on top of the Rust-SVG library.
 //! It includes generating basic 2D (x,y) charts composed of several layers, and more complex chromaticity diagrams with
 //! the spectral locus, and gamut fills.
-//! 
+//!
 //! Plots are built up in `Layers` using coordinate transformations between plot space and world coordinates.
 //!
 //! ## Modules
