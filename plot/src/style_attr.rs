@@ -1,4 +1,4 @@
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub struct StyleAttr {
     pub class: Option<String>,
     pub style: Option<String>,
@@ -23,6 +23,37 @@ impl StyleAttr {
         self.id.as_deref()
     }
 }
+
+pub fn class(str: &str) -> Option<StyleAttr> {
+    Some(
+        StyleAttr {
+            class: Some(str.to_string()),
+            style: None,
+            id: None,
+        }
+    )
+}
+
+pub fn style(str: &str) -> Option<StyleAttr> {
+    Some(
+        StyleAttr {
+            class: None,
+            style: Some(str.to_string()),
+            id: None,
+        }
+    )
+}
+
+pub fn id(id_val: &str) -> Option<StyleAttr> {
+    Some(
+        StyleAttr {
+            class: None,
+            style: None,
+            id: Some(id_val.to_string()),
+        }
+    )
+}
+
 
 /// Creates a [`StyleAttr`] struct for use in HTML or SVG element attributes.
 ///
@@ -63,127 +94,149 @@ impl StyleAttr {
 /// let e = style_attr!(id: "line3");
 /// ```
 #[macro_export]
-macro_rules! style_attr {
-    // No arguments, defaults to empty fields
-    () => {
-        $crate::StyleAttr {
-            class: None,
-            style: None,
-            id: None,
-        }
-    };
+macro_rules! css {
 
     // Only class
     ( $( class : $class_val:expr ),+ $(,)? ) => {
-        $crate::StyleAttr {
-            class: Some([$($class_val),+].join(" ")),
-            style: None,
-            id: None,
-        }
+        Some(
+            $crate::StyleAttr {
+                class: Some([$($class_val),+].join(" ")),
+                style: None,
+                id: None,
+            }
+        )
     };
     // Only style
     ( $( style : $style_val:expr ),+ $(,)? ) => {
-        $crate::StyleAttr {
-            class: None,
-            style: Some([$($style_val),+].join(" ")),
-            id: None,
-        }
+        Some(
+            $crate::StyleAttr {
+                class: None,
+                style: Some([$($style_val),+].join(" ")),
+                id: None,
+            }
+        )
     };
     // Only id
     ( $( id : $id_val:expr ),+ $(,)? ) => {
-        $crate::StyleAttr {
-            class: None,
-            style: None,
-            id: Some([$($id_val),+].join(" ")),
-        }
+        Some(
+            $crate::StyleAttr {
+                class: None,
+                style: None,
+                id: Some([$($id_val),+].join(" ")),
+            }
+        )
     };
     // class + style
     ( class : $class_val:expr, style : $style_val:expr $(,)? ) => {
-        $crate::StyleAttr {
-            class: Some($class_val.to_string()),
-            style: Some($style_val.to_string()),
-            id: None,
-        }
+        Some(
+            $crate::StyleAttr {
+                class: Some($class_val.to_string()),
+                style: Some($style_val.to_string()),
+                id: None,
+            }
+        )
     };
     ( style : $style_val:expr, class : $class_val:expr $(,)? ) => {
-        $crate::StyleAttr {
-            class: Some($class_val.to_string()),
-            style: Some($style_val.to_string()),
-            id: None,
-        }
+        Some(
+            $crate::StyleAttr {
+                class: Some($class_val.to_string()),
+                style: Some($style_val.to_string()),
+                id: None,
+            }
+        )
     };
     // class + id
     ( class : $class_val:expr, id : $id_val:expr $(,)? ) => {
-        $crate::StyleAttr {
-            class: Some($class_val.to_string()),
-            style: None,
-            id: Some($id_val.to_string()),
-        }
+        Some(
+            $crate::StyleAttr {
+                class: Some($class_val.to_string()),
+                style: None,
+                id: Some($id_val.to_string()),
+            }
+        )
     };
     ( id : $id_val:expr, class : $class_val:expr $(,)? ) => {
-        $crate::StyleAttr {
-            class: Some($class_val.to_string()),
-            style: None,
-            id: Some($id_val.to_string()),
-        }
+        Some(
+            $crate::StyleAttr {
+                class: Some($class_val.to_string()),
+                style: None,
+                id: Some($id_val.to_string()),
+            }
+        )
     };
     // style + id
     ( style : $style_val:expr, id : $id_val:expr $(,)? ) => {
-        $crate::StyleAttr {
-            class: None,
-            style: Some($style_val.to_string()),
-            id: Some($id_val.to_string()),
-        }
+        Some(
+            $crate::StyleAttr {
+                class: None,
+                style: Some($style_val.to_string()),
+                id: Some($id_val.to_string()),
+            }
+        )
     };
     ( id : $id_val:expr, style : $style_val:expr $(,)? ) => {
-        $crate::StyleAttr {
-            class: None,
-            style: Some($style_val.to_string()),
-            id: Some($id_val.to_string()),
-        }
+        Some(
+            $crate::StyleAttr {
+                class: None,
+                style: Some($style_val.to_string()),
+                id: Some($id_val.to_string()),
+            }
+        )
     };
     // class + style + id (any order)
     ( class : $class_val:expr, style : $style_val:expr, id : $id_val:expr $(,)? ) => {
-        $crate::StyleAttr {
-            class: Some($class_val.to_string()),
-            style: Some($style_val.to_string()),
-            id: Some($id_val.to_string()),
-        }
+        Some(
+            $crate::StyleAttr {
+                class: Some($class_val.to_string()),
+                style: Some($style_val.to_string()),
+                id: Some($id_val.to_string()),
+            }
+        )
     };
     ( class : $class_val:expr, id : $id_val:expr, style : $style_val:expr $(,)? ) => {
-        $crate::StyleAttr {
-            class: Some($class_val.to_string()),
-            style: Some($style_val.to_string()),
-            id: Some($id_val.to_string()),
-        }
+        Some(
+            $crate::StyleAttr {
+                class: Some($class_val.to_string()),
+                style: Some($style_val.to_string()),
+                id: Some($id_val.to_string()),
+            }
+        )
     };
     ( style : $style_val:expr, class : $class_val:expr, id : $id_val:expr $(,)? ) => {
-        $crate::StyleAttr {
-            class: Some($class_val.to_string()),
-            style: Some($style_val.to_string()),
-            id: Some($id_val.to_string()),
-        }
+        Some(
+            $crate::StyleAttr {
+                class: Some($class_val.to_string()),
+                style: Some($style_val.to_string()),
+                id: Some($id_val.to_string()),
+            }
+        )
     };
     ( style : $style_val:expr, id : $id_val:expr, class : $class_val:expr $(,)? ) => {
-        $crate::StyleAttr {
-            class: Some($class_val.to_string()),
-            style: Some($style_val.to_string()),
-            id: Some($id_val.to_string()),
-        }
+        Some(
+            $crate::StyleAttr {
+                class: Some($class_val.to_string()),
+                style: Some($style_val.to_string()),
+                id: Some($id_val.to_string()),
+            }
+        )
     };
     ( id : $id_val:expr, class : $class_val:expr, style : $style_val:expr $(,)? ) => {
-        $crate::StyleAttr {
-            class: Some($class_val.to_string()),
-            style: Some($style_val.to_string()),
-            id: Some($id_val.to_string()),
-        }
+        Some(
+            $crate::StyleAttr {
+                class: Some($class_val.to_string()),
+                style: Some($style_val.to_string()),
+                id: Some($id_val.to_string()),
+            }
+        )
     };
     ( id : $id_val:expr, style : $style_val:expr, class : $class_val:expr $(,)? ) => {
-        $crate::StyleAttr {
-            class: Some($class_val.to_string()),
-            style: Some($style_val.to_string()),
-            id: Some($id_val.to_string()),
-        }
+        Some(
+            $crate::StyleAttr {
+                class: Some($class_val.to_string()),
+                style: Some($style_val.to_string()),
+                id: Some($id_val.to_string()),
+            }
+        )
     };
     // Catch-all for unknown keys
     ( $( $key:ident : $val:expr ),+ $(,)? ) => {
@@ -196,16 +249,16 @@ mod tests {
 
     #[test]
     fn test_style_attr_macro() {
-        let a = style_attr!(class: "foo");
-        assert_eq!(a.class.as_deref(), Some("foo"));
-        assert_eq!(a.style, None);
+        let a = css!(class: "foo");
+        assert_eq!(a.as_ref().unwrap().class.as_deref(), Some("foo"));
+        assert_eq!(a.unwrap().style, None);
 
-        let b = style_attr!(style: "stroke:red;");
-        assert_eq!(b.class, None);
-        assert_eq!(b.style.as_deref(), Some("stroke:red;"));
+        let b = css!(style: "stroke:red;");
+        assert_eq!(b.as_ref().unwrap().class, None);
+        assert_eq!(b.unwrap().style.as_deref(), Some("stroke:red;"));
 
-        let c = style_attr!(class: "bar", style: "fill:blue;");
-        assert_eq!(c.class.as_deref(), Some("bar"));
-        assert_eq!(c.style.as_deref(), Some("fill:blue;"));
+        let c = css!(class: "bar", style: "fill:blue;");
+        assert_eq!(c.as_ref().unwrap().class.as_deref(), Some("bar"));
+        assert_eq!(c.unwrap().style.as_deref(), Some("fill:blue;"));
     }
 }

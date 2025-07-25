@@ -1,6 +1,5 @@
 use colorimetry::rgb::RgbSpace::SRGB;
-use colorimetry_plot::{
-    chart::XYChromaticity, style_attr, svgdoc::SvgDocument,
+use colorimetry_plot::{style_attr::class, chart::XYChromaticity, svgdoc::SvgDocument,
 };
 
 /// Includes the style for the SVG document from an external SCSS file.
@@ -11,29 +10,29 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Create an XYChromaticity chart with the specified observer and ranges
     let xy_chromaticity = XYChromaticity::new((775, 875), (-0.025..=0.75, 0.0..=0.875))
-        .ticks(0.01, 0.01, 5, style_attr!(class: "fine-grid"))
-        .ticks(0.1, 0.1, 10, style_attr!(class: "grid"))
-        .x_labels(0.1, 10)
-        .x_axis_description("CIE 1931 x Chromaticity")
-        .y_labels(0.1, 10)
-        .y_axis_description("CIE 1931 y Chromaticity")
-        .plot_spectral_locus(style_attr!(class: "spectral-locus"))
+        .ticks(0.01, 0.01, 5, class("fine-grid"))
+        .ticks(0.1, 0.1, 10, class("grid"))
+        .x_labels(0.1, 10, None)
+        .x_axis_description("CIE 1931 x Chromaticity",None)
+        .y_labels(0.1, 10, class("y-labels"))
+        .y_axis_description("CIE 1931 y Chromaticity",None) 
+        .plot_spectral_locus(class("spectral-locus"))
         .plot_spectral_locus_ticks(
             440..=650,
             10,
             15,
-            style_attr!(class: "spectral-locus-ticks"),
+            class("spectral-locus-ticks"),
         )
-        .plot_spectral_locus_ticks(460..=630, 1, 7, style_attr!(class:"spectral-locus-ticks"))
-        .plot_spectral_locus_labels(460..=620, 10, 2, style_attr!(class:"spectral-locus-labels"))
-        .plot_rgb_gamut(SRGB, style_attr!())
-        .plot_planckian_locus(style_attr!(class:"planckian"))
-        .plot_grid(0.01, 0.01, style_attr!(class: "fine-grid"))
-        .plot_grid(0.1, 0.1, style_attr!(class: "grid"));
+        .plot_spectral_locus_ticks(460..=630, 1, 7, class("spectral-locus-ticks"))
+        .plot_spectral_locus_labels(460..=620, 10, 2, class("spectral-locus-labels"))
+        .plot_rgb_gamut(SRGB, None)
+        .plot_planckian_locus(class("planckian"))
+        .plot_grid(0.01, 0.01, class("fine-grid"))
+        .plot_grid(0.1, 0.1, class("grid"));
 
     // create the plot
     SvgDocument::new()
         .append_scss(STYLE)
         .add_svg(Box::new(xy_chromaticity))
-        .save("tmp/srgb_gamut.svg")
+        .save("docs/img/srgb_gamut.svg")
 }

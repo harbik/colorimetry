@@ -8,8 +8,19 @@ use svg::{
 use crate::{rendable::Rendable, view::ViewParameters};
 
 const DEFAULT_CSS: &str = "
-    * { fill:none; stroke:black; stroke-width:1px; }
-    text  {fill:black; stroke: none; stroke-width: 0; font-size: 16px; font-family: san-serif; }
+    * { 
+        fill:none; 
+        stroke:black; 
+        stroke-width:1px;
+        stroke-linecap: round;
+    }
+    text  {
+        fill:black; 
+        stroke: none; 
+        lstroke-width: 0; 
+        font-size: 16px; 
+        font-family: Helvetica, Arial, sans-serif; 
+    }
 ";
 
 pub const NORTH: i32 = 90;
@@ -40,7 +51,6 @@ pub struct SvgDocument {
 impl SvgDocument {
     const DEFAULT_MARGIN: u32 = 50;
     pub fn new() -> Self {
-
         SvgDocument {
             clip_paths: Vec::new(),
             scss: DEFAULT_CSS.to_string(),
@@ -128,7 +138,10 @@ impl SvgDocument {
         match self.plots.len() {
             1 => {
                 let svg_sub = &self.plots[0];
-                (svg_sub.width() + 2 * self.margin, svg_sub.height() + 2 * self.margin)
+                (
+                    svg_sub.width() + 2 * self.margin,
+                    svg_sub.height() + 2 * self.margin,
+                )
             }
             _ => (800, 600), // Default size for the SVG document
         }
@@ -137,7 +150,6 @@ impl SvgDocument {
     pub fn save(self, filename: &str) -> Result<(), Box<dyn std::error::Error>> {
         Ok(svg::save(filename, &self.render())?)
     }
-
 }
 
 impl Rendable for SvgDocument {
@@ -153,7 +165,6 @@ impl Rendable for SvgDocument {
     }
 
     fn render(&self) -> Document {
-
         let vp = self.view_parameters();
         let mut doc = Document::new()
             .set("viewBox", vp.to_string())
@@ -164,7 +175,7 @@ impl Rendable for SvgDocument {
             .set("version", "1.1")
             .set("class", "colorimetry-plot");
 
-      //  let scss_content = format!("{}\n{}", DEFAULT_CSS, self.scss);
+        //  let scss_content = format!("{}\n{}", DEFAULT_CSS, self.scss);
         let css_content = match grass::from_string(self.scss.clone(), &grass::Options::default()) {
             Ok(css) => css,
             Err(e) => {

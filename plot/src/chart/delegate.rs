@@ -7,7 +7,7 @@ macro_rules! delegate_xy_chart_methods {
         impl $struct_type {
             // Basic drawing methods
 
-            pub fn plot_grid(mut self, x_step: f64, y_step: f64, style_attr: StyleAttr) -> Self {
+            pub fn plot_grid(mut self, x_step: f64, y_step: f64, style_attr: Option<StyleAttr>) -> Self {
                 self.$field = self.$field.plot_grid(x_step, y_step, style_attr);
                 self
             }
@@ -15,7 +15,7 @@ macro_rules! delegate_xy_chart_methods {
             pub fn plot_poly_line(
                 mut self,
                 points: impl IntoIterator<Item = (f64, f64)>,
-                style_attr: StyleAttr,
+                style_attr: Option<StyleAttr>,
             ) -> Self {
                 self.$field = self.$field.plot_poly_line(points, style_attr);
                 self
@@ -24,7 +24,7 @@ macro_rules! delegate_xy_chart_methods {
             pub fn plot_shape(
                 mut self,
                 points: impl IntoIterator<Item = (f64, f64)>,
-                style_attr: StyleAttr,
+                style_attr: Option<StyleAttr>,
             ) -> Self {
                 self.$field = self.$field.plot_shape(points, style_attr);
                 self
@@ -34,7 +34,7 @@ macro_rules! delegate_xy_chart_methods {
                 mut self,
                 layer: &str,
                 data: svg::node::element::path::Data,
-                style_attr: StyleAttr,
+                style_attr: Option<StyleAttr>,
             ) -> Self {
                 self.$field = self.$field.draw_data(layer, data, style_attr);
                 self
@@ -44,7 +44,7 @@ macro_rules! delegate_xy_chart_methods {
                 mut self,
                 layer: &str,
                 path: svg::node::element::Path,
-                style_attr: StyleAttr,
+                style_attr: Option<StyleAttr>,
             ) -> Self {
                 self.$field = self.$field.draw_path(layer, path, style_attr);
                 self
@@ -53,7 +53,7 @@ macro_rules! delegate_xy_chart_methods {
             pub fn plot_image(
                 mut self,
                 image: impl Into<svg::node::element::Image>,
-                style_attr: StyleAttr,
+                style_attr: Option<StyleAttr>,
             ) -> Self {
                 self.$field = self.$field.plot_image(image, style_attr);
                 self
@@ -63,29 +63,29 @@ macro_rules! delegate_xy_chart_methods {
                 x_step: f64,
                 y_step: f64,
                 length: i32,
-                style_attr: StyleAttr,
+                style_attr: Option<StyleAttr>,
             ) -> Self {
                 self.$field = self.$field.ticks(x_step, y_step, length, style_attr);
                 self
             }
 
-            pub fn x_labels(mut self, step: f64, offset: usize) -> Self {
-                self.$field = self.$field.x_labels(step, offset);
+            pub fn x_labels(mut self, step: f64, offset: usize, style_attr: Option<StyleAttr>) -> Self {
+                self.$field = self.$field.x_labels(step, offset, style_attr);
                 self
             }
 
-            pub fn y_labels(mut self, step: f64, offset: usize) -> Self {
-                self.$field = self.$field.y_labels(step, offset);
+            pub fn y_labels(mut self, step: f64, offset: usize, style_attr: Option<StyleAttr>) -> Self {
+                self.$field = self.$field.y_labels(step, offset, style_attr);
                 self
             }
 
-            pub fn x_axis_description(mut self, description: &str) -> Self {
-                self.$field = self.$field.x_axis_description(description);
+            pub fn x_axis_description(mut self, description: &str, style_attr: Option<StyleAttr>) -> Self {
+                self.$field = self.$field.x_axis_description(description, style_attr);
                 self
             }
 
-            pub fn y_axis_description(mut self, description: &str) -> Self {
-                self.$field = self.$field.y_axis_description(description);
+            pub fn y_axis_description(mut self, description: &str, style_attr: Option<StyleAttr>) -> Self {
+                self.$field = self.$field.y_axis_description(description, style_attr);
                 self
             }
 
@@ -96,7 +96,7 @@ macro_rules! delegate_xy_chart_methods {
                 r: f64,
                 angle_and_length: (i32, i32),
                 text: impl AsRef<str>,
-                style_attr: StyleAttr,
+                style_attr: Option<StyleAttr>,
             ) -> Self {
                 self.$field = self
                     .$field

@@ -20,7 +20,7 @@ use colorimetry::{
     rgb::RgbSpace,
 };
 use svg::{
-    node::element::{path::Data, Image, Line, Text, SVG},
+    node::element::{path::Data, Group, Image, Line, Text, SVG},
     Node,
 };
 
@@ -48,7 +48,7 @@ impl XYChromaticity {
         self
     }
 
-    pub fn plot_spectral_locus(self, style_attr: StyleAttr) -> Self {
+    pub fn plot_spectral_locus(self, style_attr: Option<StyleAttr>) -> Self {
         let obs = self.observer;
         let locus = obs.spectral_locus();
         self.plot_shape(locus, style_attr)
@@ -59,7 +59,7 @@ impl XYChromaticity {
         range: impl RangeBounds<usize>,
         step: usize,
         length: usize,
-        style_attr: StyleAttr,
+        style_attr: Option<StyleAttr>,
     ) -> Self {
         let length = length as f64;
         let mut self_as_mut = self;
@@ -80,7 +80,7 @@ impl XYChromaticity {
         range: impl RangeBounds<usize> + Clone,
         step: usize,
         distance: usize,
-        style_attr: StyleAttr,
+        style_attr: Option<StyleAttr>,
     ) -> Self {
         let d = distance as f64;
         let mut self_as_mut = self;
@@ -91,6 +91,7 @@ impl XYChromaticity {
         );
         let values: ScaleRangeWithStep = (range_f64, step as f64).into();
         let to_plot = self_as_mut.xy_chart.to_plot.clone();
+        let mut group = Group::new();
         for ((xy, angle), v) in locus.iter_range_with_slope(range, step).zip(values.iter()) {
             let pxy1 = to_plot(xy);
             let pxy2 = (pxy1.0 - d * angle.sin(), pxy1.1 - d * angle.cos());
@@ -105,23 +106,24 @@ impl XYChromaticity {
                     "transform",
                     format!("rotate({:.3} {:.3} {:.3})", rotation_angle, pxy2.0, pxy2.1),
                 );
-            style_attr.assign(&mut text);
-            self_as_mut
-                .xy_chart
-                .layers
-                .get_mut("plot")
-                .unwrap()
-                .append(text);
+            group.append(text);
         }
+        style_attr.unwrap_or_default().assign(&mut group);
+        self_as_mut
+            .xy_chart
+            .layers
+            .get_mut("plot")
+            .unwrap()
+            .append(group);
         self_as_mut
     }
 
-    pub fn plot_planckian_locus(self, style_attr: StyleAttr) -> Self {
+    pub fn plot_planckian_locus(self, style_attr: Option<StyleAttr>) -> Self {
         let locus = self.observer.planckian_locus();
         self.plot_poly_line(locus, style_attr)
     }
 
-    pub fn plot_rgb_gamut(self, rgb_space: RgbSpace, style_attr: StyleAttr) -> Self {
+    pub fn plot_rgb_gamut(self, rgb_space: RgbSpace, style_attr: Option<StyleAttr>) -> Self {
         let gamut_fill = PngImageData::from_rgb_space(
             self.observer,
             rgb_space,

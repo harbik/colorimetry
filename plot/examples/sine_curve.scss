@@ -10,27 +10,16 @@ $text-color: gray;
 }
 .grid, .ticks {
     stroke: $grid-color; 
-    stroke-width: 1;
 }
 .plot-area {
     fill: $plot-background-color;
-    stroke: black;
-    stroke-width: 1;
     filter: drop-shadow(3px 5px 2px lightgray);}
 .curve {
-    fill: none;
     stroke: $line-color;
     stroke-width: 3;
 }
 .base-line {
-    fill: none;
     stroke: $line-color;
     stroke-width: 2;
     stroke-dasharray: 5, 5;
-}
-text {
-    fill: $text-color;
-    stroke: none;
-    font-size: 12pt;
-    font-family:sans-serif;
 }

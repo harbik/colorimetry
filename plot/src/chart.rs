@@ -1,3 +1,33 @@
+//! A two-dimensional chart implementation for plotting data in a Cartesian coordinate system.
+//! 
+//! `XYChart` provides a flexible and extensible charting system that supports:
+//! - X and Y axes with customizable ranges
+//! - Tick marks and labels on both axes
+//! - Grid lines for visual reference
+//! - Multiple rendering layers (axes, plot, annotations)
+//! - Coordinate transformations between world and plot coordinates
+//! - Various plot elements like lines, shapes, images, and annotations
+//! - Automatic margin management and view box calculations
+//! - SVG rendering with clipping support
+//! 
+//! # Layers
+//! The chart uses three main layers:
+//! - **axes**: Contains axis elements, labels, and descriptions (unclipped)
+//! - **plot**: Contains the main plot data (clipped to plot area)
+//! - **annotations**: Contains annotations and labels (unclipped, top layer)
+//! 
+//! # Coordinate Systems
+//! - **World coordinates**: The actual data coordinate system defined by x_range and y_range
+//! - **Plot coordinates**: SVG coordinate system with (0,0) at top-left of plot area
+//! 
+//! # Example
+//! ```rust
+//! let chart = XYChart::new((800, 600), (0.0..=10.0, 0.0..=100.0))
+//!     .ticks(1.0, 10.0, 5, StyleAttr::default())
+//!     .x_labels(1.0, 20)
+//!     .y_labels(10.0, 20)
+//!     .plot_grid(1.0, 10.0, StyleAttr::default());
+//! ```
 mod delegate;
 
 mod chromaticity;
@@ -36,25 +66,51 @@ pub struct XYChart {
     pub plot_width: u32,     // width and height of the true plot area,
     pub plot_height: u32,    // excluding axis and margins
 
-    // require inputs
+    /// Transformation from world/data coordinates to plot (SVG) coordinates.
     pub to_plot: CoordinateTransform,
+
+    /// Transformation from plot (SVG) coordinates to world/data coordinates.
     pub to_world: CoordinateTransform,
 
-    // initially empty, filled by the chart methods
+    /// Parameters controlling the SVG view box and viewport.
     pub view_parameters: ViewParameters,
 
+    /// Layers for rendering chart elements (axes, grid, data, etc.).
     pub layers: HashMap<&'static str, Layer>,
+
+    /// Clip paths used for masking chart elements.
     pub clip_paths: Vec<ClipPath>,
-    pub margins: [i32; 4], // top, right, bottom, left
+
+    /// Margins around the plot area: [top, right, bottom, left].
+    pub margins: [i32; 4],
 }
 
 impl XYChart {
+    /// Separation between annotation and the annotated element, in pixels.
     pub const ANNOTATE_SEP: i32 = 2;
-    pub const LABEL_HEIGHT: i32 = 16;
-    pub const DESCRIPTION_HEIGHT: i32 = 20;
-    pub const DESCRIPTION_SEP: i32 = 20;
-    pub const DESCRIPTION_OFFSET: i32 = Self::LABEL_HEIGHT + Self::DESCRIPTION_SEP;
 
+    /// Height of axis labels, in pixels.
+    pub const LABEL_HEIGHT: i32 = 16;
+
+    /// Height of axis descriptions, in pixels.
+    pub const DESCRIPTION_HEIGHT: i32 = 20;
+
+    /// Separation between axis description and axis, in pixels.
+    pub const DESCRIPTION_SEP: i32 = 20;
+
+    /// Offset for axis descriptions, in pixels.
+    pub const DESCRIPTION_OFFSET: i32 = Self::LABEL_HEIGHT + Self::DESCRIPTION_SEP;
+    
+    /// Creates a new `XYChart` with the specified plot size and axis ranges.
+    ///
+    /// # Arguments
+    /// * `plot_width_and_height` - Tuple of plot width and height in pixels.
+    /// * `ranges` - Tuple of x and y axis ranges.
+    ///
+    /// # Example
+    /// ```
+    /// let chart = XYChart::new((800, 600), (0.0..=10.0, 0.0..=100.0));
+    /// ```
     pub fn new(
         plot_width_and_height: (u32, u32),
         ranges: (impl RangeBounds<f64>, impl RangeBounds<f64>),
@@ -142,9 +198,20 @@ impl XYChart {
         self
     }
 
-    /// Adds ticks to all the sides of the plot.
-    /// A negative length value produces inward ticks, and a positive value outward ticks.
-    pub fn ticks(mut self, x_step: f64, y_step: f64, length: i32, style_attr: StyleAttr) -> Self {
+    /// Adds tick marks to both axes of the chart.
+    ///
+    /// Tick marks are drawn at regular intervals along the x and y axes, with the specified length and style.
+    /// The method automatically updates the chart margins if the tick length exceeds the current margin.
+    ///
+    /// # Arguments
+    /// * `x_step` - Interval between tick marks on the x-axis.
+    /// * `y_step` - Interval between tick marks on the y-axis.
+    /// * `length` - Length of each tick mark in pixels.
+    /// * `style_attr` - Style attributes for the tick marks.
+    ///
+    /// # Returns
+    /// Returns the updated chart with tick marks added.
+    pub fn ticks(mut self, x_step: f64, y_step: f64, length: i32, style_attr: Option<StyleAttr>) -> Self {
         let mut data = Data::new();
         let to_plot = self.to_plot.clone();
         for x in self.x_range.iter_with_step(x_step) {
@@ -173,12 +240,20 @@ impl XYChart {
         self.draw_data("axes", data, style_attr)
     }
 
-    /// Adds x labels to the axes layer of the chart
-    pub fn x_labels(mut self, step: f64, offset: usize) -> Self {
+    /// Adds x-axis labels to the axes layer of the chart.
+    ///
+    /// The labels are positioned along the x-axis at intervals specified by `step`.
+    /// The `offset` parameter controls the vertical distance from the axis to each label,
+    /// which is useful for preventing overlap with the axis or other elements.
+    ///
+    /// # Arguments
+    /// * `step` - The interval between labels along the x-axis.
+    /// * `offset` - The offset from the axis to the label, in pixels.
+    pub fn x_labels(mut self, step: f64, offset: usize, style_attr: Option<StyleAttr>) -> Self {
         let range_with_step = ScaleRangeWithStep::new(self.x_range, step);
         let y = self.y_range.start;
         let to_plot = self.to_plot.clone();
-        let mut x_labels = Group::new().set("class", "x-labels");
+        let mut x_labels = Group::new();
         for x in range_with_step.iter() {
             let display_value = format!("{}", ScaleValue(x, step));
             let (px, py) = to_plot((x, y));
@@ -189,18 +264,27 @@ impl XYChart {
                 .set("dominant-baseline", "text-before-edge");
             x_labels.append(txt);
         }
+        style_attr.unwrap_or_default().assign(&mut x_labels);
         self.layers.get_mut("axes").unwrap().append(x_labels);
         self.margins[2] = self.margins[2].max(Self::LABEL_HEIGHT + offset as i32);
         self.update_view();
         self
     }
 
-    /// Adds x labels to the axes layer of the chart
-    pub fn y_labels(mut self, step: f64, offset: usize) -> Self {
+    
+    /// Adds y-axis labels to the axes layer of the chart.
+    /// 
+    /// The labels are rotated 90 degrees counter-clockwise and positioned to the left of the axis.
+    /// The `offset` parameter controls the distance from the axis to each label, which is useful for long labels that might otherwise overlap the axis.
+    /// 
+    /// # Arguments
+    /// * `step` - The interval between labels.
+    /// * `offset` - The offset from the axis to the label, in pixels.
+    pub fn y_labels(mut self, step: f64, offset: usize, style_attr: Option<StyleAttr>) -> Self {
         let range_with_step = ScaleRangeWithStep::new(self.y_range, step);
         let x = self.x_range.start;
         let to_plot = self.to_plot.clone();
-        let mut y_labels = Group::new().set("class", "y-labels");
+        let mut y_labels = Group::new();
         for y in range_with_step.iter() {
             let display_value = format!("{}", ScaleValue(y, step));
             let (px, py) = to_plot((x, y));
@@ -215,6 +299,7 @@ impl XYChart {
                 );
             y_labels.append(txt);
         }
+        style_attr.unwrap_or_default().assign(&mut y_labels);
         self.layers.get_mut("axes").unwrap().append(y_labels);
         self.margins[3] = self.margins[3].max(Self::LABEL_HEIGHT + offset as i32);
         self.update_view();
@@ -222,16 +307,16 @@ impl XYChart {
     }
 
     /// Add an x-axis description, positioned below the axis, onto the axes layer.
-    pub fn x_axis_description(mut self, description: &str) -> Self {
+    pub fn x_axis_description(mut self, description: &str, style_attr: Option<StyleAttr>) -> Self {
         let x_middle = (self.x_range.start + self.x_range.end) / 2.0;
         let y = self.y_range.start;
         let (px, py) = (self.to_plot)((x_middle, y));
-        let text = Text::new(description)
+        let mut text = Text::new(description)
             .set("x", px)
             .set("y", py + Self::DESCRIPTION_OFFSET as f64)
             .set("text-anchor", "middle")
-            .set("dominant-baseline", "text-before-edge")
-            .set("class", "axis-description");
+            .set("dominant-baseline", "text-before-edge");
+        style_attr.unwrap_or_default().assign(&mut text);
         self.layers.get_mut("axes").unwrap().append(text);
         self.margins[0] = self.margins[0].max(Self::DESCRIPTION_HEIGHT + Self::DESCRIPTION_OFFSET);
         self.update_view();
@@ -240,16 +325,15 @@ impl XYChart {
 
     /// Add a y-axis description, positioned to the left of the axis, onto the axes layer.
     /// The description is centered vertically along the y-axis.
-    pub fn y_axis_description(mut self, description: &str) -> Self {
+    pub fn y_axis_description(mut self, description: &str, style_attr: Option<StyleAttr>) -> Self {
         let y_middle = (self.y_range.start + self.y_range.end) / 2.0;
         let x = self.x_range.start;
         let (px, py) = (self.to_plot)((x, y_middle));
-        let text = Text::new(description)
+        let mut text = Text::new(description)
             .set("x", px - Self::DESCRIPTION_OFFSET as f64)
             .set("y", py)
             .set("text-anchor", "middle")
             .set("dominant-baseline", "text-after-edge")
-            .set("class", "axis-description")
             .set(
                 "transform",
                 format!(
@@ -258,6 +342,7 @@ impl XYChart {
                     py
                 ),
             );
+        style_attr.unwrap_or_default().assign(&mut text);
         self.layers.get_mut("axes").unwrap().append(text);
         self.margins[3] = self.margins[3].max(Self::DESCRIPTION_HEIGHT + Self::DESCRIPTION_OFFSET);
         self.update_view();
@@ -267,7 +352,7 @@ impl XYChart {
     /// Draw a grid on the plot area, using the specified step sizes for x and y axes.
     /// The grid lines are drawn as paths on the plot layer.
     /// The grid can be placed before or after other object on the plot layer, by the order of the method calls.
-    pub fn plot_grid(self, x_step: f64, y_step: f64, style_attr: StyleAttr) -> Self {
+    pub fn plot_grid(self, x_step: f64, y_step: f64, style_attr: Option<StyleAttr>) -> Self {
         let mut data = Data::new();
         let on_canvas = self.to_plot.clone();
         for x in self.x_range.iter_with_step(x_step) {
@@ -283,9 +368,17 @@ impl XYChart {
         self.draw_data("plot", data, style_attr)
     }
 
-    pub fn plot_image(mut self, image: impl Into<Image>, style_attr: StyleAttr) -> Self {
+    /// Plot an image onto the plot layer.
+    /// The image will be scaled to fit the plot area.
+    ///
+    /// The image is clipped to the plot area, so it will not extend beyond the plot boundaries.
+    ///
+    /// # Arguments
+    /// * `image` - The image to plot, which can be any type that implements `Into<Image>`.
+    /// * `style_attr` - Style attributes to apply to the image, such as width, height, and class.
+    pub fn plot_image(mut self, image: impl Into<Image>, style_attr: Option<StyleAttr>) -> Self {
         let mut image: Image = image.into();
-        style_attr.assign(&mut image);
+        style_attr.unwrap_or_default().assign(&mut image);
         self.layers.get_mut("plot").unwrap().append(image);
         self
     }
@@ -298,7 +391,7 @@ impl XYChart {
         r: f64,
         angle_and_length: (i32, i32),
         text: impl AsRef<str>,
-        style_attr: StyleAttr,
+        style_attr: Option<StyleAttr>,
     ) -> Self {
         let (angle, len) = angle_and_length;
         let angle = 360 - ((angle + 360) % 360);
@@ -346,16 +439,16 @@ impl XYChart {
         }
 
         let mut group = Group::new().add(circle).add(line).add(text);
-        style_attr.assign(&mut group);
+        style_attr.unwrap_or_default().assign(&mut group);
         self.layers.get_mut("annotations").unwrap().append(group);
         self
     }
 
     /// Draw a Path onto the selected layer, without
     /// using any scaling.
-    pub fn draw_path(mut self, layer: &str, mut path: Path, style_attr: StyleAttr) -> Self {
+    pub fn draw_path(mut self, layer: &str, mut path: Path, style_attr: Option<StyleAttr>) -> Self {
         if let Some(layer) = self.layers.get_mut(layer) {
-            style_attr.assign(&mut path);
+            style_attr.unwrap_or_default().assign(&mut path);
             layer.append(path);
         } else {
             panic!("unknown layer");
@@ -365,7 +458,7 @@ impl XYChart {
 
     /// Add Data, composed of e.g. move_to and line_to operations, to a specified layer.
     /// This is low level convenience method for drawing paths with data.
-    pub fn draw_data(self, layer: &str, data: Data, style_attr: StyleAttr) -> Self {
+    pub fn draw_data(self, layer: &str, data: Data, style_attr: Option<StyleAttr>) -> Self {
         let path = Path::new().set("d", data);
         self.draw_path(layer, path, style_attr)
     }
@@ -375,7 +468,7 @@ impl XYChart {
     pub fn plot_poly_line(
         self,
         data: impl IntoIterator<Item = (f64, f64)>,
-        style_attr: StyleAttr,
+        style_attr: Option<StyleAttr>,
     ) -> Self {
         let on_canvas = self.to_plot.clone();
         let iter_canvas = data.into_iter().map(|xy| (on_canvas)(xy));
@@ -387,13 +480,14 @@ impl XYChart {
     pub fn plot_shape(
         self,
         data: impl IntoIterator<Item = (f64, f64)>,
-        style_attr: StyleAttr,
+        style_attr: Option<StyleAttr>,
     ) -> Self {
         let on_canvas = self.to_plot.clone();
         let iter_canvas = data.into_iter().map(|xy| (on_canvas)(xy));
         self.draw_path("plot", to_path(iter_canvas, true), style_attr)
     }
 
+    /// Updates the chart's view parameters and recalculates the view box.
     pub fn update_view(&mut self) {
         let vx = -(self.margins[3]);
         let vy = -(self.margins[0]);
@@ -425,8 +519,13 @@ pub(super) fn to_path(data: impl IntoIterator<Item = (f64, f64)>, close: bool) -
         .set("d", path_data.clone())
 }
 
-/// Converts from world coordinates to plot coordinates.
-/// The x and y coordinates are scaled to the plot width and height.
+    /// Converts world/data coordinates to plot (SVG) coordinates.
+    ///
+    /// # Arguments
+    /// * `xy` - Tuple of (x, y) in world coordinates.
+    ///
+    /// # Returns
+    /// Tuple of (x, y) in plot coordinates.
 fn world_to_plot_coordinates(
     x: f64,
     y: f64,
@@ -443,6 +542,13 @@ fn world_to_plot_coordinates(
     )
 }
 
+    /// Converts plot (SVG) coordinates to world/data coordinates.
+    ///
+    /// # Arguments
+    /// * `xy` - Tuple of (x, y) in plot coordinates.
+    ///
+    /// # Returns
+    /// Tuple of (x, y) in world coordinates.
 pub fn plot_to_world_coordinates(
     x: f64,
     y: f64,

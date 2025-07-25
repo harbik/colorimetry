@@ -1,0 +1,109 @@
+<svg class="colorimetry-plot" height="538" version="1.1" viewBox="0 0 812 538" width="812" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<style>
+* {
+  fill: none;
+  stroke: black;
+  stroke-width: 1px;
+  stroke-linecap: round;
+}
+
+text {
+  fill: black;
+  stroke: none;
+  lstroke-width: 0;
+  font-size: 16px;
+  font-family: Helvetica, Arial, sans-serif;
+}
+
+.fine-grid, .fine-ticks {
+  stroke: lightblue;
+  stroke-width: 0.5;
+  opacity: 0.5;
+}
+
+.grid, .ticks {
+  stroke: lightblue;
+}
+
+.plot-area {
+  fill: ivory;
+  filter: drop-shadow(3px 5px 2px lightgray);
+}
+
+.curve {
+  stroke: black;
+  stroke-width: 3;
+}
+
+.base-line {
+  stroke: black;
+  stroke-width: 2;
+  stroke-dasharray: 5, 5;
+}
+
+</style>
+<defs/>
+<svg class="chart" height="438" version="1.1" viewBox="-56 -56 712 438" width="712" x="50" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" y="50">
+<defs>
+<clipPath id="clip-id0">
+<path d="M0,0 L600,0 L600,300 L0,300 z"/>
+</clipPath>
+</defs>
+<g class="axes">
+<path class="plot-area" d="M0,0 L600,0 L600,300 L0,300 z"/>
+<g>
+<text dominant-baseline="text-before-edge" text-anchor="middle" x="0" y="310">
+0
+</text>
+<text dominant-baseline="text-before-edge" text-anchor="middle" x="95.5" y="310">
+1
+</text>
+<text dominant-baseline="text-before-edge" text-anchor="middle" x="191" y="310">
+2
+</text>
+<text dominant-baseline="text-before-edge" text-anchor="middle" x="286.5" y="310">
+3
+</text>
+<text dominant-baseline="text-before-edge" text-anchor="middle" x="382" y="310">
+4
+</text>
+<text dominant-baseline="text-before-edge" text-anchor="middle" x="477.5" y="310">
+5
+</text>
+<text dominant-baseline="text-before-edge" text-anchor="middle" x="573" y="310">
+6
+</text>
+</g>
+<g>
+<text dominant-baseline="text-after-edge" text-anchor="middle" transform="rotate(-90, -10, 286.4)" x="-10" y="286.4">
+-1.0
+</text>
+<text dominant-baseline="text-after-edge" text-anchor="middle" transform="rotate(-90, -10, 218.2)" x="-10" y="218.2">
+-0.5
+</text>
+<text dominant-baseline="text-after-edge" text-anchor="middle" transform="rotate(-90, -10, 150)" x="-10" y="150">
+0
+</text>
+<text dominant-baseline="text-after-edge" text-anchor="middle" transform="rotate(-90, -10, 81.8)" x="-10" y="81.8">
+0.5
+</text>
+<text dominant-baseline="text-after-edge" text-anchor="middle" transform="rotate(-90, -10, 13.6)" x="-10" y="13.6">
+1.0
+</text>
+</g>
+<text dominant-baseline="text-before-edge" text-anchor="middle" x="300" y="336">
+x
+</text>
+<text dominant-baseline="text-after-edge" text-anchor="middle" transform="rotate(-90, -36, 150)" x="-36" y="150">
+sin(x)
+</text>
+</g>
+<g clip-path="url(#clip-id0)">
+<path class="fine-grid" d="M0,300 L0,0 M19.1,300 L19.1,0 M38.2,300 L38.2,0 M57.3,300 L57.3,0 M76.4,300 L76.4,0 M95.5,300 L95.5,0 M114.6,300 L114.6,0 M133.7,300 L133.7,0 M152.8,300 L152.8,0 M171.9,300 L171.9,0 M191,300 L191,0 M210.1,300 L210.1,0 M229.2,300 L229.2,0 M248.3,300 L248.3,0 M267.4,300 L267.4,0 M286.5,300 L286.5,0 M305.6,300 L305.6,0 M324.7,300 L324.7,0 M343.8,300 L343.8,0 M362.9,300 L362.9,0 M382,300 L382,0 M401.1,300 L401.1,0 M420.2,300 L420.2,0 M439.3,300 L439.3,0 M458.4,300 L458.4,0 M477.5,300 L477.5,0 M496.6,300 L496.6,0 M515.7,300 L515.7,0 M534.8,300 L534.8,0 M553.9,300 L553.9,0 M573,300 L573,0 M592.1,300 L592.1,0 M0,300 L600,300 M0,286.4 L600,286.4 M0,272.7 L600,272.7 M0,259.1 L600,259.1 M0,245.5 L600,245.5 M0,231.8 L600,231.8 M0,218.2 L600,218.2 M0,204.5 L600,204.5 M0,190.9 L600,190.9 M0,177.3 L600,177.3 M0,163.6 L600,163.6 M0,150 L600,150 M0,136.4 L600,136.4 M0,122.7 L600,122.7 M0,109.1 L600,109.1 M0,95.5 L600,95.5 M0,81.8 L600,81.8 M0,68.2 L600,68.2 M0,54.5 L600,54.5 M0,40.9 L600,40.9 M0,27.3 L600,27.3 M0,13.6 L600,13.6 M0,0 L600,0"/>
+<path class="grid" d="M0,300 L0,0 M95.5,300 L95.5,0 M191,300 L191,0 M286.5,300 L286.5,0 M382,300 L382,0 M477.5,300 L477.5,0 M573,300 L573,0 M0,286.4 L600,286.4 M0,218.2 L600,218.2 M0,150 L600,150 M0,81.8 L600,81.8 M0,13.6 L600,13.6"/>
+<path class="curve" d="M0,150 L6.1,141.4 L12.1,132.7 L18.2,124.2 L24.2,115.8 L30.3,107.4 L36.4,99.3 L42.4,91.4 L48.5,83.7 L54.5,76.3 L60.6,69.1 L66.7,62.3 L72.7,55.9 L78.8,49.8 L84.8,44.2 L90.9,38.9 L97,34.1 L103,29.8 L109.1,26 L115.2,22.6 L121.2,19.8 L127.3,17.5 L133.3,15.7 L139.4,14.5 L145.5,13.8 L151.5,13.7 L157.6,14.1 L163.6,15 L169.7,16.5 L175.8,18.6 L181.8,21.1 L187.9,24.2 L193.9,27.8 L200,31.9 L206.1,36.5 L212.1,41.5 L218.2,46.9 L224.2,52.8 L230.3,59.1 L236.4,65.7 L242.4,72.7 L248.5,80 L254.5,87.5 L260.6,95.3 L266.7,103.4 L272.7,111.6 L278.8,120 L284.8,128.5 L290.9,137 L297,145.7 L303,154.3 L309.1,163 L315.2,171.5 L321.2,180 L327.3,188.4 L333.3,196.6 L339.4,204.7 L345.5,212.5 L351.5,220 L357.6,227.3 L363.6,234.3 L369.7,240.9 L375.8,247.2 L381.8,253.1 L387.9,258.5 L393.9,263.5 L400,268.1 L406.1,272.2 L412.1,275.8 L418.2,278.9 L424.2,281.4 L430.3,283.5 L436.4,285 L442.4,285.9 L448.5,286.3 L454.5,286.2 L460.6,285.5 L466.7,284.3 L472.7,282.5 L478.8,280.2 L484.8,277.4 L490.9,274 L497,270.2 L503,265.9 L509.1,261.1 L515.2,255.8 L521.2,250.2 L527.3,244.1 L533.3,237.7 L539.4,230.9 L545.5,223.7 L551.5,216.3 L557.6,208.6 L563.6,200.7 L569.7,192.6 L575.8,184.2 L581.8,175.8 L587.9,167.3 L593.9,158.6 L600,150"/>
+<path class="base-line" d="M0,150 L600,150"/>
+</g>
+<g class="annotations"/>
+</svg>
+</svg>

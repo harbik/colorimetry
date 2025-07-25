@@ -9,51 +9,26 @@ $grid-color: #AAA;
 }
 .grid {
     stroke: $grid-color; 
-    stroke-width: 1.0;
 }
 .plot-area {
     fill: $plot-background-color;
+    filter: drop-shadow(5px 5px 3px lightgray);
     stroke: none;
     stroke-width: 0;
-    filter: drop-shadow(5px 5px 3px lightgray);
 }
 .spectral-locus {
     fill: $spectral-locus-color;
     stroke: none;
-    stroke-width: 0;
-    stroke-linecap: round;
+    stroke-width: none;
 }
 .spectral-locus-ticks {
-    fill:none;
     stroke: $plot-background-color;
-    stroke-width: 1;
-    stroke-linecap: round;
 }
 .planckian {
     stroke: $plot-background-color;
-    fill: none;
     stroke-width: 2;
-    stroke-linecap: round;
 }
-text {
-    fill: black;
-    stroke: none;
-    stroke-width: 0;
-    font: {
-        size: 16px;
-        family: Arial, Helvetica, sans-serif;
-    }
 
-    &.spectral-locus-labels {
-        fill: $spectral-locus-color;
-    }
-}
-.white-point {
-    stroke: black;
-    stroke-width: 1;
-}
-text.white-point {
-    fill:black;
-    stroke:none;
-    stroke-width:0;
+.spectral-locus-labels text {
+    fill: $spectral-locus-color;
 }
