@@ -20,7 +20,7 @@ use colorimetry::{
     rgb::RgbSpace,
 };
 use svg::{
-    node::element::{path::Data, Group, Image, Line, Text, SVG},
+    node::element::{path::Data, Group, Image, Line, Path, Text, SVG},
     Node,
 };
 
@@ -122,6 +122,85 @@ impl XYChromaticity {
         let locus = self.observer.planckian_locus();
         self.plot_poly_line(locus, style_attr)
     }
+
+    fn planckian_slope_xy(
+        &self,
+        cct: f64,
+    ) -> f64 {
+        let xyz_slope = self.observer.xyz_planckian_locus_slope(cct);
+        let [x, y, z] = self.observer.xyz_planckian_locus(cct).values();
+        let [dx_dt, dy_dt, dz_dt] = xyz_slope.values();
+
+        // Convert XYZ derivatives to xy derivatives
+        let sum = x + y + z;
+        let dx_chromaticity = (dx_dt * sum - x * (dx_dt + dy_dt + dz_dt)) / (sum * sum);
+        let dy_chromaticity = (dy_dt * sum - y * (dx_dt + dy_dt + dz_dt)) / (sum * sum);
+
+        dy_chromaticity.atan2(dx_chromaticity) 
+    }
+
+    /// Plots the Planckian locus ticks at specified CCT values.
+    pub fn plot_planckian_locus_ticks(self, values: impl IntoIterator<Item=u32>, length: usize, style_attr: Option<StyleAttr>) -> Self {
+        let mut data = Data::new();
+        let to_plot = self.xy_chart.to_plot.clone();
+        for cct in values {
+            let xyz = self.observer.xyz_planckian_locus(cct as f64);
+            let xy = xyz.chromaticity().to_tuple();
+            let (px, py) = to_plot(xy);
+
+            let xyz_slope = self.observer.xyz_planckian_locus_slope(cct as f64);
+            let [x, y, z] = xyz.values();
+            let [dx_dt, dy_dt, dz_dt] = xyz_slope.values();
+            
+            // Convert XYZ derivatives to xy derivatives
+            let sum = x + y + z;
+            let dx_chromaticity = (dx_dt * sum - x * (dx_dt + dy_dt + dz_dt)) / (sum * sum);
+            let dy_chromaticity = (dy_dt * sum - y * (dx_dt + dy_dt + dz_dt)) / (sum * sum);
+            
+            let angle = dy_chromaticity.atan2(dx_chromaticity) + std::f64::consts::PI / 2.0;
+            let pdx = length as f64 * angle.cos();
+            let pdy = length as f64 * angle.sin();
+            data = data
+                .move_to((px+pdx, py-pdy))
+                .line_to((px-pdx, py+pdy));
+        }
+        self.draw_data("plot", data, style_attr)
+    }
+
+    /// Plots the Planckian locus values at specified CCT values, at a `distance` 
+    pub fn plot_planckian_locus_labels(mut self, values: impl IntoIterator<Item=u32>, distance: usize, style_attr: Option<StyleAttr>) -> Self {
+        let mut planckian_labels = Group::new();
+        let to_plot = self.xy_chart.to_plot.clone();
+        for cct in values {
+            let xyz = self.observer.xyz_planckian_locus(cct as f64);
+            let xy = xyz.chromaticity().to_tuple();
+            let (px, py) = to_plot(xy);
+            let angle = self.planckian_slope_xy(cct as f64) + std::f64::consts::PI / 2.0;
+            let pdx = distance as f64 * angle.cos();
+            let pdy = distance as f64 * angle.sin();
+
+            let px2 = px - pdx;
+            let py2 = py + pdy;
+            let text = Text::new(format!("{}", cct/100))
+                .set("x", px2)
+                .set("y", py2)
+                .set("text-anchor", "end")
+                .set("dominant-baseline", "middle")
+                .set(
+                    "transform",
+                    format!("rotate({:.3} {px2:.3} {py2:.3}) ", -angle.to_degrees())
+                );
+            planckian_labels.append(text);
+            }
+            style_attr.unwrap_or_default().assign(&mut planckian_labels);
+            self.xy_chart
+                .layers
+                .get_mut("plot")
+                .unwrap()
+                .append(planckian_labels);
+            self
+    }
+
 
     pub fn plot_rgb_gamut(self, rgb_space: RgbSpace, style_attr: Option<StyleAttr>) -> Self {
         let gamut_fill = PngImageData::from_rgb_space(

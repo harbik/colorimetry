@@ -1,10 +1,13 @@
 use colorimetry::rgb::RgbSpace::SRGB;
-use colorimetry_plot::{style_attr::class, chart::XYChromaticity, svgdoc::SvgDocument,
+use colorimetry_plot::{chart::XYChromaticity, style_attr::class, svgdoc::SvgDocument
 };
 
 /// Includes the style for the SVG document from an external SCSS file.
 /// This is a SCSS stylesheet that styles the sRGB gamut plot and is embedded into the SVG output.
 const STYLE: &str = include_str!("srgb_gamut.scss");
+const PLANCKIAN_LABELS_AT: &[u32] = &[
+   2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6500, 7500, 9300,
+];
 
 pub fn main() -> Result<(), Box<dyn std::error::Error>> {
 
@@ -27,6 +30,9 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
         .plot_spectral_locus_labels(460..=620, 10, 2, class("spectral-locus-labels"))
         .plot_rgb_gamut(SRGB, None)
         .plot_planckian_locus(class("planckian"))
+        .plot_planckian_locus_ticks((2000..=7500).step_by(100), 7, class("planckian-ticks-fine"))
+        .plot_planckian_locus_ticks(PLANCKIAN_LABELS_AT.to_vec(), 15, class("planckian-ticks"))
+        .plot_planckian_locus_labels(PLANCKIAN_LABELS_AT.to_vec(), 18, class("planckian-labels"))
         .plot_grid(0.01, 0.01, class("fine-grid"))
         .plot_grid(0.1, 0.1, class("grid"));
 

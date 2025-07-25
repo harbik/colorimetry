@@ -17,7 +17,6 @@ const DEFAULT_CSS: &str = "
     text  {
         fill:black; 
         stroke: none; 
-        lstroke-width: 0; 
         font-size: 16px; 
         font-family: Helvetica, Arial, sans-serif; 
     }

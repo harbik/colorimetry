@@ -10,7 +10,7 @@
 text {
   fill: black;
   stroke: none;
-  lstroke-width: 0;
+  stroke-width: 0;
   font-size: 16px;
   font-family: Helvetica, Arial, sans-serif;
 }
