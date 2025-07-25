@@ -1,4 +1,4 @@
-use colorimetry_plot::{style_attr::class, chart::XYChart, svgdoc::SvgDocument};
+use colorimetry_plot::{chart::XYChart, style_attr::class, svgdoc::SvgDocument};
 
 const STYLE: &str = include_str!("sine_curve.scss");
 

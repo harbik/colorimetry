@@ -1,5 +1,5 @@
 //! A two-dimensional chart implementation for plotting data in a Cartesian coordinate system.
-//! 
+//!
 //! `XYChart` provides a flexible and extensible charting system that supports:
 //! - X and Y axes with customizable ranges
 //! - Tick marks and labels on both axes
@@ -9,25 +9,16 @@
 //! - Various plot elements like lines, shapes, images, and annotations
 //! - Automatic margin management and view box calculations
 //! - SVG rendering with clipping support
-//! 
+//!
 //! # Layers
 //! The chart uses three main layers:
 //! - **axes**: Contains axis elements, labels, and descriptions (unclipped)
 //! - **plot**: Contains the main plot data (clipped to plot area)
 //! - **annotations**: Contains annotations and labels (unclipped, top layer)
-//! 
+//!
 //! # Coordinate Systems
 //! - **World coordinates**: The actual data coordinate system defined by x_range and y_range
 //! - **Plot coordinates**: SVG coordinate system with (0,0) at top-left of plot area
-//! 
-//! # Example
-//! ```rust
-//! let chart = XYChart::new((800, 600), (0.0..=10.0, 0.0..=100.0))
-//!     .ticks(1.0, 10.0, 5, StyleAttr::default())
-//!     .x_labels(1.0, 20)
-//!     .y_labels(10.0, 20)
-//!     .plot_grid(1.0, 10.0, StyleAttr::default());
-//! ```
 mod delegate;
 
 mod chromaticity;
@@ -100,17 +91,12 @@ impl XYChart {
 
     /// Offset for axis descriptions, in pixels.
     pub const DESCRIPTION_OFFSET: i32 = Self::LABEL_HEIGHT + Self::DESCRIPTION_SEP;
-    
+
     /// Creates a new `XYChart` with the specified plot size and axis ranges.
     ///
     /// # Arguments
     /// * `plot_width_and_height` - Tuple of plot width and height in pixels.
     /// * `ranges` - Tuple of x and y axis ranges.
-    ///
-    /// # Example
-    /// ```
-    /// let chart = XYChart::new((800, 600), (0.0..=10.0, 0.0..=100.0));
-    /// ```
     pub fn new(
         plot_width_and_height: (u32, u32),
         ranges: (impl RangeBounds<f64>, impl RangeBounds<f64>),
@@ -211,7 +197,13 @@ impl XYChart {
     ///
     /// # Returns
     /// Returns the updated chart with tick marks added.
-    pub fn ticks(mut self, x_step: f64, y_step: f64, length: i32, style_attr: Option<StyleAttr>) -> Self {
+    pub fn ticks(
+        mut self,
+        x_step: f64,
+        y_step: f64,
+        length: i32,
+        style_attr: Option<StyleAttr>,
+    ) -> Self {
         let mut data = Data::new();
         let to_plot = self.to_plot.clone();
         for x in self.x_range.iter_with_step(x_step) {
@@ -271,12 +263,11 @@ impl XYChart {
         self
     }
 
-    
     /// Adds y-axis labels to the axes layer of the chart.
-    /// 
+    ///
     /// The labels are rotated 90 degrees counter-clockwise and positioned to the left of the axis.
     /// The `offset` parameter controls the distance from the axis to each label, which is useful for long labels that might otherwise overlap the axis.
-    /// 
+    ///
     /// # Arguments
     /// * `step` - The interval between labels.
     /// * `offset` - The offset from the axis to the label, in pixels.
@@ -519,13 +510,13 @@ pub(super) fn to_path(data: impl IntoIterator<Item = (f64, f64)>, close: bool) -
         .set("d", path_data.clone())
 }
 
-    /// Converts world/data coordinates to plot (SVG) coordinates.
-    ///
-    /// # Arguments
-    /// * `xy` - Tuple of (x, y) in world coordinates.
-    ///
-    /// # Returns
-    /// Tuple of (x, y) in plot coordinates.
+/// Converts world/data coordinates to plot (SVG) coordinates.
+///
+/// # Arguments
+/// * `xy` - Tuple of (x, y) in world coordinates.
+///
+/// # Returns
+/// Tuple of (x, y) in plot coordinates.
 fn world_to_plot_coordinates(
     x: f64,
     y: f64,
@@ -542,13 +533,13 @@ fn world_to_plot_coordinates(
     )
 }
 
-    /// Converts plot (SVG) coordinates to world/data coordinates.
-    ///
-    /// # Arguments
-    /// * `xy` - Tuple of (x, y) in plot coordinates.
-    ///
-    /// # Returns
-    /// Tuple of (x, y) in world coordinates.
+/// Converts plot (SVG) coordinates to world/data coordinates.
+///
+/// # Arguments
+/// * `xy` - Tuple of (x, y) in plot coordinates.
+///
+/// # Returns
+/// Tuple of (x, y) in world coordinates.
 pub fn plot_to_world_coordinates(
     x: f64,
     y: f64,

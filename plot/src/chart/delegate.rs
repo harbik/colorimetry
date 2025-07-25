@@ -7,7 +7,12 @@ macro_rules! delegate_xy_chart_methods {
         impl $struct_type {
             // Basic drawing methods
 
-            pub fn plot_grid(mut self, x_step: f64, y_step: f64, style_attr: Option<StyleAttr>) -> Self {
+            pub fn plot_grid(
+                mut self,
+                x_step: f64,
+                y_step: f64,
+                style_attr: Option<StyleAttr>,
+            ) -> Self {
                 self.$field = self.$field.plot_grid(x_step, y_step, style_attr);
                 self
             }
@@ -69,22 +74,40 @@ macro_rules! delegate_xy_chart_methods {
                 self
             }
 
-            pub fn x_labels(mut self, step: f64, offset: usize, style_attr: Option<StyleAttr>) -> Self {
+            pub fn x_labels(
+                mut self,
+                step: f64,
+                offset: usize,
+                style_attr: Option<StyleAttr>,
+            ) -> Self {
                 self.$field = self.$field.x_labels(step, offset, style_attr);
                 self
             }
 
-            pub fn y_labels(mut self, step: f64, offset: usize, style_attr: Option<StyleAttr>) -> Self {
+            pub fn y_labels(
+                mut self,
+                step: f64,
+                offset: usize,
+                style_attr: Option<StyleAttr>,
+            ) -> Self {
                 self.$field = self.$field.y_labels(step, offset, style_attr);
                 self
             }
 
-            pub fn x_axis_description(mut self, description: &str, style_attr: Option<StyleAttr>) -> Self {
+            pub fn x_axis_description(
+                mut self,
+                description: &str,
+                style_attr: Option<StyleAttr>,
+            ) -> Self {
                 self.$field = self.$field.x_axis_description(description, style_attr);
                 self
             }
 
-            pub fn y_axis_description(mut self, description: &str, style_attr: Option<StyleAttr>) -> Self {
+            pub fn y_axis_description(
+                mut self,
+                description: &str,
+                style_attr: Option<StyleAttr>,
+            ) -> Self {
                 self.$field = self.$field.y_axis_description(description, style_attr);
                 self
             }

@@ -25,74 +25,30 @@ impl StyleAttr {
 }
 
 pub fn class(str: &str) -> Option<StyleAttr> {
-    Some(
-        StyleAttr {
-            class: Some(str.to_string()),
-            style: None,
-            id: None,
-        }
-    )
+    Some(StyleAttr {
+        class: Some(str.to_string()),
+        style: None,
+        id: None,
+    })
 }
 
 pub fn style(str: &str) -> Option<StyleAttr> {
-    Some(
-        StyleAttr {
-            class: None,
-            style: Some(str.to_string()),
-            id: None,
-        }
-    )
+    Some(StyleAttr {
+        class: None,
+        style: Some(str.to_string()),
+        id: None,
+    })
 }
 
 pub fn id(id_val: &str) -> Option<StyleAttr> {
-    Some(
-        StyleAttr {
-            class: None,
-            style: None,
-            id: Some(id_val.to_string()),
-        }
-    )
+    Some(StyleAttr {
+        class: None,
+        style: None,
+        id: Some(id_val.to_string()),
+    })
 }
 
-
-/// Creates a [`StyleAttr`] struct for use in HTML or SVG element attributes.
-///
-/// This macro supports multiple invocation patterns:
-///
-/// ```rust
-/// use colorimetry_plot::{style_attr, StyleAttr};
-/// let style = style_attr!(class: "button", style: "fill:red;");
-/// assert_eq!(style.class.as_deref(), Some("button"));
-/// assert_eq!(style.style.as_deref(), Some("fill:red;"));
-/// ```
-///
-/// This is useful for freeform style attributes that don’t follow key-value
-/// syntax or when you want to include semicolons without quoting.
-///
-/// # Returns
-///
-/// A [`Style`] struct with either the `class`, `style`, or both fields set.
-///
-/// # Notes
-///
-/// - If both `class:` and `style:` keys are used, both fields are set.
-/// - If the macro receives a single identifier (e.g. `highlight`), it sets only the `class`.
-/// - Any other token sequence (e.g. semicolon-delimited) is treated as a full `style` string.
-///
-/// # Panics
-///
-/// If an unknown key is used in key-value form (e.g. `color: "red"`), this will cause a compile-time error.
-///
-/// # Examples
-///
-/// ```rust
-/// use colorimetry_plot::{style_attr, StyleAttr};
-/// let a = style_attr!(); // No style specfied
-/// let b = style_attr!(class: "foo");
-/// let c = style_attr!(style: "stroke:red;");
-/// let d = style_attr!(class: "bar", style: "fill:blue;");
-/// let e = style_attr!(id: "line3");
-/// ```
+/// A [`StyleAttr`] struct with either the `class`, `style`, `id` or any combination of fields set.
 #[macro_export]
 macro_rules! css {
 

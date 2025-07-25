@@ -1,37 +1,30 @@
 //! # Colorimetry Plot Library
 //!
 //! This colormimetry library provides functionality for generating SVG-based color plots,
-//! with both low-level and higher lelvel API, based on top of the Rust-SVG library.
+//! with both low-level and higher level API, based on top of the Rust-SVG library.
 //! It includes generating basic 2D (x,y) charts composed of several layers, and more complex chromaticity diagrams with
 //! the spectral locus, and gamut fills.
-//! Plots are build up in `Layers` using transformations `to_plot` and `to_world`.
+//! 
+//! Plots are built up in `Layers` using coordinate transformations between plot space and world coordinates.
 //!
 //! ## Modules
 //!
-//! - `axis`: Axis rendering and management.
 //! - `chart`: Chart composition and rendering.
-//! - `chromaticity`: Chromaticity diagram utilities.
-//! - `layer`: Layered rendering support.
-//! - `rendable`: Traits and types for renderable objects.
-//! - `spectrum`: Spectrum data and visualization.
+//! - `layer`: Layered rendering support for compositing multiple plot elements.
+//! - `rendable`: Traits and types for objects that can be rendered to SVG.
+//! - `spectrum`: Spectrum data visualization and color representation.
+//! - `style_attr`: SVG styling attributes and utilities.
 //! - `svgdoc`: SVG document creation and manipulation.
-//! - `transforms`: Coordinate and geometric transforms.
-//! - `view`: Viewport and plot size management.
+//! - `view`: Viewport and plot area management.
 //!
-//! ## Utilities
+//! ## Core Features
 //!
-//! - Unique ID generation for SVG elements.
-//! - Class and style assignment for SVG nodes.
-//! - Floating-point rounding utilities with configurable precision.
-//!
-//! ## Usage
-//!
-//! Import the desired modules and use the provided functions to construct and manipulate SVG plots.
-//!
-//! ## License
-//!
-//! This library is dual-licensed under the MIT License and the Apache License (Version 2.0).
-//! You may choose either license when using this library.
+//! - **Layered Architecture**: Build complex plots by compositing multiple layers
+//! - **Coordinate Transforms**: Seamless conversion between plot and world coordinate systems
+//! - **SVG Generation**: High-quality vector graphics output
+//! - **Configurable Styling**: Flexible styling system for plot elements
+//! - **Precision Control**: Configurable floating-point precision for clean output
+
 pub mod chart;
 pub mod layer;
 pub mod rendable;

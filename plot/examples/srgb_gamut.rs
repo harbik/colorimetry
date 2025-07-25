@@ -1,31 +1,24 @@
 use colorimetry::rgb::RgbSpace::SRGB;
-use colorimetry_plot::{chart::XYChromaticity, style_attr::class, svgdoc::SvgDocument
-};
+use colorimetry_plot::{chart::XYChromaticity, style_attr::class, svgdoc::SvgDocument};
 
 /// Includes the style for the SVG document from an external SCSS file.
 /// This is a SCSS stylesheet that styles the sRGB gamut plot and is embedded into the SVG output.
 const STYLE: &str = include_str!("srgb_gamut.scss");
 const PLANCKIAN_LABELS_AT: &[u32] = &[
-   2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6500, 7500, 9300,
+    2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6500, 7500, 9300,
 ];
 
 pub fn main() -> Result<(), Box<dyn std::error::Error>> {
-
     // Create an XYChromaticity chart with the specified observer and ranges
     let xy_chromaticity = XYChromaticity::new((775, 875), (-0.025..=0.75, 0.0..=0.875))
         .ticks(0.01, 0.01, 5, class("fine-grid"))
         .ticks(0.1, 0.1, 10, class("grid"))
         .x_labels(0.1, 10, None)
-        .x_axis_description("CIE 1931 x Chromaticity",None)
+        .x_axis_description("CIE 1931 x Chromaticity", None)
         .y_labels(0.1, 10, class("y-labels"))
-        .y_axis_description("CIE 1931 y Chromaticity",None) 
+        .y_axis_description("CIE 1931 y Chromaticity", None)
         .plot_spectral_locus(class("spectral-locus"))
-        .plot_spectral_locus_ticks(
-            440..=650,
-            10,
-            15,
-            class("spectral-locus-ticks"),
-        )
+        .plot_spectral_locus_ticks(440..=650, 10, 15, class("spectral-locus-ticks"))
         .plot_spectral_locus_ticks(460..=630, 1, 7, class("spectral-locus-ticks"))
         .plot_spectral_locus_labels(460..=620, 10, 2, class("spectral-locus-labels"))
         .plot_rgb_gamut(SRGB, None)
