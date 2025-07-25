@@ -27,35 +27,50 @@ pub const SOUTH_EAST: i32 = 315;
 /// as `Chart` struct for creating scaled charts with x and y axis.
 #[derive(Default)]
 pub struct SvgDocument {
-    pub(super) view_parameters: ViewParameters,
-    pub(super) css: String, // selector, and elements
+    pub(super) scss: String, // SCSS stylesheet content
     pub(super) clip_paths: Vec<ClipPath>,
     pub(super) symbols: Vec<Symbol>,
     pub(super) plots: Vec<Box<dyn Rendable>>,
     pub(super) nodes: Vec<Box<dyn Node>>, // layers and use
+    pub(super) margin: u32,
+    pub(super) width: Option<u32>,
+    pub(super) height: Option<u32>,
 }
 
 impl SvgDocument {
-    /// Creates a new `SvgDocument` with the specified width and height.
-    /// # Arguments
-    /// * `width` - The width of the SVG document.
-    /// * `height` - The height of the SVG document.
-    /// # Returns
-    /// A new instance of `SvgDocument`.
-    pub fn new(width: u32, height: u32, css: &str) -> Self {
-        let mut view_parameters = ViewParameters::default();
-        view_parameters.set_width(width);
-        view_parameters.set_height(height);
-        view_parameters.set_view_box(0, 0, width, height);
+    const DEFAULT_MARGIN: u32 = 50;
+    pub fn new() -> Self {
 
         SvgDocument {
-            view_parameters,
             clip_paths: Vec::new(),
-            css: css.to_string(),
+            scss: DEFAULT_CSS.to_string(),
             nodes: Vec::new(), // layers, use, and svg elements
             symbols: Vec::new(),
             plots: Vec::new(),
+            margin: Self::DEFAULT_MARGIN,
+            width: None,
+            height: None,
         }
+    }
+
+    pub fn append_scss(mut self, css: &str) -> Self {
+        self.scss.push_str(css);
+        self
+    }
+
+    pub fn set_margin(mut self, margin: u32) -> Self {
+        self.margin = margin;
+        self
+    }
+
+    pub fn set_width(mut self, width: u32) -> Self {
+        self.width = Some(width);
+        self
+    }
+
+    pub fn set_height(mut self, height: u32) -> Self {
+        self.height = Some(height);
+        self
     }
 
     /// Adds a path to the SVG document as a clip path with the specified ID.
@@ -82,7 +97,8 @@ impl SvgDocument {
         self
     }
 
-    pub fn position(&self) -> Vec<(u32, u32)> {
+    /// Calculates the positions of the sub plots on the document.
+    pub fn flow(&self) -> Vec<(u32, u32)> {
         match self.plots.len() {
             1 => {
                 let svg_sub = &self.plots[0];
@@ -108,32 +124,48 @@ impl SvgDocument {
         }
     }
 
+    pub fn subs_size_with_margin(&self) -> (u32, u32) {
+        match self.plots.len() {
+            1 => {
+                let svg_sub = &self.plots[0];
+                (svg_sub.width() + 2 * self.margin, svg_sub.height() + 2 * self.margin)
+            }
+            _ => (800, 600), // Default size for the SVG document
+        }
+    }
+
     pub fn save(self, filename: &str) -> Result<(), Box<dyn std::error::Error>> {
         Ok(svg::save(filename, &self.render())?)
     }
+
 }
 
 impl Rendable for SvgDocument {
     fn view_parameters(&self) -> ViewParameters {
-        self.view_parameters.clone()
+        let (subs_width, subs_height) = self.subs_size_with_margin();
+        let width = self.width.unwrap_or(subs_width);
+        let height = self.height.unwrap_or(subs_height);
+        ViewParameters::new(0, 0, width, height, width, height)
     }
 
-    fn set_view_parameters(&mut self, view_box: ViewParameters) {
-        self.view_parameters = view_box;
+    fn set_view_parameters(&mut self, _view_box: ViewParameters) {
+        /* do nothing, calculated up on rendering */
     }
 
     fn render(&self) -> Document {
+
+        let vp = self.view_parameters();
         let mut doc = Document::new()
-            .set("viewBox", self.view_parameters.to_string())
-            .set("width", self.view_parameters.width())
-            .set("height", self.view_parameters.height())
+            .set("viewBox", vp.to_string())
+            .set("width", vp.width())
+            .set("height", vp.height())
             .set("xmlns", "http://www.w3.org/2000/svg")
             .set("xmlns:xlink", "http://www.w3.org/1999/xlink")
             .set("version", "1.1")
             .set("class", "colorimetry-plot");
 
-        let scss_content = format!("{}\n{}", DEFAULT_CSS, self.css);
-        let css_content = match grass::from_string(scss_content, &grass::Options::default()) {
+      //  let scss_content = format!("{}\n{}", DEFAULT_CSS, self.scss);
+        let css_content = match grass::from_string(self.scss.clone(), &grass::Options::default()) {
             Ok(css) => css,
             Err(e) => {
                 eprintln!("Failed to compile SCSS: {e}");
@@ -152,15 +184,15 @@ impl Rendable for SvgDocument {
         self.symbols.iter().for_each(|symbol| {
             defs.append(symbol.clone());
         });
-
         doc.append(defs);
 
         // add plots
-        for (plot, (x, y)) in self.plots.iter().zip(self.position()) {
+        for (plot, (x, y)) in self.plots.iter().zip(self.flow()) {
             let rendered_plot = plot.render().set("x", x).set("y", y);
             doc = doc.add(rendered_plot);
         }
 
+        // add all items on the svg document
         for node in self.nodes.iter() {
             doc = doc.add(node.clone());
         }

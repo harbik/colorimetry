@@ -1,6 +1,6 @@
-use colorimetry_plot::{chart::XYChart, rendable::Rendable, style_attr, svgdoc::SvgDocument};
+use colorimetry_plot::{chart::XYChart, style_attr, svgdoc::SvgDocument};
 
-const STYLE: &str = include_str!("sinus.scss");
+const STYLE: &str = include_str!("sine_curve.scss");
 
 pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     let pi = std::f64::consts::PI;
@@ -24,10 +24,8 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
         .plot_poly_line(sin, style_attr!(class:"curve"))
         .plot_poly_line(vec![(0.0, 0.0), (pi2, 0.0)], style_attr!(class:"base-line"));
 
-    let margin = 50;
-    let width = chart.width() + margin;
-    let height = chart.height() + margin;
-    SvgDocument::new(width, height, STYLE)
+    SvgDocument::new()
+        .append_scss(STYLE)
         .add_svg(Box::new(chart))
-        .save("tmp/sinus.svg")
+        .save("tmp/sine_curve.svg")
 }

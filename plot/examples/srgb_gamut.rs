@@ -1,6 +1,6 @@
-use colorimetry::{observer::Observer, rgb::RgbSpace::SRGB};
+use colorimetry::rgb::RgbSpace::SRGB;
 use colorimetry_plot::{
-    chart::XYChromaticity, rendable::Rendable, style_attr, svgdoc::SvgDocument,
+    chart::XYChromaticity, style_attr, svgdoc::SvgDocument,
 };
 
 /// Includes the style for the SVG document from an external SCSS file.
@@ -8,10 +8,9 @@ use colorimetry_plot::{
 const STYLE: &str = include_str!("srgb_gamut.scss");
 
 pub fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let observer = Observer::default();
 
     // Create an XYChromaticity chart with the specified observer and ranges
-    let xy_chromaticity = XYChromaticity::new(observer, (775, 875), (-0.025..=0.75, 0.0..=0.875))
+    let xy_chromaticity = XYChromaticity::new((775, 875), (-0.025..=0.75, 0.0..=0.875))
         .ticks(0.01, 0.01, 5, style_attr!(class: "fine-grid"))
         .ticks(0.1, 0.1, 10, style_attr!(class: "grid"))
         .x_labels(0.1, 10)
@@ -32,12 +31,9 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
         .plot_grid(0.01, 0.01, style_attr!(class: "fine-grid"))
         .plot_grid(0.1, 0.1, style_attr!(class: "grid"));
 
-    let margin = 50;
-    let width = xy_chromaticity.width() + margin;
-    let height = xy_chromaticity.height() + margin;
-
-    // crate the plot
-    SvgDocument::new(width, height, STYLE)
+    // create the plot
+    SvgDocument::new()
+        .append_scss(STYLE)
         .add_svg(Box::new(xy_chromaticity))
         .save("tmp/srgb_gamut.svg")
 }

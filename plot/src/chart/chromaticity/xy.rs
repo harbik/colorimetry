@@ -36,13 +36,16 @@ impl XYChromaticity {
     pub const ANNOTATE_SEP: u32 = 2;
 
     pub fn new(
-        observer: Observer,
         width_and_height: (u32, u32),
         ranges: (impl RangeBounds<f64>, impl RangeBounds<f64>),
     ) -> XYChromaticity {
         let xy_chart = XYChart::new(width_and_height, ranges);
-
+        let observer = Observer::default();
         XYChromaticity { observer, xy_chart }
+    }
+    pub fn set_observer(mut self, observer: Observer) ->  Self {
+        self.observer = observer;
+        self
     }
 
     pub fn plot_spectral_locus(self, style_attr: StyleAttr) -> Self {
