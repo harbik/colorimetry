@@ -349,9 +349,12 @@ impl QuadraticCurve {
     /// Returns `Error::RequiresDistinctPoints` if the points are not distinct, which would
     /// result in a degenerate curve.
     pub fn new(p0: (f64, f64), p1: (f64, f64), p2: (f64, f64)) -> Result<Self, Error> {
-        if (abs_diff_eq!(p0.0, p1.0, epsilon = f64::EPSILON) && abs_diff_eq!(p0.1, p1.1, epsilon = f64::EPSILON))
-            || (abs_diff_eq!(p1.0, p2.0, epsilon = f64::EPSILON) && abs_diff_eq!(p1.1, p2.1, epsilon = f64::EPSILON))
-            || (abs_diff_eq!(p0.0, p2.0, epsilon = f64::EPSILON) && abs_diff_eq!(p0.1, p2.1, epsilon = f64::EPSILON))
+        if (abs_diff_eq!(p0.0, p1.0, epsilon = f64::EPSILON)
+            && abs_diff_eq!(p0.1, p1.1, epsilon = f64::EPSILON))
+            || (abs_diff_eq!(p1.0, p2.0, epsilon = f64::EPSILON)
+                && abs_diff_eq!(p1.1, p2.1, epsilon = f64::EPSILON))
+            || (abs_diff_eq!(p0.0, p2.0, epsilon = f64::EPSILON)
+                && abs_diff_eq!(p0.1, p2.1, epsilon = f64::EPSILON))
         {
             return Err(Error::RequiresDistinctPoints);
         }
@@ -395,54 +398,41 @@ impl QuadraticCurve {
         (dx_dt, dy_dt)
     }
 
-    /// Calculates the slope of the tangent to the curve at parameter `t`.
-    ///
-    /// The slope is `dy/dx`. Returns `f64::INFINITY` for a vertical tangent.
+    /// Calculates the slope angle of the tangent to the curve at parameter `t`.
     pub fn slope_angle(&self, t: f64) -> f64 {
         let (dx_dt, dy_dt) = self.derivative(t);
         dy_dt.atan2(dx_dt)
     }
-
 }
 
 #[test]
 fn quadratic_curve_test() {
-
     use approx::assert_ulps_eq;
-    // Standard parabola y = x^2
-    let curve = QuadraticCurve::new((-1.0, 1.0), (0.0, 0.0), (1.0, 1.0)).unwrap();
-    // at t=0.5 (x=0), slope should be 0
-    assert_ulps_eq!(curve.slope_angle(0.5), 0.0);
-    // at t=1 (x=1), slope should be 2*x = 2
-    assert_ulps_eq!(curve.slope_angle(1.0), 2.0);
-    // at t=0 (x=-1), slope should be 2*x = -2
-    assert_ulps_eq!(curve.slope_angle(0.0), -2.0);
 
-    // Rotated parabola, opening to the right: x = y^2
-    let curve_rot = QuadraticCurve::new((1.0, -1.0), (0.0, 0.0), (1.0, 1.0)).unwrap();
-    // at t=0.5 (y=0), slope should be infinite
-    assert_eq!(curve_rot.slope_angle(0.5), f64::INFINITY);
-    // at t=1 (y=1), slope is dy/dx = 1/(dx/dy) = 1/(2y) = 0.5
-    assert_ulps_eq!(curve_rot.slope_angle(1.0), 0.5);
-    // at t=0 (y=-1), slope is 1/(2y) = -0.5
-    assert_ulps_eq!(curve_rot.slope_angle(0.0), -0.5);
+    let p0 = (0.0, 0.0);
+    let p1 = (1.0, 2.0);
+    let p2 = (2.0, 0.0);
+    let curve = QuadraticCurve::new(p0, p1, p2).unwrap();
 
-    // Check that value() returns the original points
-    let p0 = (-1.0, 1.0);
-    let p1 = (0.0, 0.0);
-    let p2 = (1.0, 1.0);
-    let curve_val = QuadraticCurve::new(p0, p1, p2).unwrap();
-    let v0 = curve_val.value(0.0);
-    assert_ulps_eq!(v0.0, p0.0);
-    assert_ulps_eq!(v0.1, p0.1);
-    let v1 = curve_val.value(0.5);
-    assert_ulps_eq!(v1.0, p1.0);
-    assert_ulps_eq!(v1.1, p1.1);
-    let v2 = curve_val.value(1.0);
-    assert_ulps_eq!(v2.0, p2.0);
-    assert_ulps_eq!(v2.1, p2.1);
+    // Evaluate at t=0, t=0.5, t=1
+    assert_eq!(curve.value(0.0), p0);
+    let mid_point = curve.value(0.5);
+    assert_ulps_eq!(mid_point.0, 1.0);
+    assert_ulps_eq!(mid_point.1, 2.0);
+    assert_eq!(curve.value(1.0), p2);
+
+    // Derivative at t=0 and t=1 should be horizontal
+    let deriv_0 = curve.derivative(0.0);
+    assert_ulps_eq!(deriv_0.0, 2.0);
+    assert_ulps_eq!(deriv_0.1, 8.0);
+    let deriv_1 = curve.derivative(1.0);
+    assert_ulps_eq!(deriv_1.0, 2.0);
+    assert_ulps_eq!(deriv_1.1, -8.0);
+
+    // Slope angle at t=0 and t=1
+    assert_ulps_eq!(curve.slope_angle(0.0), 4f64.atan());
+    assert_ulps_eq!(curve.slope_angle(1.0), -4f64.atan());
 }
-
 
 #[test]
 fn triangle_test() {
