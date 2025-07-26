@@ -79,8 +79,8 @@ fn png_from_rgb_space(
     // get chromaticity coordinate of the primaries
     let chromaticities = space.chromaticities(observer);
 
-    // calculate the pixel coordinates of the triangle vertices, using the CanvasTransform function
-    let canvas_gamut_coordinates = chromaticities
+    // calculate the pixel coordinates of the triangle vertices, using the CoordinateTransform function
+    let gamut_plot_coordinates = chromaticities
         .iter()
         .map(|c| c.to_tuple())
         .map(|xy| to_plot(xy))
@@ -92,7 +92,8 @@ fn png_from_rgb_space(
     let mut v_max = 0;
     let mut h_max = 0;
 
-    for &[h, v] in canvas_gamut_coordinates.iter() {
+    // Find the minimum and maximum coordinates to determine the image size
+    for &[h, v] in gamut_plot_coordinates.iter() {
         if h < h_min {
             h_min = h;
         }
@@ -110,18 +111,20 @@ fn png_from_rgb_space(
     let height = v_max - v_min;
     let mut image = RgbaImage::new(width, height);
 
-    // Create a triangle from the chromaticity coordinates, in canvas space
-    let canvas_gamut_triangle = Triangle::new(
-        canvas_gamut_coordinates[0].map(|c| c as f64),
-        canvas_gamut_coordinates[1].map(|c| c as f64),
-        canvas_gamut_coordinates[2].map(|c| c as f64),
+    // Create triangle from the plot coordinates, to only calculate the pixels inside the triangle
+    // The coordinates are in the form [x, y] where x and y are the pixel coordinates
+    // Triange needs the coordinates as f64
+    let gamut_plot_triangle = Triangle::new(
+        gamut_plot_coordinates[0].map(|c| c as f64),
+        gamut_plot_coordinates[1].map(|c| c as f64),
+        gamut_plot_coordinates[2].map(|c| c as f64),
     )
     .unwrap();
 
     // Fill the image with the triangle gradient
-    for v in 0..height {
-        for h in 0..width {
-            if canvas_gamut_triangle.contains((h + h_min) as f64, (v + v_min) as f64) {
+    for v in 0..height { // vertical pixel index in the png image
+        for h in 0..width { // horizontal pixel index in the png image
+            if gamut_plot_triangle.contains((h + h_min) as f64, (v + v_min) as f64) {
                 let (x, y) = to_world((h as f64 + h_min as f64, v as f64 + v_min as f64));
                 let xyz = XYZ::new([x, y, 1.0 - x - y], observer).set_illuminance(100.0);
                 let wrgb = xyz.rgb(space);
@@ -132,11 +135,6 @@ fn png_from_rgb_space(
             }
         }
     }
-
-    /// get the with and height of the primaries as a rectangular block
-    /// fill the block with rgb values
-    let width = 512;
-    let height = 512;
 
     // Save PNG to memory
     let mut png_data = Vec::new();

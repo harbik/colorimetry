@@ -20,7 +20,7 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
         .plot_spectral_locus(class("spectral-locus"))
         .plot_spectral_locus_ticks(440..=650, 10, 15, class("spectral-locus-ticks"))
         .plot_spectral_locus_ticks(460..=630, 1, 7, class("spectral-locus-ticks"))
-        .plot_spectral_locus_labels(460..=620, 10, 2, class("spectral-locus-labels"))
+        .plot_spectral_locus_labels(460..=620, 10, 3, class("spectral-locus-labels"))
         .plot_rgb_gamut(SRGB, None)
         .plot_planckian_locus(class("planckian"))
         .plot_planckian_locus_ticks((2000..=7500).step_by(100), 7, class("planckian-ticks-fine"))
