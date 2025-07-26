@@ -1,7 +1,6 @@
 /// A command-line tool for use with the `colorimetry` library.
 ///
 /// ## 🔧 Installation
-
 /// You can install the `colorimetry` CLI tool like this:
 ///
 /// ```bash
@@ -40,8 +39,10 @@ enum Commands {
 }
 
 /// The input file should be a CSV file with two columns:
+///
 /// - Wavelength (in nm)
 /// - Reflectivity (as a fraction between 0 and 1)
+///
 /// The output will be the XYZ, CIE Lab, and sRGB values computed from the reflectivity data.
 /// The CSV file can have comments starting with `#`.
 fn colorpatch(file: String) -> Result<(), Box<dyn Error>> {

@@ -122,8 +122,10 @@ fn png_from_rgb_space(
     .unwrap();
 
     // Fill the image with the triangle gradient
-    for v in 0..height { // vertical pixel index in the png image
-        for h in 0..width { // horizontal pixel index in the png image
+    for v in 0..height {
+        // vertical pixel index in the png image
+        for h in 0..width {
+            // horizontal pixel index in the png image
             if gamut_plot_triangle.contains((h + h_min) as f64, (v + v_min) as f64) {
                 let (x, y) = to_world((h as f64 + h_min as f64, v as f64 + v_min as f64));
                 let xyz = XYZ::new([x, y, 1.0 - x - y], observer).set_illuminance(100.0);
