@@ -1,16 +1,20 @@
-/// A command-line tool for use with the `colorimetry` library.
-///
-/// ## 🔧 Installation
-/// You can install the `colorimetry` CLI tool like this:
-///
-/// ```bash
-/// cargo install colorimetry-cli
-/// ```
-/// ## Usage
-/// You can run using:
-/// ```bash
-/// colorimetry --help
-/// ```
+//! A command-line tool for use with the `colorimetry` library.
+//!
+//! # Installation
+//!
+//! You can install the `colorimetry` CLI tool like this:
+//!
+//! ```bash
+//! cargo install colorimetry-cli
+//! ```
+//!
+//! # Usage
+//!
+//! You can run using:
+//!
+//! ```bash
+//! colorimetry --help
+//! ```
 use colorimetry::lab::CieLab;
 use colorimetry::{
     colorant::Colorant, illuminant::D65, observer::Observer, rgb::RgbSpace, spectrum::Spectrum,
@@ -24,13 +28,13 @@ use std::fs::File;
 #[derive(Parser)]
 #[command(name = "colorimetry")]
 #[command(about = "A CLI tool for colorimetry operations", long_about = None)]
-struct Cli {
+pub struct Cli {
     #[command(subcommand)]
     command: Commands,
 }
 
 #[derive(Subcommand)]
-enum Commands {
+pub enum Commands {
     /// Compute various color matrics from measured reflectivity data.
     Colorpatch {
         /// Input CSV file
@@ -45,7 +49,7 @@ enum Commands {
 ///
 /// The output will be the XYZ, CIE Lab, and sRGB values computed from the reflectivity data.
 /// The CSV file can have comments starting with `#`.
-fn colorpatch(file: String) -> Result<(), Box<dyn Error>> {
+pub fn colorpatch(file: String) -> Result<(), Box<dyn Error>> {
     // Open the file relative to the current working directory
     // use cargo run colorpatch -- data/test.csv as an example
     let file = File::open(std::path::Path::new(&file))?;
@@ -76,7 +80,7 @@ fn colorpatch(file: String) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
+pub fn main() -> Result<(), Box<dyn Error>> {
     let cli = Cli::parse();
 
     match cli.command {
