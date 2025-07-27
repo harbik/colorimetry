@@ -327,20 +327,34 @@ colorimetry = { version = "0.0.7", features = ["cri", "munsell"] }
 
 ## Command Line Tool
 
-This library has an associated command-line tool, `colorimetry`, contained in the "colorimetry-cli" crate.
+This library has an associated command-line tool, named `color`, contained in the "colorimetry-cli" crate.
+It provides a convenient way to perform colorimetric calculations, convert spectral data, and make color plots directly from the terminal.
 
 To use it you have to install it using `cargo`, which in turn requires that you have Rust and Cargo installed.
-You can install them by following the instructions at <https://www.rust-lang.org/tools/install>.
+Install them first by following the instructions at <https://www.rust-lang.org/tools/install>.
+After having done this, run the following command:
 
-After ensuring that you have Rust and Cargo installed, you can install the `colorimetry` command-line tool like this:
 ```bash
 cargo install colorimetry-cli
 ```
 
+That should be it, you can now use the `color` command in your terminal.
 Run the following command to see the available options and features for the `colorimetry` tool:
 ```bash
-colorimetry --help
+color --help
 ```
+
+## Color Plots
+
+The `colorimetry` library includes a plotting module, in an associated `colorimetry-plot` crate
+that can be used to generate a number of color diagrams, spectral plots, and color rendering visulizations.
+It's ouput is in SVG format, which can be viewed in any modern web browser or vector graphics editor, such as Inkscape.
+The `colorimetry-plot` crate is not included by default, so you need to add it to your project using the following command:
+
+```bash
+cargo add colorimetry-plot
+```
+You can then use the `colorimetry-plot` crate to generate color plots.
 
 ## Developer Tasks with `xtask`
 

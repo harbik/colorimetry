@@ -327,6 +327,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "colored"
+version = "3.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fde0e0ec90c9dfb3b4b1a0891a7dcd0e2bffde2f7efed5fe7c9bb00e5bfb915e"
+dependencies = [
+ "windows-sys",
+]
+
+[[package]]
 name = "colorimetry"
 version = "0.0.7"
 dependencies = [
@@ -334,7 +343,7 @@ dependencies = [
  "argmin",
  "argmin-math",
  "clap",
- "colored",
+ "colored 2.2.0",
  "criterion",
  "geo",
  "js-sys",
@@ -354,8 +363,10 @@ name = "colorimetry-cli"
 version = "0.0.1"
 dependencies = [
  "clap",
+ "colored 3.0.0",
  "colorimetry",
  "csv",
+ "strum 0.25.0",
 ]
 
 [[package]]
