@@ -16,6 +16,9 @@ mod cct;
 #[cfg(feature = "cct")]
 pub use cct::CCT;
 
+#[cfg(feature = "cct")]
+pub use cct::iso_temp_line;
+
 #[cfg(feature = "cri")]
 mod cri;
 

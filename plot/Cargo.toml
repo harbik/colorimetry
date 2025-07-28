@@ -8,7 +8,7 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 approx = "0.5.1"
-colorimetry = { version = "0.0.7", path = ".." }
+colorimetry = { version = "0.0.7", path = "..", features = ["cct"]}
 nalgebra = "0.33.2"
 strum = { version = "0.27.1", features = ["derive"] }
 svg = "0.18.0"
