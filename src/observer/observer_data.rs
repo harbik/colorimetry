@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+// Copyright (c) 2024-2025, Harbers Bik LLC
+
 use std::{ops::RangeInclusive, sync::OnceLock};
 
 pub mod cie1931;

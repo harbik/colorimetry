@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+// Copyright (c) 2024-2025, Harbers Bik LLC
+
 //! Provides functionality for handling relative XYZ color space gamuts with different observers and illuminants.
 //!
 //! This module implements gamut handling for various CIE standard observers and illuminants, allowing for:

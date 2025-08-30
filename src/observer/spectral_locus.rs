@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+// Copyright (c) 2024-2025, Harbers Bik LLC
+
 //! Spectral Locus module provides functionality to work with the spectral locus in colorimetry.
 //!
 //! The spectral locus represents the boundary of visible colors in a chromaticity diagram,

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+// Copyright (c) 2025, Harbers Bik LLC
+
 //! This is the main entry point for the colorimetry CLI tool.
 //! It parses command-line arguments and dispatches to the appropriate command handler.
 use colorimetry_cli::args::parse_args;

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+// Copyright (c) 2025, Harbers Bik LLC
+//
 /// Macro to delegate all XYChart methods to a field of a struct, to avoid using Deref and DerefMut
 /// Add methods here when adding new methods to XYChart
 /// Usage: `delegate_xy_chart_methods!(MyStruct, chart_field);`

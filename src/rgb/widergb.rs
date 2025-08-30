@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+// Copyright (c) 2024-2025, Harbers Bik LLC
+
 //! # WideRgb: Color Representation allowing out-of-gamut colors for a given RGB color space.
 //!
 //! This module provides the `WideRgb` struct, a representation of a color stimulus using unconstrained

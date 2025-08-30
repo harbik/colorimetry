@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+// Copyright (c) 2024-2025, Harbers Bik LLC
+
 //! # Device-dependent Red-Green-Blue (RGB) Colors
 //!
 //! The `rgb` module provides types and functions for working with device-dependent

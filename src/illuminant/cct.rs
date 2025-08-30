@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+// Copyright (c) 2024-2025, Harbers Bik LLC
+
 /*!
 ### Calculation of Correlated Color Temperature and Tint
 
@@ -264,7 +267,7 @@ impl TryFrom<CCT> for XYZ {
 /// // The data in this table uses a c2 value of 1.4388E-2 for the Planckian locus, while in this //
 /// // library the current value of 1.438_776_877_6E-2 and a different wavelength basis are used so the
 /// // data differ slightly.
-/// 
+///
 /// use colorimetry::illuminant::iso_temp_line;
 /// let t = [2_000.0, 5_000.0, 10_000.0, 20_000.0, 100_000.0];
 /// let want = [

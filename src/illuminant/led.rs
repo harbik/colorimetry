@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+// Copyright (c) 2024-2025, Harbers Bik LLC
+
 //! # Functions and Constants from Physics
 //!
 //! This module provides core physical constants and spectral‐generation functions

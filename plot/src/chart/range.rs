@@ -1,3 +1,6 @@
+// Copyright (c) 2025, Harbers Bik LLC
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+//
 use std::fmt::{self, Formatter, Result as FmtResult};
 use std::ops::{Bound, Range, RangeBounds};
 

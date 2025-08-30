@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+// Copyright (c) 2024-2025, Harbers Bik LLC
+
 //! # Single Import for Colorimetry Types and Functions
 //!
 //! The `prelude` module gathers and re-exports the most commonly used types, traits, and functions

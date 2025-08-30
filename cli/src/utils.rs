@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+// Copyright (c) 2025, Harbers Bik LLC
+
 use colored::Colorize;
 use colorimetry::illuminant::CieIlluminant;
 use colorimetry::lab::CieLab;

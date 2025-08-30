@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+// Copyright (c) 2025, Harbers Bik LLC
+
 //! This `colorimetry-cli` crate provides the core functionality for the `color` command-line tool, enabling users to convert color data, create plots, analyze color spaces, and perform other color-related tasks directly from the terminal.
 //!
 //! # Installation

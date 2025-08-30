@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+// Copyright (c) 2024-2025, Harbers Bik LLC
+
 use nalgebra::Vector2;
 
 /// A chromaticity coordinate with x and y values.

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+// Copyright (c) 2024-2025, Harbers Bik LLC
+
 /*!
 This is a Rust library for working with color and light — great for projects in lighting, imaging, or anything that needs accurate color handling.
 It includes tools to simulate how colors look under different lights, convert between color spaces, and follow well-known standards from groups like the CIE, ICC, and IES.

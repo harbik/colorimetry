@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+// Copyright (c) 2024-2025, Harbers Bik LLC
+
 //! # CIE L\*a\*b\* Color Model
 //!
 //! This module provides a **CIE L\*a\*b\*** representation (`CieLab`) and related

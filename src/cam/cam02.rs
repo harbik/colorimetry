@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+// Copyright (c) 2024-2025, Harbers Bik LLC
+
 //! # CIECAM02 Color Appearance Model
 //!
 //! This module implements the **CIECAM02** appearance model.
@@ -8,7 +11,6 @@
 //! - **Inverse transform** back to XYZ with optional new white or viewing conditions via `xyz`.  
 //! - **Chromatic adaptation** using CIECAT02 matrices  
 //! - Utility functions for achromatic response, eccentricity, and more  
-
 use super::{CamJCh, CamTransforms, ViewConditions};
 
 use nalgebra::Vector3;

@@ -1,3 +1,6 @@
+// Copyright (c) 2025, Harbers Bik LLC
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+//
 //! A two-dimensional chart implementation for plotting data in a Cartesian coordinate system.
 //!
 //! `XYChart` provides a flexible and extensible charting system that supports:

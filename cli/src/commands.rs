@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+// Copyright (c) 2025, Harbers Bik LLC
+
 use crate::{args::Commands, utils::colorvalue};
 
 pub fn dispatch(cmd: Commands) {
