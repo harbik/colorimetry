@@ -1,0 +1,56 @@
+$plot-background-color: #888;
+$spectral-locus-color: #DDD;
+$axis-color: #DDD;
+$grid-color: #AAA;
+$planckian-color:$plot-background-color; 
+
+.fine-grid {
+    stroke: $grid-color;
+    stroke-width: 0.5;
+}
+.grid {
+    stroke: $grid-color; 
+}
+.plot-area {
+    fill: $plot-background-color;
+    filter: drop-shadow(5px 5px 3px lightgray);
+    stroke: none;
+    stroke-width: 0;
+}
+.spectral-locus {
+    fill: $spectral-locus-color;
+    stroke: none;
+    stroke-width: none;
+}
+.spectral-locus-ticks {
+    stroke: $plot-background-color;
+}
+.planckian, .planckian-ticks, .planckian-ticks-fine {
+    stroke: $planckian-color;
+}
+
+.planckian, .planckian-ticks, .planckian-ticks-fine, .planckian-labels text {
+    opacity: 0.65;
+}
+
+.planckian-labels text{
+    fill: $planckian-color;
+}
+
+.planckian {
+    stroke-width: 2;
+}
+
+
+.planckian-ticks-fine {
+    stroke-width: 0.5;
+}
+
+.spectral-locus-labels text {
+    fill: $spectral-locus-color;
+}
+
+.ansi-step7 {
+    stroke: white;
+    stroke-width: 0.5;
+}

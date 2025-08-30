@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+// Copyright (c) 2024-2025, Harbers Bik LLC
+
 //! # CIECAM16 Color Appearance Model
 //!
 //! This module implements the **CIECAM16** appearance model (CIE 248:2022).  

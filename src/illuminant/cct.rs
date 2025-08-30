@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+// Copyright (c) 2024-2025, Harbers Bik LLC
+
 /*!
 ### Calculation of Correlated Color Temperature and Tint
 
@@ -257,14 +260,39 @@ impl TryFrom<CCT> for XYZ {
 /// Calculates Robertson's Table values for a temperature value of t, in units of Kelvin.
 /// These are the coordinates of the blackbody locus at temperature T, and it's line normal,
 /// which is the slope of the curve at that point rotated by 90º.
-fn iso_temp_line(t: f64) -> [f64; 3] {
+/// # Example
+/// ```rust
+/// // Data from Wyszecki, G., & Stiles, W. S. (1982). Color Science: Concepts and Methods,
+/// // Quantitative Data and Formulae (2nd ed.). Wiley-Interscience.  // Table 1(3.11) p. 228
+/// // The data in this table uses a c2 value of 1.4388E-2 for the Planckian locus, while in this //
+/// // library the current value of 1.438_776_877_6E-2 and a different wavelength basis are used so the
+/// // data differ slightly.
+///
+/// use colorimetry::illuminant::iso_temp_line;
+/// let t = [2_000.0, 5_000.0, 10_000.0, 20_000.0, 100_000.0];
+/// let want = [
+///     [0.305_05, 0.359_07, -11.324],
+///     [0.211_42, 0.323_12, -1.0182],
+///     [0.190_32, 0.293_26, -0.47888],    
+///     [0.183_88, 0.277_09, -0.32675],
+///     [0.180_66, 0.265_89, -0.25479]
+/// ];
+///     
+/// for (i, &temp) in t.iter().enumerate() {
+///     let [u, v, m] = iso_temp_line(temp);
+///     approx::assert_ulps_eq!(u, want[i][0], epsilon = 1E-4);
+///     approx::assert_ulps_eq!(v, want[i][1], epsilon = 1E-4);
+///     approx::assert_relative_eq!(m, want[i][2], epsilon = 2E-3);
+/// }
+/// ```
+pub fn iso_temp_line(t: f64) -> [f64; 3] {
     let xyz = Cie1931.xyz_planckian_locus(t);
     let [x, y, z] = xyz.values();
     let [u, v] = xyz.uv60();
     let [dx, dy, dz] = Cie1931.xyz_planckian_locus_slope(t).values();
     let sigma = x + 15.0 * y + 3.0 * z;
     let dsigma = dx + 15.0 * dy + 3.0 * dz;
-    let den = 6.0 * y * dsigma - 6.0 * dy * sigma;
+    let den = 6.0 * y * dsigma - 6.0 * dy * sigma; // no need to divide by sigma * sigma, as it would be divided out
     let m = if ulps_eq!(den, 0.0) {
         f64::MAX
     } else {

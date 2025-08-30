@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+// Copyright (c) 2024-2025, Harbers Bik LLC
+
 //! Munsell Spectral Data
 //!
 //! This dataset contains spectral measurements of 1,269 matte Munsell color chips,

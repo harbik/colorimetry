@@ -1,0 +1,21 @@
+[package]
+name = "colorimetry-cli"
+version = "0.0.8"
+edition = "2021"
+rust-version = "1.80"
+description = "A CLI for the colorimetry crate"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+csv = { version = "1.3", default-features = false}
+clap = { version = "4", features = ["derive"] }  # for argument parsing
+colorimetry = { path = ".." , features = ["cie-illuminants"]} # to use the main library
+strum = {version = "0.25", features = ["derive"]} # for enum iteration and derive macros
+colored = "3.0.0"
+
+[[bin]]
+name = "color"
+path = "src/main.rs"
+
+[package.metadata.docs.rs]
+targets = ["lib"]

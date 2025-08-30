@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+// Copyright (c) 2024-2025, Harbers Bik LLC
+
 use nalgebra::{ArrayStorage, SMatrix};
 pub const N_CFI: usize = 99;
 use crate::{

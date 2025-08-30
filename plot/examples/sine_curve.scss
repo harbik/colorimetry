@@ -1,0 +1,25 @@
+$grid-color: lightblue;
+$plot-background-color : ivory; 
+$line-color: black;
+$text-color: gray;
+
+.fine-grid, .fine-ticks {
+    stroke: $grid-color;
+    stroke-width: 0.5;
+    opacity: 0.5;
+}
+.grid, .ticks {
+    stroke: $grid-color; 
+}
+.plot-area {
+    fill: $plot-background-color;
+    filter: drop-shadow(3px 5px 2px lightgray);}
+.curve {
+    stroke: $line-color;
+    stroke-width: 3;
+}
+.base-line {
+    stroke: $line-color;
+    stroke-width: 2;
+    stroke-dasharray: 5, 5;
+}

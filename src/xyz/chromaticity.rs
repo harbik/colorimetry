@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+// Copyright (c) 2024-2025, Harbers Bik LLC
+
 use nalgebra::Vector2;
 
 /// A chromaticity coordinate with x and y values.
@@ -40,6 +43,10 @@ impl Chromaticity {
     /// Returns the chromaticity coordinate as an `nalgebra` vector.
     pub const fn to_vector(self) -> Vector2<f64> {
         self.xy
+    }
+
+    pub fn to_tuple(&self) -> (f64, f64) {
+        (self.xy.x, self.xy.y)
     }
 }
 

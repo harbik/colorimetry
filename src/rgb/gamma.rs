@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+// Copyright (c) 2024-2025, Harbers Bik LLC
+
 #[derive(Clone)]
 /// General representation of the RGB encoding and decoding functions used by color spaces.
 /// The function type is determined by the number of parameters supplied.

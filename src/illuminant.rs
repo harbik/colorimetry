@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+// Copyright (c) 2024-2025, Harbers Bik LLC
+
 //! # Spectral Power Distributions for Standard and User Definied Illuminants
 //!
 //! This module defines spectral **illuminants**—spectral power distributions (SPDs)
@@ -15,6 +18,9 @@ mod cct;
 
 #[cfg(feature = "cct")]
 pub use cct::CCT;
+
+#[cfg(feature = "cct")]
+pub use cct::iso_temp_line;
 
 #[cfg(feature = "cri")]
 mod cri;

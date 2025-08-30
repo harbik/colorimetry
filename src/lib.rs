@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+// Copyright (c) 2024-2025, Harbers Bik LLC
+
 /*!
 This is a Rust library for working with color and light — great for projects in lighting, imaging, or anything that needs accurate color handling.
 It includes tools to simulate how colors look under different lights, convert between color spaces, and follow well-known standards from groups like the CIE, ICC, and IES.
@@ -363,7 +366,38 @@ colorimetry = { version = "0.0.7", features = ["cri", "munsell"] }
 
 </details>
 
-## Developer Tasks with `xtask`
+# Command Line Tool
+
+This library has an associated command-line tool, named `color`, contained in the "colorimetry-cli" crate.
+It provides a convenient way to perform colorimetric calculations, convert spectral data, and make color plots directly from the terminal.
+
+To use it you have to install it using `cargo`, which in turn requires that you have Rust and Cargo installed.
+Install them first by following the instructions at <https://www.rust-lang.org/tools/install>.
+After having done this, run the following command:
+
+```bash
+cargo install colorimetry-cli
+```
+
+That should be it, you can now use the `color` command in your terminal.
+Run the following command to see the available options and features for the `colorimetry` tool:
+```bash
+color --help
+```
+
+# Color Plots
+
+The `colorimetry` library includes a plotting module, in an associated `colorimetry-plot` crate
+that can be used to generate a number of color diagrams, spectral plots, and color rendering visulizations.
+It's ouput is in SVG format, which can be viewed in any modern web browser or vector graphics editor, such as Inkscape.
+The `colorimetry-plot` crate is not included by default, so you need to add it to your project using the following command:
+
+```bash
+cargo add colorimetry-plot
+```
+You can then use the `colorimetry-plot` crate to generate color plots.
+
+# Developer Tasks with `xtask`
 
 This project uses a Rust-based `xtask` utility for common development tasks:
 
@@ -374,7 +408,7 @@ This project uses a Rust-based `xtask` utility for common development tasks:
 
 More commands will be added as the project evolves.
 
-## License
+# License
 
 All content &copy;2025 Harbers Bik LLC, and licensed under either of the
 
@@ -385,7 +419,7 @@ All content &copy;2025 Harbers Bik LLC, and licensed under either of the
 
 at your option.
 
-## Contribution
+# Contribution
 
 Unless you explicitly state otherwise, any Contribution intentionally submitted
 for inclusion in the Work by you, as defined in the Apache-2.0 license, shall be

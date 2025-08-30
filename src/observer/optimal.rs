@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+// Copyright (c) 2024-2025, Harbers Bik LLC
+
 //! Optimal color computations for colorimetry observers.
 //!
 //! This module provides functionality to compute the theoretical gamut boundary
