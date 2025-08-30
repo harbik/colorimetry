@@ -1,3 +1,10 @@
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+// Copyright (c) 2025, Harbers Bik LLC
+
+//! Layer module for SVG rendering
+//!
+//! This module provides the `Layer` struct, which represents a layer in an SVG document.
+//! It allows adding SVG nodes, setting attributes, and provides methods for rendering.
 use std::ops::Deref;
 
 use svg::{node::element::Group, Node};

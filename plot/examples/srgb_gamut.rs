@@ -30,12 +30,11 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
         .plot_planckian_locus_ticks(PLANCKIAN_LABELS_AT.to_vec(), 15, class("planckian-ticks"))
         .plot_planckian_locus_labels(PLANCKIAN_LABELS_AT.to_vec(), 18, class("planckian-labels"))
         .plot_grid(0.01, 0.01, class("fine-grid"))
-        .plot_grid(0.1, 0.1, class("grid"))
-    ;
+        .plot_grid(0.1, 0.1, class("grid"));
 
     // create the plot
     SvgDocument::new()
         .append_scss(STYLE)
-        .add_svg(Box::new(xy_chromaticity))
+        .add_plot(Box::new(xy_chromaticity))
         .save("docs/img/srgb_gamut.svg")
 }

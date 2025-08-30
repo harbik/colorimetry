@@ -1,24 +1,37 @@
-#![allow(unused)]
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+// Copyright (c) 2025, Harbers Bik LLC
+
+//! # Chromaticity XY Plot Module
+//!
+//! This module provides the [`XYChromaticity`] struct and related functionality for plotting chromaticity diagrams
+//! in the CIE xy color space. It enables visualization of color gamuts, spectral loci, Planckian loci, and
+//! white points, as well as the embedding of RGB gamut images within chromaticity plots.
+//!
+//! ## Features
+//! - Plot CIE xy chromaticity diagrams for any observer
+//! - Visualize spectral locus, Planckian locus, and standard illuminants
+//! - Annotate white points and color gamuts
+//! - Embed RGB gamut images as raster overlays
+//! - Full access to all [`XYChart`] methods via delegation
+//!
+//! This module is intended for scientific visualization and color science applications.
+
 mod gamut;
 use gamut::PngImageData;
 
-use std::{
-    ops::Range,
-    ops::{Deref, DerefMut, RangeBounds},
-};
+use std::ops::RangeBounds;
 
 use crate::{
-    chart::{chromaticity::xy, ScaleRange, ScaleRangeWithStep, XYChart},
+    chart::{ScaleRangeWithStep, XYChart},
     delegate_xy_chart_methods,
     rendable::Rendable,
-    svgdoc::SvgDocument,
     StyleAttr,
 };
 use colorimetry::{
-    illuminant::CCT, observer::{self, Observer}, prelude::CieIlluminant, rgb::{self, RgbSpace}, xyz::XYZ
+    illuminant::CCT, observer::Observer, prelude::CieIlluminant, rgb::RgbSpace, xyz::XYZ,
 };
 use svg::{
-    node::element::{path::Data, Group, Image, Line, Path, Text, SVG},
+    node::element::{path::Data, Group, Path, Text, SVG},
     Node,
 };
 
@@ -52,6 +65,20 @@ impl XYChromaticity {
         self.plot_shape(locus, style_attr)
     }
 
+    /// Plots spectral locus ticks perpendicular to the spectral locus for
+    /// a range for wavelengths, specficied by a start wavelength and an end wavelength,
+    /// in `usize` units of nanometer, and with a `step` in nanometers.
+    ///
+    /// The `length` parameter specifies the length of the tick lines in pixels.
+    /// A positive `length` will draw the ticks pointing inwards, towards the white point,
+    /// and negative `length` will draw the ticks pointing outwards, away from the white point.
+    ///
+    /// Typically you will use this method multiple times to draw ticks for different ranges,
+    /// and different lengths, with the finest ticks plotted first, and the coarsest ticks plotted last,
+    /// plotting over the fine lines.
+    ///
+    /// The `style_attr` parameter allows you to specify the style of the ticks,
+    /// such as stroke color, width, and other SVG style attributes.
     pub fn plot_spectral_locus_ticks(
         self,
         range: impl RangeBounds<usize>,
@@ -60,9 +87,9 @@ impl XYChromaticity {
         style_attr: Option<StyleAttr>,
     ) -> Self {
         let length = length as f64;
-        let mut self_as_mut = self;
-        let locus = self_as_mut.observer.spectral_locus();
-        let to_plot = self_as_mut.xy_chart.to_plot.clone();
+        let this = self;
+        let locus = this.observer.spectral_locus();
+        let to_plot = this.xy_chart.to_plot.clone();
         let mut data = Data::new();
         for (xy, angle) in locus.iter_range_with_slope(range, step) {
             let pxy1 = to_plot(xy);
@@ -70,9 +97,16 @@ impl XYChromaticity {
             let pxy2 = (pxy1.0 + length * angle.sin(), pxy1.1 + length * angle.cos());
             data = data.line_to(pxy2);
         }
-        self_as_mut.draw_data("plot", data, style_attr)
+        this.draw_data("plot", data, style_attr)
     }
 
+    /// Plots spectral locus labels for the specified range of wavelengths,
+    /// with a step size in nanometers.
+    ///
+    /// The labels are rotated to align with the spectral locus slope at each point.
+    /// The `distance` parameter specifies the distance from the spectral locus to the label in pixels.
+    ///
+    /// The `style_attr` parameter allows you to specify the style of the labels,
     pub fn plot_spectral_locus_labels(
         self,
         range: impl RangeBounds<usize> + Clone,
@@ -95,7 +129,7 @@ impl XYChromaticity {
             let pxy2 = (pxy1.0 - d * angle.sin(), pxy1.1 - d * angle.cos());
             let label = format!("{v:.0}");
             let rotation_angle = -angle.to_degrees();
-            let mut text = Text::new(label)
+            let text = Text::new(label)
                 .set("x", pxy2.0)
                 .set("y", pxy2.1)
                 .set("text-anchor", "middle")
@@ -151,8 +185,8 @@ impl XYChromaticity {
 
         // convert XYZ derivatives to xy derivatives using the quotient rule
         // omit the division by nom^2, since we are only interested in the angle
-        let dx_chromaticity = (dxdt * nom - x * dnom_dt); //  /(nom * nom);
-        let dy_chromaticity = (dydt * nom - y * dnom_dt); // / (nom * nom);
+        let dx_chromaticity = dxdt * nom - x * dnom_dt; //  /(nom * nom);
+        let dy_chromaticity = dydt * nom - y * dnom_dt; // / (nom * nom);
         let angle = dy_chromaticity.atan2(dx_chromaticity);
         (xyz.chromaticity().to_tuple(), angle)
     }
@@ -173,15 +207,17 @@ impl XYChromaticity {
 
         // convert XYZ derivatives to xy derivatives using the quotient rule
         // omit the division by sigma_t^2, since we are only interested in the angle
-        let du_dt = (4.0 * dxdt * sigma_t - 4.0 * x * dsigma_dt); // / (sigma_t * sigma_t)
-        let dv_dt = (9.0 * dydt * sigma_t - 9.0 * y * dsigma_dt);  // / (sigma_t * sigma_t
+        let du_dt = 4.0 * dxdt * sigma_t - 4.0 * x * dsigma_dt; // / (sigma_t * sigma_t)
+        let dv_dt = 9.0 * dydt * sigma_t - 9.0 * y * dsigma_dt; // / (sigma_t * sigma_t
         let angle = dv_dt.atan2(du_dt);
-        (xyz.chromaticity().to_tuple(), angle + std::f64::consts::FRAC_PI_2)
+        (
+            xyz.chromaticity().to_tuple(),
+            angle + std::f64::consts::FRAC_PI_2,
+        )
     }
 
-
     /// Transform a (CCT, duv) pair to a plot point using the CIE 1931 observer.
-    /// 
+    ///
     /// # Arguments
     /// * `cct_duv` - A tuple containing the correlated color temperature (CCT) in Kelvin and the chromaticity deviation from the Planckian locus (duv).
     ///
@@ -189,34 +225,22 @@ impl XYChromaticity {
     /// A Result containing a tuple of the transformed chromaticity coordinates (x, y) in the plot space.
     /// # Errors
     /// Returns an error if the CCT is invalid or cannot be converted to XYZ coordinates.
-    /// # Example
-    /// ```
-    /// use colorimetry_plot::chart::XYChromaticity;
-    /// let xy_chromaticity = XYChromaticity::new((800, 600), (0.0..=0.75, 0.0..=0.875));
-    /// let (xp, yp) = xy_chromaticity.cct_transform((6500.0, 0.0)).unwrap();
-    /// let (xp2, yp2) = xy_chromaticity.cct_transform((6500.0, 0.05)).unwrap();
-    /// let angle = (yp2 - yp).atan2(xp2 - xp).to_degrees();
-    /// let expected_angle = xy_chromaticity.cct_line(6500.0).1.to_degrees();
-    /// approx::assert_abs_diff_eq!(angle, expected_angle, epsilon = 0.01);
-    /// ```     
     pub fn cct_transform(&self, cct_duv: (f64, f64)) -> Result<(f64, f64), colorimetry::Error> {
         let (cct, duv) = cct_duv;
-        let xyz: XYZ = CCT::new(cct,duv)?.try_into()?;
+        let xyz: XYZ = CCT::new(cct, duv)?.try_into()?;
         let xy = xyz.chromaticity().to_tuple();
         Ok((self.xy_chart.to_plot)(xy))
     }
 
-    pub fn plot_ansi_step7(
-        mut self,
-        rgb_space: RgbSpace,
-        style_attr: Option<StyleAttr>,
-    ) -> Self {
+    /// Plots the ANSI C78.377-2017 step 7 Quadrangles in the plot,
+    /// filled with the color corresponding to the CCT and duv target.
+    pub fn plot_ansi_step7(mut self, rgb_space: RgbSpace, style_attr: Option<StyleAttr>) -> Self {
         // ANSI C78.377-2017, Table 1, Basic Nominal CCT Specification.
-        const DATA: &[(&str, (i32,i32), f64)] = &[
+        const DATA: &[(&str, (i32, i32), f64)] = &[
             ("2200", (2238, 102), 0.0000),
             ("2500", (2460, 120), 0.0000),
             ("2700", (2725, 145), 0.0000),
-            ("3000", (3045, 175), 0.0001), 
+            ("3000", (3045, 175), 0.0001),
             ("3500", (3465, 245), 0.0005),
             ("4000", (3985, 275), 0.0010),
             ("4500", (4503, 243), 0.0015),
@@ -228,24 +252,30 @@ impl XYChromaticity {
         let duv = |cct: i32| {
             if cct < 2780 {
                 0.0
-            } else  {
-                let r = 1.0/ cct as f64;
+            } else {
+                let r = 1.0 / cct as f64;
                 57_700.0 * r * r - 44.6 * r + 0.00854
-
             }
         };
         const DUV_TOLERANCE: f64 = 0.006; // tolerance for duv
-    
+
         let mut ansi = Group::new();
         style_attr.unwrap_or_default().assign(&mut ansi);
-        let rgb_space = rgb::RgbSpace::from(rgb_space);
         for &(_, (cct, tol), duv_target) in DATA {
             let mut data = Data::new();
-            
-            let (px0, py0) = self.cct_transform(((cct-tol) as f64, duv(cct - tol) - DUV_TOLERANCE)).unwrap();
-            let (px1, py1) = self.cct_transform(((cct-tol) as f64, duv(cct - tol) + DUV_TOLERANCE)).unwrap();
-            let (px2, py2) = self.cct_transform(((cct+tol) as f64, duv(cct + tol) + DUV_TOLERANCE)).unwrap();
-            let (px3, py3) = self.cct_transform(((cct+tol) as f64, duv(cct + tol) - DUV_TOLERANCE)).unwrap();
+
+            let (px0, py0) = self
+                .cct_transform(((cct - tol) as f64, duv(cct - tol) - DUV_TOLERANCE))
+                .unwrap();
+            let (px1, py1) = self
+                .cct_transform(((cct - tol) as f64, duv(cct - tol) + DUV_TOLERANCE))
+                .unwrap();
+            let (px2, py2) = self
+                .cct_transform(((cct + tol) as f64, duv(cct + tol) + DUV_TOLERANCE))
+                .unwrap();
+            let (px3, py3) = self
+                .cct_transform(((cct + tol) as f64, duv(cct + tol) - DUV_TOLERANCE))
+                .unwrap();
 
             data = data
                 .move_to((px0, py0))
@@ -253,8 +283,11 @@ impl XYChromaticity {
                 .line_to((px2, py2))
                 .line_to((px3, py3))
                 .close();
-            let xyz: XYZ = CCT::new(cct as f64, duv_target).unwrap().try_into().unwrap();
-            let [r, g, b]: [u8;3] = xyz.rgb(rgb_space).compress().into();
+            let xyz: XYZ = CCT::new(cct as f64, duv_target)
+                .unwrap()
+                .try_into()
+                .unwrap();
+            let [r, g, b]: [u8; 3] = xyz.rgb(rgb_space).compress().into();
             let path = Path::new()
                 .set("d", data.clone())
                 .set("style", format!("fill: rgb({r:.0}, {g:.0}, {b:.0})"));
@@ -272,6 +305,10 @@ impl XYChromaticity {
     }
 
     /// Plots the Planckian locus ticks at specified CCT values.
+    /// Typically, you will use this method several times to create a nice looking scale,
+    /// with different ranges and lengths.
+    /// The scale if very non-linear, and requires small steps for the lower CCT values,
+    /// and larger steps for the higher CCT values.
     pub fn plot_planckian_locus_ticks(
         self,
         values: impl IntoIterator<Item = u32>,
@@ -292,7 +329,9 @@ impl XYChromaticity {
         self.draw_data("plot", data, style_attr)
     }
 
-    /// Plots the Planckian locus values at specified CCT values, at a `distance`
+    /// Plots labels for the Planckian locus at specified CCT values, divided by 100.
+    /// The labels are rotated to align with the normal to the the Planckian locus at each point,
+    /// centered away from the white point.
     pub fn plot_planckian_locus_labels(
         mut self,
         values: impl IntoIterator<Item = u32>,
@@ -329,7 +368,15 @@ impl XYChromaticity {
         self
     }
 
+    /// Plots the sRGB gamut as an embeded image overlay in the plot layer.
+    /// At this point, only correct colors are shown in case the RGB space is sRGB.
+    /// For other color spaces, the colors are clipped to the sRGB gamut.
     pub fn plot_rgb_gamut(self, rgb_space: RgbSpace, style_attr: Option<StyleAttr>) -> Self {
+        // **TODO**
+        // Include the color profiles in the embeded image data, for requested colors space.  This will allow
+        // the colors to be displayed correctly for displays that have a wide enough gamut, and
+        // browser which support SVG embeded PNG images with color profiles (such as recent versions
+        // of Chrome, Firefox, and Safari).
         let gamut_fill = PngImageData::from_rgb_space(
             self.observer,
             rgb_space,
@@ -340,6 +387,7 @@ impl XYChromaticity {
     }
 
     /// Draw white points on the chromaticity diagram as an iterator of CieIlluminant, and i32 angle and length pairs.
+    #[allow(unused)]
     pub fn annotate_white_points(
         &mut self,
         point: impl IntoIterator<Item = (CieIlluminant, (i32, i32))>,

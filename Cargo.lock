@@ -337,7 +337,7 @@ dependencies = [
 
 [[package]]
 name = "colorimetry"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
  "approx",
  "argmin",
@@ -360,7 +360,7 @@ dependencies = [
 
 [[package]]
 name = "colorimetry-cli"
-version = "0.0.1"
+version = "0.0.8"
 dependencies = [
  "clap",
  "colored 3.0.0",
@@ -371,7 +371,7 @@ dependencies = [
 
 [[package]]
 name = "colorimetry-plot"
-version = "0.0.1"
+version = "0.0.8"
 dependencies = [
  "approx",
  "base64",

@@ -1,3 +1,11 @@
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+// Copyright (c) 2025, Harbers Bik LLC
+
+//! View parameters for SVG rendering.
+//!
+//! This module defines the `ViewParameters` struct, which encapsulates the viewport
+//! and plot area parameters for rendering SVG elements. It provides methods to manage the
+//! view box, including setting and retrieving its dimensions and position.
 use std::fmt::Display;
 
 #[derive(Clone, Debug, Default)]

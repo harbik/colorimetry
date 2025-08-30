@@ -26,6 +26,6 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     SvgDocument::new()
         .append_scss(STYLE)
-        .add_svg(Box::new(chart))
+        .add_plot(Box::new(chart))
         .save("docs/img/sine_curve.svg")
 }

@@ -15,15 +15,17 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-* Add `CieLChGamut`, to calculate the Chroma limit for a particular Lightness and hue value.
-* Add `GammaCurve` to API, and add zero argument vector to indicate color spaces without a gamma correction (such as CieRGB), which only use floating point representations
-* Add `CIE RGB` observer, using the CIE E Illuminant
-* Add `CIE E` Standard Illuminant
-* Add `Spectrum::from_wavelength_map` to create a spectrum from a set of wavelength and value pairs.
-* Add `cielab-hues` and `cielab-areas` examples for plotting CieLab iso-hue lines and lightness lines in xy-chromaticity diagrams
-* Add `WideRgb::is_within_gamut` with tolerance parameter
-* Add `CieLab::is_black` to test if a CieLab value is black
-* Add `OptimalColors`, `RelXYZGamut to build gamut hashmaps for the envelopes of the XYZ and CieLab color spaces.
+* `colorimetry-cli` as a member package, in the `cli` folder (see `Colorimetry-cli` crate), implemening the `color` binary tool
+* `colorimetry-plot` as a member package, in the `plot` folder (see `Colorimetry-plot` crate)
+* `CieLChGamut`, to calculate the Chroma limit for a particular Lightness and hue value.
+* `GammaCurve` to API, and add zero argument vector to indicate color spaces without a gamma correction (such as CieRGB), which only use floating point representations
+* `CIE RGB` observer, using the CIE E Illuminant
+* `CIE E` Standard Illuminant
+* `Spectrum::from_wavelength_map` to create a spectrum from a set of wavelength and value pairs.
+* `cielab-hues` and `cielab-areas` examples for plotting CieLab iso-hue lines and lightness lines in xy-chromaticity diagrams
+* `WideRgb::is_within_gamut` with tolerance parameter
+* `CieLab::is_black` to test if a CieLab value is black
+* `OptimalColors`, `RelXYZGamut to build gamut hashmaps for the envelopes of the XYZ and CieLab color spaces.
 * `xtask` package as a sub-package, as a build and check tool, to use:
 
   * `cargo xtask gen` to generate source files for `rgb-spaces` and `rgb-transforms`

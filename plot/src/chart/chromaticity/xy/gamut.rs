@@ -1,10 +1,26 @@
-use std::fmt::Display;
-use std::fs::File;
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+// Copyright (c) 2025, Harbers Bik LLC
+//
+
+//! # Chromaticity Gamut Module
+//!
+//! This module provides functionality for generating and embedding RGB gamut images
+//! within chromaticity diagrams. It includes utilities for creating PNG images from
+//! RGB color spaces, encoding them as base64 for SVG embedding, and managing their
+//! position and dimensions within the plot.
+//!
+//! The main struct, [`PngImageData`], encapsulates a base64-encoded PNG image along
+//! with its placement and size information. This enables seamless integration of
+//! color gamuts as raster images in SVG-based chromaticity plots.
+//!
+//! ## Features
+//! - Generate PNG images from RGB color spaces
+//! - Encode images as base64 for SVG embedding
+//! - Manage image position and dimensions for plotting
+//! - Utilities for working with colorimetry and chromaticity diagrams
 
 use base64::engine::general_purpose;
 use base64::engine::Engine;
-use colorimetry::rgb::Rgb;
-use colorimetry::rgb::WideRgb;
 use colorimetry::xyz::XYZ;
 use colorimetry::{math::Triangle, observer::Observer, rgb::RgbSpace};
 use image::ImageEncoder;
@@ -13,6 +29,17 @@ use image::{codecs::png::PngEncoder, Rgba, RgbaImage};
 use crate::chart::CoordinateTransform;
 use svg::node::element::Image;
 
+/// Encapsulates a base64-encoded PNG image and its placement information for embedding in SVG plots.
+///
+/// `PngImageData` stores the PNG image data as a base64-encoded string, along with its position
+/// (in pixels) and dimensions (width and height in pixels). This struct is used to embed RGB gamut
+/// or other raster images within chromaticity diagrams or other SVG-based plots, allowing precise
+/// control over image placement and scaling.
+///
+/// # Fields
+/// - `png`: The base64-encoded PNG image data as a string.
+/// - `position`: The (x, y) position in pixels where the image should be placed in the SVG.
+/// - `dimensions`: The (width, height) of the image in pixels.
 pub struct PngImageData {
     png: String,
     position: (i32, i32),
