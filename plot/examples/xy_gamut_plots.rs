@@ -9,7 +9,6 @@ const PLANCKIAN_LABELS_AT: &[u32] = &[
     2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6500, 7500, 9300,
 ];
 
-
 pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     for space in RgbSpace::iter() {
         println!("Making plot for {:?}", space);
@@ -20,7 +19,7 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 pub fn make_plot(space: RgbSpace) -> Result<(), Box<dyn std::error::Error>> {
     let observer = Observer::Cie1931; // Use the CIE 1931 observer
-   // let space = RgbSpace::DisplayP3; // Use the sRGB color space
+                                      // let space = RgbSpace::DisplayP3; // Use the sRGB color space
 
     // Create an XYChromaticity chart with the specified observer and ranges
     let xy_chromaticity = XYChromaticity::new((775, 875), (-0.025..=0.75, 0.0..=0.875))

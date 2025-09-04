@@ -19,7 +19,7 @@ impl GammaCurve {
     pub fn category(&self) -> usize {
         self.category
     }
-    
+
     pub fn values(&self) -> &[f64] {
         &self.data[..self.category]
     }
