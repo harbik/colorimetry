@@ -353,6 +353,54 @@ impl Observer {
         self.xyz_from_fn(|l| p.slope_at_wavelength(to_wavelength(l, 0.0, 1.0)))
     }
 
+    /// Calculates the RGB to XYZ matrix, for a particular color space,
+    /// and an optional whitepoint. If no whitepoint is specified, the
+    /// whitepoint of the colorspace will be used.
+    ///
+    /// The main use for specifying whitepoints different than the RGB-space's
+    /// default is with creating ICC color profiles, which requred the color space
+    /// to have a D50 whitepoint. Many colorspaces use D65. Setting the whitepoint
+    /// here to D50, the resulting column values can be used for the `rXYZ`, `gXYZ`, and
+    /// `bXYZ`` tags.
+    ///
+    ///
+    /// # Notes
+    ///
+    /// * For default whitepoints, all the rgb2xyz matrices are already included in the
+    ///   [observer::rgbxyz.rs] module.
+    /// * XYZ is used here, instead of a spectrum, to explicitely use the XYZ values as
+    ///   required by the ICC profile standard.
+    ///
+    pub fn calc_rgb2xyz_matrix_with_alt_white(
+        &self,
+        rgbspace: RgbSpace,
+        opt_white: Option<XYZ>,
+    ) -> Matrix3<f64> {
+        let mut rgb2xyz: nalgebra::Matrix<
+            f64,
+            nalgebra::Const<3>,
+            nalgebra::Const<3>,
+            nalgebra::ArrayStorage<f64, 3, 3>,
+        > = Matrix3::from_iterator(
+            rgbspace
+                .primaries()
+                .iter()
+                .flat_map(|s| self.xyz_from_spectrum(s).set_illuminance(1.0).values()),
+        );
+        let xyzw = opt_white
+            .unwrap_or(self.xyz(&rgbspace.white(), None))
+            .set_illuminance(1.0);
+        // check if the observers match
+        assert_eq!(&xyzw.observer(), self);
+        let decomp = rgb2xyz.lu();
+        // unwrap: only used with library color spaces
+        let rgbw = decomp.solve(&xyzw.xyz).unwrap();
+        for (i, mut col) in rgb2xyz.column_iter_mut().enumerate() {
+            col *= rgbw[i];
+        }
+        rgb2xyz
+    }
+
     /// Calculates the RGB to XYZ matrix, for a particular color space.
     ///
     /// Don't use this directly, as all the matrices are available through

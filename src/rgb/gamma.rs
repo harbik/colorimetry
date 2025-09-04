@@ -16,6 +16,14 @@ impl GammaCurve {
         Self { category, data }
     }
 
+    pub fn category(&self) -> usize {
+        self.category
+    }
+    
+    pub fn values(&self) -> &[f64] {
+        &self.data[..self.category]
+    }
+
     // from rgb coordinates to xyz, gamma > 1.0
     pub fn decode(&self, x: f64) -> f64 {
         if !(0.0..=1.0).contains(&x) {

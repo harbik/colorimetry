@@ -1,16 +1,26 @@
 use colorimetry::{observer::Observer, rgb::RgbSpace};
 use colorimetry_plot::{chart::XYChromaticity, style_attr::class, svgdoc::SvgDocument};
+use strum::IntoEnumIterator;
 
 /// Includes the style for the SVG document from an external SCSS file.
 /// This is a SCSS stylesheet that styles the sRGB gamut plot and is embedded into the SVG output.
-const STYLE: &str = include_str!("srgb_gamut.scss");
+const STYLE: &str = include_str!("xy_gamut_plots.scss");
 const PLANCKIAN_LABELS_AT: &[u32] = &[
     2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6500, 7500, 9300,
 ];
 
+
 pub fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let observer = Observer::Cie2015_10; // Use the CIE 1931 observer
-    let space = RgbSpace::DisplayP3; // Use the sRGB color space
+    for space in RgbSpace::iter() {
+        println!("Making plot for {:?}", space);
+        make_plot(space)?;
+    }
+    Ok(())
+}
+
+pub fn make_plot(space: RgbSpace) -> Result<(), Box<dyn std::error::Error>> {
+    let observer = Observer::Cie1931; // Use the CIE 1931 observer
+   // let space = RgbSpace::DisplayP3; // Use the sRGB color space
 
     // Create an XYChromaticity chart with the specified observer and ranges
     let xy_chromaticity = XYChromaticity::new((775, 875), (-0.025..=0.75, 0.0..=0.875))
@@ -36,5 +46,6 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     SvgDocument::new()
         .append_scss(STYLE)
         .add_plot(Box::new(xy_chromaticity))
-        .save("docs/img/srgb_gamut.svg")
+        .save(format!("docs/img/{}_gamut.svg", space.as_ref().to_lowercase()).as_str())?;
+    Ok(())
 }
