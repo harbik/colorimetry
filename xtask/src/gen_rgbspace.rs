@@ -191,16 +191,13 @@ impl TemplateContext {
     /// 546.1 nm (green), and 435.8 nm (blue), with the white point being
     /// CIE Illuminant E, which is a uniform white light source.
     ///
-    /// The gamma curve is not used in CIE RGB, so it is an empty vector.
     pub fn cie_rgb() -> Self {
         let red_prim = Stimulus::new(Spectrum::from_wavelength_map(&[(700, 1.0)])); // 700.0 nm
         let green_prim = Stimulus::new(Spectrum::from_wavelength_map(&[(546, 0.9), (547, 0.1)])); // 546.1 nm
         let blue_prim = Stimulus::new(Spectrum::from_wavelength_map(&[(435, 0.2), (436, 0.8)])); // 435.8 nm
         let white = CieIlluminant::E;
         let white_points = TemplateContext::white_points(white);
-        let gamma = GammaCurve::new(0, [0.0; 7]); // CIE RGB does not use a gamma curve, so we use an empty vector.
-                                                  // CIE RGB does not use a gamma curve, so we use an empty vector.
-                                                  // Use with float values only!
+        let gamma = GammaCurve::new(1, [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
         Self {
             date: Utc::now().format("%Y-%m-%d").to_string(),
             name: "CIE RGB".to_string(),
