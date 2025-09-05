@@ -11,7 +11,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 * **Fixed**: for any bug fixes.
 * **Security**: in case of vulnerabilities.
 
-## Unreleased
+## [0.0.8] - 2025-09-5
 
 ### Added
 
@@ -48,6 +48,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Removed
 
+* `prelude.rs`
 * `supplemental-observers` feature, all are now always included.
 
 ## [0.0.7] - 2025-6-17
