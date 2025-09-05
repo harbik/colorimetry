@@ -307,7 +307,7 @@ checksum = "1462739cb27611015575c0c11df5df7601141071f07518d56fcc1be504cbec97"
 
 [[package]]
 name = "cmx"
-version = "0.0.2"
+version = "0.0.3"
 dependencies = [
  "anyhow",
  "approx",
@@ -381,7 +381,6 @@ dependencies = [
  "libm",
  "nalgebra",
  "num-traits",
- "plotters",
  "serde",
  "serde_json",
  "strum",

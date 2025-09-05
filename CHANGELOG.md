@@ -22,7 +22,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 * `CIE RGB` observer, using the CIE E Illuminant
 * `CIE E` Standard Illuminant
 * `Spectrum::from_wavelength_map` to create a spectrum from a set of wavelength and value pairs.
-* `cielab-hues` and `cielab-areas` examples for plotting CieLab iso-hue lines and lightness lines in xy-chromaticity diagrams
 * `WideRgb::is_within_gamut` with tolerance parameter
 * `CieLab::is_black` to test if a CieLab value is black
 * `OptimalColors`, `RelXYZGamut to build gamut hashmaps for the envelopes of the XYZ and CieLab color spaces.
