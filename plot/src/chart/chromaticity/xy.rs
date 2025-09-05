@@ -28,7 +28,10 @@ use crate::{
     StyleAttr,
 };
 use colorimetry::{
-    illuminant::CCT, observer::Observer, prelude::CieIlluminant, rgb::RgbSpace, xyz::XYZ,
+    illuminant::{CieIlluminant, CCT},
+    observer::Observer,
+    rgb::RgbSpace,
+    xyz::XYZ,
 };
 use svg::{
     node::element::{path::Data, Group, Path, Text, SVG},

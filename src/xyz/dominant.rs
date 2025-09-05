@@ -123,7 +123,8 @@ impl XYZ {
 
 #[cfg(test)]
 mod xyz_test {
-    use crate::{math::LineAB, prelude::*};
+    use crate::math::LineAB;
+    use crate::observer::Observer::Cie1931;
     use approx::assert_ulps_eq;
 
     #[test]

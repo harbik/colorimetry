@@ -504,16 +504,14 @@ impl Observer {
     /// A linear high pass filter, with a value of 0.0 for a wavelength of 380nm, and a value of 1.0 for 780nm,
     /// and converting the resulting value to RGB values.
     /// ```
-    /// use colorimetry::prelude::*;
-    /// use colorimetry::rgb::RgbSpace::SRGB;
+    /// use colorimetry::{rgb::RgbSpace::SRGB, observer::Observer::Cie1931, illuminant::CieIlluminant};
     /// let rgb: [u8;3] = Cie1931.xyz_from_colorant_fn(&CieIlluminant::D65, |x|x).rgb(SRGB).clamp().into();
     /// assert_eq!(rgb, [212, 171, 109]);
     /// ```
     /// Linear low pass filter, with a value of 1.0 for a wavelength of 380nm, and a value of 0.0 for 780nm,
     /// and converting the resulting value to RGB values.
     /// ```
-    /// use colorimetry::prelude::*;
-    /// use colorimetry::rgb::RgbSpace::SRGB;
+    /// use colorimetry::{rgb::RgbSpace::SRGB, observer::Observer::Cie1931, illuminant::CieIlluminant};
     /// let rgb: [u8;3] = Cie1931.xyz_from_colorant_fn(&CieIlluminant::D65, |x|1.0-x).rgb(SRGB).clamp().into();
     /// assert_eq!(rgb, [158, 202, 237]);
     /// ```
@@ -684,7 +682,7 @@ mod obs_test {
 
     #[test]
     fn test_xyz_of_sample_with_standard_illuminant() {
-        use crate::prelude::CieIlluminant::D65 as d65;
+        use crate::illuminant::CieIlluminant::D65 as d65;
         let xyz = Cie1931
             .xyz(&d65, Some(&crate::colorant::Colorant::white()))
             .set_illuminance(100.0);

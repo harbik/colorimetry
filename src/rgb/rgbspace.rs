@@ -158,10 +158,9 @@ struct RgbSpaceData {
 
 #[cfg(test)]
 mod rgbspace_tests {
-    use crate::prelude::*;
+    use crate::{observer::Observer::Cie1931, rgb::RgbSpace, traits::Light};
     use approx::assert_ulps_eq;
     use strum::IntoEnumIterator;
-    use Observer::Cie1931;
 
     #[test]
     /// Check color points of the primaries, as calculated from the space's

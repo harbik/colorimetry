@@ -3,11 +3,11 @@ use std::{collections::HashMap, hash::Hash};
 
 use chrono::Utc;
 use colorimetry::{
-    illuminant::D65,
+    illuminant::{CieIlluminant, D65},
     observer::{self, Observer},
-    prelude::{CieIlluminant, Spectrum, Stimulus},
     rgb::{gaussian_filtered_primaries, GammaCurve},
-    spectrum::NS,
+    spectrum::{Spectrum, NS},
+    stimulus::Stimulus,
     traits::Light,
     xyz::XYZ,
 };

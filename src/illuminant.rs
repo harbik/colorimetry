@@ -70,7 +70,7 @@ impl AsRef<Spectrum> for Illuminant {
     ///
     /// # Examples
     /// ```rust
-    /// use colorimetry::prelude::*;
+    /// use colorimetry::{spectrum::Spectrum, illuminant::Illuminant};
     ///
     /// let illuminant = Illuminant::d65();
     /// let spectrum: &Spectrum = illuminant.as_ref();
@@ -125,7 +125,7 @@ impl Illuminant {
     /// The generated spectrum is scaled to have a total power, over the full
     /// spectrum (including infrared), of 1 Watt.
     /// ```rust
-    /// # use colorimetry::prelude::*;
+    /// # use colorimetry::{observer::Observer::Cie1931, illuminant::Illuminant};
     /// # use approx::assert_ulps_eq;
     ///
     /// let p3000 = Illuminant::planckian(3000.0);
@@ -301,7 +301,7 @@ impl From<Spectrum> for Illuminant {
 impl Mul<f64> for Illuminant {
     /// Multiply a spectrum with a scalar f64 value.
     /// ```
-    ///     use colorimetry::prelude::*;
+    ///     use colorimetry::illuminant::Illuminant;
     ///     use approx::assert_ulps_eq;
     ///
     ///     let mut led = Illuminant::led(550.0, 25.0);
@@ -322,7 +322,7 @@ impl Mul<f64> for Illuminant {
 impl Mul<Illuminant> for f64 {
     /// Multiply a spectrum with a scalar f64 value.
     /// ```
-    ///     use colorimetry::prelude::*;
+    ///     use colorimetry::illuminant::Illuminant;
     ///     use approx::assert_ulps_eq;
     ///
     ///     let mut led = Illuminant::led(550.0, 25.0);
@@ -349,7 +349,6 @@ impl Light for Illuminant {
 #[test]
 fn test_d_illuminant() {
     use crate::observer::Observer::Cie1931;
-    use crate::prelude::*;
     let s = Illuminant::d_illuminant(6504.0).unwrap();
     let xyz = Cie1931.xyz_from_spectrum(s.as_ref()).set_illuminance(100.0);
     approx::assert_ulps_eq!(xyz, Cie1931.xyz_d65(), epsilon = 2E-2);
@@ -357,7 +356,6 @@ fn test_d_illuminant() {
 
 #[test]
 fn test_d_illuminant_range_error() {
-    use crate::prelude::*;
     let s = Illuminant::d_illuminant(3999.0);
     assert!(s.is_err());
     let s = Illuminant::d_illuminant(25001.0);
@@ -366,7 +364,6 @@ fn test_d_illuminant_range_error() {
 
 #[test]
 fn test_xyz() {
-    use crate::prelude::*;
     let s = *Illuminant::d_illuminant(6504.0).unwrap().as_ref().values();
     let illuminant = Illuminant(Spectrum::from(s));
     let xyz = illuminant.xyz(None).set_illuminance(100.0);

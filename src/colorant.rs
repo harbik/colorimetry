@@ -145,7 +145,7 @@ impl Colorant {
     /// The filter has a peak value of 1.0
     /// ```rust
     /// # use approx::assert_ulps_eq;
-    /// use colorimetry::prelude::*;
+    /// use colorimetry::{colorant::Colorant, traits::Filter};
     /// let colorant = Colorant::top_hat(550.0, 1.0);
     /// let bandfilter = colorant.spectrum();
     /// assert_ulps_eq!(bandfilter[549], 0.0);
@@ -206,7 +206,6 @@ impl Colorant {
 fn test_colorant_cielab() {
     // Test that the CIELAB values for a white colorant are as expected.
     // A white surface has CIELAB values of L* = 100, a* = 0, b* = 0.
-    use crate::prelude::*;
     use approx::assert_abs_diff_eq;
     let colorant = Colorant::white();
     let [l, a, b] = colorant.cielab(None, None).values();
@@ -314,7 +313,7 @@ impl Mul<Colorant> for Colorant {
     ///
     /// Subtractive Mixing.
     /// ```rust
-    /// use colorimetry::prelude::*;
+    /// use colorimetry::colorant::Colorant;
     /// let w = Colorant::white();
     /// let b = Colorant::black();
     /// let r: Colorant = w * b;
@@ -332,7 +331,7 @@ impl Mul<&Colorant> for &Colorant {
     /// Non-consuming multiplication.
     /// Subtractive Mixing.
     /// ```rust
-    /// use colorimetry::prelude::*;
+    /// use colorimetry::colorant::Colorant;
     /// let w = Colorant::white();
     /// let b = Colorant::black();
     /// let r: Colorant = &w * &b;

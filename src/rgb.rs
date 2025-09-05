@@ -281,7 +281,7 @@ impl Filter for Rgb {
     ///
     /// # Example
     /// ```rust
-    /// use colorimetry::prelude::*;
+    /// use colorimetry::{xyz::XYZ, observer::Observer::Cie1931, illuminant::CieIlluminant, rgb::{Rgb, RgbSpace}, traits::{Light, Filter}};
     /// use approx::assert_ulps_eq;
     ///
     /// // Define an sRGB white color using the CIE 1931 observer
@@ -391,7 +391,7 @@ pub fn gaussian_filtered_primaries(
 
 #[cfg(test)]
 mod rgb_tests {
-    use crate::prelude::*;
+    use crate::rgb::Rgb;
 
     #[test]
     fn get_values_f64() {

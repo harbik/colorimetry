@@ -23,9 +23,8 @@ use crate::{
     cam::{CieCam16, ViewConditions},
     colorant::munsell::data::{MUNSELL_MATT_DATA, MUNSELL_MATT_KEYS},
     error::Error,
-    illuminant::D65,
+    illuminant::{Illuminant, D65},
     observer,
-    prelude::Illuminant,
     spectrum::{Spectrum, SPECTRUM_WAVELENGTH_RANGE},
     traits::Filter,
 };

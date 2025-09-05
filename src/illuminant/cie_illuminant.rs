@@ -45,7 +45,7 @@ macro_rules! std_illuminants {
         ///
         /// # Examples
         /// ```rust
-        /// use colorimetry::prelude::*;
+        /// use colorimetry::illuminant::CieIlluminant;
         /// use strum::IntoEnumIterator;
         ///
         /// // Iterate through and print all available CIE illuminants:

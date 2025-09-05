@@ -3,7 +3,6 @@
 
 use clap::Parser;
 use colored::Colorize;
-use colorimetry::prelude::*;
 
 /// Calculate Correlated Color Temperature, Planckian Distance, and Tint, for a given set of (x,y)
 /// chromaticity values.
@@ -21,8 +20,9 @@ struct Args {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
-    let chromaticity = Chromaticity::new(args.x, args.y);
-    let xyz: XYZ = XYZ::from_chromaticity(chromaticity, None, None)?;
+    let chromaticity = colorimetry::xyz::Chromaticity::new(args.x, args.y);
+    let xyz: colorimetry::xyz::XYZ =
+        colorimetry::xyz::XYZ::from_chromaticity(chromaticity, None, None)?;
     let cct: colorimetry::illuminant::CCT = xyz.try_into()?;
     let [t, d] = cct.into();
     let tint = d * 1000.0;
