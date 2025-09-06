@@ -2,8 +2,11 @@
 name = "colorimetry-plot"
 version = "0.0.8"
 edition = "2021"
+rust-version = "1.80"
+description = "SVG plots for the colorimetry crate"
 authors = ["Gerard Harbers", "Harbers Bik LLC"]
 repository = "https://github.com/harbik/colorimetry/plot"
+keywords = ["Colorimetry", "SVG", "Plot"]
 license = "MIT OR Apache-2.0"
 
 [dependencies]
