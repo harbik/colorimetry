@@ -11,7 +11,7 @@ const PLANCKIAN_LABELS_AT: &[u32] = &[
 
 pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     for space in RgbSpace::iter() {
-        println!("Making plot for {:?}", space);
+        println!("Making plot for {space:?}");
         make_plot(space)?;
     }
     Ok(())

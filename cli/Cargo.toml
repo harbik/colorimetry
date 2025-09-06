@@ -9,7 +9,7 @@ license = "MIT OR Apache-2.0"
 [dependencies]
 csv = { version = "1.3", default-features = false}
 clap = { version = "4", features = ["derive"] }  # for argument parsing
-colorimetry = { path = ".." , version = "0.0.8", features = ["cie-illuminants"]} # to use the main library
+colorimetry = {version = "0.0.8", features = ["cie-illuminants"]} # to use the main library
 strum = {version = "0.25", features = ["derive"]} # for enum iteration and derive macros
 colored = "3.0.0"
 

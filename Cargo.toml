@@ -72,3 +72,8 @@ harness = false
 
 [package.metadata.docs.rs]
 all-features = true
+
+[patch.crates-io]
+# Use local path dependencies for development for these crates
+colorimetry = { path = "." }
+# cmx = { path = "../cmx" } # for now use crates.io version
