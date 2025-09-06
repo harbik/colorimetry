@@ -15,7 +15,7 @@ exclude = [".github", ".vscode", "pkg"]
 
 [workspace]
 members = [
-    "plot",
+#    "plot",
     "cli",
     "xtask",
     "."  # main crate
