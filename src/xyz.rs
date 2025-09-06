@@ -197,7 +197,7 @@ impl XYZ {
 
     /// Returns the XYZ Tristimulus values in an array on the format [X, Y, Z]
     /// ```
-    /// use colorimetry::prelude::*;
+    /// use colorimetry::{illuminant::CieIlluminant, observer::Observer::Cie1931, xyz::XYZ};
     /// use approx::assert_ulps_eq;
     ///
     /// let d65_xyz = Cie1931.xyz(&CieIlluminant::D65, None).set_illuminance(100.0);
@@ -214,15 +214,15 @@ impl XYZ {
     /// Set the illuminance of an illuminant, either for an illuminant directly,
     /// or for the reference illuminant, in case a color sample XYZ.
     /// ```
-    /// use colorimetry::prelude::*;
+    /// use colorimetry::{illuminant::CieIlluminant, colorant::Colorant, observer::Observer, xyz::XYZ};
     /// use approx::assert_ulps_eq;
     /// const D65A: [f64;3] = [95.04, 100.0, 108.86];
     ///
-    /// let d65_xyz = Cie1931.xyz(&CieIlluminant::D65, None).set_illuminance(100.0);
+    /// let d65_xyz = Observer::Cie1931.xyz(&CieIlluminant::D65, None).set_illuminance(100.0);
     /// assert_ulps_eq!(d65_xyz, XYZ::new(D65A, Observer::Cie1931), epsilon = 1E-2);
     ///
-    /// let d65_xyz_sample = Cie1931.xyz(&CieIlluminant::D65, Some(&Colorant::white()));
-    /// assert_ulps_eq!(d65_xyz_sample, XYZ::new(D65A, Cie1931), epsilon = 1E-2);
+    /// let d65_xyz_sample = Observer::Cie1931.xyz(&CieIlluminant::D65, Some(&Colorant::white()));
+    /// assert_ulps_eq!(d65_xyz_sample, XYZ::new(D65A, Observer::Cie1931), epsilon = 1E-2);
     /// ```
     pub fn set_illuminance(mut self, illuminance: f64) -> Self {
         if self.xyz.y > f64::EPSILON && illuminance > f64::EPSILON {
@@ -237,8 +237,8 @@ impl XYZ {
 
     /// Returns the chromaticity coordinates of this `XYZ` value.
     /// ```
-    /// use colorimetry::prelude::*;
     /// use approx::assert_ulps_eq;
+    /// use colorimetry::{illuminant::CieIlluminant, observer::Observer::Cie1931, xyz::XYZ};
     ///
     /// let d65_xyz = Cie1931.xyz(&CieIlluminant::D65, None);
     /// let chromaticity = d65_xyz.chromaticity();
@@ -430,7 +430,11 @@ impl Display for XYZ {
 
 #[cfg(test)]
 mod xyz_test {
-    use crate::prelude::*;
+    use crate::{
+        observer::Observer::{self, Cie1931},
+        rgb::{RgbSpace, WideRgb},
+        xyz::XYZ,
+    };
     use approx::assert_ulps_eq;
 
     #[test]

@@ -197,7 +197,7 @@ impl CieLab {
     /// as it better matches human perception of color differences.
     /// # Example
     /// ```
-    /// use colorimetry::prelude::*;
+    /// use colorimetry::{observer::Observer::Cie1931, lab::CieLab, Error};
     ///
     /// // Sharma et al. (2005) test case 25
     /// let xyz_d65 = Cie1931.xyz_d65();

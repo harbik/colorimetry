@@ -515,7 +515,6 @@ pub mod illuminant;
 pub mod lab;
 pub mod math;
 pub mod observer;
-pub mod prelude;
 pub mod rgb;
 pub mod spectrum;
 pub mod stimulus;

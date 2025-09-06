@@ -208,9 +208,9 @@ mod cam16_test {
 
 #[cfg(test)]
 mod cam16_round_trip_tests {
+    use crate::cam::{CamTransforms, CieCam16, ViewConditions};
     use crate::observer::Observer::Cie1931;
-    use crate::prelude::*;
-    use crate::xyz::RelXYZ;
+    use crate::xyz::{RelXYZ, XYZ};
     use approx::assert_abs_diff_eq;
 
     #[test]

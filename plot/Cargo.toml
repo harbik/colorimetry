@@ -1,6 +1,6 @@
 [package]
 name = "colorimetry-plot"
-version = "0.0.8"
+version = "0.0.7"
 edition = "2021"
 authors = ["Gerard Harbers", "Harbers Bik LLC"]
 repository = "https://github.com/harbik/colorimetry/plot"
@@ -10,8 +10,9 @@ license = "MIT OR Apache-2.0"
 approx = "0.5.1"
 colorimetry = { path = "..", features = ["cct"]}
 nalgebra = "0.33.2"
-strum = { version = "0.27.1", features = ["derive"] }
+strum = {version = "0.25", features = ["derive"]} # for enum iteration and derive macros
 svg = "0.18.0"
 image = { version = "0.25", default-features = false, features = ["png"] }
 base64 = "0.21"
 grass = { version = "0.13.4", default-features = false }
+cmx = { path = "../../cmx" }

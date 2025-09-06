@@ -167,7 +167,15 @@ fn png_from_rgb_space(
 
     // Save PNG to memory
     let mut png_data = Vec::new();
-    PngEncoder::new(&mut png_data)
+    let mut png_encoder = PngEncoder::new(&mut png_data);
+
+    // Embed ICC profile for accurate color representation
+    let icc_profile = cmx::profile::InputProfile::from_rgb_space(space);
+    png_encoder
+        .set_icc_profile(icc_profile.to_bytes().unwrap())
+        .unwrap();
+
+    png_encoder
         .write_image(
             image.as_raw(),
             image.width(),

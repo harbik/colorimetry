@@ -1,22 +1,22 @@
 // to run this example use:
 //  `cargo run --features cie-illuminants,cri --example cri`
 use colored::Colorize;
-use colorimetry::{illuminant::CCT, prelude::*};
+use colorimetry::illuminant::CCT;
 use strum::IntoEnumIterator;
 
 /// Prints the standard illuminants in the library, with their elated color temperature, with
 /// parameters distance to the Planckian, the general Color Rendering Index Ra, and the spectal
 /// color rendering index R9.
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    for spc in CieIlluminant::iter() {
+    for spc in colorimetry::illuminant::CieIlluminant::iter() {
         // Calculate CRI parameters
-        let ill: &Illuminant = spc.as_ref();
+        let ill: &colorimetry::illuminant::Illuminant = spc.as_ref();
         let cri: colorimetry::illuminant::CRI = ill.try_into()?;
         let ra = cri.ra();
         let r9 = cri[9];
 
         // Calculate Correlated Color Temperature
-        let xyz = Cie1931.xyz(&spc, None);
+        let xyz = colorimetry::observer::Observer::Cie1931.xyz(&spc, None);
         let cct: CCT = xyz.try_into()?;
         let [t, d] = cct.into();
         let tint = d * 1000.0;

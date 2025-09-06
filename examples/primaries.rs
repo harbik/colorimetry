@@ -3,8 +3,14 @@ use argmin::{
     solver::neldermead::NelderMead,
 };
 use colored::Colorize;
-use colorimetry::prelude::*;
-use strum::IntoEnumIterator as _;
+use colorimetry::{
+    colorant::Colorant,
+    illuminant::CieIlluminant,
+    observer::Observer::Cie1931,
+    rgb::RgbSpace,
+    xyz::{Chromaticity, XYZ},
+};
+use strum::IntoEnumIterator;
 
 #[allow(dead_code)]
 struct Gauss {
@@ -26,7 +32,7 @@ impl CostFunction for Gauss {
 
     fn cost(&self, param: &Self::Param) -> Result<Self::Output, argmin::core::Error> {
         let [l, w] = param.clone().try_into().unwrap();
-        let param_chromaticity = Cie1931
+        let param_chromaticity = colorimetry::observer::Observer::Cie1931
             .xyz(&CieIlluminant::D65, Some(&Colorant::gaussian(l, w)))
             .chromaticity();
         //  println!("({l},{w}) cost: {xt:.4}, {yt:.4}");
@@ -60,7 +66,7 @@ impl CostFunction for GaussWithAnchor {
 
     fn cost(&self, param: &Self::Param) -> Result<Self::Output, argmin::core::Error> {
         let [l, w, c]: [f64; 3] = param.clone().try_into().unwrap();
-        let r = Cie1931
+        let r = colorimetry::observer::Observer::Cie1931
             .xyz(&CieIlluminant::D65, Some(&Colorant::gaussian(l, w)))
             .set_illuminance(100.0);
         let t = c * self.anchor + (1.0 - c) * r;
