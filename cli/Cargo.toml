@@ -16,6 +16,3 @@ colored = "3.0.0"
 [[bin]]
 name = "color"
 path = "src/main.rs"
-
-[package.metadata.docs.rs]
-targets = ["lib"]
