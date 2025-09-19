@@ -269,9 +269,9 @@ impl TemplateContext {
 
     pub fn stimuli_to_vecs(stimuli: &[Stimulus; 3]) -> [Vec<f64>; 3] {
         [
-            stimuli[0].as_ref().values().to_vec(),
-            stimuli[1].as_ref().values().to_vec(),
-            stimuli[2].as_ref().values().to_vec(),
+            stimuli[0].as_ref().as_array().to_vec(),
+            stimuli[1].as_ref().as_array().to_vec(),
+            stimuli[2].as_ref().as_array().to_vec(),
         ]
     }
     pub fn write(&self) -> Result<(), Box<dyn std::error::Error>> {

@@ -211,7 +211,7 @@ impl Spectrum {
     /// Returns the spectral data values, as an array of floats.
     ///
     /// The array contains the 401 data points from 380 to 780 nanometer.
-    pub fn values(&self) -> &[f64; NS] {
+    pub fn as_array(&self) -> &[f64; NS] {
         &self.0.data.0[0]
     }
 }
@@ -244,7 +244,7 @@ impl Default for Spectrum {
 
 impl AsRef<[f64; 401]> for Spectrum {
     fn as_ref(&self) -> &[f64; 401] {
-        self.values()
+        self.as_array()
     }
 }
 

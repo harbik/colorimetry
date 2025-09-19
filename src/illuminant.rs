@@ -74,7 +74,7 @@ impl AsRef<Spectrum> for Illuminant {
     ///
     /// let illuminant = Illuminant::d65();
     /// let spectrum: &Spectrum = illuminant.as_ref();
-    /// assert_eq!(spectrum.values().len(), 401);
+    /// assert_eq!(spectrum.as_array().len(), 401);
     /// ```
     fn as_ref(&self) -> &Spectrum {
         &self.0
@@ -364,7 +364,10 @@ fn test_d_illuminant_range_error() {
 
 #[test]
 fn test_xyz() {
-    let s = *Illuminant::d_illuminant(6504.0).unwrap().as_ref().values();
+    let s = *Illuminant::d_illuminant(6504.0)
+        .unwrap()
+        .as_ref()
+        .as_array();
     let illuminant = Illuminant(Spectrum::from(s));
     let xyz = illuminant.xyz(None).set_illuminance(100.0);
     approx::assert_ulps_eq!(xyz, Observer::Cie1931.xyz_d65(), epsilon = 2E-2);
