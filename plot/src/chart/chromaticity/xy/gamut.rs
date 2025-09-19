@@ -170,7 +170,10 @@ fn png_from_rgb_space(
     let mut png_encoder = PngEncoder::new(&mut png_data);
 
     // Embed ICC profile for accurate color representation
-    let icc_profile = cmx::profile::DisplayProfile::from_rgb_space(space, cmx::tag::RenderingIntent::RelativeColorimetric);
+    let icc_profile = cmx::profile::DisplayProfile::from_rgb_space(
+        space,
+        cmx::tag::RenderingIntent::RelativeColorimetric,
+    );
     png_encoder
         .set_icc_profile(icc_profile.to_bytes().unwrap())
         .unwrap();
