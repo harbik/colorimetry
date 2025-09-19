@@ -18,4 +18,4 @@ svg = "0.18.0"
 image = { version = "0.25", default-features = false, features = ["png"] }
 base64 = "0.21"
 grass = { version = "0.13.4", default-features = false }
-cmx = "0.0.4"
+cmx = "0.0.5"
