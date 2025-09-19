@@ -307,9 +307,9 @@ checksum = "1462739cb27611015575c0c11df5df7601141071f07518d56fcc1be504cbec97"
 
 [[package]]
 name = "cmx"
-version = "0.0.4"
+version = "0.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2acf6e38eb8a26248c6b0b2c2b91b04638186a5fd96553afacd3bc879609012f"
+checksum = "81428bb5ac8a4ddffa79144924e97b9f671debbcfaa7bd795fba235d1a810f19"
 dependencies = [
  "anyhow",
  "approx",
@@ -317,7 +317,6 @@ dependencies = [
  "clap",
  "colorimetry",
  "delegate",
- "half",
  "hex",
  "indexmap",
  "isocountry",
@@ -781,7 +780,6 @@ checksum = "459196ed295495a68f7d7fe1d84f6c4b7ff0e21fe3017b2f283c6fac3ad803c9"
 dependencies = [
  "cfg-if",
  "crunchy",
- "serde",
 ]
 
 [[package]]
