@@ -154,7 +154,7 @@ impl CCT {
 
     /// Get the CCT as an array of two values: the CCT in Kelvin and the Duv value as
     /// distance to the Planckian Curve in CIE 1960 (u,v) space.
-    pub fn values(&self) -> [f64; 2] {
+    pub fn to_array(&self) -> [f64; 2] {
         [self.0, self.1]
     }
 }
@@ -287,9 +287,9 @@ impl TryFrom<CCT> for XYZ {
 /// ```
 pub fn iso_temp_line(t: f64) -> [f64; 3] {
     let xyz = Cie1931.xyz_planckian_locus(t);
-    let [x, y, z] = xyz.values();
+    let [x, y, z] = xyz.to_array();
     let [u, v] = xyz.uv60();
-    let [dx, dy, dz] = Cie1931.xyz_planckian_locus_slope(t).values();
+    let [dx, dy, dz] = Cie1931.xyz_planckian_locus_slope(t).to_array();
     let sigma = x + 15.0 * y + 3.0 * z;
     let dsigma = dx + 15.0 * dy + 3.0 * dz;
     let den = 6.0 * y * dsigma - 6.0 * dy * sigma; // no need to divide by sigma * sigma, as it would be divided out

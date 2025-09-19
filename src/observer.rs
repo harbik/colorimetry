@@ -385,7 +385,7 @@ impl Observer {
             rgbspace
                 .primaries()
                 .iter()
-                .flat_map(|s| self.xyz_from_spectrum(s).set_illuminance(1.0).values()),
+                .flat_map(|s| self.xyz_from_spectrum(s).set_illuminance(1.0).to_array()),
         );
         let xyzw = opt_white
             .unwrap_or(self.xyz(&rgbspace.white(), None))
@@ -418,7 +418,7 @@ impl Observer {
             rgbspace
                 .primaries()
                 .iter()
-                .flat_map(|s| self.xyz_from_spectrum(s).set_illuminance(1.0).values()),
+                .flat_map(|s| self.xyz_from_spectrum(s).set_illuminance(1.0).to_array()),
         );
         let xyzw = self.xyz(&rgbspace.white(), None).set_illuminance(1.0);
         let decomp = rgb2xyz.lu();
@@ -696,14 +696,14 @@ mod obs_test {
     fn test_xyz_d65_d50() {
         let cie1931_d65_xyz = Cie1931.xyz_d65();
         approx::assert_ulps_eq!(
-            cie1931_d65_xyz.values().as_ref(),
+            cie1931_d65_xyz.to_array().as_ref(),
             [95.047, 100.0, 108.883].as_ref(),
             epsilon = 5E-2
         );
 
         let cie1931_d50_xyz = Cie1931.xyz_d50();
         approx::assert_ulps_eq!(
-            cie1931_d50_xyz.values().as_ref(),
+            cie1931_d50_xyz.to_array().as_ref(),
             [96.421, 100.0, 82.519].as_ref(),
             epsilon = 5E-2
         );
@@ -713,14 +713,14 @@ mod obs_test {
     fn test_xyz_d65_d50_cie1964() {
         let cie1964_d50_xyz = Cie1964.xyz_d50();
         approx::assert_ulps_eq!(
-            cie1964_d50_xyz.values().as_ref(),
+            cie1964_d50_xyz.to_array().as_ref(),
             [96.720, 100.0, 81.427].as_ref(),
             epsilon = 5E-2
         );
 
         let cie1964_d65_xyz = Cie1964.xyz_d65();
         approx::assert_ulps_eq!(
-            cie1964_d65_xyz.values().as_ref(),
+            cie1964_d65_xyz.to_array().as_ref(),
             [94.811, 100.0, 107.304].as_ref(),
             epsilon = 5E-2
         );
@@ -735,20 +735,20 @@ mod obs_test {
         // Check the first and last points of the spectral locus
         // Data obtained from spreadsheet using data directly downloaded from cie.co.at
         assert_eq!(sl.len(), 401);
-        let xyz_first = sl[0].1.xyz().values();
+        let xyz_first = sl[0].1.xyz().to_array();
         assert_abs_diff_eq!(
             xyz_first.as_ref(),
             [6.46976E-04, 1.84445E-05, 3.05044E-03].as_ref(),
             epsilon = 1E-5
         );
-        let xyz_last = sl[sl.len() - 1].1.xyz().values();
+        let xyz_last = sl[sl.len() - 1].1.xyz().to_array();
         assert_abs_diff_eq!(
             xyz_last.as_ref(),
             [2.48982E-05, 8.99121E-06, 0.0].as_ref(),
             epsilon = 1E-5
         );
         // 550 nm
-        let xyz_550 = sl[170].1.xyz().values();
+        let xyz_550 = sl[170].1.xyz().to_array();
         assert_abs_diff_eq!(
             xyz_550.as_ref(),
             [0.4268018, 0.9796899, 0.0086158].as_ref(),

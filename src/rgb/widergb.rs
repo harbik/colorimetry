@@ -28,8 +28,8 @@
 //! let compressed_rgb = wide_rgb.compress();
 //! let clamped_rgb = wide_rgb.clamp();
 //!
-//! println!("Compressed: {:?}", compressed_rgb.values());
-//! println!("Clamped: {:?}", clamped_rgb.values());
+//! println!("Compressed: {:?}", compressed_rgb.to_array());
+//! println!("Clamped: {:?}", clamped_rgb.to_array());
 //! ```
 //!
 //! ## Notes
@@ -114,10 +114,10 @@ impl WideRgb {
     /// ```rust
     /// # use colorimetry::rgb::WideRgb;
     /// let rgb = WideRgb::new(0.1, 0.2, 0.3, None, None);
-    /// let [r, g, b] = rgb.values();
+    /// let [r, g, b] = rgb.to_array();
     /// assert_eq!([r, g, b], [0.1, 0.2, 0.3]);
     /// ```
-    pub fn values(&self) -> [f64; 3] {
+    pub fn to_array(&self) -> [f64; 3] {
         *self.rgb.as_ref()
     }
 
@@ -162,7 +162,7 @@ impl WideRgb {
     /// assert!(!out_of_gamut.is_in_gamut());
     /// ```
     pub fn is_in_gamut(&self) -> bool {
-        self.values().iter().all(|v| (0.0..=1.0).contains(v))
+        self.to_array().iter().all(|v| (0.0..=1.0).contains(v))
     }
 
     /// Returns whether or not this Wide RGB instance is within the RGB gamut or not,
@@ -183,7 +183,7 @@ impl WideRgb {
     /// assert!(in_gamut.is_within_gamut(0.01));
     /// ```
     pub fn is_within_gamut(&self, epsilon: f64) -> bool {
-        self.values().iter().all(|&v| v < 1.0 - epsilon)
+        self.to_array().iter().all(|&v| v < 1.0 - epsilon)
     }
 
     pub fn is_black(&self, epsilon: f64) -> bool {
@@ -199,7 +199,7 @@ impl WideRgb {
     ///
     /// let wide_rgb = WideRgb::new(1.0, 0.2, 0.8, None, None);
     /// let rgb = wide_rgb.to_rgb().unwrap();
-    /// assert_eq!(rgb.values(), wide_rgb.values());
+    /// assert_eq!(rgb.to_array(), wide_rgb.to_array());
     ///
     /// // A `WideRgb` value with out-of-gamut components.
     /// let wide_rgb = WideRgb::new(1.2, -0.5, 0.8, None, None);
@@ -228,7 +228,7 @@ impl WideRgb {
     /// // Clamp the values to the [0.0, 1.0] range.
     /// let clamped_rgb = wide_rgb.clamp();
     ///
-    /// assert_eq!(clamped_rgb.values(), [1.0, 0.0, 0.8]);
+    /// assert_eq!(clamped_rgb.to_array(), [1.0, 0.0, 0.8]);
     /// ```
     ///
     /// # Parameters
@@ -270,7 +270,7 @@ impl WideRgb {
     /// // Compresses the values to the [0.0, 1.0] range.
     /// let compressed_rgb = wide_rgb.compress();
     ///
-    /// assert_abs_diff_eq!(compressed_rgb.values().as_ref(), [1.0, 0.0, 0.7647].as_ref(), epsilon = 0.0001);
+    /// assert_abs_diff_eq!(compressed_rgb.to_array().as_ref(), [1.0, 0.0, 0.7647].as_ref(), epsilon = 0.0001);
     /// ```
     ///
     /// # Notes
@@ -303,7 +303,7 @@ impl AsRef<Vector3<f64>> for WideRgb {
 
 impl From<WideRgb> for [f64; 3] {
     fn from(rgb: WideRgb) -> Self {
-        rgb.values()
+        rgb.to_array()
     }
 }
 
@@ -336,7 +336,7 @@ mod rgb_tests {
     #[test]
     fn get_values() {
         let rgb = WideRgb::new(0.1, 0.2, 0.3, None, None);
-        let [r, g, b] = rgb.values();
+        let [r, g, b] = rgb.to_array();
         assert_eq!(r, 0.1);
         assert_eq!(g, 0.2);
         assert_eq!(b, 0.3);
@@ -345,13 +345,13 @@ mod rgb_tests {
         assert_eq!(rgb.g(), 0.2);
         assert_eq!(rgb.b(), 0.3);
 
-        assert_eq!(<[f64; 3]>::from(rgb), rgb.values());
+        assert_eq!(<[f64; 3]>::from(rgb), rgb.to_array());
     }
 
     #[test]
     fn out_of_gamut_values() {
         let rgb = WideRgb::new(-0.8, 2.7, 0.8, None, None);
-        let [r, g, b] = rgb.values();
+        let [r, g, b] = rgb.to_array();
         assert_eq!(r, -0.8);
         assert_eq!(g, 2.7);
         assert_eq!(b, 0.8);
@@ -360,47 +360,47 @@ mod rgb_tests {
     #[test]
     fn compress_in_gamut() {
         let rgb = WideRgb::new(0.0, 0.0, 0.0, None, None).compress();
-        assert_eq!(rgb.values(), [0.0, 0.0, 0.0]);
+        assert_eq!(rgb.to_array(), [0.0, 0.0, 0.0]);
 
         let rgb = WideRgb::new(1.0, 1.0, 1.0, None, None).compress();
-        assert_eq!(rgb.values(), [1.0, 1.0, 1.0]);
+        assert_eq!(rgb.to_array(), [1.0, 1.0, 1.0]);
 
         let rgb = WideRgb::new(0.75, 0.75, 0.75, None, None).compress();
-        assert_eq!(rgb.values(), [0.75, 0.75, 0.75]);
+        assert_eq!(rgb.to_array(), [0.75, 0.75, 0.75]);
 
         let rgb = WideRgb::new(0.1, 0.3, 1.0, None, None).compress();
-        assert_eq!(rgb.values(), [0.1, 0.3, 1.0]);
+        assert_eq!(rgb.to_array(), [0.1, 0.3, 1.0]);
 
         let rgb = WideRgb::new(0.0, 0.3, 1.0, None, None).compress();
-        assert_eq!(rgb.values(), [0.0, 0.3, 1.0]);
+        assert_eq!(rgb.to_array(), [0.0, 0.3, 1.0]);
     }
 
     #[test]
     fn compress_out_of_gamut() {
         // Same value above 1.0 are all scaled down to 1.0
         let rgb = WideRgb::new(1.2, 1.2, 1.2, None, None).compress();
-        assert_eq!(rgb.values(), [1.0, 1.0, 1.0]);
+        assert_eq!(rgb.to_array(), [1.0, 1.0, 1.0]);
 
         // Same value below 0.0 are all scaled up to 0.0
         let rgb = WideRgb::new(-0.5, -0.5, -0.5, None, None).compress();
-        assert_eq!(rgb.values(), [0.0, 0.0, 0.0]);
+        assert_eq!(rgb.to_array(), [0.0, 0.0, 0.0]);
 
         // Different positiv values are all scaled down with the max channel value
         let rgb = WideRgb::new(1.0, 2.0, 3.0, None, None).compress();
-        assert_eq!(rgb.values(), [1.0 / 3.0, 2.0 / 3.0, 1.0]);
+        assert_eq!(rgb.to_array(), [1.0 / 3.0, 2.0 / 3.0, 1.0]);
 
         // Values outside the range both above and below are compressed correctly
         let rgb = WideRgb::new(-0.1, 0.9, 1.1, None, None).compress();
-        assert_eq!(rgb.values(), [0.0, (0.9 + 0.1) / (1.1 + 0.1), 1.0]);
+        assert_eq!(rgb.to_array(), [0.0, (0.9 + 0.1) / (1.1 + 0.1), 1.0]);
 
         // Some negative channel, and some channel that becomes too large after
         // adding the lowest channel to it.
         let rgb = WideRgb::new(-0.5, 0.4, 0.6, None, None).compress();
-        assert_eq!(rgb.values(), [0.0, (0.4 + 0.5) / (0.6 + 0.5), 1.0]);
+        assert_eq!(rgb.to_array(), [0.0, (0.4 + 0.5) / (0.6 + 0.5), 1.0]);
 
         // One negative channel, and the rest stays within gamut even after adding
         // the lowest channel to it.
         let rgb = WideRgb::new(-0.5, 0.4, 0.4, None, None).compress();
-        assert_eq!(rgb.values(), [0.0, 0.9, 0.9]);
+        assert_eq!(rgb.to_array(), [0.0, 0.9, 0.9]);
     }
 }

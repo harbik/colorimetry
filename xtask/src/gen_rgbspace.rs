@@ -245,7 +245,7 @@ impl TemplateContext {
         let mut out = Vec::new();
         for observer in Observer::iter() {
             let white_point = white.white_point(observer);
-            out.push(white_point.values());
+            out.push(white_point.to_array());
         }
         out
     }

@@ -208,7 +208,7 @@ fn test_colorant_cielab() {
     // A white surface has CIELAB values of L* = 100, a* = 0, b* = 0.
     use approx::assert_abs_diff_eq;
     let colorant = Colorant::white();
-    let [l, a, b] = colorant.cielab(None, None).values();
+    let [l, a, b] = colorant.cielab(None, None).to_array();
     assert_abs_diff_eq!(l, 100.0, epsilon = 1E-4); // L* should be 100 for white
     assert_abs_diff_eq!(a, 0.0, epsilon = 1E-4); // a* should be 0 for white
     assert_abs_diff_eq!(b, 0.0, epsilon = 1E-4); // b* should be 0 for white

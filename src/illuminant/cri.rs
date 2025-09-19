@@ -47,7 +47,7 @@ use crate::{
 /// println!("General CRI Rₐ = {:.1}", ra);
 ///
 /// // All 14 individual Rᵢ values:
-/// let ri_values = cri.values();
+/// let ri_values = cri.to_array();
 /// for (i, &ri) in ri_values.iter().enumerate() {
 ///     println!("R{} = {:.1}", i + 1, ri);
 /// }
@@ -73,7 +73,7 @@ impl CRI {
         self.0.iter().take(8).sum::<f64>() / 8.0
     }
 
-    pub fn values(&self) -> [f64; N_TCS] {
+    pub fn to_array(&self) -> [f64; N_TCS] {
         self.0
     }
 }
@@ -229,7 +229,7 @@ mod cri_test {
         ];
 
         approx::assert_abs_diff_eq!(
-            cri0.values().as_ref(),
+            cri0.to_array().as_ref(),
             expected_values.as_ref(),
             epsilon = 1.0
         );

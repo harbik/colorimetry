@@ -15,7 +15,7 @@
 //!   - `CieLab::from_xyz(xyz, white_xyz)` — convert from CIE XYZ under a given white point.  
 //!
 //! - **Accessors**  
-//!   - `.values()` — returns `[L, a, b]`.  
+//!   - `.to_array()` — returns `[L, a, b]`.  
 //!   - AsRef<[f64; 3]> for ergonomic tuple-like access.  
 //!
 //! - **Color‐difference methods**  
@@ -220,7 +220,7 @@ impl CieLab {
     /// Returns the CIE L*a*b* color values as an array of three f64 values.
     /// # Returns
     /// An array containing the L*, a*, and b* values of the color.
-    pub fn values(&self) -> [f64; 3] {
+    pub fn to_array(&self) -> [f64; 3] {
         *self.lab.as_ref()
     }
 
@@ -229,7 +229,7 @@ impl CieLab {
     /// `true` if the L*, a*, and b* values are within valid ranges and
     /// the round-trip conversion to and from XYZ is consistent; `false` otherwise.
     pub fn is_valid(&self) -> bool {
-        let [l, a, b] = self.values();
+        let [l, a, b] = self.to_array();
         if (0.0..=100.0).contains(&l)
             && (-200.0..=200.0).contains(&a)
             && ((-200.0..=200.0).contains(&b))

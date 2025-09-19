@@ -181,9 +181,9 @@ impl XYChromaticity {
     pub fn planckian_xy_slope_angle(&self, cct: f64) -> ((f64, f64), f64) {
         // Get the XYZ coordinates and their derivatives at the given CCT
         let xyz = self.observer.xyz_planckian_locus(cct);
-        let [x, y, z] = xyz.values();
+        let [x, y, z] = xyz.to_array();
         let nom = x + y + z;
-        let [dxdt, dydt, dzdt] = self.observer.xyz_planckian_locus_slope(cct).values();
+        let [dxdt, dydt, dzdt] = self.observer.xyz_planckian_locus_slope(cct).to_array();
         let dnom_dt = dxdt + dydt + dzdt;
 
         // convert XYZ derivatives to xy derivatives using the quotient rule
@@ -203,9 +203,9 @@ impl XYChromaticity {
         // Get the XYZ coordinates and their derivatives at the given CCT
         let cct_observer = colorimetry::observer::Observer::Cie1931;
         let xyz = cct_observer.xyz_planckian_locus(cct);
-        let [x, y, z] = xyz.values();
+        let [x, y, z] = xyz.to_array();
         let sigma_t = x + 15.0 * y + 3.0 * z;
-        let [dxdt, dydt, dzdt] = cct_observer.xyz_planckian_locus_slope(cct).values();
+        let [dxdt, dydt, dzdt] = cct_observer.xyz_planckian_locus_slope(cct).to_array();
         let dsigma_dt = dxdt + 15.0 * dydt + 3.0 * dzdt;
 
         // convert XYZ derivatives to xy derivatives using the quotient rule
