@@ -114,7 +114,7 @@ impl RelXYZ {
     /// Returns the XYZ tristimulus values of the color and the reference white point as a 2D array.
     ///
     /// The first row contains the XYZ values of the color, and the second row contains the XYZ values of the reference white point.        
-    pub fn values(&self) -> [[f64; 3]; 2] {
+    pub fn to_arrays(&self) -> [[f64; 3]; 2] {
         [self.xyz.into(), self.white_point.xyz.into()]
     }
 
@@ -257,10 +257,10 @@ mod tests {
 
         let sl = Cie1931.monochromes(CieIlluminant::D65);
         for (w, rxyz) in sl {
-            print!("{}, {:.4?}", w, rxyz.values()[0]);
+            print!("{}, {:.4?}", w, rxyz.to_arrays()[0]);
             let lab = CieLab::from_rxyz(rxyz);
             let xyz_back = lab.rxyz();
-            println!("{:.4?}", xyz_back.values()[0]);
+            println!("{:.4?}", xyz_back.to_arrays()[0]);
         }
     }
 

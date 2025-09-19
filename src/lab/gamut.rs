@@ -62,7 +62,7 @@ impl CieLChGamut {
             // 20 iterations for convergence
             let cielch = CieLCh::new([l, c, h], self.white_point);
             let rgb = cielch.rgb(self.rgb_space);
-            if rgb.values().iter().all(|&v| v < 1.0) {
+            if rgb.to_array().iter().all(|&v| v < 1.0) {
                 c_low = c; // Found a valid chroma, increase lower bound
             } else {
                 c_high = c; // Not in gamut, decrease upper bound
@@ -100,7 +100,7 @@ impl CieLChGamut {
         let cielch = self.max_chroma(l, h)?;
         let rgb = cielch.rgb(self.rgb_space);
         // Check if RGB values are within the gamut explicitly
-        if rgb.values().iter().all(|&v| (0.0..=1.0).contains(&v)) {
+        if rgb.to_array().iter().all(|&v| (0.0..=1.0).contains(&v)) {
             Some(cielch)
         } else {
             None

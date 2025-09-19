@@ -45,7 +45,7 @@ impl CieLCh {
         self.white_point.observer()
     }
 
-    pub fn values(&self) -> [f64; 3] {
+    pub fn to_array(&self) -> [f64; 3] {
         self.lch.into()
     }
 

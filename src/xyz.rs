@@ -160,7 +160,7 @@ impl XYZ {
     /// assert_eq!(xyz.x(), 95.1);
     /// ```
     pub fn x(&self) -> f64 {
-        self.values()[0]
+        self.to_array()[0]
     }
 
     /// Returns the luminous value Y of the tristimulus values.
@@ -176,7 +176,7 @@ impl XYZ {
     /// assert_eq!(xyz.y(), 95.0);
     /// ```
     pub fn y(&self) -> f64 {
-        self.values()[1]
+        self.to_array()[1]
     }
 
     /// Returns the Z value.
@@ -187,7 +187,7 @@ impl XYZ {
     /// assert_eq!(xyz.z(), 27.0);
     /// ```
     pub fn z(&self) -> f64 {
-        self.values()[2]
+        self.to_array()[2]
     }
 
     /// Returns the observer used for this `XYZ` value.
@@ -201,13 +201,13 @@ impl XYZ {
     /// use approx::assert_ulps_eq;
     ///
     /// let d65_xyz = Cie1931.xyz(&CieIlluminant::D65, None).set_illuminance(100.0);
-    /// let [x, y, z] = d65_xyz.values();
+    /// let [x, y, z] = d65_xyz.to_array();
     /// // Calculated Spreadsheet Values from CIE Datasets, over a range from 380 to 780nm
     /// assert_ulps_eq!(x, 95.042_267, epsilon = 1E-6);
     /// assert_ulps_eq!(y, 100.0);
     /// assert_ulps_eq!(z, 108.861_036, epsilon = 1E-6);
     /// ```
-    pub fn values(&self) -> [f64; 3] {
+    pub fn to_array(&self) -> [f64; 3] {
         *self.xyz.as_ref()
     }
 
@@ -245,7 +245,7 @@ impl XYZ {
     /// assert_ulps_eq!(chromaticity.to_array().as_ref(), [0.312_738, 0.329_052].as_slice(), epsilon = 1E-6);
     /// ```
     pub fn chromaticity(&self) -> Chromaticity {
-        let [x, y, z] = self.values();
+        let [x, y, z] = self.to_array();
         let s = x + y + z;
         Chromaticity::new(x / s, y / s)
     }
@@ -335,7 +335,7 @@ impl XYZ {
 impl From<XYZ> for [f64; 3] {
     /// Converts the tristimulus values to an array on the format [X, Y, Z]
     fn from(xyz: XYZ) -> Self {
-        xyz.values()
+        xyz.to_array()
     }
 }
 
@@ -447,7 +447,7 @@ mod xyz_test {
             [95.04, 100.0, 108.867].as_slice(),
             epsilon = 1E-2
         );
-        let xyz = d65.values();
+        let xyz = d65.to_array();
         assert_ulps_eq!(
             xyz.as_ref(),
             [95.04, 100.0, 108.867].as_slice(),

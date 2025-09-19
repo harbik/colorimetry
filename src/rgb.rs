@@ -96,7 +96,7 @@ use std::borrow::Cow;
 ///
 /// // Create an sRGB color with normalized RGB values
 /// let rgb = Rgb::new(0.5, 0.25, 0.75, None, None).unwrap();
-/// assert_abs_diff_eq!(rgb.values().as_ref(), [0.5, 0.25, 0.75].as_ref(), epsilon = 1e-6);
+/// assert_abs_diff_eq!(rgb.to_array().as_ref(), [0.5, 0.25, 0.75].as_ref(), epsilon = 1e-6);
 /// ```
 ///
 /// # Notes
@@ -211,10 +211,10 @@ impl Rgb {
     /// ```rust
     /// # use colorimetry::rgb::Rgb;
     /// let rgb = Rgb::new(0.1, 0.2, 0.3, None, None).unwrap();
-    /// let [r, g, b] = rgb.values();
+    /// let [r, g, b] = rgb.to_array();
     /// assert_eq!([r, g, b], [0.1, 0.2, 0.3]);
     /// ```
-    pub fn values(&self) -> [f64; 3] {
+    pub fn to_array(&self) -> [f64; 3] {
         *self.rgb.as_ref()
     }
 
@@ -338,7 +338,7 @@ impl From<Rgb> for [u8; 3] {
 
 impl From<Rgb> for [f64; 3] {
     fn from(rgb: Rgb) -> Self {
-        rgb.values()
+        rgb.to_array()
     }
 }
 

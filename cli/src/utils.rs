@@ -51,14 +51,14 @@ pub fn colorvalue(file: String, illuminant: String, format: String) -> Result<()
 fn print_yxy(illuminant: &CieIlluminant, colorant: &Colorant) {
     let xyz = Observer::Cie1931.rel_xyz(illuminant, colorant);
     let (x, y) = xyz.xyz().chromaticity().to_tuple();
-    let [_x, yy, _z] = xyz.xyz().values();
+    let [_x, yy, _z] = xyz.xyz().to_array();
     println!("{}", "Yxy (Y,x,y) chromaticity values".bold());
     println!("{yy:.2}\t{x:.4}\t{y:.4}");
 }
 
 fn print_xyz(illuminant: &CieIlluminant, colorant: &Colorant) {
     let xyz = Observer::Cie1931.rel_xyz(illuminant, colorant);
-    let [x, y, z] = xyz.xyz().values();
+    let [x, y, z] = xyz.xyz().to_array();
     println!("{}", "YYZ (X,Y,Z) Tristimulus Values".bold());
     println!("{x:.2}\t{y:.2}\t{z:.2}");
 }

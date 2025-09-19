@@ -36,7 +36,7 @@ This example calculates the XYZ tristimulus values of the D65 illuminant for bot
   // D65 Tristimulus values, using the CIE1931 standard observer by default
   let xyz_d65 = D65.xyz(None).set_illuminance(100.0);
 
-  let [x, y, z] = xyz_d65.values();
+  let [x, y, z] = xyz_d65.to_array();
   // [95.04, 100.0, 108.86]
 # check!([x, y, z].as_ref(), [95.04, 100.0, 108.86].as_ref(),  epsilon = 5E-3);
 
@@ -45,7 +45,7 @@ This example calculates the XYZ tristimulus values of the D65 illuminant for bot
   let xyz_d65_10 = D65
     .xyz(Some(Cie2015_10)).set_illuminance(100.0);
 
-  let [x_10, y_10, z_10] = xyz_d65_10.values();
+  let [x_10, y_10, z_10] = xyz_d65_10.to_array();
   //[94.72, 100.0, 107.143]
 # check!([x_10, y_10, z_10].as_ref(), [94.72, 100.0, 107.143].as_ref(), epsilon = 5E-3);
 ```
@@ -69,7 +69,7 @@ locus, often referred to as the tint.
   // Calculate CCT and Duv for the A illuminant
   // Requires `cct`, and `cie-illuminants` features
 # #[cfg(all(feature="cct", feature="cie-illuminants"))]
-  let [cct, duv] = A.cct().unwrap().values();
+  let [cct, duv] = A.cct().unwrap().to_array();
 # #[cfg(all(feature="cct", feature="cie-illuminants"))]
 # check!([cct, duv].as_ref(), [2855.4977, 0.0].as_ref(),  epsilon = 5E-4);
   // [2855.4977, 0.0]

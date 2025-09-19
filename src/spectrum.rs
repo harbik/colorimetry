@@ -211,7 +211,7 @@ impl Spectrum {
     /// Returns the spectral data values, as an array of floats.
     ///
     /// The array contains the 401 data points from 380 to 780 nanometer.
-    pub fn values(&self) -> &[f64; NS] {
+    pub fn as_array(&self) -> &[f64; NS] {
         &self.0.data.0[0]
     }
 }
@@ -244,7 +244,7 @@ impl Default for Spectrum {
 
 impl AsRef<[f64; 401]> for Spectrum {
     fn as_ref(&self) -> &[f64; 401] {
-        self.values()
+        self.as_array()
     }
 }
 
@@ -667,7 +667,7 @@ mod tests {
 
     #[test]
     fn d65_test() {
-        let [x, y, z] = D65.xyz(None).set_illuminance(100.0).values();
+        let [x, y, z] = D65.xyz(None).set_illuminance(100.0).to_array();
         assert_ulps_eq!(x, 95.04, epsilon = 5E-3);
         assert_ulps_eq!(y, 100.0, epsilon = 5E-3);
         assert_ulps_eq!(z, 108.86, epsilon = 5E-3);
