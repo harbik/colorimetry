@@ -28,7 +28,7 @@ impl XYZ {
     ///
     /// // Get and check the corresponding tristimulus values, with a luminous value
     /// // of 100.0
-    /// const [x, y, z] = xyz.values();
+    /// const [x, y, z] = xyz.to_array();
     /// assert.assertAlmostEquals(x, 95.047, 5E-3); // D65 wikipedia
     /// assert.assertAlmostEquals(y, 100.0);
     /// assert.assertAlmostEquals(z, 108.883, 5E-3);

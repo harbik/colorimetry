@@ -109,7 +109,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 * Remove undocumented `XYZ::srgb` method that both clamped out-of-gamut values and converted
   directly to a gamma encoded `[u8; 3]`. Obtain the same result with the more explicit
-  `xyz.rgb(Some(RgbSpace::SRGB)).clamp().values()`.
+  `xyz.rgb(Some(RgbSpace::SRGB)).clamp().to_array()`.
 * Remove conversion directly from `WideRgb` to clamped and gamma encoded `[u8; 3]`.
   Prefer being more explicit by converting to the `Rgb` type in between with one of the provided conversion methods.
 * Remove `DeRef<Spectrum> for Illuminant` to be replaced with the more explcicit `AsRef<Spectrum>`.

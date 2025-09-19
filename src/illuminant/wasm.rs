@@ -23,7 +23,7 @@ impl Illuminant {
     /// stepsize of 1 nanometer.
     #[wasm_bindgen(js_name=Values)]
     pub fn values_js(&self) -> Box<[f64]> {
-        let values = self.spectrum().values().as_slice().to_vec();
+        let values = self.spectrum().as_array().as_slice().to_vec();
         values.into_boxed_slice()
     }
 
