@@ -26,8 +26,13 @@ pub use cct::iso_temp_line;
 mod cri;
 
 mod led;
+pub use led::led_ohno;
+
 mod planck;
 pub use planck::Planck;
+
+mod qth;
+pub use qth::QTH;
 
 #[cfg(feature = "cri")]
 pub use cri::*;
@@ -49,8 +54,6 @@ use crate::{
     traits::Light,
     xyz::XYZ,
 };
-
-use led::led_ohno;
 
 #[cfg(target_arch = "wasm32")]
 mod wasm;
