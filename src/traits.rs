@@ -62,6 +62,12 @@ pub trait Light {
         self.xyzn(observer, Some(100.0))
     }
 
+    #[cfg(feature = "cct")]
+    fn cct(&self) -> Result<crate::illuminant::CCT, crate::Error> {
+        let xyz = self.white_point(Observer::Cie1931);
+        xyz.try_into()
+    }
+
     fn spectrum(&self) -> Cow<'_, Spectrum>;
 }
 
