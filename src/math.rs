@@ -408,6 +408,15 @@ impl QuadraticCurve {
     }
 }
 
+#[inline]
+pub fn compute_triangle_area(p1: &[f64; 2], p2: &[f64; 2], p3: &[f64; 2]) -> f64 {
+    let a = f64::sqrt((p1[0] - p2[0]) * (p1[0] - p2[0]) + (p1[1] - p2[1]) * (p1[1] - p2[1]));
+    let b = f64::sqrt((p3[0] - p2[0]) * (p3[0] - p2[0]) + (p3[1] - p2[1]) * (p3[1] - p2[1]));
+    let c = f64::sqrt((p1[0] - p3[0]) * (p1[0] - p3[0]) + (p1[1] - p3[1]) * (p1[1] - p3[1]));
+    let p = (a + b + c) / 2.;
+    f64::sqrt(p * (p - a) * (p - b) * (p - c))
+}
+
 #[test]
 fn quadratic_curve_test() {
     use approx::assert_ulps_eq;

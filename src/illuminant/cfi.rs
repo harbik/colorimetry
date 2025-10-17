@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 // Copyright (c) 2024-2025, Harbers Bik LLC
 
-use crate::math::distance;
+use std::f64::consts::PI;
+
+use crate::math::{self, distance};
 use crate::observer::Observer::Cie1964;
 use crate::xyz::RelXYZ;
 use crate::{
@@ -11,6 +13,8 @@ use crate::{
 };
 
 use super::CCT;
+
+pub const N_ANGLE_BIN: usize = 16;
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
 /// Container for CIE 2017 Colour Fidelity Index (**R<sub>f</sub>**) calculations,
@@ -77,6 +81,150 @@ impl CFI {
         })
     }
 
+    /// Returns the test source J'a'b' coordinates for the 99 CES
+    pub fn jabp_ts(&self) -> &[[f64; 3]; N_CFI] {
+        &self.jabp_ts
+    }
+
+    /// Returns the reference source J'a'b' coordinates for the 99 CES
+    pub fn jabp_rs(&self) -> &[[f64; 3]; N_CFI] {
+        &self.jabp_rs
+    }
+
+    /// Returns chroma of each sample under the test source
+    pub fn chroma_ts(&self) -> [f64; N_CFI] {
+        compute_chroma(&self.jabp_ts)
+    }
+
+    /// Returns chroma of each sample under the refenrence source
+    pub fn chorma_rs(&self) -> [f64; N_CFI] {
+        compute_chroma(&self.jabp_rs)
+    }
+
+    /// Returns hue angles (rad) for each sample under the test source
+    pub fn hue_angle_bin_ts(&self) -> [f64; N_CFI] {
+        compute_hue_angle_bin(&self.jabp_ts)
+    }
+
+    /// Returns hue angles (rad) for each sample under the reference source
+    pub fn hue_angle_bin_rs(&self) -> [f64; N_CFI] {
+        compute_hue_angle_bin(&self.jabp_rs)
+    }
+
+    /// Returns hue-bin averaged J'a'b' under the test source
+    pub fn jabp_average_ts(&self) -> [[f64; 3]; N_ANGLE_BIN] {
+        let mut rst = [([0f64, 0f64, 0f64], 0f64); N_ANGLE_BIN];
+        for i in 0..N_CFI {
+            let [jt, at, bt] = self.jabp_ts[i];
+            let [_jr, ar, br] = self.jabp_rs[i];
+            let mut phi = f64::atan2(br, ar);
+            if phi < 0. {
+                phi = 2. * PI + phi;
+            }
+            let i = (phi / (2. * PI) * N_ANGLE_BIN as f64) as usize;
+            rst[i].0[0] += jt;
+            rst[i].0[1] += at;
+            rst[i].0[2] += bt;
+            rst[i].1 += 1.;
+        }
+        rst.map(|([j, a, b], n)| 
+            if n == 0. {[f64::NAN, f64::NAN, f64::NAN]}
+            else {[j / n, a / n, b / n]}
+        )
+    }
+
+    /// Returns hue-bin averaged J'a'b' under the reference source
+    pub fn jabp_average_rs(&self) -> [[f64; 3]; N_ANGLE_BIN] {
+        let mut rst = [([0f64, 0f64, 0f64], 0f64); N_ANGLE_BIN];
+        for i in 0..N_CFI {
+            let [jr, ar, br] = self.jabp_rs[i];
+            let mut phi = f64::atan2(br, ar);
+            if phi < 0. {
+                phi = 2. * PI + phi;
+            }
+            let i = (phi / (2. * PI) * N_ANGLE_BIN as f64) as usize;
+            rst[i].0[0] += jr;
+            rst[i].0[1] += ar;
+            rst[i].0[2] += br;
+            rst[i].1 += 1.;
+        }
+        rst.map(|([j, a, b], n)| 
+            if n == 0. {[f64::NAN, f64::NAN, f64::NAN]}
+            else {[j / n, a / n, b / n]}
+        )
+    }
+
+    /// Returns normalized averaged a'b' under test and reference sources.
+    /// Take the first returned array in order to plot the CVG.
+    pub fn normalized_ab_average(&self) -> ([[f64; 2]; N_ANGLE_BIN], [[f64; 2]; N_ANGLE_BIN]) {
+        let jabt_hj = self.jabp_average_ts();
+        let jabr_hj = self.jabp_average_rs();
+        compute_normalized_ab_average(&jabt_hj, &jabr_hj)
+    }
+
+    /// Returns chroma for each hue bin for test source
+    pub fn normalized_chroma_average_ts(&self) -> [f64; N_ANGLE_BIN] {
+        let jabt_hj = self.jabp_average_ts();
+        compute_normalized_chroma_average(&jabt_hj)
+    }
+
+    /// Returns chroma for each hue bin for reference source
+    pub fn normalized_chroma_average_rs(&self) -> [f64; N_ANGLE_BIN] {
+        let jabr_hj = self.jabp_average_rs();
+        compute_normalized_chroma_average(&jabr_hj)
+    }
+
+    /// Returns the normalized chroma for each hue fin for test source
+    pub fn normalized_chroma_average(&self) -> [f64; N_ANGLE_BIN] {
+        let ct = self.normalized_chroma_average_ts();
+        let cr = self.normalized_chroma_average_rs();
+        let mut ctn = [0f64; N_ANGLE_BIN];
+        for i in 0..N_ANGLE_BIN {
+            if cr[i] == 0. {
+                ctn[i] = f64::INFINITY;
+            } else {
+                ctn[i] = ct[i] / (cr[i] + 1e-308);
+            }
+        }
+        ctn
+    }
+
+    /// Returns hues (rad) for each hue bin for test source
+    pub fn hue_angle_bin_average_samples_ts(&self) -> [f64; N_ANGLE_BIN] {
+        compute_hue_angle_bin_average(&self.jabp_average_ts())
+    }
+
+    /// Returns hues (rad) for each hue bin for reference source
+    pub fn hue_angle_bin_average_samples_rs(&self) -> [f64; N_ANGLE_BIN] {
+        compute_hue_angle_bin_average(&self.jabp_average_rs())
+    }
+
+    /// Returns the gamut index
+    pub fn rg(&self) -> f64 {
+        let origin = [0.; 2];
+        let av_samples_t = self.jabp_average_ts();
+        let av_samples_r = self.jabp_average_rs();
+        let mut at = 0f64;
+        let mut ar = 0f64;
+        // Compute area of At
+        for i in 0..N_ANGLE_BIN {
+            let area_t = math::compute_triangle_area(
+                &[av_samples_t[i][1], av_samples_t[i][2]],
+                &[av_samples_t[(i + 1) % N_ANGLE_BIN][1], av_samples_t[(i + 1) % N_ANGLE_BIN][2]],
+                &origin
+            );
+            let area_r = math::compute_triangle_area(
+                &[av_samples_r[i][1], av_samples_r[i][2]],
+                &[av_samples_r[(i + 1) % N_ANGLE_BIN][1], av_samples_t[(i + 1) % N_ANGLE_BIN][2]],
+                &origin
+            );
+            at += area_t;
+            ar += area_r;    
+        }
+
+        100. * at / ar
+    }
+    
     /// Returns the array of special color fidelity indices (Rf<sub>1</sub> through Rf<sub>99</sub>) as defined in
     /// [CIE 224:2017 – CIE 2017 Colour Fidelity Index for accurate scientific use](https://cie.co.at/publications/cie-2017-colour-fidelity-index-accurate-scientific-use).
     ///
@@ -143,6 +291,75 @@ impl CFI {
         self.cct
     }
 }
+
+fn compute_hue_angle_bin(jab: &[[f64; 3]; N_CFI]) -> [f64; N_CFI] {
+    jab.map(|[_j, a, b]| {
+        let mut h = f64::atan2(b, a);
+        if h < 0. {
+            h = 2. * PI + h;
+        } 
+        h
+    })
+}
+
+fn compute_hue_angle_bin_average(jab: &[[f64; 3]; N_ANGLE_BIN]) -> [f64; N_ANGLE_BIN] {
+    jab.map(|[_j, a, b]| {
+        let mut h = f64::atan2(b, a);
+        if h < 0. {
+            h = 2. * PI + h;
+        } 
+        h
+    })
+}
+
+fn compute_chroma(jab: &[[f64; 3]; N_CFI]) -> [f64; N_CFI] {
+    jab.map(|[_j, a, b]| {
+        f64::sqrt(a * a + b * b)
+    })
+}
+
+fn compute_normalized_chroma_average(jab_hj: &[[f64; 3]; N_ANGLE_BIN]) -> [f64; N_ANGLE_BIN] {
+    jab_hj.map(|[_j, a, b]| {
+        f64::sqrt(a * a + b * b)
+    })
+}
+
+// returns (jabtn_hj, jabrn_hj)
+fn compute_normalized_ab_average(jabt: &[[f64; 3]; N_ANGLE_BIN], jabr: &[[f64; 3]; N_ANGLE_BIN]) -> ([[f64; 2]; N_ANGLE_BIN], [[f64; 2]; N_ANGLE_BIN]) {
+    let ht_hj = compute_hue_angle_bin_average(jabt);
+    let hr_hj = compute_hue_angle_bin_average(jabr);
+    let ct = compute_normalized_chroma_average(jabt);
+    let cr = compute_normalized_chroma_average(jabr);
+    let mut ctn = [0f64; N_ANGLE_BIN];
+    for i in 0..N_ANGLE_BIN {
+        if cr[i] == 0. {
+            ctn[i] = f64::INFINITY;
+        } else {
+            ctn[i] = ct[i] / (cr[i] + 1e-308);
+        }
+    }
+    let mut jabtn_hj = [[0f64; 2]; N_ANGLE_BIN];
+    let mut jabrn_hj = [[0f64; 2]; N_ANGLE_BIN];
+    for i in 0..N_ANGLE_BIN {
+        let c = ctn[i];
+        let ht = ht_hj[i];
+        let hr = hr_hj[i];
+        jabtn_hj[i] = [c * f64::cos(ht), c * f64::sin(ht)];
+        jabrn_hj[i] = [f64::cos(hr), f64::sin(hr)];
+    }
+    (jabtn_hj, jabrn_hj)
+}
+
+fn compute_hue_bin_edges() -> [f64; N_ANGLE_BIN + 1] {
+    let dh = 360. / N_ANGLE_BIN as f64;
+    let mut hbe = [0f64; N_ANGLE_BIN + 1];
+    for i in 0..=N_ANGLE_BIN {
+        let m = i as f64;
+        hbe[i] = dh * m;
+    }
+    hbe
+}
+
 
 const CF: f64 = 6.73; // was 7.54 in TM30-15
 pub fn rf_from_de(de: f64) -> f64 {
