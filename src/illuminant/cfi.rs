@@ -119,7 +119,7 @@ impl CFI {
             let [_jr, ar, br] = self.jabp_rs[i];
             let mut phi = f64::atan2(br, ar);
             if phi < 0. {
-                phi = 2. * PI + phi;
+                phi += 2. * PI;
             }
             let i = (phi / (2. * PI) * N_ANGLE_BIN as f64) as usize;
             rst[i].0[0] += jt;
@@ -127,10 +127,13 @@ impl CFI {
             rst[i].0[2] += bt;
             rst[i].1 += 1.;
         }
-        rst.map(|([j, a, b], n)| 
-            if n == 0. {[f64::NAN, f64::NAN, f64::NAN]}
-            else {[j / n, a / n, b / n]}
-        )
+        rst.map(|([j, a, b], n)| {
+            if n == 0. {
+                [f64::NAN, f64::NAN, f64::NAN]
+            } else {
+                [j / n, a / n, b / n]
+            }
+        })
     }
 
     /// Returns hue-bin averaged J'a'b' under the reference source
@@ -140,7 +143,7 @@ impl CFI {
             let [jr, ar, br] = self.jabp_rs[i];
             let mut phi = f64::atan2(br, ar);
             if phi < 0. {
-                phi = 2. * PI + phi;
+                phi += 2. * PI;
             }
             let i = (phi / (2. * PI) * N_ANGLE_BIN as f64) as usize;
             rst[i].0[0] += jr;
@@ -148,10 +151,13 @@ impl CFI {
             rst[i].0[2] += br;
             rst[i].1 += 1.;
         }
-        rst.map(|([j, a, b], n)| 
-            if n == 0. {[f64::NAN, f64::NAN, f64::NAN]}
-            else {[j / n, a / n, b / n]}
-        )
+        rst.map(|([j, a, b], n)| {
+            if n == 0. {
+                [f64::NAN, f64::NAN, f64::NAN]
+            } else {
+                [j / n, a / n, b / n]
+            }
+        })
     }
 
     /// Returns normalized averaged a'b' under test and reference sources.
@@ -210,21 +216,27 @@ impl CFI {
         for i in 0..N_ANGLE_BIN {
             let area_t = math::compute_triangle_area(
                 &[av_samples_t[i][1], av_samples_t[i][2]],
-                &[av_samples_t[(i + 1) % N_ANGLE_BIN][1], av_samples_t[(i + 1) % N_ANGLE_BIN][2]],
-                &origin
+                &[
+                    av_samples_t[(i + 1) % N_ANGLE_BIN][1],
+                    av_samples_t[(i + 1) % N_ANGLE_BIN][2],
+                ],
+                &origin,
             );
             let area_r = math::compute_triangle_area(
                 &[av_samples_r[i][1], av_samples_r[i][2]],
-                &[av_samples_r[(i + 1) % N_ANGLE_BIN][1], av_samples_t[(i + 1) % N_ANGLE_BIN][2]],
-                &origin
+                &[
+                    av_samples_r[(i + 1) % N_ANGLE_BIN][1],
+                    av_samples_t[(i + 1) % N_ANGLE_BIN][2],
+                ],
+                &origin,
             );
             at += area_t;
-            ar += area_r;    
+            ar += area_r;
         }
 
         100. * at / ar
     }
-    
+
     /// Returns the array of special color fidelity indices (Rf<sub>1</sub> through Rf<sub>99</sub>) as defined in
     /// [CIE 224:2017 – CIE 2017 Colour Fidelity Index for accurate scientific use](https://cie.co.at/publications/cie-2017-colour-fidelity-index-accurate-scientific-use).
     ///
@@ -296,8 +308,8 @@ fn compute_hue_angle_bin(jab: &[[f64; 3]; N_CFI]) -> [f64; N_CFI] {
     jab.map(|[_j, a, b]| {
         let mut h = f64::atan2(b, a);
         if h < 0. {
-            h = 2. * PI + h;
-        } 
+            h += 2. * PI;
+        }
         h
     })
 }
@@ -306,26 +318,25 @@ fn compute_hue_angle_bin_average(jab: &[[f64; 3]; N_ANGLE_BIN]) -> [f64; N_ANGLE
     jab.map(|[_j, a, b]| {
         let mut h = f64::atan2(b, a);
         if h < 0. {
-            h = 2. * PI + h;
-        } 
+            h += 2. * PI;
+        }
         h
     })
 }
 
 fn compute_chroma(jab: &[[f64; 3]; N_CFI]) -> [f64; N_CFI] {
-    jab.map(|[_j, a, b]| {
-        f64::sqrt(a * a + b * b)
-    })
+    jab.map(|[_j, a, b]| f64::sqrt(a * a + b * b))
 }
 
 fn compute_normalized_chroma_average(jab_hj: &[[f64; 3]; N_ANGLE_BIN]) -> [f64; N_ANGLE_BIN] {
-    jab_hj.map(|[_j, a, b]| {
-        f64::sqrt(a * a + b * b)
-    })
+    jab_hj.map(|[_j, a, b]| f64::sqrt(a * a + b * b))
 }
 
 // returns (jabtn_hj, jabrn_hj)
-fn compute_normalized_ab_average(jabt: &[[f64; 3]; N_ANGLE_BIN], jabr: &[[f64; 3]; N_ANGLE_BIN]) -> ([[f64; 2]; N_ANGLE_BIN], [[f64; 2]; N_ANGLE_BIN]) {
+fn compute_normalized_ab_average(
+    jabt: &[[f64; 3]; N_ANGLE_BIN],
+    jabr: &[[f64; 3]; N_ANGLE_BIN],
+) -> ([[f64; 2]; N_ANGLE_BIN], [[f64; 2]; N_ANGLE_BIN]) {
     let ht_hj = compute_hue_angle_bin_average(jabt);
     let hr_hj = compute_hue_angle_bin_average(jabr);
     let ct = compute_normalized_chroma_average(jabt);
@@ -350,16 +361,17 @@ fn compute_normalized_ab_average(jabt: &[[f64; 3]; N_ANGLE_BIN], jabr: &[[f64; 3
     (jabtn_hj, jabrn_hj)
 }
 
+#[allow(dead_code)]
 fn compute_hue_bin_edges() -> [f64; N_ANGLE_BIN + 1] {
     let dh = 360. / N_ANGLE_BIN as f64;
     let mut hbe = [0f64; N_ANGLE_BIN + 1];
+    #[allow(clippy::needless_range_loop)]
     for i in 0..=N_ANGLE_BIN {
         let m = i as f64;
         hbe[i] = dh * m;
     }
     hbe
 }
-
 
 const CF: f64 = 6.73; // was 7.54 in TM30-15
 pub fn rf_from_de(de: f64) -> f64 {
