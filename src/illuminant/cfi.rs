@@ -81,51 +81,57 @@ impl CFI {
         })
     }
 
-    /// Returns the test source J'a'b' coordinates for the 99 CES
+    /// Returns the test source J'a'b' coordinates for the 99 CES test samples
     pub fn jabp_ts(&self) -> &[[f64; 3]; N_CFI] {
         &self.jabp_ts
     }
 
-    /// Returns the reference source J'a'b' coordinates for the 99 CES
+    /// Returns the reference source J'a'b' coordinates for the 99 CES test samples
     pub fn jabp_rs(&self) -> &[[f64; 3]; N_CFI] {
         &self.jabp_rs
     }
 
-    /// Returns chroma of each sample under the test source
+    /// Calculate the chroma values for each CES color sample under the test illuminant
     pub fn chroma_ts(&self) -> [f64; N_CFI] {
         compute_chroma(&self.jabp_ts)
     }
 
-    /// Returns chroma of each sample under the refenrence source
-    pub fn chorma_rs(&self) -> [f64; N_CFI] {
+    /// Calculate the chroma values for each CES color sample under the reference illuminant
+    pub fn chroma_rs(&self) -> [f64; N_CFI] {
         compute_chroma(&self.jabp_rs)
     }
 
-    /// Returns hue angles (rad) for each sample under the test source
+    /// Calculate the hue angle values (in radians) for each CES color sample under the test illuminant
     pub fn hue_angle_bin_ts(&self) -> [f64; N_CFI] {
         compute_hue_angle_bin(&self.jabp_ts)
     }
 
-    /// Returns hue angles (rad) for each sample under the reference source
+    /// Calculate the hue angle values (in radians) for each CES color sample under the reference illuminant
     pub fn hue_angle_bin_rs(&self) -> [f64; N_CFI] {
         compute_hue_angle_bin(&self.jabp_rs)
     }
 
-    /// Returns hue-bin averaged J'a'b' under the test source
+    /// Calculate hue-bin averaged J'a'b' values for the CES samples under the test illuminant
     pub fn jabp_average_ts(&self) -> [[f64; 3]; N_ANGLE_BIN] {
         let mut rst = [([0f64, 0f64, 0f64], 0f64); N_ANGLE_BIN];
         for i in 0..N_CFI {
+            // get J'a'b' for test illuminant and reference illuminant
+            // need reference to determine hue angle bin
             let [jt, at, bt] = self.jabp_ts[i];
             let [_jr, ar, br] = self.jabp_rs[i];
+
+            // determine hue angle bin from reference sample
             let mut phi = f64::atan2(br, ar);
             if phi < 0. {
                 phi += 2. * PI;
             }
+
+            // accumulate into hue angle bin
             let i = (phi / (2. * PI) * N_ANGLE_BIN as f64) as usize;
             rst[i].0[0] += jt;
             rst[i].0[1] += at;
             rst[i].0[2] += bt;
-            rst[i].1 += 1.;
+            rst[i].1 += 1.; // sample count in bin
         }
         rst.map(|([j, a, b], n)| {
             if n == 0. {
@@ -136,15 +142,19 @@ impl CFI {
         })
     }
 
-    /// Returns hue-bin averaged J'a'b' under the reference source
+    /// Returns hue-bin averaged J'a'b' values for the CES samples under the reference illuminant
     pub fn jabp_average_rs(&self) -> [[f64; 3]; N_ANGLE_BIN] {
         let mut rst = [([0f64, 0f64, 0f64], 0f64); N_ANGLE_BIN];
         for i in 0..N_CFI {
+
+            // get J'a'b' for reference illuminant
             let [jr, ar, br] = self.jabp_rs[i];
             let mut phi = f64::atan2(br, ar);
             if phi < 0. {
                 phi += 2. * PI;
             }
+
+            // accumulate into hue angle bin
             let i = (phi / (2. * PI) * N_ANGLE_BIN as f64) as usize;
             rst[i].0[0] += jr;
             rst[i].0[1] += ar;
@@ -205,15 +215,34 @@ impl CFI {
         compute_hue_angle_bin_average(&self.jabp_average_rs())
     }
 
-    /// Returns the gamut index
+    /// Calculate the IES-TM-30-18 Gamut Index (Rg) for the illuminant.
+    ///
+    /// # Returns
+    /// * `f64` - The Gamut Index (Rg) value, representing the color gamut of the light source.
+    ///
+    /// # Overview
+    /// The Gamut Index (Rg) quantifies the extent of color saturation provided by a light source.
+    /// It is calculated by comparing the area of the color gamut formed by the test light source
+    /// to that of a reference illuminant (either daylight or Planckian).
+    /// Higher Rg values indicate a wider color gamut, meaning the light source can render more saturated colors.
+    /// 
+    /// # Notes
+    /// - An Rg value of 100 indicates that the test light source has the same color gamut area as the reference illuminant.
+    /// - Values above 100 suggest a wider gamut, while values below 100 indicate a narrower gamut.
+    /// - The Gamut Index is not part of the CIE 2017 Colour Fidelity Index (CFI) but is often reported alongside it for a comprehensive
+    ///   assessment of a light source's color rendering capabilities.
+    ///
+    /// # Reference
+    /// - ANSI/IES TM-30-20 Method for Evaluating Light Source Color Rendition, section 4.4, Gamut Index Rg (ISBN 978-0-87995-379-9)
+    /// 
     pub fn rg(&self) -> f64 {
         let origin = [0.; 2];
         let av_samples_t = self.jabp_average_ts();
         let av_samples_r = self.jabp_average_rs();
         let mut at = 0f64;
         let mut ar = 0f64;
-        // Compute area of At
         for i in 0..N_ANGLE_BIN {
+            // Compute gamut area for the test source
             let area_t = math::compute_triangle_area(
                 &[av_samples_t[i][1], av_samples_t[i][2]],
                 &[
@@ -222,6 +251,7 @@ impl CFI {
                 ],
                 &origin,
             );
+            // Compute gamut area for the reference source
             let area_r = math::compute_triangle_area(
                 &[av_samples_r[i][1], av_samples_r[i][2]],
                 &[
@@ -296,7 +326,7 @@ impl CFI {
     /// the CCT is always computed using the CIE 1931 2° standard observer, following the official CIE 224:2017 procedure.
     ///
     /// # Returns
-    /// * [`CCT`] — A strcuture, containing the correlated color temperature of the test light source,
+    /// * [`CCT`] — A structure, containing the correlated color temperature of the test light source,
     ///   in Kelvin, and distance to the plancking curve in the CIE1960 UCS chromaticity diagram.
     ///
     pub fn cct(&self) -> CCT {
@@ -362,6 +392,7 @@ fn compute_normalized_ab_average(
 }
 
 #[allow(dead_code)]
+// this is not used, and reason why we should keep this?
 fn compute_hue_bin_edges() -> [f64; N_ANGLE_BIN + 1] {
     let dh = 360. / N_ANGLE_BIN as f64;
     let mut hbe = [0f64; N_ANGLE_BIN + 1];
@@ -405,6 +436,7 @@ mod tests {
         let cfi = CFI::new(&F1).unwrap();
         assert_abs_diff_eq!(cfi.cct().t(), 6428.0, epsilon = 3.0); // Rf for DE=1
         assert_abs_diff_eq!(cfi.general_color_fidelity_index(), 81.0, epsilon = 0.5);
+        assert_abs_diff_eq!(cfi.rg(),  90.0, epsilon = 1.0);
         // Rf for DE=1
     }
 
@@ -414,6 +446,7 @@ mod tests {
         let cfi = CFI::new(&F2).unwrap();
         assert_abs_diff_eq!(cfi.cct().t(), 4225.0, epsilon = 1.0); // Rf for DE=1
         assert_abs_diff_eq!(cfi.general_color_fidelity_index(), 70.0, epsilon = 0.5);
+        assert_abs_diff_eq!(cfi.rg(),  86.0, epsilon = 1.0);
     }
 
     #[test]
@@ -422,6 +455,7 @@ mod tests {
         let cfi = CFI::new(&F12).unwrap();
         assert_abs_diff_eq!(cfi.cct().t(), 3000.0, epsilon = 1.0); // Rf for DE=1
         assert_abs_diff_eq!(cfi.general_color_fidelity_index(), 78.0, epsilon = 0.6);
-        // Rf for DE=1
+        // TODO this fails, with a value of 109 instead of 102
+        assert_abs_diff_eq!(cfi.rg(),  102.0, epsilon = 1.0);
     }
 }
