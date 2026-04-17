@@ -182,7 +182,7 @@ impl CFI {
 
     /// Returns the hue-bin averaged J'a'b' for the **test** source (TM-30 / CIE 224:2017 Annex E).
     ///
-    /// The 99 CES are sorted into [`N_ANGLE_BIN`] = 16 hue bins and their J'a'b' values are
+    /// The 99 CES are sorted into 16 hue bins (`N_ANGLE_BIN`) and their J'a'b' values are
     /// averaged within each bin. This reduces the 99 individual points to 16 representative
     /// points that are used for the gamut index (Rg) and the Colour Vector Graphic (CVG).
     ///
@@ -447,9 +447,9 @@ impl CFI {
     /// (ANSI/IES TM-30-20/24, §4.5).
     ///
     /// For each bin *j*, the subset of the 99 CES samples whose reference-source hue angle
-    /// falls in that sector is collected (same binning as [`jabp_average_ts`]). The mean
+    /// falls in that sector is collected (same binning as `jabp_average_ts`). The mean
     /// ΔE′ for those samples is converted to an Rf score via the softplus formula
-    /// (see [`rf_from_de`]). A high Rf,hj signals good colour fidelity for hues near that
+    /// (same formula as the overall Rf). A high Rf,hj signals good colour fidelity for hues near that
     /// sector; a low value flags a problematic hue region.
     ///
     /// Bins with no samples return `NaN` (does not occur in practice with 99 CES).
