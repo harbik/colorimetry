@@ -380,6 +380,12 @@ impl CFI {
         100. * at / ar
     }
 
+    /// Deprecated alias for [`general_color_gamut_index`](Self::general_color_gamut_index).
+    #[deprecated(since = "0.0.8", note = "use `general_color_gamut_index()` instead")]
+    pub fn rg(&self) -> f64 {
+        self.general_color_gamut_index()
+    }
+
     /// Returns the array of special color fidelity indices (Rf<sub>1</sub> through Rf<sub>99</sub>) as defined in
     /// [CIE 224:2017 – CIE 2017 Colour Fidelity Index for accurate scientific use](https://cie.co.at/publications/cie-2017-colour-fidelity-index-accurate-scientific-use).
     ///
@@ -485,14 +491,18 @@ impl CFI {
     /// where C′t,hj and C′r,hj are the CIECAM02-UCS chroma of the bin-averaged test and
     /// reference centroids respectively. A positive value indicates that the test source
     /// boosts saturation in that hue direction; negative means desaturation.
-    /// Typical range is roughly −0.5 to +0.5. Returns `INFINITY` for empty bins.
+    /// Typical range is roughly −0.5 to +0.5. Returns `NaN` for empty bins (which does
+    /// not occur in practice with 99 CES across 16 bins). Note: the underlying
+    /// [`jabp_average_rs`](Self::jabp_average_rs) already returns `[NaN; 3]` for empty
+    /// bins, so the resulting chroma is `NaN`, not `0.0`.
     pub fn rcs_hj(&self) -> [f64; N_ANGLE_BIN] {
         let ct = self.normalized_chroma_average_ts();
         let cr = self.normalized_chroma_average_rs();
         let mut result = [0f64; N_ANGLE_BIN];
         for j in 0..N_ANGLE_BIN {
-            result[j] = if cr[j] == 0. {
-                f64::INFINITY
+            // cr[j] is NaN (not 0) for empty bins, so check is_nan() rather than == 0.
+            result[j] = if cr[j].is_nan() || cr[j] == 0. {
+                f64::NAN
             } else {
                 (ct[j] - cr[j]) / cr[j]
             };
