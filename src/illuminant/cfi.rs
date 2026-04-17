@@ -292,17 +292,20 @@ impl CFI {
     /// - Values **> 1.0** indicate the test source boosts saturation in that hue direction.
     /// - Values **< 1.0** indicate desaturation.
     ///
-    /// If the reference chroma for a bin is zero (empty bin), the ratio is `INFINITY`.
+    /// Returns `NaN` for empty bins. In practice empty bins produce `NaN` chroma (not `0.0`)
+    /// because [`jabp_average_rs`](Self::jabp_average_rs) returns `[NaN; 3]` when a bin
+    /// contains no CES samples.
     pub fn normalized_chroma_average(&self) -> [f64; N_ANGLE_BIN] {
         let ct = self.normalized_chroma_average_ts();
         let cr = self.normalized_chroma_average_rs();
         let mut ctn = [0f64; N_ANGLE_BIN];
         for i in 0..N_ANGLE_BIN {
-            if cr[i] == 0. {
-                ctn[i] = f64::INFINITY;
+            // cr[i] is NaN (not 0) for empty bins, so check is_nan() as well as == 0.
+            ctn[i] = if cr[i].is_nan() || cr[i] == 0. {
+                f64::NAN
             } else {
-                ctn[i] = ct[i] / (cr[i] + 1e-308);
-            }
+                ct[i] / cr[i]
+            };
         }
         ctn
     }
