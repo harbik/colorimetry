@@ -404,6 +404,12 @@ impl Index<usize> for Spectrum {
     type Output = f64;
 
     fn index(&self, i: usize) -> &Self::Output {
+        assert!(
+            SPECTRUM_WAVELENGTH_RANGE.contains(&i),
+            "Wavelength index {i} nm is out of range ({}..={})",
+            SPECTRUM_WAVELENGTH_RANGE.start(),
+            SPECTRUM_WAVELENGTH_RANGE.end()
+        );
         &self.0[(i - SPECTRUM_WAVELENGTH_RANGE.start(), 0)]
     }
 }
@@ -416,13 +422,19 @@ impl Index<usize> for Spectrum {
 /// Panic if the index is less than 380 or greater than 780.
 impl IndexMut<usize> for Spectrum {
     fn index_mut(&mut self, i: usize) -> &mut Self::Output {
+        assert!(
+            SPECTRUM_WAVELENGTH_RANGE.contains(&i),
+            "Wavelength index {i} nm is out of range ({}..={})",
+            SPECTRUM_WAVELENGTH_RANGE.start(),
+            SPECTRUM_WAVELENGTH_RANGE.end()
+        );
         &mut self.0[(i - SPECTRUM_WAVELENGTH_RANGE.start(), 0)]
     }
 }
 
 /// Linear interpolation over a dataset over an equidistant wavelength domain
 fn linterp(mut wl: [f64; 2], data: &[f64]) -> Result<[f64; NS], Error> {
-    wl.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    wl.sort_by(f64::total_cmp);
     let [wl, wh] = wavelengths(wl);
     let dlm1 = data.len() - 1; // data length min one
 
@@ -513,7 +525,7 @@ fn sprinterp(mut wl: [f64; 2], data: &[f64]) -> Result<[f64; NS], Error> {
         }
     };
 
-    wl.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    wl.sort_by(f64::total_cmp);
     let [wl, wh] = wavelengths(wl);
 
     let mut spd = [0f64; NS];

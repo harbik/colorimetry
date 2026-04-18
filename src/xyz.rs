@@ -236,6 +236,11 @@ impl XYZ {
     }
 
     /// Returns the chromaticity coordinates of this `XYZ` value.
+    ///
+    /// Returns `NaN` chromaticity coordinates if X + Y + Z = 0 (absolute black), for which
+    /// chromaticity is mathematically undefined. Use [`XYZ::try_chromaticity`] if you need
+    /// explicit handling of the black case.
+    ///
     /// ```
     /// use approx::assert_ulps_eq;
     /// use colorimetry::{illuminant::CieIlluminant, observer::Observer::Cie1931, xyz::XYZ};
@@ -248,6 +253,18 @@ impl XYZ {
         let [x, y, z] = self.to_array();
         let s = x + y + z;
         Chromaticity::new(x / s, y / s)
+    }
+
+    /// Returns the chromaticity coordinates of this `XYZ` value, or `None` for absolute black
+    /// (X + Y + Z = 0), for which chromaticity is undefined.
+    pub fn try_chromaticity(&self) -> Option<Chromaticity> {
+        let [x, y, z] = self.to_array();
+        let s = x + y + z;
+        if s == 0.0 {
+            None
+        } else {
+            Some(Chromaticity::new(x / s, y / s))
+        }
     }
 
     /// CIE 1960 UCS Color Space uv coordinates *Deprecated* by the CIE, but
@@ -387,11 +404,15 @@ impl std::ops::Add<XYZ> for XYZ {
 
     /// Add tristimulus values using the "+" operator.
     ///
-    /// Panics if not the same oberver is used.
+    /// # Panics
+    ///
+    /// Panics if the two XYZ values use different observers.
     fn add(mut self, rhs: XYZ) -> Self::Output {
         assert!(
             self.observer == rhs.observer,
-            "Can not add two XYZ values for different observers"
+            "Cannot add XYZ values with different observers ({:?} vs {:?})",
+            self.observer,
+            rhs.observer
         );
         self.xyz += rhs.xyz;
         self
@@ -403,11 +424,15 @@ impl std::ops::Sub<XYZ> for XYZ {
 
     /// Subtract tristimulus values using the "-" operator.
     ///
-    /// Panics if not the same observer is used.
+    /// # Panics
+    ///
+    /// Panics if the two XYZ values use different observers.
     fn sub(mut self, rhs: XYZ) -> Self::Output {
         assert!(
             self.observer == rhs.observer,
-            "Can not subtract two XYZ values for different observers"
+            "Cannot subtract XYZ values with different observers ({:?} vs {:?})",
+            self.observer,
+            rhs.observer
         );
         self.xyz -= rhs.xyz;
         self

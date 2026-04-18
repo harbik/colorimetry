@@ -66,7 +66,7 @@ impl Stimulus {
     }
 
     /// A spectral composition of a display pixel, set to three sRGB color values.  The spectrum is
-    /// a linear combination of the spectral primaries, which are Gaudssian filtered components in
+    /// a linear combination of the spectral primaries, which are Gaussian filtered components in
     /// this library.
     pub fn from_srgb(r_u8: u8, g_u8: u8, b_u8: u8) -> Self {
         let rgb = Rgb::from_u8(
@@ -80,7 +80,7 @@ impl Stimulus {
     }
 
     /// A spectral composition of a display pixel, set to three sRGB color values.  The spectrum is
-    /// a linear combination of the spectral primaries, which are Gaudssian filtered components in
+    /// a linear combination of the spectral primaries, which are Gaussian filtered components in
     /// this library.
     pub fn from_rgb(rgb: Rgb) -> Self {
         rgb.into()

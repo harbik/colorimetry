@@ -406,7 +406,7 @@ dual licensed as above, without any additional terms or conditions.
 [`Observer`]: https://docs.rs/colorimetry/latest/colorimetry/observer/enum.Observer.html
 [`Observer::Cie1931`]: https://docs.rs/colorimetry/latest/colorimetry/observer/enum.Observer.html#variant.Cie1931
 [`Observer::Cie1964`]: https://docs.rs/colorimetry/latest/colorimetry/observer/enum.Observer.html#variant.Cie1964
-[`Observer::Cie2015`]: https://docs.rs/colorimetry/latest/colorimetry/observer/enum.Observer.html#variant.Ci2015e
+[`Observer::Cie2015`]: https://docs.rs/colorimetry/latest/colorimetry/observer/enum.Observer.html#variant.Cie2015
 [`Observer::Cie2015_10`]: https://docs.rs/colorimetry/latest/colorimetry/observer/enum.Observer.html#variant.Cie2015_10
 [`XYZ`]: https://docs.rs/colorimetry/latest/colorimetry/xyz/struct.XYZ.html
 [`Rgb`]: https://docs.rs/colorimetry/latest/colorimetry/rgb/struct.RGB.html
