@@ -1,6 +1,6 @@
 [package]
 name = "colorimetry"
-version = "0.0.8"
+version.workspace = true
 edition = "2021"
 rust-version = "1.80"
 description = "Rust Spectral Colorimetry library with JavaScript/WASM interfaces"
@@ -20,6 +20,14 @@ members = [
     "xtask",
     "."  # main crate
 ]
+
+[workspace.package]
+version = "0.0.8"
+
+[workspace.dependencies]
+# Single source of truth for the colorimetry version used by plot and cli.
+# The [patch.crates-io] entry below redirects this to the local path during development.
+colorimetry = { version = "0.0.8" }
 
 [dependencies]
 nalgebra = "0.33"
