@@ -298,7 +298,8 @@ impl Observer {
     ///
     /// Values are not normalized by default, unless an illuminance value is provided.
     ///
-    /// TODO: buffer values
+    /// Results are not cached. For the common cases of D65 and D50, use the dedicated
+    /// [`Observer::xyz_d65`] and [`Observer::xyz_d50`] methods, which cache their results.
     pub fn xyz_cie_table(&self, std_illuminant: &CieIlluminant, illuminance: Option<f64>) -> XYZ {
         let xyz = self.xyz_from_spectrum(std_illuminant.illuminant().as_ref());
         if let Some(l) = illuminance {

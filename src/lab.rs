@@ -286,6 +286,11 @@ fn lab(xyz: Vector3<f64>, xyzn: Vector3<f64>) -> Vector3<f64> {
     let &[x, y, z] = xyz.as_ref();
     let &[xn, yn, zn] = xyzn.as_ref();
 
+    assert!(
+        xn > 0.0 && yn > 0.0 && zn > 0.0,
+        "White point XYZ components must all be positive (got Xn={xn}, Yn={yn}, Zn={zn})"
+    );
+
     let lab_f = |t: f64| {
         if t > DELTA {
             t.cbrt()
