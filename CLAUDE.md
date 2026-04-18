@@ -25,12 +25,14 @@ These three commands together are the definition of "the build is green" for thi
 ## Reference standards
 
 CIE and IES standard documents are stored locally in `standards/` (gitignored — never committed to
-the repo). When implementing or verifying anything against a standard, read the relevant document
-from that directory. Key documents to look for:
+the repo). The PDFs are purchased standards that cannot be redistributed; each developer must
+obtain their own copy. When implementing or verifying anything against a standard, read the
+relevant document from that directory. Key documents to look for:
 
 - `standards/Colorimetry, 4th Edition (CIE15-2018).pdf` — CIE 15:2018 Colorimetry
+  (available for purchase at cie.co.at)
 
-Add new documents to `standards/` and list them here as they are acquired.
+Add new documents to `standards/` and list them here (with purchase URL) as they are acquired.
 
 ## Domain context
 
