@@ -70,12 +70,11 @@ This workspace contains three published crates that must always share the same v
 | `colorimetry-plot` | `plot/Cargo.toml` |
 | `colorimetry-cli` | `cli/Cargo.toml` |
 
-When bumping the version for a release, update **all** of the following in a single commit:
+Version is declared once via Cargo workspace inheritance. When bumping for a release, update **all** of the following in a single commit:
 
-1. `Cargo.toml` — `[package] version`
-2. `plot/Cargo.toml` — `[package] version` **and** the `colorimetry = {version = "..."}` dependency
-3. `cli/Cargo.toml` — `[package] version` **and** the `colorimetry = {version = "..."}` dependency
-4. Any install instructions in `README.md`, `cli/README.md`, or `plot/README.md` that pin a specific version
+1. `Cargo.toml` — `[workspace.package] version` and `[workspace.dependencies] colorimetry version`
+   (sub-crates inherit both automatically via `version.workspace = true` and `colorimetry = {workspace = true, ...}`)
+2. Any install instructions in `README.md`, `cli/README.md`, or `plot/README.md` that pin a specific version
 
 Before publishing, run the full xtask pipeline from the workspace root (which covers all member crates):
 

@@ -7,11 +7,10 @@ there apply here as well.
 ## Version sync
 
 `colorimetry-cli` must always be at the same version as `colorimetry` and `colorimetry-plot`.
-When bumping the version, update:
+Version is managed via Cargo workspace inheritance — this crate uses `version.workspace = true`
+and `colorimetry = {workspace = true, ...}`, so there is nothing to update here when bumping.
 
-- `[package] version` in this file (`cli/Cargo.toml`)
-- `colorimetry = {version = "..."}` dependency in this file (`cli/Cargo.toml`)
-- The corresponding fields in `../Cargo.toml` and `../plot/Cargo.toml`
-
-See the **Multi-crate version sync** section in the root `CLAUDE.md` for the full checklist,
-including publication order and xtask commands to run before publishing.
+To bump the version, edit only `[workspace.package] version` and `[workspace.dependencies]
+colorimetry version` in the root `../Cargo.toml`. See the **Multi-crate version sync** section
+there for the full checklist, including publication order and xtask commands to run before
+publishing.
