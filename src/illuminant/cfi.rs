@@ -44,6 +44,13 @@ pub const N_ANGLE_BIN: usize = 16;
 /// - **Use CRI** if you need compatibility with legacy systems or must comply with standards that specify CRI.
 /// - **Use CFI (Rf)** for a more precise and scientifically up-to-date assessment of color fidelity, especially with modern or tunable light sources.
 ///
+/// # TM-30 version
+/// This implementation follows **ANSI/IES TM-30-20** and **TM-30-24**, which are harmonised with
+/// **CIE 224:2017**. It does **not** implement the earlier TM-30-15 or TM-30-18 editions.
+/// The key difference from TM-30-15 is the scaling constant in the Rf formula: TM-30-15 used
+/// `CF = 7.54`; all later editions (TM-30-18, TM-30-20, TM-30-24, CIE 224:2017) use `CF = 6.73`,
+/// which this library implements.
+///
 /// # Reference
 /// [CIE 224:2017 – CIE 2017 Colour Fidelity Index for accurate scientific use](https://cie.co.at/publications/colour-fidelity-index-accurate-scientific-use)
 pub struct CFI {
@@ -178,6 +185,81 @@ impl CFI {
     /// for each CES under the **reference** source.
     pub fn hue_angle_bin_rs(&self) -> [f64; N_CFI] {
         compute_hue_angle_bin(&self.jabp_rs)
+    }
+
+    /// Returns the per-sample fractional chroma shift `(C't − C'r) / C'r` for each of the 99 CES.
+    ///
+    /// - Positive values mean the test source makes that sample appear **more saturated** than
+    ///   the reference.
+    /// - Negative values mean **desaturation**.
+    /// - Zero means the chroma is unchanged.
+    ///
+    /// This is the per-sample equivalent of [`rcs_hj`](Self::rcs_hj), which reports the
+    /// same quantity averaged over all samples in each of the 16 hue bins.
+    pub fn chroma_shift(&self) -> [f64; N_CFI] {
+        let ct = self.chroma_ts();
+        let cr = self.chroma_rs();
+        let mut result = [0f64; N_CFI];
+        for i in 0..N_CFI {
+            result[i] = if cr[i] == 0. {
+                f64::NAN
+            } else {
+                (ct[i] - cr[i]) / cr[i]
+            };
+        }
+        result
+    }
+
+    /// Returns the per-sample hue shift `h't − h'r` (radians, wrapped to `(−π, π]`) for each
+    /// of the 99 CES.
+    ///
+    /// - Positive values indicate a **counter-clockwise** rotation (toward higher hue angles in
+    ///   the a'b' plane).
+    /// - Negative values indicate a **clockwise** rotation.
+    /// - The result is always the shorter arc, so the magnitude never exceeds π.
+    ///
+    /// This is the per-sample equivalent of [`rhs_hj`](Self::rhs_hj), which reports the
+    /// same quantity for the bin-averaged centroid of each of the 16 hue bins.
+    pub fn hue_shift(&self) -> [f64; N_CFI] {
+        let ht = self.hue_angle_bin_ts();
+        let hr = self.hue_angle_bin_rs();
+        let mut result = [0f64; N_CFI];
+        for i in 0..N_CFI {
+            let mut dh = ht[i] - hr[i];
+            if dh > PI {
+                dh -= 2. * PI;
+            } else if dh <= -PI {
+                dh += 2. * PI;
+            }
+            result[i] = dh;
+        }
+        result
+    }
+
+    /// Maps a hue angle to the corresponding TM-30 / CIE 224:2017 bin index in
+    /// `[0, N_ANGLE_BIN)`.
+    ///
+    /// The 360° circle is divided into `N_ANGLE_BIN` (16) equal sectors of 22.5° each.
+    /// Any input angle (in radians) is first wrapped to `[0, 2π)` via `rem_euclid`, then
+    /// assigned to one of the 16 bins — the same rule used internally for all 99 CES samples.
+    ///
+    /// Use this to assign your own colour patches to the standard hue bins and combine their
+    /// results with the per-bin metrics (`rf_hj`, `rcs_hj`, `rhs_hj`) reported by this struct.
+    ///
+    /// # Example
+    /// ```
+    /// use colorimetry::illuminant::CFI;
+    /// use std::f64::consts::PI;
+    ///
+    /// // 90° (straight up in the a'b' plane, i.e. yellow-green) → bin 4.
+    /// assert_eq!(CFI::hue_angle_bin_index(PI / 2.0), 4);
+    ///
+    /// // Negative angles are wrapped: −90° == 270° → bin 12.
+    /// assert_eq!(CFI::hue_angle_bin_index(-PI / 2.0), 12);
+    /// ```
+    pub fn hue_angle_bin_index(hue_angle_rad: f64) -> usize {
+        let phi = hue_angle_rad.rem_euclid(2. * PI);
+        (phi / (2. * PI) * N_ANGLE_BIN as f64) as usize
     }
 
     /// Returns the hue-bin averaged J'a'b' for the **test** source (TM-30 / CIE 224:2017 Annex E).
