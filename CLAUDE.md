@@ -31,7 +31,7 @@ relevant document from that directory. Key documents to look for:
 
 - `standards/Colorimetry, 4th Edition (CIE15-2018).pdf` — CIE 15:2018 Colorimetry
   (available for purchase at cie.co.at)
-- `standards/CIE 2017 Colour Fidelity Index for accurate scientifiic use (CIE224-2017).pdf` — CIE 224:2017
+- `standards/CIE 2017 Colour Fidelity Index for accurate scientific use (CIE224-2017).pdf` — CIE 224:2017
   Colour Fidelity Index for accurate scientific use (available for purchase at cie.co.at)
 
 Add new documents to `standards/` and list them here (with purchase URL) as they are acquired.
