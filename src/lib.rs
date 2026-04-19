@@ -2,11 +2,11 @@
 // Copyright (c) 2024-2025, Harbers Bik LLC
 
 /*!
-This is a Rust library for working with color and light — great for projects in lighting, imaging, or anything that needs accurate color handling.
-It includes tools to simulate how colors look under different lights, convert between color spaces, and follow well-known standards from groups like the CIE, ICC, and IES.
-You can use it to build lighting tools, visualize spectra, or get the right transforms for your color profiles.
+This is a Rust library for spectral colorimetry — the science of measuring and predicting color based on the spectral composition of light.
+It implements the core calculation methods defined in **CIE 15:2018 Colorimetry**[^cie15] and the color rendering metrics defined in **CIE 224:2017 Colour Fidelity Index**[^cie224] / **ANSI/IES TM-30**.
+Use it to build lighting-quality tools, simulate how colors shift under different light sources, convert between color spaces, or compute accurate observer-weighted tristimulus values.
 
-It also has early support for JavaScript and WebAssembly, so you can run it in the browser, and use it with JavaScript Runtimes such as Deno.
+It also has early support for JavaScript and WebAssembly, so you can run it in the browser and use it with JavaScript runtimes such as Deno.
 
 # Usage
 
@@ -19,7 +19,7 @@ To use this library in a Rust application, run the command:
 or add this line to the dependencies in your Cargo.toml file:
 
 ```text
-    colorimetry = "0.0.7"
+    colorimetry = "0.0.8"
 ```
 
 # Examples
@@ -80,12 +80,15 @@ locus, often referred to as the tint.
 <details>
 <summary><strong>Calculate Color Fidelity Index for Illuminants</strong></summary>
 
-The CIE has announced that the Color Fidelity Index (CFI) will replace the Color Rendering Index
-(CRI) as the standard metric for evaluating color rendering. Both indices aim to quantify how
-accurately a light source reproduces the colors of illuminated objects. However, the CFI offers a
-significant improvement in accuracy by using 99 reference color samples and more advanced color
-difference metrics, compared to the CRI’s use of only 8 samples.
-Below is an example calculation of the general Color Fidelity Index for the CIE F2 illuminant:
+The **CIE 2017 Colour Fidelity Index** (**R<sub>f</sub>**, CIE 224:2017[^cie224]) is the modern replacement for the
+older Color Rendering Index (**R<sub>a</sub>**, CRI). Both indices quantify how accurately a light source
+reproduces the colors of illuminated objects relative to a reference illuminant. The CFI is significantly
+more accurate: it uses 99 Color Evaluation Samples (CES) covering a broad range of real-world colors and
+applies the CIECAM02-UCS perceptual color space, compared to CRI’s 8 pastel samples and the outdated
+CIE 1964 (U\*V\*W\*) space. This library implements the version harmonized with **ANSI/IES TM-30-20/24**
+(scaling constant CF = 6.73).
+
+Below is an example calculation of the general Colour Fidelity Index for the CIE F2 illuminant:
 
 ```
 # #[cfg(feature = "cie-illuminants")]
@@ -290,9 +293,14 @@ what you'd actually see on a freshly painted surface.
 
 - Calculate Illuminant metrics:
 
-  - [`CCT`] Correlated color temperature, including distance to the blackbody locus for tint indication[^1]
-  - [`CRI`] Color rendering index[^2]
-  - [`CFI`] Color fidelity index[^3]
+  - [`CCT`] Correlated color temperature (CIE 15:2018[^cie15] §9), including distance to the blackbody locus (Duv) for tint indication[^1]
+  - [`CRI`] Color Rendering Index R<sub>a</sub> / R<sub>1</sub>–R<sub>14</sub>[^2]
+  - [`CFI`] CIE 2017 Colour Fidelity Index R<sub>f</sub> / R<sub>f,1</sub>–R<sub>f,99</sub> (CIE 224:2017[^cie224])[^3]:
+    - [`CFI::general_color_fidelity_index`] — overall R<sub>f</sub> score (0–100)
+    - [`CFI::general_color_gamut_index`] — gamut index R<sub>g</sub>, area of the 16-bin a′b′ polygon relative to the reference (ANSI/IES TM-30)
+    - [`CFI::rf_hj`] — per-hue-bin fidelity R<sub>f,hj</sub> for each of the 16 hue sectors
+    - [`CFI::rcs_hj`] — per-hue-bin chroma shift R<sub>cs,hj</sub> (fraction; positive = saturation boost)
+    - [`CFI::rhs_hj`] — per-hue-bin hue shift R<sub>hs,hj</sub> (radians, wrapped to (−π, π])
 
 - Use Advanced color (appearance) models:
 
@@ -318,9 +326,22 @@ what you'd actually see on a freshly painted surface.
   - Plot maximum luminance value contours on chromaticity diagrams.
   - Use in hue-neutral gamut-compression algorithms.
 
-[^1]: McCamy, C. S. (1992). Correlated color temperature as an explicit function of chromaticity coordinates. Color Research & Application, 17(2), 142-144.
-[^2]: Wyszecki, G., & Stiles, W. S. (2000). Color science: concepts and methods, quantitative data and formulae. John Wiley & Sons.
-[^3]: Li, C., Luo, M. R., & Cui, G. (2020). The CIE 2017 colour fidelity index for accurate scientific use. Optics express, 28(5), 6589-6609.
+[^cie15]: CIE 15:2018 *Colorimetry*, 4th edition. Commission Internationale de l'Éclairage. ISBN 978-3-902842-13-8. Available at <https://cie.co.at/publications/colorimetry-4th-edition>.
+[^cie224]: CIE 224:2017 *Colour Fidelity Index for Accurate Scientific Use*. Commission Internationale de l'Éclairage. ISBN 978-3-902842-55-8. Available at <https://cie.co.at/publications/colour-fidelity-index-accurate-scientific-use>.
+[^1]: McCamy, C. S. (1992). Correlated color temperature as an explicit function of chromaticity coordinates. *Color Research & Application*, 17(2), 142–144. The Ohno (2014) method is used internally for higher accuracy.
+[^2]: CIE 13.3-1995 *Method of Measuring and Specifying Colour Rendering Properties of Light Sources*. The R<sub>a</sub> (CRI) metric is based on 8 test color samples in CIE 1964 (U\*V\*W\*) space; see Wyszecki & Stiles (2000) for background.
+[^3]: CIE 224:2017[^cie224] defines R<sub>f</sub> using 99 CES in CIECAM02-UCS J′a′b′ space with a softplus formula (CF = 6.73). This library also implements the per-bin metrics R<sub>f,hj</sub>, R<sub>cs,hj</sub>, R<sub>hs,hj</sub> and the gamut index R<sub>g</sub> from ANSI/IES TM-30-20/24.
+
+# Standards
+
+This library implements calculations defined in the following CIE and IES standards.
+The documents are not bundled with the library — each developer must obtain their own copy from the issuing body.
+
+| Standard | Topic | Purchase |
+|---|---|---|
+| **CIE 15:2018** | Colorimetry, 4th edition — tristimulus values, standard observers, chromaticity, CCT, CRI | <https://cie.co.at/publications/colorimetry-4th-edition> |
+| **CIE 224:2017** | Colour Fidelity Index for accurate scientific use — R<sub>f</sub>, R<sub>g</sub>, CES, CIECAM02-UCS | <https://cie.co.at/publications/colour-fidelity-index-accurate-scientific-use> |
+| **ANSI/IES TM-30-20/24** | IES method for evaluating light source color rendition — per-bin R<sub>f,hj</sub>, R<sub>cs,hj</sub>, R<sub>hs,hj</sub>, CVG | <https://www.ies.org/store/> |
 
 # Features
 
@@ -340,8 +361,10 @@ what you'd actually see on a freshly painted surface.
   Loads an additional 14 test color sample spectra.
 
 - `cfi`
-  Enables Color Fidelity Index (CRI) calculations, providing R<sub>f</sub> and R<sub>f,1</sub>–R<sub>f,99</sub> values for illuminants.
-  Loads the 99 CES test color sample spectra.
+  Enables Color Fidelity Index (CFI / R<sub>f</sub>) calculations following CIE 224:2017 / ANSI/IES TM-30.
+  Provides the overall R<sub>f</sub>, per-sample R<sub>f,1</sub>–R<sub>f,99</sub>, gamut index R<sub>g</sub>,
+  and the 16-bin metrics R<sub>f,hj</sub> / R<sub>cs,hj</sub> / R<sub>hs,hj</sub>.
+  Loads the 99 CES test color sample spectra at compile time.
 
 <details>
 <summary>How to enable a feature?</summary>
@@ -361,7 +384,7 @@ cargo add colorimetry --features cri,munsell
 Alternatively, configure features manually in your `Cargo.toml`:
 
 ```toml
-colorimetry = { version = "0.0.7", features = ["cri", "munsell"] }
+colorimetry = { version = "0.0.8", features = ["cri", "munsell"] }
 ```
 
 </details>
@@ -442,6 +465,11 @@ dual licensed as above, without any additional terms or conditions.
 [`CCT`]: https://docs.rs/colorimetry/latest/colorimetry/illuminant/struct.CCT.html
 [`CRI`]: https://docs.rs/colorimetry/latest/colorimetry/illuminant/struct.CRI.html
 [`CFI`]: https://docs.rs/colorimetry/latest/colorimetry/illuminant/struct.CFI.html
+[`CFI::general_color_fidelity_index`]: https://docs.rs/colorimetry/latest/colorimetry/illuminant/struct.CFI.html#method.general_color_fidelity_index
+[`CFI::general_color_gamut_index`]: https://docs.rs/colorimetry/latest/colorimetry/illuminant/struct.CFI.html#method.general_color_gamut_index
+[`CFI::rf_hj`]: https://docs.rs/colorimetry/latest/colorimetry/illuminant/struct.CFI.html#method.rf_hj
+[`CFI::rcs_hj`]: https://docs.rs/colorimetry/latest/colorimetry/illuminant/struct.CFI.html#method.rcs_hj
+[`CFI::rhs_hj`]: https://docs.rs/colorimetry/latest/colorimetry/illuminant/struct.CFI.html#method.rhs_hj
 [`Colorant::gaussian`]: https://docs.rs/colorimetry/latest/colorimetry/colorant/struct.Colorant.html#method.gaussian
 [`Stimulus::from_rgb`]: https://docs.rs/colorimetry/latest/colorimetry/stimulus/struct.Stimulus.html#method.from_rgb
 [`Observer`]: https://docs.rs/colorimetry/latest/colorimetry/observer/enum.Observer.html
