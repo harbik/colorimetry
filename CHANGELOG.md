@@ -11,6 +11,18 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 * **Fixed**: for any bug fixes.
 * **Security**: in case of vulnerabilities.
 
+## [Unreleased]
+
+### Added
+
+* `CFI::chroma_shift()` — per-sample fractional chroma shift `(C't − C'r) / C'r` for all 99 CES (per-sample equivalent of `rcs_hj`).
+* `CFI::hue_shift()` — per-sample hue angle difference in radians, wrapped to `(−π, π]` (per-sample equivalent of `rhs_hj`).
+* `CFI::hue_angle_bin_index(hue_angle_rad)` — maps any hue angle (radians) to its TM-30 / CIE 224:2017 bin index in `[0, N_ANGLE_BIN)`, enabling hue-angle binning of arbitrary colour patches.
+
+### Changed
+
+* `CFI` struct documentation now explicitly states which TM-30 version is implemented (TM-30-20/24, aligned with CIE 224:2017; `CF = 6.73`), distinguishing it from the earlier TM-30-15 edition.
+
 ## [0.0.8] - 2025-09-5
 
 ### Added
