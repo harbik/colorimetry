@@ -64,6 +64,11 @@ Import from the [esm.sh](https://esm.sh) CDN inside a `<script type="module">` b
 The default export is an async `init()` function that compiles the `.wasm` binary; it
 must be awaited before calling any library function.
 
+> **Compatibility note:** the published `colorimetry@0.0.8` npm/esm.sh package predates
+> building the WASM module with CRI support, so `d65.cri().ra()` will not work from the CDN
+> at that version. To run this exact example, use a republished version that includes `cri`,
+> or build the WASM package locally with `cargo xtask wasm`.
+
 ```html
 <script type="module">
   import init, { Illuminant, CieIlluminant }
@@ -79,6 +84,10 @@ must be awaited before calling any library function.
 **Deno**
 
 Import from esm.sh using a URL import — no `npm:` prefix or local build required:
+
+> **Compatibility note:** as above, the published `colorimetry@0.0.8` CDN package does not
+> yet include CRI support in the WASM build, so `cri().ra()` requires a republished package
+> with `cri` enabled or a locally built `pkg/` output.
 
 ```typescript
 import init, { Illuminant, CieIlluminant }
