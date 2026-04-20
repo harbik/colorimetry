@@ -94,8 +94,7 @@ console.log("D65 Ra:", d65.cri().ra());
 
 > **Note** — the WASM support is at an early stage.  Not all types and methods are
 > exposed to JavaScript yet.  The TypeScript declarations in `colorimetry.d.ts`
-> document the full current surface.  The `cri()` method requires a build with
-> `--features cri`; the examples above will work once the next npm release is published.
+> document the full current surface.
 
 # Examples
 
