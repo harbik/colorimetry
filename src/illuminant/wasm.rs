@@ -3,6 +3,8 @@
 
 //! JS-WASM Interface code
 
+#[cfg(feature = "cri")]
+use super::CRI;
 use super::{CieIlluminant, Illuminant};
 use crate::spectrum::Spectrum;
 use crate::traits::Light;
@@ -27,7 +29,10 @@ impl Illuminant {
         values.into_boxed_slice()
     }
 
-    /// Calculates the Color Rendering Index values for illuminant spectrum.
+    /// Calculates the Color Rendering Index for this illuminant spectrum.
+    ///
+    /// Returns a `CRI` object with a `ra()` method that gives the general colour
+    /// rendering index Rₐ (average of R₁…R₈, scaled 0–100).
     #[cfg(feature = "cri")]
     #[wasm_bindgen(js_name=cri)]
     pub fn cri_js(&self) -> Result<crate::illuminant::CRI, crate::Error> {
@@ -41,5 +46,17 @@ impl Illuminant {
         // need this as wasm_bindgen does not support `impl` on Enum types (yet?).
         // in Rust use CieIlluminant.spectrum() directly, which also gives a reference instead of a copy.
         stdill.illuminant().clone()
+    }
+}
+
+/// Expose `CRI.ra()` to JavaScript when the `cri` feature is enabled.
+#[cfg(feature = "cri")]
+#[wasm_bindgen]
+impl CRI {
+    /// Returns the general colour rendering index Rₐ (0–100),
+    /// the average of the first eight special rendering indices R₁…R₈.
+    #[wasm_bindgen(js_name = ra)]
+    pub fn ra_js(&self) -> f64 {
+        self.ra()
     }
 }

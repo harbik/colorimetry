@@ -5,28 +5,30 @@
 <!-- cargo-rdme start -->
 
 This is a Rust library for **spectral colorimetry** — the science of measuring and predicting color
-based on the full spectral power distribution of light sources and the spectral sensitivity of the
-human eye.
+perception based on the full spectral power distribution of light sources, spectral reflectivity of surfaces,u
+and the spectral responsivity of human vision.
 It implements the core methods defined in **CIE 15:2018 Colorimetry**[^cie15] and the color-quality
 metrics defined in **CIE 224:2017 Colour Fidelity Index**[^cie224] / **ANSI/IES TM-30**.
 
 ### Why spectral?
 
 Every light source emits a unique mix of wavelengths — its *spectral power distribution* (SPD).
-Two light sources can look equally white to a meter yet render object colors very differently,
+Two light sources can look equally white yet render object colors very differently,
 because their SPDs differ where the reflectance of an illuminated surface is sensitive.
-Spectral colorimetry captures this by representing illuminants, surfaces, and filters as 401
-values from **380 to 780 nm** at 1 nm intervals, then integrating them against the color-matching
-functions of a standard observer (the CIE mathematical model of average human color vision).
-The result is a set of three numbers — the **XYZ tristimulus values** — from which all other color
+
+We don't see the same colors either - the eye's response is also wavelength-dependent, varying across the visible spectrum and between observers,
+changing with viewing conditions, age, and health.
+
+Spectral colorimetry captures this by representing illuminants, surfaces, and filters as spectral
+values, and using different observers' color-matching functions to predict how the eye perceives
+color under any combination of light and material.
+
+The result is a set of three, observer dependent, numbers — the **XYZ tristimulus values** — from which all other color
 quantities are derived: chromaticity, CCT, CIELAB, color-rendering metrics, and more.
 
 This approach is the foundation of all rigorous colorimetry work: lighting product development
 and qualification, ICC color profile construction, paint-to-screen matching, gamut analysis,
 and anything else where "what the camera sees" must match "what the eye sees."
-
-It also has early support for JavaScript and WebAssembly, so you can run it in the browser and
-use it with JavaScript runtimes such as Deno.
 
 ## Usage
 
@@ -41,6 +43,56 @@ or add this line to the dependencies in your Cargo.toml file:
 ```text
     colorimetry = "0.0.8"
 ```
+
+### JavaScript and WebAssembly
+
+The library also compiles to WebAssembly and ships a ready-to-use ES module, so the same
+colorimetry calculations can run in a browser or in a JavaScript runtime such as Deno.
+
+**Build the WASM package**
+
+```bash
+cargo xtask wasm          # requires wasm-pack and wasm-opt
+```
+
+This generates the `pkg/` directory containing `colorimetry.js` (ESM), `colorimetry_bg.wasm`,
+and the TypeScript declarations `colorimetry.d.ts`.
+
+**Browser**
+
+Import from the [esm.sh](https://esm.sh) CDN inside a `<script type="module">` block.
+The default export is an async `init()` function that compiles the `.wasm` binary; it
+must be awaited before calling any library function.
+
+```html
+<script type="module">
+  import init, { Illuminant, CieIlluminant }
+    from "https://esm.sh/colorimetry@0.0.8";
+
+  await init();
+
+  const d65 = Illuminant.illuminant(CieIlluminant.D65);
+  console.log("D65 Ra:", d65.cri().ra());
+</script>
+```
+
+**Deno**
+
+Import from esm.sh using a URL import — no `npm:` prefix or local build required:
+
+```typescript
+import init, { Illuminant, CieIlluminant }
+  from "https://esm.sh/colorimetry@0.0.8";
+
+await init();
+
+const d65 = Illuminant.illuminant(CieIlluminant.D65);
+console.log("D65 Ra:", d65.cri().ra());
+```
+
+> **Note** — the WASM support is at an early stage.  Not all types and methods are
+> exposed to JavaScript yet.  The TypeScript declarations in `colorimetry.d.ts`
+> document the full current surface.
 
 ## Examples
 
@@ -127,7 +179,7 @@ appearance of object colors compared to an ideal reference?"* The reference is a
 5000 K, with a smooth linear blend between 4000 K and 5000 K.
 
 The **CIE 2017 Colour Fidelity Index** (**R<sub>f</sub>**, CIE 224:2017[^cie224]) is the modern scientific
-measure. It evaluates 99 Color Evaluation Samples (CES) — a carefully chosen set of matte
+measure. It evaluates 99 Color Evaluation Samples (CES) — a carefully chosen set of
 surface reflectances spanning a wide range of hues, saturations, and object categories (skin
 tones, foliage, food, textiles, and architectural materials). For each sample, the perceived color
 under the test source is compared to the reference using the CIECAM02-UCS J′a′b′ perceptual
@@ -395,9 +447,7 @@ Returns both the **CCT** (in kelvin) and the **Duv** (signed distance from the P
 in the CIE 1960 UCS diagram):
 - Positive Duv (> 0) → chromaticity is *above* the locus → slightly **greenish tint**
 - Negative Duv (< 0) → chromaticity is *below* the locus → slightly **pinkish/magenta tint**
-- |Duv| < 0.006 is the ANSI C78.377 tolerance for white-light sources
-
-[^1]
+- |Duv| < 0.006 is the ANSI C78.377 tolerance for white-light sources[^1]
 
 #### Color Rendering Index (CRI)
 
@@ -491,7 +541,7 @@ Compute the limits of realizable color under a given observer:
 
 [^cie15]: CIE 15:2018 *Colorimetry*, 4th edition. Commission Internationale de l'Éclairage. ISBN 978-3-902842-13-8. Available at <https://cie.co.at/publications/colorimetry-4th-edition>.
 [^cie224]: CIE 224:2017 *Colour Fidelity Index for Accurate Scientific Use*. Commission Internationale de l'Éclairage. ISBN 978-3-902842-55-8. Available at <https://cie.co.at/publications/colour-fidelity-index-accurate-scientific-use>.
-[^1]: McCamy, C. S. (1992). Correlated color temperature as an explicit function of chromaticity coordinates. *Color Research & Application*, 17(2), 142–144. The Ohno (2014) isothermal method is used internally for higher accuracy over the full 1000–25 000 K range.
+[^1]: McCamy, C. S. (1992). Correlated color temperature as an explicit function of chromaticity coordinates. *Color Research & Application*, 17(2), 142–144.
 [^2]: CIE 13.3-1995 *Method of Measuring and Specifying Colour Rendering Properties of Light Sources*. R<sub>a</sub> is computed from 8 Munsell-based pastel test color samples in the CIE 1964 (U\*V\*W\*) uniform color space.
 [^3]: CIE 224:2017[^cie224] defines R<sub>f</sub> from 99 CES using CIECAM02-UCS J′a′b′ color differences and a softplus formula (CF = 6.73). R<sub>g</sub> and the per-bin metrics R<sub>f,hj</sub>, R<sub>cs,hj</sub>, R<sub>hs,hj</sub> follow ANSI/IES TM-30-20/24.
 
@@ -599,7 +649,7 @@ This project uses a Rust-based `xtask` utility for common development tasks:
 
 ## License
 
-All content &copy;2025 Harbers Bik LLC, and licensed under either of the
+All content &copy;2026 Harbers Bik LLC, and licensed under either of the
 
 - Apache License, Version 2.0,
   ([LICENSE-APACHE](LICENSE-APACHE) or <http://www.apache.org/licenses/LICENSE-2.0>), or the
