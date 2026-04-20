@@ -143,12 +143,10 @@ fn publish_wasm() {
             .lines()
             .find(|l| l.contains("\"version\""))
             .and_then(|l| {
-                let start = l.find('"')? + 1;
-                let l = &l[start..];
-                let start = l.find('"')? + 1;
-                let l = &l[start..];
-                let end = l.find('"')?;
-                Some(l[..end].to_string())
+                let (_, after) = l.split_once("\"version\"")?;
+                let (_, after) = after.split_once('"')?;
+                let (version, _) = after.split_once('"')?;
+                Some(version.to_string())
             })
         {
             println!("📦 Publishing colorimetry@{version} to npm");
@@ -156,7 +154,7 @@ fn publish_wasm() {
     }
 
     let status = Command::new("wasm-pack")
-        .args(["publish", "--out-dir", "pkg"])
+        .args(["publish", "--pkg-dir", "pkg"])
         .status()
         .expect("failed to run wasm-pack publish");
 
