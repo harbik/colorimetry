@@ -27,6 +27,11 @@ enum Commands {
     Doc,
     /// Builds the wasm-bindgen output using wasm-pack
     Wasm,
+    /// Builds and publishes the WASM package to npm
+    ///
+    /// Requires `wasm-pack`, `wasm-opt`, and an active `npm login` session.
+    /// The package version in pkg/package.json is set by wasm-pack from Cargo.toml.
+    PublishWasm,
     /// Generates data structures which are expensive to generate,
     /// and which are used in the library.
     Gen {
@@ -81,6 +86,10 @@ impl Commands {
             Commands::Wasm => {
                 build_wasm();
             }
+            Commands::PublishWasm => {
+                build_wasm();
+                publish_wasm();
+            }
             Commands::Gen { subcommand } => match subcommand {
                 GenCommands::RgbTransforms => {
                     gen_rgbxyz::main().unwrap();
@@ -124,6 +133,38 @@ fn build_wasm() {
     }
 
     println!("✅ wasm-bindgen build complete");
+}
+
+fn publish_wasm() {
+    // Read the version from pkg/package.json and print it so the user can
+    // confirm before the publish reaches npm.
+    if let Ok(json) = std::fs::read_to_string("pkg/package.json") {
+        if let Some(version) = json
+            .lines()
+            .find(|l| l.contains("\"version\""))
+            .and_then(|l| {
+                let start = l.find('"')? + 1;
+                let l = &l[start..];
+                let start = l.find('"')? + 1;
+                let l = &l[start..];
+                let end = l.find('"')?;
+                Some(l[..end].to_string())
+            })
+        {
+            println!("📦 Publishing colorimetry@{version} to npm");
+        }
+    }
+
+    let status = Command::new("wasm-pack")
+        .args(["publish", "--out-dir", "pkg"])
+        .status()
+        .expect("failed to run wasm-pack publish");
+
+    if !status.success() {
+        std::process::exit(status.code().unwrap_or(1));
+    }
+
+    println!("✅ Published to npm");
 }
 
 fn check_or_force_rdme() {
