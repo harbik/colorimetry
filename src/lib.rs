@@ -3,7 +3,7 @@
 
 /*!
 This is a Rust library for **spectral colorimetry** — the science of measuring and predicting color
-perception based on the full spectral power distribution of light sources, spectral reflectivity of surfaces,u
+perception based on the full spectral power distribution of light sources, spectral reflectivity of surfaces,
 and the spectral responsivity of human vision.
 It implements the core methods defined in **CIE 15:2018 Colorimetry**[^cie15] and the color-quality
 metrics defined in **CIE 224:2017 Colour Fidelity Index**[^cie224] / **ANSI/IES TM-30**.
