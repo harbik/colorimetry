@@ -62,6 +62,10 @@ Import from the [esm.sh](https://esm.sh) CDN inside a `<script type="module">` b
 The default export is an async `init()` function that compiles the `.wasm` binary; it
 must be awaited before calling any library function.
 
+> **Version note** — the published `colorimetry@0.0.8` WASM package predates enabling the
+> `cri` export, so the `d65.cri().ra()` examples below require a newer package version
+> (the first release after `0.0.8` that includes `cri`) or a locally built `pkg/` directory.
+
 ```html
 <script type="module">
   import init, { Illuminant, CieIlluminant }
