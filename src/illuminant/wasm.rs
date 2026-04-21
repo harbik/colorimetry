@@ -83,7 +83,7 @@ impl CFI {
     /// Colour Evaluation Samples compared to the reference illuminant.
     #[wasm_bindgen(js_name = colorFidelityIndex)]
     pub fn color_fidelity_index_js(&self) -> f64 {
-        self.general_color_fidelity_index()
+        self.color_fidelity_index()
     }
 
     /// General colour gamut index Rg.
@@ -92,7 +92,7 @@ impl CFI {
     /// Values above 100 indicate a wider gamut than the reference; below 100 means narrower.
     #[wasm_bindgen(js_name = colorGamutIndex)]
     pub fn color_gamut_index_js(&self) -> f64 {
-        self.general_color_gamut_index()
+        self.color_gamut_index()
     }
 
     /// Local colour fidelity index Rf,hj for each of the 16 hue bins (TM-30 / CIE 224:2017 §4.5).
@@ -101,7 +101,7 @@ impl CFI {
     /// counter-clockwise in 22.5° steps around the hue circle.
     #[wasm_bindgen(js_name = localColorFidelityIndices)]
     pub fn local_color_fidelity_indices_js(&self) -> Box<[f64]> {
-        Box::new(self.rf_hj())
+        Box::new(self.local_color_fidelity_indices())
     }
 
     /// Chroma shift index Rcs,hj for each of the 16 hue bins (TM-30 / CIE 224:2017 §4.6).
@@ -110,7 +110,7 @@ impl CFI {
     /// saturation in that hue direction; negative means desaturation.  Typical range ≈ −0.5…+0.5.
     #[wasm_bindgen(js_name = chromaShiftIndices)]
     pub fn chroma_shift_indices_js(&self) -> Box<[f64]> {
-        Box::new(self.rcs_hj())
+        Box::new(self.chroma_shift_indices())
     }
 
     /// Hue shift index Rhs,hj for each of the 16 hue bins (TM-30 / CIE 224:2017 §4.7).
@@ -119,7 +119,7 @@ impl CFI {
     /// Positive means a counter-clockwise hue shift; negative means clockwise.
     #[wasm_bindgen(js_name = hueShiftIndices)]
     pub fn hue_shift_indices_js(&self) -> Box<[f64]> {
-        Box::new(self.rhs_hj())
+        Box::new(self.hue_shift_indices())
     }
 
     /// Special colour fidelity indices Rf,i for all 99 CES (CIE 224:2017 §7).

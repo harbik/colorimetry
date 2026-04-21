@@ -194,7 +194,7 @@ impl CFI {
     /// - Negative values mean **desaturation**.
     /// - Zero means the chroma is unchanged.
     ///
-    /// This is the per-sample equivalent of [`rcs_hj`](Self::rcs_hj), which reports the
+    /// This is the per-sample equivalent of [`chroma_shift_indices`](Self::chroma_shift_indices), which reports the
     /// same quantity averaged over all samples in each of the 16 hue bins.
     pub fn chroma_shift(&self) -> [f64; N_CFI] {
         let ct = self.chroma_ts();
@@ -218,7 +218,7 @@ impl CFI {
     /// - Negative values indicate a **clockwise** rotation.
     /// - The result is always the shorter arc, so the magnitude never exceeds π.
     ///
-    /// This is the per-sample equivalent of [`rhs_hj`](Self::rhs_hj), which reports the
+    /// This is the per-sample equivalent of [`hue_shift_indices`](Self::hue_shift_indices), which reports the
     /// same quantity for the bin-averaged centroid of each of the 16 hue bins.
     pub fn hue_shift(&self) -> [f64; N_CFI] {
         let ht = self.hue_angle_bin_ts();
@@ -244,7 +244,7 @@ impl CFI {
     /// assigned to one of the 16 bins — the same rule used internally for all 99 CES samples.
     ///
     /// Use this to assign your own colour patches to the standard hue bins and combine their
-    /// results with the per-bin metrics (`rf_hj`, `rcs_hj`, `rhs_hj`) reported by this struct.
+    /// results with the per-bin metrics (`local_color_fidelity_indices`, `chroma_shift_indices`, `hue_shift_indices`) reported by this struct.
     ///
     /// # Example
     /// ```
@@ -428,7 +428,7 @@ impl CFI {
     /// # Reference
     /// - ANSI/IES TM-30-20 Method for Evaluating Light Source Color Rendition, section 4.4, Gamut Index Rg (ISBN 978-0-87995-379-9)
     ///
-    pub fn general_color_gamut_index(&self) -> f64 {
+    pub fn color_gamut_index(&self) -> f64 {
         // The gamut area is computed as the sum of 16 triangles, each with one vertex at the
         // origin (0, 0) of the a'b' plane and the other two at adjacent bin-centroid points.
         // Summing all 16 triangles gives the area of the 16-sided polygon (TM-30-20 §4.4).
@@ -466,9 +466,9 @@ impl CFI {
     }
 
     /// Deprecated alias for [`general_color_gamut_index`](Self::general_color_gamut_index).
-    #[deprecated(since = "0.0.8", note = "use `general_color_gamut_index()` instead")]
+    #[deprecated(since = "0.0.8", note = "use `color_gamut_index()` instead")]
     pub fn rg(&self) -> f64 {
-        self.general_color_gamut_index()
+        self.color_gamut_index()
     }
 
     /// Returns the array of special color fidelity indices (Rf<sub>1</sub> through Rf<sub>99</sub>) as defined in
@@ -515,7 +515,7 @@ impl CFI {
     /// * `f64` – The general color fidelity index (**R<sub>f</sub>**), ranging from 0 (poor color fidelity)
     ///   to 100 (perfect color fidelity).
     ///
-    pub fn general_color_fidelity_index(&self) -> f64 {
+    pub fn color_fidelity_index(&self) -> f64 {
         // CIE 224:2017 §7: Rf is computed from the *mean* ΔE′ across all 99 samples, not
         // the mean of the individual Rf,i values.  Averaging the ΔE′ first and then applying
         // the softplus formula gives a slightly different (and standardised) result compared
@@ -538,7 +538,7 @@ impl CFI {
     /// sector; a low value flags a problematic hue region.
     ///
     /// Bins with no samples return `NaN` (does not occur in practice with 99 CES).
-    pub fn rf_hj(&self) -> [f64; N_ANGLE_BIN] {
+    pub fn local_color_fidelity_indices(&self) -> [f64; N_ANGLE_BIN] {
         let mut sum_de = [0f64; N_ANGLE_BIN];
         let mut count = [0usize; N_ANGLE_BIN];
 
@@ -580,7 +580,7 @@ impl CFI {
     /// not occur in practice with 99 CES across 16 bins). Note: the underlying
     /// [`jabp_average_rs`](Self::jabp_average_rs) already returns `[NaN; 3]` for empty
     /// bins, so the resulting chroma is `NaN`, not `0.0`.
-    pub fn rcs_hj(&self) -> [f64; N_ANGLE_BIN] {
+    pub fn chroma_shift_indices(&self) -> [f64; N_ANGLE_BIN] {
         let ct = self.normalized_chroma_average_ts();
         let cr = self.normalized_chroma_average_rs();
         let mut result = [0f64; N_ANGLE_BIN];
@@ -606,7 +606,7 @@ impl CFI {
     /// centroids. A positive value indicates a counter-clockwise hue shift (towards higher
     /// hue angles in the a′b′ plane); negative indicates a clockwise shift. The wrapping
     /// ensures the shift is always the shorter arc.
-    pub fn rhs_hj(&self) -> [f64; N_ANGLE_BIN] {
+    pub fn hue_shift_indices(&self) -> [f64; N_ANGLE_BIN] {
         let ht = self.hue_angle_bin_average_samples_ts();
         let hr = self.hue_angle_bin_average_samples_rs();
         let mut result = [0f64; N_ANGLE_BIN];
@@ -779,18 +779,18 @@ mod tests {
         for &cfi in cfis.iter() {
             assert_abs_diff_eq!(cfi, 100.0, epsilon = 0.01);
         }
-        assert_abs_diff_eq!(cfi.general_color_fidelity_index(), 100.0, epsilon = 0.01);
-        assert!(cfi.general_color_fidelity_index() >= 0.0);
+        assert_abs_diff_eq!(cfi.color_fidelity_index(), 100.0, epsilon = 0.01);
+        assert!(cfi.color_fidelity_index() >= 0.0);
 
         // Local metrics: when test == reference every bin is perfect.
-        for &rf in cfi.rf_hj().iter() {
+        for &rf in cfi.local_color_fidelity_indices().iter() {
             assert_abs_diff_eq!(rf, 100.0, epsilon = 0.01);
         }
         // Floating-point arithmetic leaves a residual ~1e-5; 1e-4 is tight enough.
-        for &rcs in cfi.rcs_hj().iter() {
+        for &rcs in cfi.chroma_shift_indices().iter() {
             assert_abs_diff_eq!(rcs, 0.0, epsilon = 1e-4);
         }
-        for &rhs in cfi.rhs_hj().iter() {
+        for &rhs in cfi.hue_shift_indices().iter() {
             assert_abs_diff_eq!(rhs, 0.0, epsilon = 1e-4);
         }
     }
@@ -813,8 +813,8 @@ mod tests {
         let cfi = CFI::new(&F1).unwrap();
         assert_abs_diff_eq!(cfi.cct().t(), 6425.0, epsilon = 6.0);
         assert_abs_diff_eq!(cfi.cct().d(), 0.0072, epsilon = 0.0002);
-        assert_abs_diff_eq!(cfi.general_color_fidelity_index(), 80.68, epsilon = 0.5);
-        assert_abs_diff_eq!(cfi.general_color_gamut_index(), 89.83, epsilon = 0.5);
+        assert_abs_diff_eq!(cfi.color_fidelity_index(), 80.68, epsilon = 0.5);
+        assert_abs_diff_eq!(cfi.color_gamut_index(), 89.83, epsilon = 0.5);
     }
 
     /// CIE F2 — standard cool-white fluorescent lamp (~4225 K).
@@ -834,8 +834,8 @@ mod tests {
         let cfi = CFI::new(&F2).unwrap();
         assert_abs_diff_eq!(cfi.cct().t(), 4225.0, epsilon = 1.0);
         assert_abs_diff_eq!(cfi.cct().d(), 0.0019, epsilon = 0.0002);
-        assert_abs_diff_eq!(cfi.general_color_fidelity_index(), 70.21, epsilon = 0.5);
-        assert_abs_diff_eq!(cfi.general_color_gamut_index(), 86.44, epsilon = 0.5);
+        assert_abs_diff_eq!(cfi.color_fidelity_index(), 70.21, epsilon = 0.5);
+        assert_abs_diff_eq!(cfi.color_gamut_index(), 86.44, epsilon = 0.5);
     }
 
     /// CIE F12 — three-band narrow-band fluorescent lamp (~3003 K).
@@ -857,8 +857,8 @@ mod tests {
         let cfi = CFI::new(&F12).unwrap();
         assert_abs_diff_eq!(cfi.cct().t(), 3003.0, epsilon = 4.0);
         assert_abs_diff_eq!(cfi.cct().d(), 0.0001, epsilon = 0.0002);
-        assert_abs_diff_eq!(cfi.general_color_fidelity_index(), 77.7, epsilon = 0.5);
-        assert_abs_diff_eq!(cfi.general_color_gamut_index(), 102.4, epsilon = 0.5);
+        assert_abs_diff_eq!(cfi.color_fidelity_index(), 77.7, epsilon = 0.5);
+        assert_abs_diff_eq!(cfi.color_gamut_index(), 102.4, epsilon = 0.5);
     }
 
     /// Cross-check of the intermediate J'a'b' values against the IES TM-30 Spectral Calculator
@@ -1087,7 +1087,12 @@ mod tests {
             64.52, 76.27, 70.52, 81.72, 86.43, 91.88, 88.93, 81.30, 86.87, 79.56, 82.99, 90.61,
             86.35, 76.16, 69.85, 76.14,
         ];
-        for (j, (&got, &want)) in cfi.rf_hj().iter().zip(rf_hj_want.iter()).enumerate() {
+        for (j, (&got, &want)) in cfi
+            .local_color_fidelity_indices()
+            .iter()
+            .zip(rf_hj_want.iter())
+            .enumerate()
+        {
             assert!(
                 approx::abs_diff_eq!(got, want, epsilon = 10.0),
                 "Rf,hj bin {j}: got {got:.3}, want {want:.3}"
@@ -1099,7 +1104,12 @@ mod tests {
             -0.20, -0.13, -0.07, 0.02, 0.07, 0.01, -0.05, -0.10, -0.11, -0.07, -0.01, 0.04, 0.07,
             0.02, -0.09, -0.10,
         ];
-        for (j, (&got, &want)) in cfi.rcs_hj().iter().zip(rcs_hj_want.iter()).enumerate() {
+        for (j, (&got, &want)) in cfi
+            .chroma_shift_indices()
+            .iter()
+            .zip(rcs_hj_want.iter())
+            .enumerate()
+        {
             assert!(
                 approx::abs_diff_eq!(got, want, epsilon = 0.05),
                 "Rcs,hj bin {j}: got {got:.4}, want {want:.4}"
@@ -1111,7 +1121,12 @@ mod tests {
             -0.0248, 0.0843, 0.1564, 0.1126, 0.0579, -0.0427, -0.0474, -0.0511, 0.0252, 0.0975,
             0.0985, 0.0302, -0.0833, -0.1430, -0.2770, -0.1015,
         ];
-        for (j, (&got, &want)) in cfi.rhs_hj().iter().zip(rhs_hj_want.iter()).enumerate() {
+        for (j, (&got, &want)) in cfi
+            .hue_shift_indices()
+            .iter()
+            .zip(rhs_hj_want.iter())
+            .enumerate()
+        {
             assert!(
                 approx::abs_diff_eq!(got, want, epsilon = 0.04),
                 "Rhs,hj bin {j}: got {got:.4}, want {want:.4}"
@@ -1132,7 +1147,12 @@ mod tests {
             60.20, 61.28, 52.52, 68.30, 79.50, 87.51, 76.74, 72.71, 76.13, 62.27, 69.57, 76.48,
             81.32, 71.36, 63.60, 65.27,
         ];
-        for (j, (&got, &want)) in cfi.rf_hj().iter().zip(rf_hj_want.iter()).enumerate() {
+        for (j, (&got, &want)) in cfi
+            .local_color_fidelity_indices()
+            .iter()
+            .zip(rf_hj_want.iter())
+            .enumerate()
+        {
             assert!(
                 approx::abs_diff_eq!(got, want, epsilon = 10.0),
                 "Rf,hj bin {j}: got {got:.3}, want {want:.3}"
@@ -1143,7 +1163,12 @@ mod tests {
             -0.25, -0.18, -0.09, 0.05, 0.11, 0.04, -0.08, -0.15, -0.17, -0.15, -0.04, 0.05, 0.11,
             0.07, -0.06, -0.16,
         ];
-        for (j, (&got, &want)) in cfi.rcs_hj().iter().zip(rcs_hj_want.iter()).enumerate() {
+        for (j, (&got, &want)) in cfi
+            .chroma_shift_indices()
+            .iter()
+            .zip(rcs_hj_want.iter())
+            .enumerate()
+        {
             assert!(
                 approx::abs_diff_eq!(got, want, epsilon = 0.05),
                 "Rcs,hj bin {j}: got {got:.4}, want {want:.4}"
@@ -1154,7 +1179,12 @@ mod tests {
             -0.0221, 0.1400, 0.2444, 0.1963, 0.0915, -0.0673, -0.1226, -0.0848, 0.0061, 0.1659,
             0.1906, 0.1147, -0.0806, -0.1467, -0.2635, -0.1703,
         ];
-        for (j, (&got, &want)) in cfi.rhs_hj().iter().zip(rhs_hj_want.iter()).enumerate() {
+        for (j, (&got, &want)) in cfi
+            .hue_shift_indices()
+            .iter()
+            .zip(rhs_hj_want.iter())
+            .enumerate()
+        {
             assert!(
                 approx::abs_diff_eq!(got, want, epsilon = 0.04),
                 "Rhs,hj bin {j}: got {got:.4}, want {want:.4}"
@@ -1184,7 +1214,12 @@ mod tests {
             78.222, 86.843, 80.612, 68.521, 72.478, 79.408, 72.551, 79.812, 82.356, 77.682, 74.540,
             80.448, 82.391, 76.766, 79.243, 76.808,
         ];
-        for (j, (&got, &want)) in cfi.rf_hj().iter().zip(rf_hj_want.iter()).enumerate() {
+        for (j, (&got, &want)) in cfi
+            .local_color_fidelity_indices()
+            .iter()
+            .zip(rf_hj_want.iter())
+            .enumerate()
+        {
             assert!(
                 approx::abs_diff_eq!(got, want, epsilon = 10.0),
                 "Rf,hj bin {j}: got {got:.3}, want {want:.3}"
@@ -1196,7 +1231,12 @@ mod tests {
             -0.08510, -0.03160, -0.01216, 0.09247, 0.18373, 0.13567, 0.10277, -0.03677, -0.04746,
             -0.12181, -0.12371, 0.01845, 0.08819, 0.04632, 0.04186, -0.03594,
         ];
-        for (j, (&got, &want)) in cfi.rcs_hj().iter().zip(rcs_hj_want.iter()).enumerate() {
+        for (j, (&got, &want)) in cfi
+            .chroma_shift_indices()
+            .iter()
+            .zip(rcs_hj_want.iter())
+            .enumerate()
+        {
             assert!(
                 approx::abs_diff_eq!(got, want, epsilon = 0.05),
                 "Rcs,hj bin {j}: got {got:.5}, want {want:.5}"
@@ -1208,7 +1248,12 @@ mod tests {
             -0.04646, 0.03206, 0.09473, 0.17904, 0.12972, 0.00023, -0.14516, -0.12447, -0.09830,
             0.03149, 0.14218, 0.08155, -0.02598, -0.06301, -0.09517, -0.10676,
         ];
-        for (j, (&got, &want)) in cfi.rhs_hj().iter().zip(rhs_hj_want.iter()).enumerate() {
+        for (j, (&got, &want)) in cfi
+            .hue_shift_indices()
+            .iter()
+            .zip(rhs_hj_want.iter())
+            .enumerate()
+        {
             assert!(
                 approx::abs_diff_eq!(got, want, epsilon = 0.04),
                 "Rhs,hj bin {j}: got {got:.5}, want {want:.5}"
