@@ -223,7 +223,7 @@ Below is an example calculation of the general Colour Fidelity Index for the CIE
   // Calculate the Color Fidelity Index of the CIE F2 standard illuminant.
   // Requires the `cfi` and `cie-illuminants` features.
   let cf_f2 = F2.cfi().unwrap();
-  let rf = cf_f2.general_color_fidelity_index();
+  let rf = cf_f2.color_fidelity_index();
   // ≈ 70 — F2's broad spectral gaps between mercury lines cause visible color distortion
   // for saturated reds and blues; acceptable for utility fluorescent lighting.
 # check!(rf, 70.3,  epsilon = 1E-1);
@@ -509,19 +509,19 @@ work, prefer the CFI (below), which is more accurate for modern LED and multi-ba
 [`CFI`] — requires `cfi` feature. The current scientific standard for color rendering
 evaluation, following CIE 224:2017[^cie224] and ANSI/IES TM-30-20/24.[^3]
 
-- [`CFI::general_color_fidelity_index`] — overall **R<sub>f</sub>** (0–100): average fidelity across all
+- [`CFI::color_fidelity_index`] — overall **R<sub>f</sub>** (0–100): average fidelity across all
   99 CES under the test source vs. the reference illuminant. Higher is better.
-- [`CFI::general_color_gamut_index`] — **R<sub>g</sub>** (ANSI/IES TM-30): area of the 16-bin averaged
+- [`CFI::color_gamut_index`] — **R<sub>g</sub>** (ANSI/IES TM-30): area of the 16-bin averaged
   polygon in the CIECAM02-UCS a′b′ plane, relative to the reference polygon.
   R<sub>g</sub> = 100 → same gamut area as the reference;
   R<sub>g</sub> > 100 → colors appear more saturated on average (gamut expansion);
   R<sub>g</sub> < 100 → colors appear more muted (gamut compression).
-- [`CFI::rf_hj`] — **R<sub>f,hj</sub>**: fidelity broken down by each of the 16 hue sectors (bins
+- [`CFI::local_color_fidelity_indices`] — **R<sub>f,hj</sub>**: fidelity broken down by each of the 16 hue sectors (bins
   of 22.5° in the a′b′ plane, ordered from red through yellow, green, cyan, blue, purple, and
   back). Use these to diagnose *which* hue region is problematic.
-- [`CFI::rcs_hj`] — **R<sub>cs,hj</sub>**: fractional chroma shift per hue bin
+- [`CFI::chroma_shift_indices`] — **R<sub>cs,hj</sub>**: fractional chroma shift per hue bin
   (positive = saturation boost, negative = desaturation).
-- [`CFI::rhs_hj`] — **R<sub>hs,hj</sub>**: hue shift per bin in radians, wrapped to (−π, π].
+- [`CFI::hue_shift_indices`] — **R<sub>hs,hj</sub>**: hue shift per bin in radians, wrapped to (−π, π].
 
 ## Color appearance models and color difference
 
@@ -726,11 +726,11 @@ dual licensed as above, without any additional terms or conditions.
 [`CCT`]: https://docs.rs/colorimetry/latest/colorimetry/illuminant/struct.CCT.html
 [`CRI`]: https://docs.rs/colorimetry/latest/colorimetry/illuminant/struct.CRI.html
 [`CFI`]: https://docs.rs/colorimetry/latest/colorimetry/illuminant/struct.CFI.html
-[`CFI::general_color_fidelity_index`]: https://docs.rs/colorimetry/latest/colorimetry/illuminant/struct.CFI.html#method.general_color_fidelity_index
-[`CFI::general_color_gamut_index`]: https://docs.rs/colorimetry/latest/colorimetry/illuminant/struct.CFI.html#method.general_color_gamut_index
-[`CFI::rf_hj`]: https://docs.rs/colorimetry/latest/colorimetry/illuminant/struct.CFI.html#method.rf_hj
-[`CFI::rcs_hj`]: https://docs.rs/colorimetry/latest/colorimetry/illuminant/struct.CFI.html#method.rcs_hj
-[`CFI::rhs_hj`]: https://docs.rs/colorimetry/latest/colorimetry/illuminant/struct.CFI.html#method.rhs_hj
+[`CFI::color_fidelity_index`]: https://docs.rs/colorimetry/latest/colorimetry/illuminant/struct.CFI.html#method.color_fidelity_index
+[`CFI::color_gamut_index`]: https://docs.rs/colorimetry/latest/colorimetry/illuminant/struct.CFI.html#method.color_gamut_index
+[`CFI::local_color_fidelity_indices`]: https://docs.rs/colorimetry/latest/colorimetry/illuminant/struct.CFI.html#method.local_color_fidelity_indices
+[`CFI::chroma_shift_indices`]: https://docs.rs/colorimetry/latest/colorimetry/illuminant/struct.CFI.html#method.chroma_shift_indices
+[`CFI::hue_shift_indices`]: https://docs.rs/colorimetry/latest/colorimetry/illuminant/struct.CFI.html#method.hue_shift_indices
 [`Colorant::gaussian`]: https://docs.rs/colorimetry/latest/colorimetry/colorant/struct.Colorant.html#method.gaussian
 [`Stimulus::from_rgb`]: https://docs.rs/colorimetry/latest/colorimetry/stimulus/struct.Stimulus.html#method.from_rgb
 [`Observer`]: https://docs.rs/colorimetry/latest/colorimetry/observer/enum.Observer.html
