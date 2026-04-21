@@ -114,33 +114,355 @@ function getArrayF64FromWasm0(ptr, len) {
     return getFloat64ArrayMemory0().subarray(ptr / 8, ptr / 8 + len);
 }
 /**
- * @enum {0 | 1}
+ * A **lightweight enum** representing the CIE standard illuminants from the CIE 15:2018 datasets
+ * (downloaded August 2024). Each variant holds a zero-cost reference to its precompiled spectrum,
+ * making it easy to include as a field in your own types without pulling in heavy data structures.
+ *
+ * This enum implements `IntoEnumIterator`, so you can **iterate through every standard illuminant**
+ * (useful for testing, batch conversions, or validation).
+ *
+ * - Use `CieIlluminant::iter()` or `CieIlluminant::spectrum()` to list or retrieve any built-in illuminant.
+ * - For a generic D-series illuminant at any correlated color temperature, use
+ *   `Spectrum::cie_d_illuminant(cct: f64)`.
+ *
+ * By default, only **D65** and **D50** are included. To pull in the full set of fluorescent “F3_X”
+ * series and other CIE illuminants, enable the `"cie-illuminants"` feature in `Cargo.toml`
+ * (or build with `--features cie-illuminants`). Omit that feature (or use `--no-default-features`)
+ * to keep your binary lean.
+ *
+ * In JavaScript/WebAssembly builds, the `colorimetry` package excludes these extra spectra by default
+ * for faster load times. To include them, use the `colorimetry-all` bundle instead.
+ *
+ * For more background, see the Wikipedia article on
+ * [Standard illuminant white points](https://en.wikipedia.org/wiki/Standard_illuminant#White_points_of_standard_illuminants).
+ *
+ * # Examples
+ * ```rust
+ * use colorimetry::illuminant::CieIlluminant;
+ * use strum::IntoEnumIterator;
+ *
+ * // Iterate through and print all available CIE illuminants:
+ * for illum in CieIlluminant::iter() {
+ *     println!("{illum}");
+ * }
+ * ```
+ * @enum {0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39}
  */
 export const CieIlluminant = Object.freeze({
     D65: 0, "0": "D65",
     D50: 1, "1": "D50",
+    E: 2, "2": "E",
+    A: 3, "3": "A",
+    F1: 4, "4": "F1",
+    F2: 5, "5": "F2",
+    F3: 6, "6": "F3",
+    F4: 7, "7": "F4",
+    F5: 8, "8": "F5",
+    F6: 9, "9": "F6",
+    F7: 10, "10": "F7",
+    F8: 11, "11": "F8",
+    F9: 12, "12": "F9",
+    F10: 13, "13": "F10",
+    F11: 14, "14": "F11",
+    F12: 15, "15": "F12",
+    F3_1: 16, "16": "F3_1",
+    F3_2: 17, "17": "F3_2",
+    F3_3: 18, "18": "F3_3",
+    F3_4: 19, "19": "F3_4",
+    F3_5: 20, "20": "F3_5",
+    F3_6: 21, "21": "F3_6",
+    F3_7: 22, "22": "F3_7",
+    F3_8: 23, "23": "F3_8",
+    F3_9: 24, "24": "F3_9",
+    F3_10: 25, "25": "F3_10",
+    F3_11: 26, "26": "F3_11",
+    F3_12: 27, "27": "F3_12",
+    F3_13: 28, "28": "F3_13",
+    F3_14: 29, "29": "F3_14",
+    F3_15: 30, "30": "F3_15",
+    LED_B1: 31, "31": "LED_B1",
+    LED_B2: 32, "32": "LED_B2",
+    LED_B3: 33, "33": "LED_B3",
+    LED_B4: 34, "34": "LED_B4",
+    LED_B5: 35, "35": "LED_B5",
+    LED_BH1: 36, "36": "LED_BH1",
+    LED_RGB1: 37, "37": "LED_RGB1",
+    LED_V1: 38, "38": "LED_V1",
+    LED_V2: 39, "39": "LED_V2",
 });
 /**
- * Light-weight identifier added to the `XYZ` and `RGB` datasets,
- *    representing the colorimetric standard observer used.
+ * Selects a CIE standard colorimetric observer.
  *
- *    No data included here, which would be the Rust way, but that does not work with wasm-bindgen.
- *    This can be directly used in JavaScript, and has the benefit to be just an index.
- * @enum {0}
+ * The tag is embedded in every [`XYZ`] and [`Rgb`](crate::rgb::Rgb) value so that
+ * operations across incompatible observers can be detected at runtime.  Each variant
+ * is a lightweight index; the color-matching function tables are stored in
+ * [`observer_data`].
+ * @enum {0 | 1 | 2 | 3}
  */
 export const Observer = Object.freeze({
+    /**
+     * CIE 1931 2° standard observer — the default for most colorimetry.
+     *
+     * Used by sRGB, ICC profiles, and CIE CRI Ra.
+     */
     Cie1931: 0, "0": "Cie1931",
+    /**
+     * CIE 1964 10° supplementary standard observer.
+     *
+     * Preferred when the viewed area subtends more than ~4° at the eye.
+     * Used by CIE 224:2017 / ANSI/IES TM-30 for colour fidelity calculations.
+     */
+    Cie1964: 1, "1": "Cie1964",
+    /**
+     * CIE 2015 2° observer — CMFs constructed as linear transforms of the Stockman & Sharpe
+     * (2000) cone fundamentals.
+     *
+     * More accurate than `Cie1931` in the short-wavelength (blue) region.
+     */
+    Cie2015: 2, "2": "Cie2015",
+    /**
+     * CIE 2015 10° observer — CMFs constructed as linear transforms of the Stockman & Sharpe
+     * (2000) cone fundamentals.
+     *
+     * Wide-field counterpart of [`Cie2015`](Observer::Cie2015).
+     */
+    Cie2015_10: 3, "3": "Cie2015_10",
 });
 /**
- * A Light Weight tag, representing an RGB color space.
- * Used for example in the RGB value set, to identify the color space being used.
- * @enum {0 | 1 | 2}
+ * Spectrally based color space, using spectral representations of the primaries and the
+ * reference white.
+ *
+ * Using the CIE 1931 standard observer, using a wavelength domain from 380 top 780
+ * nanometer with 1 nanometer steps, these result in their usual chromaticity
+ * values.  The most common _sRGB_ color space is obtained using the
+ * `RgbSpace::srgb()` constructor. For this instance, the blue and green primaries
+ * are direct Gaussian-filtered D65 spectra. A mixture of the blue primary and a
+ * G1aussian-filtered red component is used for the red primary. Similar
+ * constructors are provided for the `Adobe` and `DisplayP3` color spaces.
+ *
+ * The benefit of spectral primaries is that color management and color profiles
+ * can use updated Colorimetric Observers, such as the Cone-Fundamental based CIE
+ * 2015 observers, which don't have the CIE 1931 deficiencies. For example, they
+ * can also be optimized for special observers by considering an observer's age or
+ * health conditions.
+ * @enum {0 | 1 | 2 | 3}
  */
 export const RgbSpace = Object.freeze({
     SRGB: 0, "0": "SRGB",
     Adobe: 1, "1": "Adobe",
     DisplayP3: 2, "2": "DisplayP3",
+    CieRGB: 3, "3": "CieRGB",
 });
+
+const CFIFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_cfi_free(ptr >>> 0, 1));
+/**
+ * Container for CIE 2017 Colour Fidelity Index (**R<sub>f</sub>**) calculations,
+ * including both the general color fidelity **R<sub>f</sub>** score and the 99 special color fidelity indices (**R<sub>f,1</sub>** to **R<sub>f,99</sub>**)
+ * as specified in [CIE 224:2017](https://cie.co.at/publications/colour-fidelity-index-accurate-scientific-use).
+ *
+ * # Requirements
+ * - Requires the `cfi` feature to access color evaluation samples (CES) used for testing.
+ *
+ * # Overview
+ * The CIE 2017 Colour Fidelity Index (CFI, or **R<sub>f</sub>**) is a modern metric for evaluating how accurately a light source renders colors.
+ * It uses 99 Color Evaluation Samples (CES) that cover a broad range of real-world colors, providing a much more comprehensive assessment
+ * than older metrics like the Color Rendering Index (CRI, or **R<sub>a</sub>**).
+ * - The general index (**R<sub>f</sub>**) gives an overall measure of color fidelity.
+ * - The special indices (**R<sub>f,1</sub>** to **R<sub>f,99</sub>**) show fidelity for each specific color sample.
+ *
+ * # Comparison with CRI
+ * The traditional **CRI** metric (Ra) uses only 8 or 14 pastel color samples and is known to be limited, especially for modern light sources such as LEDs.
+ * **CFI (Rf)** is a newer, more robust standard: it uses a much wider set of samples and is based on state-of-the-art color appearance models,
+ * providing a more accurate and reliable prediction of real-world color rendering.
+ * - **Use CRI** if you need compatibility with legacy systems or must comply with standards that specify CRI.
+ * - **Use CFI (Rf)** for a more precise and scientifically up-to-date assessment of color fidelity, especially with modern or tunable light sources.
+ *
+ * # TM-30 version
+ * This implementation follows **ANSI/IES TM-30-20** and **TM-30-24**, which are harmonised with
+ * **CIE 224:2017**. It does **not** implement the earlier TM-30-15 or TM-30-18 editions.
+ * The key difference from TM-30-15 is the scaling constant in the Rf formula: TM-30-15 used
+ * `CF = 7.54`; all later editions (TM-30-18, TM-30-20, TM-30-24, CIE 224:2017) use `CF = 6.73`,
+ * which this library implements.
+ *
+ * # Reference
+ * [CIE 224:2017 – CIE 2017 Colour Fidelity Index for accurate scientific use](https://cie.co.at/publications/colour-fidelity-index-accurate-scientific-use)
+ */
+export class CFI {
+
+    static __wrap(ptr) {
+        ptr = ptr >>> 0;
+        const obj = Object.create(CFI.prototype);
+        obj.__wbg_ptr = ptr;
+        CFIFinalization.register(obj, obj.__wbg_ptr, obj);
+        return obj;
+    }
+
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        CFIFinalization.unregister(this);
+        return ptr;
+    }
+
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_cfi_free(ptr, 0);
+    }
+    /**
+     * General colour fidelity index Rf (0–100).
+     *
+     * A single overall score measuring how faithfully the test source renders the 99
+     * Colour Evaluation Samples compared to the reference illuminant.
+     * @returns {number}
+     */
+    colorFidelityIndex() {
+        const ret = wasm.cfi_colorFidelityIndex(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * General colour gamut index Rg.
+     *
+     * Measures the area of the gamut polygon relative to the reference (100 = same area).
+     * Values above 100 indicate a wider gamut than the reference; below 100 means narrower.
+     * @returns {number}
+     */
+    colorGamutIndex() {
+        const ret = wasm.cfi_colorGamutIndex(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * Local colour fidelity index Rf,hj for each of the 16 hue bins (TM-30 / CIE 224:2017 §4.5).
+     *
+     * Returns a `Float64Array` of 16 values.  Bin 0 starts at 0° (red), progressing
+     * counter-clockwise in 22.5° steps around the hue circle.
+     * @returns {Float64Array}
+     */
+    localColorFidelityIndices() {
+        const ret = wasm.cfi_localColorFidelityIndices(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * Chroma shift index Rcs,hj for each of the 16 hue bins (TM-30 / CIE 224:2017 §4.6).
+     *
+     * Returns a `Float64Array` of 16 values.  Positive means the test source boosts
+     * saturation in that hue direction; negative means desaturation.  Typical range ≈ −0.5…+0.5.
+     * @returns {Float64Array}
+     */
+    chromaShiftIndices() {
+        const ret = wasm.cfi_chromaShiftIndices(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * Hue shift index Rhs,hj for each of the 16 hue bins (TM-30 / CIE 224:2017 §4.7).
+     *
+     * Returns a `Float64Array` of 16 values in radians, wrapped to (−π, π].
+     * Positive means a counter-clockwise hue shift; negative means clockwise.
+     * @returns {Float64Array}
+     */
+    hueShiftIndices() {
+        const ret = wasm.cfi_hueShiftIndices(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * Special colour fidelity indices Rf,i for all 99 CES (CIE 224:2017 §7).
+     *
+     * Returns a `Float64Array` of 99 values, one per Colour Evaluation Sample.
+     * @returns {Float64Array}
+     */
+    specialColorFidelityIndices() {
+        const ret = wasm.cfi_specialColorFidelityIndices(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+}
+
+const CRIFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_cri_free(ptr >>> 0, 1));
+/**
+ * The **Color Rendering Index (CRI)** for a light source, computed according to CIE 13.3-1995.
+ *
+ * This struct holds the 14 individual rendering indices R₁…R₁₄ for the standard test color samples,
+ * and provides the general CRI, Rₐ, which is the average of the first eight Rᵢ values.
+ *
+ * # Calculation Method
+ * 1. The test illuminant is scaled to 100 lx and converted to CIE XYZ under the CIE 1931 observer.
+ * 2. Each of the 14 standard Colorant test spectra (TCS) is measured under both the test and the
+ *    reference illuminant (black-body or D-series at the test’s correlated color temperature).
+ * 3. For each sample, the color difference ΔE in CIE UVW space is computed, and
+ *    Rᵢ = 100 − 4.6 · ΔE.
+ * 4. The general CRI Rₐ is then
+ *    ```text
+ *    Rₐ = (R₁ + R₂ + … + R₈) / 8
+ *    ```
+ *
+ * # Examples
+ * ```rust
+ * use colorimetry::illuminant::{Illuminant, CRI};
+ *
+ * // Compute CRI for the D65 illuminant:
+ * let cri: CRI = (&Illuminant::d65()).try_into().unwrap();
+ *
+ * // General CRI:
+ * let ra = cri.ra();
+ * println!("General CRI Rₐ = {:.1}", ra);
+ *
+ * // All 14 individual Rᵢ values:
+ * let ri_values = cri.to_array();
+ * for (i, &ri) in ri_values.iter().enumerate() {
+ *     println!("R{} = {:.1}", i + 1, ri);
+ * }
+ * ```
+ *
+ * # Notes
+ * - This implementation uses the **CIE 1931** color space and requires the `"cri"` feature to be enabled in the crate.
+ * - The CRI-metric is now considered somewhat outdated; newer metrics (e.g., TM-30) are recommended for modern lighting applications.
+ *   However, CRI remains widely used and understood across the lighting industry.
+ *
+ * # Errors
+ * Constructing a `CRI` can fail if the illuminant’s correlated color temperature is out of the
+ * valid range (1000–25000 K) or its distance from the Planckian locus exceeds 0.05 Δuv.
+ */
+export class CRI {
+
+    static __wrap(ptr) {
+        ptr = ptr >>> 0;
+        const obj = Object.create(CRI.prototype);
+        obj.__wbg_ptr = ptr;
+        CRIFinalization.register(obj, obj.__wbg_ptr, obj);
+        return obj;
+    }
+
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        CRIFinalization.unregister(this);
+        return ptr;
+    }
+
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_cri_free(ptr, 0);
+    }
+    /**
+     * Returns the general colour rendering index Rₐ (0–100),
+     * the average of the first eight special rendering indices R₁…R₈.
+     * @returns {number}
+     */
+    ra() {
+        const ret = wasm.cri_ra(this.__wbg_ptr);
+        return ret;
+    }
+}
 
 const ChromaticityFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
@@ -243,6 +565,34 @@ export class Illuminant {
         return v1;
     }
     /**
+     * Calculates the Color Rendering Index for this illuminant spectrum.
+     *
+     * Returns a `CRI` object with a `ra()` method that gives the general colour
+     * rendering index Rₐ (average of R₁…R₈, scaled 0–100).
+     * @returns {CRI}
+     */
+    cri() {
+        const ret = wasm.illuminant_cri(this.__wbg_ptr);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return CRI.__wrap(ret[0]);
+    }
+    /**
+     * Calculates the Colour Fidelity Index (CFI / Rf) for this illuminant spectrum.
+     *
+     * Returns a `CFI` object exposing `rf()`, `rg()`, `rfHj()`, `rcsHj()`, `rhsHj()`,
+     * and `specialIndices()`.  Requires the `cfi` feature.
+     * @returns {CFI}
+     */
+    cfi() {
+        const ret = wasm.illuminant_cfi(this.__wbg_ptr);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return CFI.__wrap(ret[0]);
+    }
+    /**
      * Get the CieIlluminant spectrum. Typically you don't need to use the Spectrum itself, as many
      * methods just accept the CieIlluminant directly.
      * @param {CieIlluminant} stdill
@@ -304,7 +654,7 @@ const RgbFinalization = (typeof FinalizationRegistry === 'undefined')
  *
  * // Create an sRGB color with normalized RGB values
  * let rgb = Rgb::new(0.5, 0.25, 0.75, None, None).unwrap();
- * assert_abs_diff_eq!(rgb.values().as_ref(), [0.5, 0.25, 0.75].as_ref(), epsilon = 1e-6);
+ * assert_abs_diff_eq!(rgb.to_array().as_ref(), [0.5, 0.25, 0.75].as_ref(), epsilon = 1e-6);
  * ```
  *
  * # Notes
@@ -548,7 +898,7 @@ export class XYZ {
      *
      * // Get and check the corresponding tristimulus values, with a luminous value
      * // of 100.0
-     * const [x, y, z] = xyz.values();
+     * const [x, y, z] = xyz.to_array();
      * assert.assertAlmostEquals(x, 95.047, 5E-3); // D65 wikipedia
      * assert.assertAlmostEquals(y, 100.0);
      * assert.assertAlmostEquals(z, 108.883, 5E-3);

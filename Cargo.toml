@@ -22,12 +22,12 @@ members = [
 ]
 
 [workspace.package]
-version = "0.0.8"
+version = "0.0.9"
 
 [workspace.dependencies]
 # Single source of truth for the colorimetry version used by plot and cli.
 # The [patch.crates-io] entry below redirects this to the local path during development.
-colorimetry = { version = "0.0.8" }
+colorimetry = { version = "0.0.9" }
 
 [dependencies]
 nalgebra = "0.33"

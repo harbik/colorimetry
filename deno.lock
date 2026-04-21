@@ -1,10 +1,12 @@
 {
-  "version": "3",
+  "version": "4",
   "remote": {
     "https://deno.land/std@0.156.0/fmt/colors.ts": "ff7dc9c9f33a72bd48bc24b21bbc1b4545d8494a431f17894dbc5fe92a938fc4",
     "https://deno.land/std@0.156.0/testing/_diff.ts": "a23e7fc2b4d8daa3e158fa06856bedf5334ce2a2831e8bf9e509717f455adb2c",
     "https://deno.land/std@0.156.0/testing/_format.ts": "cd11136e1797791045e639e9f0f4640d5b4166148796cad37e6ef75f7d7f3832",
-    "https://deno.land/std@0.156.0/testing/asserts.ts": "8696c488bc98d8d175e74dc652a0ffbc7fca93858da01edc57ed33c1148345da"
+    "https://deno.land/std@0.156.0/testing/asserts.ts": "8696c488bc98d8d175e74dc652a0ffbc7fca93858da01edc57ed33c1148345da",
+    "https://esm.sh/colorimetry@0.0.8": "cf1afb1594eee3b4c47c1bf5eb5a43a548169f5ac1f90002c3be57a19cdf1819",
+    "https://esm.sh/colorimetry@0.0.8/denonext/colorimetry.mjs": "198546c75f6b7d61b81927b34e652365a494396343db324281cca58aaf95c24a"
   },
   "workspace": {
     "dependencies": [

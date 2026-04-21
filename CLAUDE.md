@@ -33,6 +33,7 @@ relevant document from that directory. Key documents to look for:
   (available for purchase at cie.co.at)
 - `standards/CIE 2017 Colour Fidelity Index for accurate scientific use (CIE224-2017).pdf` — CIE 224:2017
   Colour Fidelity Index for accurate scientific use (available for purchase at cie.co.at)
+- `standards/TM-30-20-E1.pdf` - ANSI/IES TM-30-20 Technical Memorandum: IES Method for evaluating light source color rendition (available for purchase at <https://store.ies.org/product-category/science>).
 
 Add new documents to `standards/` and list them here (with purchase URL) as they are acquired.
 
@@ -51,43 +52,97 @@ Add new documents to `standards/` and list them here (with purchase URL) as they
 
 ## Release process
 
-Before opening or merging a PR, the following must all pass with no errors or warnings:
+This is the complete checklist for cutting a new release. All published artifacts must carry the
+same version number: the three Rust crates on crates.io, the `colorimetry` npm package (WASM), and
+the GitHub release tag.
 
-1. `cargo xtask check`   — fmt, clippy (-D warnings), build, rdme
-2. `cargo xtask test`    — all-features and no-default-features
-3. `cargo xtask doc`     — rustdoc with --deny warnings
+### 1. Update CHANGELOG.md
 
-The CHANGELOG.md should be updated for any user-facing change.
-The version in Cargo.toml follows semver; the library is pre-1.0 so breaking changes
-are allowed but must be noted in the changelog.
-Deprecated items use `#[deprecated(since = "x.y.z", note = "use X instead")]`.
+Move every entry under `## [Unreleased]` into a new dated section, e.g.:
 
-## Multi-crate version sync
-
-This workspace contains three published crates that must always share the same version number:
-
-| Crate | Cargo.toml |
-|---|---|
-| `colorimetry` | `Cargo.toml` |
-| `colorimetry-plot` | `plot/Cargo.toml` |
-| `colorimetry-cli` | `cli/Cargo.toml` |
-
-Version is declared once via Cargo workspace inheritance. When bumping for a release, update **all** of the following in a single commit:
-
-1. `Cargo.toml` — `[workspace.package] version` and `[workspace.dependencies] colorimetry version`
-   (sub-crates inherit both automatically via `version.workspace = true` and `colorimetry = {workspace = true, ...}`)
-2. Any install instructions in `README.md`, `cli/README.md`, or `plot/README.md` that pin a specific version
-
-Before publishing, run the full xtask pipeline from the workspace root (which covers all member crates):
-
-```sh
-cargo xtask check
-cargo xtask test
-cargo xtask doc
+```markdown
+## [0.0.9] - 2026-04-20
 ```
 
-Publish in dependency order: `colorimetry` first, then `colorimetry-plot` and `colorimetry-cli`
-(both depend on `colorimetry`, so the new version must be on crates.io before the dependents can be published).
+Add a diff link at the bottom of the file following the existing pattern. All three changelogs
+(`CHANGELOG.md`, `cli/CHANGELOG.md`, `plot/CHANGELOG.md`) should be updated if they contain
+unreleased entries.
+
+### 2. Bump version numbers
+
+All of the following must change from the old version to the new version in **one commit**:
+
+| File | What to change |
+|---|---|
+| `Cargo.toml` | `[workspace.package] version` |
+| `Cargo.toml` | `[workspace.dependencies] colorimetry` version pin |
+| `pkg/package.json` | `"version"` field (npm / WASM package) |
+| `README.md` | any `colorimetry = "x.y.z"` install snippets |
+| `cli/README.md` | any version-pinned install snippets |
+| `plot/README.md` | any version-pinned install snippets |
+
+The three Rust crates (`colorimetry`, `colorimetry-plot`, `colorimetry-cli`) inherit version via
+`version.workspace = true` — only `Cargo.toml` at the workspace root needs to change.
+
+### 3. Run the full xtask pipeline
+
+```sh
+cargo xtask check   # fmt, clippy (-D warnings), build, rdme
+cargo xtask test    # --all-features and --no-default-features
+cargo xtask doc     # rustdoc with --deny warnings
+```
+
+All three must pass with zero errors and zero warnings before proceeding.
+
+### 4. Rebuild the WASM package
+
+```sh
+cargo xtask wasm    # regenerates pkg/ via wasm-pack + wasm-opt
+```
+
+Commit any changes to `pkg/` (`.wasm`, `.js`, `.d.ts` files) together with the version bump commit,
+or as a follow-up commit before tagging.
+
+### 5. Commit and tag
+
+```sh
+git add -p          # stage version bumps, CHANGELOG, pkg/ changes
+git commit -m "chore: release v0.0.9"
+git tag v0.0.9
+git push origin main --tags
+```
+
+The tag triggers the GitHub release. Create a GitHub Release from the tag (via the web UI or
+`gh release create v0.0.9 --notes-from-tag`) and paste the relevant CHANGELOG section as the
+release notes.
+
+### 6. Publish to crates.io
+
+Publish in dependency order (core library first, then dependents):
+
+```sh
+cargo publish -p colorimetry
+# wait for crates.io to index it (usually ~30 seconds), then:
+cargo publish -p colorimetry-plot
+cargo publish -p colorimetry-cli
+```
+
+### 7. Publish to npm
+
+```sh
+cd pkg
+npm publish --access public
+cd ..
+```
+
+Verify the new version appears on npmjs.com before closing the release.
+
+### Per-PR changelog and deprecation notes
+
+- `CHANGELOG.md` should be updated for any user-facing change, not just at release time.
+- The version in `Cargo.toml` follows semver; the library is pre-1.0 so breaking changes are
+  allowed but must be noted in the changelog.
+- Deprecated items use `#[deprecated(since = "x.y.z", note = "use X instead")]`.
 
 ## Tests
 

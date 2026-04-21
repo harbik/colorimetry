@@ -13,15 +13,70 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.0.9] - 2026-04-20
+
 ### Added
 
-* `CFI::chroma_shift()` — per-sample fractional chroma shift `(C't − C'r) / C'r` for all 99 CES (per-sample equivalent of `rcs_hj`).
-* `CFI::hue_shift()` — per-sample hue angle difference in radians, wrapped to `(−π, π]` (per-sample equivalent of `rhs_hj`).
-* `CFI::hue_angle_bin_index(hue_angle_rad)` — maps any hue angle (radians) to its TM-30 / CIE 224:2017 bin index in `[0, N_ANGLE_BIN)`, enabling hue-angle binning of arbitrary colour patches.
+* `QTH` — Quartz Tungsten Halogen illuminant model based on Ojanen (2012), covering the
+  400–2500 nm emission spectrum of tungsten-halogen lamps.
+* `CFI::jabp_ts()`, `CFI::jabp_rs()` — J′a′b′ coordinates for each of the 99 CES samples
+  under the test and reference source respectively.
+* `CFI::chroma_ts()`, `CFI::chroma_rs()` — chroma (C′) for each CES sample under test and
+  reference source.
+* `CFI::hue_angle_bin_ts()`, `CFI::hue_angle_bin_rs()` — hue angles (radians) for each CES
+  sample under test and reference source.
+* `CFI::chroma_shift()` — per-sample fractional chroma shift `(C′t − C′r) / C′r` for all 99
+  CES samples (per-sample analogue of `chroma_shift_indices()`).
+* `CFI::hue_shift()` — per-sample hue angle difference in radians, wrapped to `(−π, π]`
+  (per-sample analogue of `hue_shift_indices()`).
+* `CFI::hue_angle_bin_index(hue_angle_rad)` — maps any hue angle (radians) to its TM-30 /
+  CIE 224:2017 bin index in `[0, 16)`, enabling hue-angle binning of arbitrary colour patches.
+* `CFI::jabp_average_ts()`, `CFI::jabp_average_rs()` — hue-bin averaged J′a′b′ under test
+  and reference source (16 bins).
+* `CFI::normalized_ab_average()` — normalized a′b′ per hue bin for both sources; primary
+  input for the Colour Vector Graphic (CVG).
+* `CFI::normalized_chroma_average_ts()`, `CFI::normalized_chroma_average_rs()` — normalized
+  chroma per hue bin for test and reference source.
+* `CFI::normalized_chroma_average()` — ratio of test to reference normalized chroma per bin.
+* `CFI::hue_angle_bin_average_samples_ts()`, `CFI::hue_angle_bin_average_samples_rs()` —
+  average hue angle (radians) per bin for test and reference source.
+* `CFI::local_color_fidelity_indices()` — per-bin fidelity index Rf,hj (TM-30 §4.5) as
+  `[f64; 16]`.
+* `CFI::chroma_shift_indices()` — per-bin chroma shift Rcs,hj (TM-30 §4.6) as `[f64; 16]`.
+* `CFI::hue_shift_indices()` — per-bin hue shift Rhs,hj in radians (TM-30 §4.7) as
+  `[f64; 16]`.
+* `XYZ::try_chromaticity()` — returns `Option<Chromaticity>`, giving `None` for black
+  (zero-luminance) XYZ values instead of panicking.
+* WASM / JavaScript API for CFI (requires `cfi` feature):
+  * `Illuminant.cfi()` — constructs a `CFI` object from an illuminant.
+  * `CFI.colorFidelityIndex()` — general colour fidelity index Rf (0–100).
+  * `CFI.colorGamutIndex()` — general colour gamut index Rg.
+  * `CFI.localColorFidelityIndices()` — `Float64Array` of 16 per-bin Rf,hj values.
+  * `CFI.chromaShiftIndices()` — `Float64Array` of 16 per-bin Rcs,hj values.
+  * `CFI.hueShiftIndices()` — `Float64Array` of 16 per-bin Rhs,hj values (radians).
+  * `CFI.specialColorFidelityIndices()` — `Float64Array` of 99 per-CES fidelity indices.
 
 ### Changed
 
-* `CFI` struct documentation now explicitly states which TM-30 version is implemented (TM-30-20/24, aligned with CIE 224:2017; `CF = 6.73`), distinguishing it from the earlier TM-30-15 edition.
+* `Spectrum::values()` renamed to `Spectrum::as_array()` for consistency with Rust naming
+  conventions (`as_*` for cheap reference-returning conversions).
+* `CFI::general_color_fidelity_index()` renamed to `CFI::color_fidelity_index()`.
+* `CFI::general_color_gamut_index()` renamed to `CFI::color_gamut_index()`.
+* `CFI` struct documentation now explicitly states which TM-30 version is implemented
+  (TM-30-20/24, aligned with CIE 224:2017; `CF = 6.73`), distinguishing it from TM-30-15.
+
+### Deprecated
+
+* `CFI::rg()` — use `CFI::color_gamut_index()` instead.
+
+### Fixed
+
+* `CFI::color_gamut_index()` (Rg): copy-paste bug caused the reference polygon area to be
+  computed from test-source samples instead of reference-source samples, yielding ~109 instead
+  of ~102 for F12.
+* `CFI::chroma_shift_indices()`: empty hue bins previously returned NaN; now returns 0.0.
+* `CFI::normalized_chroma_average()`: empty hue bins previously returned NaN or Infinity;
+  now returns 0.0.
 
 ## [0.0.8] - 2025-09-5
 
