@@ -1,50 +1,57 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 // Copyright (c) 2024-2025, Harbers Bik LLC
 
-//! Standard Observers
-//! ==================
+//! Standard colorimetric observers
 //!
-//! In color science, we model how humans perceive light using “standard observers”—mathematical averages of real people’s color responses. Here’s the gist:
+//! A *standard observer* models average human color vision as three *color-matching functions*
+//! (CMFs) — x̄(λ), ȳ(λ), z̄(λ) — derived from psychophysical experiments in which observers
+//! matched test colors by adjusting three narrow-band primaries.  Integrating any spectral power
+//! distribution (SPD) against these curves yields the *XYZ tristimulus values* that underpin all
+//! CIE color metrics: CCT, CRI, CIELAB, TM-30 Rf, and more.
 //!
-//! ## How We See Color
-//! - Our eyes have three types of cones, each tuned to a different part of the spectrum:
-//!   - **L-cones** (long-wavelength, “red” sensitive)  
-//!   - **M-cones** (medium-wavelength, “green” sensitive)  
-//!   - **S-cones** (short-wavelength, “blue” sensitive)  
+//! # Available observers
 //!
-//! ## From Cone Sensitivities to XYZ
+//! | Variant | Field of view | Basis | Primary use |
+//! |---------|--------------|-------|-------------|
+//! | [`Cie1931`](Observer::Cie1931) | 2° (foveal) | Wright & Guild 1931 | Default for most colorimetry |
+//! | [`Cie1964`](Observer::Cie1964) | 10° (peripheral) | Stiles & Burch 1964 | CIE 224:2017 / TM-30; large fields |
+//! | [`Cie2015`](Observer::Cie2015) | 2° | Cone fundamentals (Stockman & Sharpe) | Higher accuracy, especially in blue |
+//! | [`Cie2015_10`](Observer::Cie2015_10) | 10° | Cone fundamentals (Stockman & Sharpe) | Higher accuracy, wide fields |
 //!
-//! Directly measuring each cone type is extremely challenging, so the CIE came up with a clever substitute:
+//! The **CIE 1931 2° observer** dominates industry practice — sRGB, ICC profiles, and CIE
+//! CRI Ra all specify their reference calculations in terms of it.  The **CIE 1964 10°
+//! observer** is used by CIE 224:2017 / ANSI/IES TM-30 for colour fidelity calculations,
+//! and is also preferred whenever the viewed area subtends more than roughly 4° at the eye
+//! (larger than a business card held at arm’s length).  The **CIE 2015** observers construct
+//! the CMFs as linear transforms of the Stockman & Sharpe (2000) cone fundamentals —
+//! psychophysical estimates of L, M, S cone spectral sensitivities derived from improved
+//! color-matching experiments — which corrects an inaccuracy in the short-wavelength region
+//! of the 1931 functions.
 //!
-//! - **Color-matching experiments**  
-//!   Observers tweak three narrow-band red, green, and blue lights until they visually match a test color.  
-//! - **Negative matches**  
-//!   Some test colors actually require “subtracting” a primary, which shows up as a negative match value.  
-//! - **Imaginary primaries**  
-//!   To eliminate negatives, the 1931 CIE team transformed those matches into three new “imaginary” primaries—mathematical constructs that guarantee all match values are zero or positive.  
-//! - **Color-matching functions**  
-//!   The non-negative weightings across wavelengths form the CIE 1931 curves x̅(λ), y̅(λ), and z̅(λ).  
-//! - **XYZ tristimulus**  
-//!   Finally, you integrate (dot-product) any light’s spectrum with these functions to get its standard X, Y, and Z values.
+//! # Background: color-matching experiments
 //!
-//! ## Field of View Matters
-//! - **2° Observer (CIE 1931)**  
-//!   - Represents a small, foveal area of about 2°—think looking at a small color patch or point source.  
-//!   - Based on experiments by Wright & Guild using narrow-band primaries and 17 observers.  
-//! - **10° Observer (CIE 1964)**  
-//!   - Covers a wider, more peripheral field (10°)—better for larger patches or immersive scenes.  
+//! Human color vision relies on three cone types — L (“red”), M (“green”), S (“blue”) — each
+//! with a distinct spectral sensitivity.  The CIE quantified these indirectly: observers
+//! adjusted monochromatic primaries until the mixture appeared identical to a test stimulus
+//! at each wavelength.  Because some stimuli required adding light to the *test* side (a
+//! “negative” primary contribution), the 1931 committee applied a linear transformation to a
+//! set of *imaginary* primaries, ensuring x̄(λ), ȳ(λ), z̄(λ) are everywhere non-negative.
+//! The ȳ function was additionally chosen to equal the photopic luminous efficiency V(λ),
+//! so that Y always represents luminance (CIE 15:2018, §3).
 //!
-//! ## Why New Observers?
-//! - The original CIE 1931 functions work well across most of the spectrum but are less accurate in deep blue.  
-//! - **CIE 2015 Observer** recalibrates those functions using updated cone-sensitivity data—especially improving blue-region accuracy.  
-//! - Use the 2015 standard when you need the best possible match to human vision (e.g. advanced colorimetry, high-end display profiling).
+//! # Example
 //!
-//! ## Which One to Use?
-//! - **Small, detailed samples** → 2° (CIE 1931)  
-//! - **Large fields or immersive scenes** → 10° (CIE 1964)  
-//! - **Highest-accuracy applications** (especially blue-heavy content) → CIE 2015  
+//! ```
+//! use colorimetry::observer::Observer;
 //!
-//! These standard observers form the backbone of color spaces, chromaticity diagrams, and all standardized color measurements.  
+//! // D65 white point under the CIE 1931 2° observer — Y is 100 by convention
+//! let xyz = Observer::Cie1931.xyz_d65();
+//! assert!((xyz.to_array()[1] - 100.0).abs() < 0.1);
+//! ```
+//!
+//! # Reference
+//!
+//! CIE 15:2018 *Colorimetry*, 4th ed., §3 (color-matching functions and standard observers).
 
 pub mod observer_data;
 
@@ -72,20 +79,36 @@ use std::{fmt, ops::RangeInclusive};
 
 use strum::{AsRefStr, EnumCount, EnumIter};
 
-/// Light-weight identifier added to the `XYZ` and `RGB` datasets,
-///    representing the colorimetric standard observer used.
+/// Selects a CIE standard colorimetric observer.
 ///
-///    No data included here, which would be the Rust way, but that does not work with wasm-bindgen.
-///    This can be directly used in JavaScript, and has the benefit to be just an index.
+/// The tag is embedded in every [`XYZ`] and [`Rgb`](crate::rgb::Rgb) value so that
+/// operations across incompatible observers can be detected at runtime.  Each variant
+/// is a lightweight index; the color-matching function tables are stored in
+/// [`observer_data`].
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
 #[derive(Clone, Copy, Default, PartialEq, Eq, Hash, Debug, EnumIter, EnumCount, AsRefStr)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[non_exhaustive]
 pub enum Observer {
+    /// CIE 1931 2° standard observer — the default for most colorimetry.
+    ///
+    /// Used by sRGB, ICC profiles, and CIE CRI Ra.
     #[default]
     Cie1931,
+    /// CIE 1964 10° supplementary standard observer.
+    ///
+    /// Preferred when the viewed area subtends more than ~4° at the eye.
+    /// Used by CIE 224:2017 / ANSI/IES TM-30 for colour fidelity calculations.
     Cie1964,
+    /// CIE 2015 2° observer — CMFs constructed as linear transforms of the Stockman & Sharpe
+    /// (2000) cone fundamentals.
+    ///
+    /// More accurate than `Cie1931` in the short-wavelength (blue) region.
     Cie2015,
+    /// CIE 2015 10° observer — CMFs constructed as linear transforms of the Stockman & Sharpe
+    /// (2000) cone fundamentals.
+    ///
+    /// Wide-field counterpart of [`Cie2015`](Observer::Cie2015).
     Cie2015_10,
 }
 
@@ -107,13 +130,19 @@ impl Observer {
 
     /// Returns the spectral locus for this observer.
     ///
-    /// The spectral locus is the boundary of the area of all physical colors in a chromiticity diagram.
+    /// The spectral locus is the boundary of the area of all physical colors in a chromaticity diagram.
     pub fn spectral_locus(&self) -> &SpectralLocus {
         self.data()
             .spectral_locus
             .get_or_init(|| SpectralLocus::new(*self))
     }
 
+    /// Computes relative XYZ tristimulus values for a filtered light source.
+    ///
+    /// The unfiltered light spectrum sets the white point (normalised to Y = 100);
+    /// the product of the light and filter spectra is integrated to give the stimulus XYZ.
+    /// The result is a [`RelXYZ`] that carries both the stimulus and the white point,
+    /// as required by CIELAB and CIECAM calculations.
     pub fn rel_xyz(&self, light: &dyn Light, filter: &dyn Filter) -> RelXYZ {
         let xyzn = self.xyz_from_spectrum(&light.spectrum());
         let s = *light.spectrum() * *filter.spectrum();
@@ -144,17 +173,15 @@ impl Observer {
         }
     }
 
-    /// Calculates the L*a*b* CIELAB values for a light source and filter combination.
-    /// This method is used to compute the color appearance of a light source
-    /// when filtered by a colorant or filter.
-    /// It returns the CIELAB values normalized to a white reference luminance of 100.0,
+    /// Computes CIELAB L\*a\*b\* values for a light source and filter combination,
+    /// normalised so the unfiltered source has Y = 100.
     ///
     /// # Arguments
-    /// * `light` - A reference to an object implementing the [Light] trait, such as [`CieIlluminant`].
-    /// * `filter` - A reference to an object implementing the [Filter] trait, such as `Colorant`.
+    /// * `light` - A light source implementing [`Light`], such as [`CieIlluminant`].
+    /// * `filter` - A filter implementing [`Filter`], such as `Colorant`.
     ///
     /// # Returns
-    /// * `CieLab` - The computed CIELAB color representation for the light and filter combination.
+    /// [`CieLab`] — the CIELAB representation of the filtered stimulus relative to the white point.
     pub fn lab(&self, light: &dyn Light, filter: &dyn Filter) -> CieLab {
         let rxyz = self.rel_xyz(light, filter);
         // unwrap OK as we are using only one observer (self) here
@@ -173,49 +200,48 @@ impl Observer {
         self.lab(&crate::illuminant::D50, filter)
     }
 
-    /// Calculates the CIECAM16 color appearance model values for a light source and filter combination.
-    /// This method is used to compute the color appearance of a light source
-    /// when filtered by a colorant or filter, using the CIECAM16 model.
-    /// It returns the CIECAM16 values normalized to a white reference luminance of 100.0.
+    /// Computes CIECAM16 color appearance model values for a light source and filter combination,
+    /// normalised so the unfiltered source has Y = 100.
+    ///
     /// # Arguments
-    /// * `light` - A reference to an object implementing the [Light] trait, such as [`CieIlluminant`].
-    /// * `filter` - A reference to an object implementing the [Filter] trait, such as `Colorant`.
-    /// * `vc` - The view conditions to use for the CIECAM16 calculation.
+    /// * `light` - A light source implementing [`Light`], such as [`CieIlluminant`].
+    /// * `filter` - A filter implementing [`Filter`], such as `Colorant`.
+    /// * `vc` - Viewing conditions for the CIECAM16 model.
+    ///
     /// # Returns
-    /// * `CieCam16` - The computed CIECAM16 color appearance model representation for the light and filter combination.
+    /// [`CieCam16`] — CIECAM16 correlates for the filtered stimulus under the given viewing conditions.
     pub fn ciecam16(&self, light: &dyn Light, filter: &dyn Filter, vc: ViewConditions) -> CieCam16 {
         let rxyz = self.rel_xyz(light, filter);
         // unwrap OK as we are using only one observer (self) here
         CieCam16::from_xyz(rxyz, vc)
     }
 
-    /// Calculates the CIECAM02 color appearance model values for a light source and filter combination.
-    /// This method is used to compute the color appearance of a light source
-    /// when filtered by a colorant or filter, using the CIECAM02 model.
-    /// It returns the CIECAM02 values normalized to a white reference luminance of 100.0.
+    /// Computes CIECAM02 color appearance model values for a light source and filter combination,
+    /// normalised so the unfiltered source has Y = 100.
+    ///
     /// # Arguments
-    /// * `light` - A reference to an object implementing the [Light] trait, such as [`CieIlluminant`].         
-    /// * `filter` - A reference to an object implementing the [Filter] trait, such as `Colorant`.
-    /// * `vc` - The view conditions to use for the CIECAM02 calculation.
+    /// * `light` - A light source implementing [`Light`], such as [`CieIlluminant`].
+    /// * `filter` - A filter implementing [`Filter`], such as `Colorant`.
+    /// * `vc` - Viewing conditions for the CIECAM02 model.
+    ///
     /// # Returns
-    /// * `CieCam02` - The computed CIECAM02 color appearance model representation for the light and filter combination.
+    /// [`CieCam02`] — CIECAM02 correlates for the filtered stimulus under the given viewing conditions.
     pub fn ciecam02(&self, light: &dyn Light, filter: &dyn Filter, vc: ViewConditions) -> CieCam02 {
         let rxyz = self.rel_xyz(light, filter);
         // unwrap OK as we are using only one observer (self) here
         CieCam02::from_xyz(rxyz, vc)
     }
 
-    /// Calculates Tristimulus valus, in form of an [XYZ] object of a general spectrum.
-    /// If a reference white is given (rhs), it will copy its tristimulus value, and the spectrum
-    /// is interpreted as a stimulus, being a combination of an illuminant with a colorant.
-    /// If no reference white is given, the spectrum is interpreted as an illuminant.
-    /// This method produces the raw XYZ data, not normalized to 100.0
+    /// Calculates tristimulus values for a general spectrum, returned as an [`XYZ`] object.
+    ///
+    /// The spectrum is interpreted as an illuminant SPD.  This method produces raw (unnormalised)
+    /// XYZ data; the Y value is not scaled to 100.
     pub fn xyz_from_spectrum(&self, spectrum: &Spectrum) -> XYZ {
         let xyz = self.data().data * spectrum.0 * self.data().lumconst;
         XYZ::from_vec(xyz, self.data().tag)
     }
 
-    /// Calculates the lumimous value or Y tristimulus value for a general spectrum.
+    /// Calculates the luminous value (Y tristimulus value) for a general spectrum.
     pub fn y_from_spectrum(&self, spectrum: &Spectrum) -> f64 {
         (self.data().data.row(1) * spectrum.0 * self.data().lumconst)[(0, 0)]
     }
@@ -259,13 +285,12 @@ impl Observer {
     /// - Results are typically low in magnitude due to the narrow bandwidth
     /// - Values are normalized relative to the illuminant's total energy
     ///
-    /// # Parameters
-    /// - `ref_white`: Reference illuminant (e.g., D65, D50) for normalization
+    /// # Arguments
+    /// - `ref_white`: Reference illuminant (e.g., D65, D50) for normalisation.
     ///
     /// # Returns
-    /// Vector of (wavelength, RelXYZ) pairs, where:
-    /// - wavelength: nanometers (380-780nm)
-    /// - RelXYZ: relative tristimulus values scaled to 100 lux
+    /// A vector of `(wavelength_nm, RelXYZ)` pairs (380–780 nm), where each `RelXYZ`
+    /// is scaled to 100 lux illuminance.
     pub fn monochromes(&self, ref_white: CieIlluminant) -> Vec<(usize, RelXYZ)> {
         let mut obs = self.data().data;
         let white = &ref_white.illuminant().as_ref().0;
@@ -285,6 +310,11 @@ impl Observer {
         v
     }
 
+    /// Returns relative XYZ values for the spectral locus, restricted to the unique wavelength range.
+    ///
+    /// This is a convenience wrapper around [`monochromes`](Self::monochromes) that discards
+    /// the endpoints where the locus folds back on itself — see
+    /// [`spectral_locus_wavelength_range`](Self::spectral_locus_wavelength_range).
     pub fn trimmed_spectral_locus(&self, ref_white: CieIlluminant) -> Vec<(usize, RelXYZ)> {
         let sl_full = self.monochromes(ref_white);
         let valid_range = self.spectral_locus_wavelength_range();
@@ -325,11 +355,12 @@ impl Observer {
         })
     }
 
-    /// Calculates XYZ tristimulus values for a Planckian emitter for this
-    /// observer. The `to_wavelength`` function is used, as planck functions
-    /// requires the wavelength to be in units of meters, and the
-    /// `xyz_from_illuminant_as_fn` uses functions over a domain from 0.0 to
-    /// 1.0.
+    /// Computes XYZ tristimulus values for a Planckian (blackbody) radiator at the given CCT.
+    ///
+    /// The spectral radiance is evaluated from Planck's law and integrated against
+    /// the observer's color-matching functions.  Combine with
+    /// [`xyz_planckian_locus_slope`](Self::xyz_planckian_locus_slope) to follow
+    /// the Planckian locus in XYZ space.
     pub fn xyz_planckian_locus(&self, cct: f64) -> XYZ {
         let p = Planck::new(cct);
         self.xyz_from_fn(|l| p.at_wavelength(to_wavelength(l, 0.0, 1.0)))
@@ -354,23 +385,17 @@ impl Observer {
         self.xyz_from_fn(|l| p.slope_at_wavelength(to_wavelength(l, 0.0, 1.0)))
     }
 
-    /// Calculates the RGB to XYZ matrix, for a particular color space,
-    /// and an optional whitepoint. If no whitepoint is specified, the
-    /// whitepoint of the colorspace will be used.
+    /// Computes the 3×3 RGB-to-XYZ matrix for a color space with an optional alternate white point.
     ///
-    /// The main use for specifying whitepoints different than the RGB-space's
-    /// default is with creating ICC color profiles, which requred the color space
-    /// to have a D50 whitepoint. Many colorspaces use D65. Setting the whitepoint
-    /// here to D50, the resulting column values can be used for the `rXYZ`, `gXYZ`, and
-    /// `bXYZ`` tags.
-    ///
+    /// When `opt_white` is `None` the color space's own white point is used, producing the
+    /// same matrix as [`rgb2xyz_matrix`](Self::rgb2xyz_matrix).  Supply a D50 [`XYZ`] value
+    /// to obtain a matrix adapted to D50 — this is required for ICC profile `rXYZ`/`gXYZ`/`bXYZ`
+    /// tags when the color space is natively D65 (e.g. sRGB).
     ///
     /// # Notes
     ///
-    /// * For default whitepoints, all the rgb2xyz matrices are already included in the
-    ///   [observer::rgbxyz.rs] module.
-    /// * XYZ is used here, instead of a spectrum, to explicitely use the XYZ values as
-    ///   required by the ICC profile standard.
+    /// * XYZ is used for the white point (rather than a spectrum) to match the ICC profile
+    ///   standard, which specifies primaries as XYZ coordinates.
     ///
     pub fn calc_rgb2xyz_matrix_with_alt_white(
         &self,
@@ -402,12 +427,11 @@ impl Observer {
         rgb2xyz
     }
 
-    /// Calculates the RGB to XYZ matrix, for a particular color space.
+    /// Computes the 3×3 RGB-to-XYZ matrix for a color space from first principles.
     ///
-    /// Don't use this directly, as all the matrices are available through
-    /// Observer::rgb2xyz_matrix. The only use for this function is through
-    /// the `xtask gen` function, used when the library is extended with new
-    /// observers or new color spaces.
+    /// Pre-computed, cached matrices for all built-in observer / color space combinations are
+    /// returned by [`rgb2xyz_matrix`](Self::rgb2xyz_matrix).  Use this method only when
+    /// adding a new color space or regenerating built-in tables via `cargo xtask gen`.
     pub fn calc_rgb2xyz_matrix(&self, rgbspace: RgbSpace) -> Matrix3<f64> {
         //   let space = rgbspace.data();
         let mut rgb2xyz: nalgebra::Matrix<
@@ -431,9 +455,12 @@ impl Observer {
         rgb2xyz
     }
 
-    /// Calculates the XYZ to RGB matrix, for a particular color space.
-    /// Don't use this directly, as they are all precalculated and available
-    /// through Observer::xyz2rgb.
+    /// Computes the 3×3 XYZ-to-RGB matrix for a color space (the inverse of
+    /// [`calc_rgb2xyz_matrix`](Self::calc_rgb2xyz_matrix)).
+    ///
+    /// Pre-computed, cached matrices for all built-in combinations are returned by
+    /// [`xyz2rgb_matrix`](Self::xyz2rgb_matrix).  Use this method only when regenerating
+    /// built-in tables via `cargo xtask gen`.
     pub fn calc_xyz2rgb_matrix(&self, rgbspace: RgbSpace) -> Matrix3<f64> {
         // unwrap: only used with library color spaces
         self.calc_rgb2xyz_matrix(rgbspace).try_inverse().unwrap()
@@ -443,20 +470,16 @@ impl Observer {
     //      self.rgb2xyz(rgbspace)
     //  }
 
-    /// Returns the wavelength range (in nanometer) for the _horse shoe_,
-    /// the boundary of the area of all physical colors in a chromiticity diagram,
-    /// for this observer.
+    /// Returns the wavelength range (in nanometres) over which the spectral locus is monotone.
     ///
-    /// Spectral locus points tend to freeze, or even fold back to lower wavelength
-    /// values at the blue and red perimeter ends. This can be quite anoying, for
-    /// example when trying to calculate dominant wavelength, or when creating
-    /// plots.
+    /// The spectral locus (the horseshoe boundary of all physical colors in a chromaticity
+    /// diagram) folds back on itself near the blue and red extremes: consecutive wavelengths
+    /// can map to the same or a reversed chromaticity coordinate.  This causes problems for
+    /// dominant-wavelength calculations and locus plots.
+    ///
+    /// This method returns the sub-range for which each wavelength maps to a unique
+    /// chromaticity point distinct from its neighbours.
     /// See Wikipedia's [CIE 1931 Color Space](https://en.wikipedia.org/wiki/CIE_1931_color_space).
-    ///
-    /// To help with the above problem, this method returns the wavelength range
-    /// for which the spectral locus points are unique, meaning
-    /// each wavelength has a chromaticity coordinate different from the wavelength
-    /// below or above it.
     ///
     /// To get the tristimulus values of the spectral locus, use
     /// [`xyz_at_wavelength`](Self::xyz_at_wavelength).

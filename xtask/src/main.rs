@@ -115,7 +115,16 @@ fn main() {
 
 fn build_wasm() {
     let status = Command::new("wasm-pack")
-        .args(["build", "--target", "web", "--release", "--out-dir", "pkg"])
+        .args([
+            "build",
+            "--target",
+            "web",
+            "--release",
+            "--out-dir",
+            "pkg",
+            "--features",
+            "cri",
+        ])
         .status()
         .expect("failed to run wasm-pack");
 
