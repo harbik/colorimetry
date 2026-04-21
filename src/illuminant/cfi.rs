@@ -465,7 +465,7 @@ impl CFI {
         100. * at / ar
     }
 
-    /// Deprecated alias for [`general_color_gamut_index`](Self::general_color_gamut_index).
+    /// Deprecated alias for [`color_gamut_index`](Self::color_gamut_index).
     #[deprecated(since = "0.0.8", note = "use `color_gamut_index()` instead")]
     pub fn rg(&self) -> f64 {
         self.color_gamut_index()
