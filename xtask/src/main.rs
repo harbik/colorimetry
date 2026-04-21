@@ -123,7 +123,7 @@ fn build_wasm() {
             "--out-dir",
             "pkg",
             "--features",
-            "cri",
+            "cri,cfi",
         ])
         .status()
         .expect("failed to run wasm-pack");
