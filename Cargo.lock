@@ -307,15 +307,15 @@ checksum = "1462739cb27611015575c0c11df5df7601141071f07518d56fcc1be504cbec97"
 
 [[package]]
 name = "cmx"
-version = "0.0.5"
+version = "0.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "81428bb5ac8a4ddffa79144924e97b9f671debbcfaa7bd795fba235d1a810f19"
+checksum = "15158e1b83201d467d9d791779b4708e4d21adb7914a88091fd18dc177547d9b"
 dependencies = [
  "anyhow",
  "approx",
  "chrono",
  "clap",
- "colorimetry 0.0.8",
+ "colorimetry",
  "delegate",
  "hex",
  "indexmap",
@@ -369,23 +369,6 @@ dependencies = [
 
 [[package]]
 name = "colorimetry"
-version = "0.0.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f00a838cbc1a52e72755ea0a25ed422f8be600d959c070b40ef1348c9a8ea98f"
-dependencies = [
- "approx",
- "geo",
- "js-sys",
- "libm",
- "nalgebra",
- "num-traits",
- "strum",
- "thiserror 1.0.63",
- "wasm-bindgen",
-]
-
-[[package]]
-name = "colorimetry"
 version = "0.0.9"
 dependencies = [
  "approx",
@@ -412,7 +395,7 @@ version = "0.0.9"
 dependencies = [
  "clap",
  "colored 3.0.0",
- "colorimetry 0.0.9",
+ "colorimetry",
  "csv",
  "strum",
 ]
@@ -424,7 +407,7 @@ dependencies = [
  "approx",
  "base64",
  "cmx",
- "colorimetry 0.0.9",
+ "colorimetry",
  "grass",
  "image",
  "nalgebra",
@@ -2101,7 +2084,7 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "clap",
- "colorimetry 0.0.9",
+ "colorimetry",
  "glob",
  "handlebars",
  "serde",
