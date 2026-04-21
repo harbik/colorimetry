@@ -78,16 +78,20 @@ impl CRI {
 #[wasm_bindgen]
 impl CFI {
     /// General colour fidelity index Rf (0–100).
-    #[wasm_bindgen(js_name = rf)]
-    pub fn rf_js(&self) -> f64 {
+    ///
+    /// A single overall score measuring how faithfully the test source renders the 99
+    /// Colour Evaluation Samples compared to the reference illuminant.
+    #[wasm_bindgen(js_name = colorFidelityIndex)]
+    pub fn color_fidelity_index_js(&self) -> f64 {
         self.general_color_fidelity_index()
     }
 
     /// General colour gamut index Rg.
     ///
+    /// Measures the area of the gamut polygon relative to the reference (100 = same area).
     /// Values above 100 indicate a wider gamut than the reference; below 100 means narrower.
-    #[wasm_bindgen(js_name = rg)]
-    pub fn rg_js(&self) -> f64 {
+    #[wasm_bindgen(js_name = colorGamutIndex)]
+    pub fn color_gamut_index_js(&self) -> f64 {
         self.general_color_gamut_index()
     }
 
@@ -95,8 +99,8 @@ impl CFI {
     ///
     /// Returns a `Float64Array` of 16 values.  Bin 0 starts at 0° (red), progressing
     /// counter-clockwise in 22.5° steps around the hue circle.
-    #[wasm_bindgen(js_name = rfHj)]
-    pub fn rf_hj_js(&self) -> Box<[f64]> {
+    #[wasm_bindgen(js_name = localColorFidelityIndices)]
+    pub fn local_color_fidelity_indices_js(&self) -> Box<[f64]> {
         Box::new(self.rf_hj())
     }
 
@@ -104,8 +108,8 @@ impl CFI {
     ///
     /// Returns a `Float64Array` of 16 values.  Positive means the test source boosts
     /// saturation in that hue direction; negative means desaturation.  Typical range ≈ −0.5…+0.5.
-    #[wasm_bindgen(js_name = rcsHj)]
-    pub fn rcs_hj_js(&self) -> Box<[f64]> {
+    #[wasm_bindgen(js_name = chromaShiftIndices)]
+    pub fn chroma_shift_indices_js(&self) -> Box<[f64]> {
         Box::new(self.rcs_hj())
     }
 
@@ -113,16 +117,16 @@ impl CFI {
     ///
     /// Returns a `Float64Array` of 16 values in radians, wrapped to (−π, π].
     /// Positive means a counter-clockwise hue shift; negative means clockwise.
-    #[wasm_bindgen(js_name = rhsHj)]
-    pub fn rhs_hj_js(&self) -> Box<[f64]> {
+    #[wasm_bindgen(js_name = hueShiftIndices)]
+    pub fn hue_shift_indices_js(&self) -> Box<[f64]> {
         Box::new(self.rhs_hj())
     }
 
     /// Special colour fidelity indices Rf,i for all 99 CES (CIE 224:2017 §7).
     ///
     /// Returns a `Float64Array` of 99 values, one per Colour Evaluation Sample.
-    #[wasm_bindgen(js_name = specialIndices)]
-    pub fn special_indices_js(&self) -> Box<[f64]> {
+    #[wasm_bindgen(js_name = specialColorFidelityIndices)]
+    pub fn special_color_fidelity_indices_js(&self) -> Box<[f64]> {
         Box::new(self.special_color_fidelity_indices())
     }
 }
