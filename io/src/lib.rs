@@ -91,7 +91,7 @@
 //! |---|---|---|
 //! | `illuminant` | string enum | CIE illuminant code: `D65`, `D50`, `A`, `F1`–`F12`, `LED-*`, or `"custom"` |
 //! | `illuminant_custom_sd` | object | required when `illuminant` is `"custom"`; contains `wavelengths_nm` and `values` arrays |
-//! | `cie_observer` | string enum | `"CIE 1931 2 degree"` (default) or `"CIE 1964 10 degree"` |
+//! | `cie_observer` | string enum | `"CIE 1931 2 degree"` (default), `"CIE 1964 10 degree"`, `"CIE 2015 2 degree"`, or `"CIE 2015 10 degree"` |
 //! | `white_reference` | object | optional calibration tile info and spectral reflectance values |
 //! | `results` | object | optional pre-computed colorimetric values (see below) |
 //!
@@ -851,7 +851,12 @@ const ALLOWED_ILLUMINANTS: &[&str] = &[
     "LED-RGB1", "LED-V1", "LED-V2", "custom",
 ];
 
-const ALLOWED_OBSERVERS: &[&str] = &["CIE 1931 2 degree", "CIE 1964 10 degree"];
+const ALLOWED_OBSERVERS: &[&str] = &[
+    "CIE 1931 2 degree",
+    "CIE 1964 10 degree",
+    "CIE 2015 2 degree",
+    "CIE 2015 10 degree",
+];
 
 fn validate_schema(v: &serde_json::Value) -> Result<()> {
     let mut errors: Vec<String> = Vec::new();

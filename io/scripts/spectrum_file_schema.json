@@ -299,7 +299,7 @@
         "cie_observer": {
           "type": "string",
           "description": "CIE standard observer used for colorimetric calculations.",
-          "enum": ["CIE 1931 2 degree", "CIE 1964 10 degree"],
+          "enum": ["CIE 1931 2 degree", "CIE 1964 10 degree", "CIE 2015 2 degree", "CIE 2015 10 degree"],
           "default": "CIE 1931 2 degree"
         },
         "white_reference": {
