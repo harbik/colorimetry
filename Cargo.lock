@@ -401,6 +401,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "colorimetry-io"
+version = "0.1.0"
+dependencies = [
+ "colorimetry",
+ "serde",
+ "serde_json",
+ "thiserror 1.0.63",
+]
+
+[[package]]
 name = "colorimetry-plot"
 version = "0.0.9"
 dependencies = [

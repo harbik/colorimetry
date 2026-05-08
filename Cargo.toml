@@ -18,6 +18,7 @@ members = [
     "plot",
     "cli",
     "xtask",
+    "io",
     "."  # main crate
 ]
 

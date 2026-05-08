@@ -1,0 +1,428 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/uvvis-spectrum/v1.0/schema.json",
+  "title": "UV-Vis / Visible Spectral Data Schema",
+  "description": "A schema for storing and exchanging UV-Vis and visible reflectance/transmittance spectral data, suitable for color-science calculations, public sharing, and long-term archiving.",
+  "version": "1.0.0",
+
+  "oneOf": [
+    { "$ref": "#/$defs/single_file" },
+    { "$ref": "#/$defs/batch_file" }
+  ],
+
+  "$defs": {
+
+    "single_file": {
+      "type": "object",
+      "description": "A file containing a single spectrum.",
+      "required": ["schema_version", "file_type", "spectrum"],
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": { "$ref": "#/$defs/schema_version" },
+        "file_type": { "const": "single" },
+        "spectrum": { "$ref": "#/$defs/spectrum" }
+      }
+    },
+
+    "batch_file": {
+      "type": "object",
+      "description": "A file containing multiple spectra.",
+      "required": ["schema_version", "file_type", "spectra"],
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": { "$ref": "#/$defs/schema_version" },
+        "file_type": { "const": "batch" },
+        "batch_metadata": { "$ref": "#/$defs/batch_metadata" },
+        "spectra": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/spectrum" }
+        }
+      }
+    },
+
+    "schema_version": {
+      "type": "string",
+      "description": "Version of this schema used to write the file.",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "examples": ["1.0.0"]
+    },
+
+    "batch_metadata": {
+      "type": "object",
+      "description": "Optional metadata common to all spectra in the batch.",
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Name or title of the batch / measurement campaign."
+        },
+        "description": {
+          "type": "string",
+          "description": "Free-text description of the batch."
+        },
+        "operator": {
+          "type": "string",
+          "description": "Name or ID of the person or system that made the measurements."
+        },
+        "date": {
+          "type": "string",
+          "format": "date",
+          "description": "Date the batch was measured (ISO 8601: YYYY-MM-DD)."
+        },
+        "instrument": { "$ref": "#/$defs/instrument" },
+        "measurement_conditions": { "$ref": "#/$defs/measurement_conditions" }
+      }
+    },
+
+    "spectrum": {
+      "type": "object",
+      "description": "A single spectral measurement.",
+      "required": ["id", "metadata", "wavelength_axis", "spectral_data"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for this spectrum within the file."
+        },
+        "metadata": { "$ref": "#/$defs/spectrum_metadata" },
+        "wavelength_axis": { "$ref": "#/$defs/wavelength_axis" },
+        "spectral_data": { "$ref": "#/$defs/spectral_data" },
+        "color_science": { "$ref": "#/$defs/color_science" },
+        "provenance": { "$ref": "#/$defs/provenance" }
+      }
+    },
+
+    "spectrum_metadata": {
+      "type": "object",
+      "description": "Descriptive metadata for one spectrum.",
+      "required": ["measurement_type", "date"],
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Human-readable name for this spectrum."
+        },
+        "description": {
+          "type": "string",
+          "description": "Free-text description of the sample or measurement."
+        },
+        "sample_id": {
+          "type": "string",
+          "description": "Identifier of the physical sample measured."
+        },
+        "measurement_type": {
+          "type": "string",
+          "description": "Physical quantity measured.",
+          "enum": ["reflectance", "transmittance", "absorbance", "radiance", "irradiance"]
+        },
+        "date": {
+          "type": "string",
+          "format": "date",
+          "description": "Date of measurement (ISO 8601: YYYY-MM-DD)."
+        },
+        "time": {
+          "type": "string",
+          "format": "time",
+          "description": "Time of measurement (ISO 8601: HH:MM:SS, local or UTC)."
+        },
+        "operator": {
+          "type": "string",
+          "description": "Name or ID of the operator."
+        },
+        "instrument": { "$ref": "#/$defs/instrument" },
+        "measurement_conditions": { "$ref": "#/$defs/measurement_conditions" },
+        "tags": {
+          "type": "array",
+          "description": "Optional free-form tags for search and filtering.",
+          "items": { "type": "string" }
+        },
+        "custom": {
+          "type": "object",
+          "description": "Any additional user-defined metadata fields."
+        }
+      }
+    },
+
+    "instrument": {
+      "type": "object",
+      "description": "Minimal instrument identification.",
+      "additionalProperties": false,
+      "properties": {
+        "manufacturer": { "type": "string" },
+        "model": { "type": "string" },
+        "serial_number": { "type": "string" },
+        "detector_type": {
+          "type": "string",
+          "description": "e.g. CCD, photodiode array, PMT",
+          "examples": ["CCD", "photodiode array", "PMT", "InGaAs"]
+        },
+        "light_source": {
+          "type": "string",
+          "description": "e.g. deuterium-halogen, xenon, LED",
+          "examples": ["deuterium-halogen", "xenon flash", "LED"]
+        }
+      }
+    },
+
+    "measurement_conditions": {
+      "type": "object",
+      "description": "Physical conditions under which the measurement was made.",
+      "additionalProperties": false,
+      "properties": {
+        "integration_time_ms": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Integration / exposure time in milliseconds."
+        },
+        "averaging": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of scans averaged."
+        },
+        "temperature_celsius": {
+          "type": "number",
+          "description": "Ambient or sample temperature in °C."
+        },
+        "geometry": {
+          "type": "string",
+          "description": "Measurement geometry (e.g. 0/45, d/8, sphere).",
+          "examples": ["0:45", "45:0", "d:8", "d:0", "sphere", "integrating sphere"]
+        },
+        "specular_component": {
+          "type": "string",
+          "description": "Whether specular component is included or excluded (for sphere geometry).",
+          "enum": ["included", "excluded", "not applicable"]
+        },
+        "spectral_resolution_nm": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Optical (spectral) resolution of the instrument in nm, typically the FWHM of the slit function."
+        }
+      }
+    },
+
+    "wavelength_axis": {
+      "type": "object",
+      "description": "Defines the wavelength axis of the measurement. All values are in nm. Exactly one of 'values_nm' or 'range_nm' must be present.",
+      "additionalProperties": false,
+      "oneOf": [
+        { "required": ["values_nm"] },
+        { "required": ["range_nm"] }
+      ],
+      "properties": {
+        "values_nm": {
+          "type": "array",
+          "description": "Explicit wavelength list in nm. Use for irregular grids.",
+          "items": {
+            "type": "number",
+            "minimum": 100,
+            "maximum": 2500
+          },
+          "minItems": 2
+        },
+        "range_nm": {
+          "type": "object",
+          "description": "Evenly-spaced grid defined by start, end, and interval (all in nm). Use for regular grids.",
+          "additionalProperties": false,
+          "required": ["start", "end", "interval"],
+          "properties": {
+            "start": { "type": "number", "minimum": 100 },
+            "end": { "type": "number", "maximum": 2500 },
+            "interval": { "type": "number", "exclusiveMinimum": 0 }
+          }
+        }
+      }
+    },
+
+    "spectral_data": {
+      "type": "object",
+      "description": "The measured spectral values.",
+      "required": ["values"],
+      "additionalProperties": false,
+      "properties": {
+        "values": {
+          "type": "array",
+          "description": "Measured values, one per wavelength in wavelength_axis.values_nm.",
+          "items": { "type": "number" },
+          "minItems": 2
+        },
+        "uncertainty": {
+          "type": "array",
+          "description": "Optional per-point uncertainty (1 standard deviation), same length as values.",
+          "items": { "type": "number", "minimum": 0 }
+        },
+        "scale": {
+          "type": "string",
+          "description": "Whether values are fractional (0–1) or percentage (0–100). Defaults to fractional.",
+          "enum": ["fractional", "percent"],
+          "default": "fractional"
+        }
+      }
+    },
+
+    "color_science": {
+      "type": "object",
+      "description": "Metadata required for CIE colorimetry and color-science calculations, plus optional pre-computed results.",
+      "additionalProperties": false,
+      "properties": {
+        "illuminant": {
+          "type": "string",
+          "description": "CIE illuminant used for colorimetric calculations.",
+          "examples": ["D65", "D50", "A", "C", "F2", "F7", "F11", "LED-B3"],
+          "enum": [
+            "D65", "D50", "D55", "D75",
+            "A", "B", "C",
+            "F1", "F2", "F3", "F4", "F5", "F6",
+            "F7", "F8", "F9", "F10", "F11", "F12",
+            "LED-B1", "LED-B2", "LED-B3", "LED-B4", "LED-B5",
+            "LED-BH1", "LED-RGB1", "LED-V1", "LED-V2",
+            "custom"
+          ]
+        },
+        "illuminant_custom_sd": {
+          "type": "object",
+          "description": "If illuminant is 'custom', provide its spectral power distribution here.",
+          "additionalProperties": false,
+          "required": ["wavelengths_nm", "values"],
+          "properties": {
+            "wavelengths_nm": {
+              "type": "array",
+              "items": { "type": "number" }
+            },
+            "values": {
+              "type": "array",
+              "items": { "type": "number", "minimum": 0 }
+            }
+          }
+        },
+        "cie_observer": {
+          "type": "string",
+          "description": "CIE standard observer used for colorimetric calculations.",
+          "enum": ["CIE 1931 2 degree", "CIE 1964 10 degree"],
+          "default": "CIE 1931 2 degree"
+        },
+        "white_reference": {
+          "type": "object",
+          "description": "White reference / calibration tile used during measurement.",
+          "additionalProperties": false,
+          "properties": {
+            "description": {
+              "type": "string",
+              "description": "e.g. 'Spectralon 99% diffuse white tile', 'BaSO4 tile'",
+              "examples": ["Spectralon 99%", "BaSO4 pressed powder", "ceramic tile"]
+            },
+            "manufacturer": { "type": "string" },
+            "serial_number": { "type": "string" },
+            "calibration_date": {
+              "type": "string",
+              "format": "date"
+            },
+            "reference_values": {
+              "type": "array",
+              "description": "Spectral reflectance values of the white reference tile, if available (same wavelength axis).",
+              "items": { "type": "number", "minimum": 0 }
+            }
+          }
+        },
+        "results": {
+          "type": "object",
+          "description": "Pre-computed colorimetric results derived from the spectral data under the stated illuminant and observer. Informational — the spectral data is always the authoritative source.",
+          "additionalProperties": false,
+          "properties": {
+            "XYZ": {
+              "type": "array",
+              "description": "CIE tristimulus values [X, Y, Z] computed under the stated illuminant and observer.",
+              "items": { "type": "number" },
+              "minItems": 3,
+              "maxItems": 3
+            },
+            "xy": {
+              "type": "array",
+              "description": "CIE 1931 chromaticity coordinates [x, y].",
+              "items": { "type": "number" },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "uv_prime": {
+              "type": "array",
+              "description": "CIE 1976 UCS chromaticity coordinates [u', v'].",
+              "items": { "type": "number" },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "Lab": {
+              "type": "array",
+              "description": "CIELAB coordinates [L*, a*, b*] computed under the stated illuminant and observer.",
+              "items": { "type": "number" },
+              "minItems": 3,
+              "maxItems": 3
+            },
+            "CCT_K": {
+              "type": "number",
+              "description": "Correlated color temperature in Kelvin.",
+              "exclusiveMinimum": 0
+            },
+            "Duv": {
+              "type": "number",
+              "description": "Distance from the Planckian locus (signed) in the CIE 1960 UCS."
+            }
+          }
+        }
+      }
+    },
+
+    "provenance": {
+      "type": "object",
+      "description": "Processing history and software trail.",
+      "additionalProperties": false,
+      "properties": {
+        "software": {
+          "type": "string",
+          "description": "Software used to acquire or export this file."
+        },
+        "software_version": {
+          "type": "string"
+        },
+        "source_file": {
+          "type": "string",
+          "description": "Original filename if this was converted from another format."
+        },
+        "source_format": {
+          "type": "string",
+          "description": "Original file format.",
+          "examples": ["SPC", "JCAMP-DX", "CSV", "OceanView TXT"]
+        },
+        "processing_steps": {
+          "type": "array",
+          "description": "Ordered list of processing steps applied to the raw data.",
+          "items": {
+            "type": "object",
+            "required": ["step", "description"],
+            "additionalProperties": false,
+            "properties": {
+              "step": {
+                "type": "string",
+                "description": "Short step name.",
+                "examples": ["dark_subtraction", "smoothing", "baseline_correction", "normalization"]
+              },
+              "description": {
+                "type": "string",
+                "description": "Human-readable description of what was done."
+              },
+              "parameters": {
+                "type": "object",
+                "description": "Parameters used in this step."
+              }
+            }
+          }
+        },
+        "notes": {
+          "type": "string",
+          "description": "Any additional free-text notes about the measurement or processing."
+        }
+      }
+    }
+
+  }
+}

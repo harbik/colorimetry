@@ -1,0 +1,79 @@
+{
+  "schema_version": "1.0.0",
+  "file_type": "single",
+  "spectrum": {
+    "id": "sample-001",
+    "metadata": {
+      "title": "Red ceramic tile - reflectance",
+      "description": "Surface reflectance of a red glazed ceramic tile, measured under lab conditions.",
+      "sample_id": "TILE-RED-42",
+      "measurement_type": "reflectance",
+      "date": "2026-04-29",
+      "time": "10:32:00",
+      "operator": "J. Smith",
+      "instrument": {
+        "manufacturer": "Ocean Insight",
+        "model": "ST VIS",
+        "serial_number": "STS-VIS-00342",
+        "detector_type": "CCD",
+        "light_source": "deuterium-halogen"
+      },
+      "measurement_conditions": {
+        "integration_time_ms": 100,
+        "averaging": 10,
+        "temperature_celsius": 22.5,
+        "geometry": "d:8",
+        "specular_component": "excluded"
+      },
+      "tags": ["ceramic", "red", "glaze"]
+    },
+    "wavelength_axis": {
+      "range_nm": { "start": 380, "end": 780, "interval": 10 }
+    },
+    "spectral_data": {
+      "scale": "fractional",
+      "values": [0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04,
+                 0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.05, 0.06, 0.07,
+                 0.09, 0.12, 0.18, 0.28, 0.42, 0.55, 0.63, 0.67, 0.69, 0.70,
+                 0.70, 0.70, 0.70, 0.70, 0.70, 0.70, 0.70, 0.70, 0.70, 0.70, 0.70],
+      "uncertainty": [0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001,
+                      0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001,
+                      0.001, 0.002, 0.002, 0.003, 0.003, 0.003, 0.002, 0.002, 0.002, 0.002,
+                      0.002, 0.002, 0.002, 0.002, 0.002, 0.002, 0.002, 0.002, 0.002, 0.002, 0.002]
+    },
+    "color_science": {
+      "illuminant": "D65",
+      "cie_observer": "CIE 1931 2 degree",
+      "white_reference": {
+        "description": "Spectralon 99%",
+        "manufacturer": "Labsphere",
+        "serial_number": "SRT-99-020",
+        "calibration_date": "2026-01-15"
+      }
+    },
+    "provenance": {
+      "software": "OceanView",
+      "software_version": "2.0.8",
+      "source_file": "TILE-RED-42_20260429.txt",
+      "source_format": "OceanView TXT",
+      "processing_steps": [
+        {
+          "step": "dark_subtraction",
+          "description": "Dark spectrum subtracted from raw counts.",
+          "parameters": { "dark_file": "dark_20260429.txt" }
+        },
+        {
+          "step": "white_reference_normalisation",
+          "description": "Divided by white reference to obtain reflectance factor.",
+          "parameters": { "reference_file": "white_ref_20260429.txt" }
+        },
+        {
+          "step": "smoothing",
+          "description": "Savitzky-Golay smoothing applied.",
+          "parameters": { "window_length": 5, "polyorder": 2 }
+        }
+      ],
+      "notes": "Sample measured flat on black velvet backing."
+    }
+  }
+}

@@ -1,0 +1,85 @@
+{
+  "schema_version": "1.0.0",
+  "file_type": "batch",
+  "batch_metadata": {
+    "title": "Ceramic tile color survey - April 2026",
+    "description": "Reflectance measurements of three ceramic tiles for color QC.",
+    "operator": "J. Smith",
+    "date": "2026-04-29",
+    "instrument": {
+      "manufacturer": "Ocean Insight",
+      "model": "ST VIS",
+      "serial_number": "STS-VIS-00342",
+      "detector_type": "CCD",
+      "light_source": "deuterium-halogen"
+    },
+    "measurement_conditions": {
+      "integration_time_ms": 100,
+      "averaging": 10,
+      "geometry": "d:8",
+      "specular_component": "excluded"
+    }
+  },
+  "spectra": [
+    {
+      "id": "tile-red",
+      "metadata": {
+        "title": "Red tile",
+        "sample_id": "TILE-RED-42",
+        "measurement_type": "reflectance",
+        "date": "2026-04-29",
+        "tags": ["red", "ceramic"]
+      },
+      "wavelength_axis": {
+        "range_nm": { "start": 380, "end": 780, "interval": 10 }
+      },
+      "spectral_data": {
+        "scale": "fractional",
+        "values": [0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04,
+                   0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.05, 0.06, 0.07,
+                   0.09, 0.12, 0.18, 0.28, 0.42, 0.55, 0.63, 0.67, 0.69, 0.70,
+                   0.70, 0.70, 0.70, 0.70, 0.70, 0.70, 0.70, 0.70, 0.70, 0.70, 0.70]
+      },
+      "color_science": {
+        "illuminant": "D65",
+        "cie_observer": "CIE 1931 2 degree",
+        "white_reference": {
+          "description": "Spectralon 99%",
+          "manufacturer": "Labsphere",
+          "serial_number": "SRT-99-020",
+          "calibration_date": "2026-01-15"
+        }
+      }
+    },
+    {
+      "id": "tile-blue",
+      "metadata": {
+        "title": "Blue tile",
+        "sample_id": "TILE-BLUE-07",
+        "measurement_type": "reflectance",
+        "date": "2026-04-29",
+        "tags": ["blue", "ceramic"]
+      },
+      "wavelength_axis": {
+        "range_nm": { "start": 380, "end": 780, "interval": 10 }
+      },
+      "spectral_data": {
+        "scale": "fractional",
+        "values": [0.08, 0.10, 0.14, 0.20, 0.28, 0.38, 0.44, 0.46, 0.44, 0.40,
+                   0.34, 0.27, 0.20, 0.14, 0.10, 0.08, 0.07, 0.06, 0.06, 0.06,
+                   0.06, 0.06, 0.06, 0.06, 0.06, 0.06, 0.06, 0.06, 0.06, 0.06,
+                   0.06, 0.06, 0.06, 0.06, 0.06, 0.06, 0.06, 0.06, 0.06, 0.06, 0.06]
+      },
+      "color_science": {
+        "illuminant": "D65",
+        "cie_observer": "CIE 1931 2 degree",
+        "white_reference": {
+          "description": "Spectralon 99%",
+          "manufacturer": "Labsphere",
+          "serial_number": "SRT-99-020",
+          "calibration_date": "2026-01-15"
+        }
+      }
+    }
+  ]
+}
