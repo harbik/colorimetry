@@ -879,7 +879,8 @@ fn validate_schema(v: &serde_json::Value) -> Result<()> {
                 errors.push("schema_version must be a string".into());
             } else {
                 let s = sv.as_str().unwrap();
-                if !s.split('.').count() == 3 || s.split('.').any(|p| p.parse::<u32>().is_err()) {
+                let parts: Vec<&str> = s.split('.').collect();
+                if parts.len() != 3 || parts.iter().any(|p| p.parse::<u32>().is_err()) {
                     errors.push(format!(
                         "schema_version '{s}' does not look like semver (e.g. 1.0.0)"
                     ));
@@ -1096,6 +1097,8 @@ fn validate_spectral_data(
             Some(items) => {
                 if items.iter().any(|x| !x.is_number()) {
                     errors.push(format!("{path}.uncertainty must contain only numbers"));
+                } else if items.iter().any(|x| x.as_f64().unwrap_or(0.0) < 0.0) {
+                    errors.push(format!("{path}.uncertainty values must be non-negative"));
                 }
             }
         }

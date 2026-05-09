@@ -1,12 +1,12 @@
 """
-uvvis_validate.py
------------------
-Validate UV-Vis spectral JSON files against the uvvis_schema.json schema.
+spectrum_file_validate.py
+--------------------------
+Validate UV-Vis spectral JSON files against the spectrum_file_schema.json schema.
 
 Usage:
-    python uvvis_validate.py myfile.json
-    python uvvis_validate.py myfile.json --schema path/to/uvvis_schema.json
-    python uvvis_validate.py *.json
+    python spectrum_file_validate.py myfile.json
+    python spectrum_file_validate.py myfile.json --schema path/to/spectrum_file_schema.json
+    python spectrum_file_validate.py *.json
 """
 
 import json
@@ -16,7 +16,7 @@ from pathlib import Path
 
 try:
     import jsonschema
-    from jsonschema import validate, ValidationError, Draft202012Validator
+    from jsonschema import Draft202012Validator
 except ImportError:
     print("ERROR: jsonschema not installed. Run: pip install jsonschema")
     sys.exit(1)
@@ -43,13 +43,28 @@ def validate_wavelength_data_length(data: dict) -> list[str]:
 
     for sp in spectra:
         sid = sp.get("id", "<unknown>")
-        wl = sp.get("wavelength_axis", {}).get("values_nm", [])
+        wl_axis = sp.get("wavelength_axis", {})
         vals = sp.get("spectral_data", {}).get("values", [])
         unc = sp.get("spectral_data", {}).get("uncertainty")
 
-        if len(wl) != len(vals):
+        # Resolve wavelength count from either values_nm or range_nm
+        if "values_nm" in wl_axis:
+            wl = wl_axis["values_nm"]
+            n_wl = len(wl)
+        elif "range_nm" in wl_axis:
+            r = wl_axis["range_nm"]
+            try:
+                n_wl = round((r["end"] - r["start"]) / r["interval"]) + 1
+            except (KeyError, ZeroDivisionError):
+                n_wl = 0
+            wl = []  # no list to check monotonicity against for range_nm
+        else:
+            n_wl = 0
+            wl = []
+
+        if n_wl != len(vals):
             errors.append(
-                f"Spectrum '{sid}': wavelength_axis.values_nm has {len(wl)} points "
+                f"Spectrum '{sid}': wavelength_axis has {n_wl} points "
                 f"but spectral_data.values has {len(vals)} points — must match."
             )
         if unc is not None and len(unc) != len(vals):
@@ -58,7 +73,7 @@ def validate_wavelength_data_length(data: dict) -> list[str]:
                 f"but spectral_data.values has {len(vals)} points — must match."
             )
 
-        # Check wavelengths are strictly increasing
+        # Check wavelengths are strictly increasing (only for explicit values_nm)
         if wl and any(wl[i] >= wl[i+1] for i in range(len(wl)-1)):
             errors.append(
                 f"Spectrum '{sid}': wavelength_axis.values_nm is not strictly increasing."
@@ -133,9 +148,9 @@ def main():
     parser.add_argument("files", nargs="+", help="JSON file(s) to validate")
     parser.add_argument(
         "--schema",
-        default=Path(__file__).parent / "uvvis_schema.json",
+        default=Path(__file__).parent / "spectrum_file_schema.json",
         type=Path,
-        help="Path to uvvis_schema.json (default: same directory as this script)"
+        help="Path to spectrum_file_schema.json (default: same directory as this script)"
     )
     args = parser.parse_args()
 
