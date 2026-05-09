@@ -187,4 +187,13 @@ methods to convert spectral data to the fixed 380–780 nm / 1 nm grid that
 spacing is much finer than the instrument slit width — they aggregate all pixel data
 rather than picking isolated samples.
 
+## Importing SpectraShop files
+
+[`SpectrumFile::from_spectrashop_path`] and [`SpectrumFile::from_spectrashop_str`]
+parse the SpectraShop tab-separated text export format (`.txt`). Each data record
+in the `BEGIN_DATA`/`END_DATA` block becomes a [`SpectrumRecord`]; file-level
+metadata (spectrum type, illuminant, observer, geometry, etc.) is applied to every
+record. A file with one record returns [`SpectrumFile::Single`]; two or more return
+[`SpectrumFile::Batch`].
+
 <!-- cargo-rdme end -->
