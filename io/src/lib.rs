@@ -62,7 +62,9 @@
 //! | `sample_id` | string | optional sample identifier |
 //! | `operator` | string | optional name or ID of the operator |
 //! | `instrument` | object | optional: `manufacturer`, `model`, `serial_number`, `detector_type`, `light_source` |
-//! | `measurement_conditions` | object | optional: `integration_time_ms`, `averaging`, `temperature_celsius`, `geometry`, `specular_component`, `spectral_resolution_nm` |
+//! | `measurement_conditions` | object | optional: `integration_time_ms`, `averaging`, `temperature_celsius`, `geometry`, `specular_component`, `spectral_resolution_nm`, `measurement_aperture_mm`, `measurement_filter` |
+//! | `surface` | string | optional surface type for reflective specimens (e.g. `"Matte"`, `"Gloss"`) |
+//! | `sample_backing` | string | optional backing used during measurement (e.g. `"Black"`, `"White"`) |
 //! | `tags` | string[] | optional free-form search/filter tags |
 //! | `custom` | object | optional user-defined key/value pairs |
 //!
@@ -601,6 +603,12 @@ pub struct SpectrumMetadata {
     pub instrument: Option<Instrument>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub measurement_conditions: Option<MeasurementConditions>,
+    /// Type of surface for a reflective specimen (e.g. `"Matte"`, `"Gloss"`, `"Semigloss"`).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub surface: Option<String>,
+    /// Backing used behind the sample during measurement (e.g. `"Black"`, `"White"`, `"Substrate"`).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sample_backing: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tags: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -649,6 +657,12 @@ pub struct MeasurementConditions {
     /// Optical (spectral) resolution of the instrument in nm, typically the FWHM of the slit function.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub spectral_resolution_nm: Option<f64>,
+    /// Instrument measurement aperture size in mm.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub measurement_aperture_mm: Option<f64>,
+    /// Filter used on the spectrometer during measurement (e.g. `"UV Block"`, `"Polarizer"`).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub measurement_filter: Option<String>,
 }
 
 /// Whether the specular component is included or excluded.
@@ -1506,6 +1520,8 @@ mod tests {
                     operator: None,
                     instrument: None,
                     measurement_conditions: None,
+                    surface: None,
+                    sample_backing: None,
                     tags: None,
                     custom: None,
                 },
@@ -1540,6 +1556,8 @@ mod tests {
                     operator: None,
                     instrument: None,
                     measurement_conditions: None,
+                    surface: None,
+                    sample_backing: None,
                     tags: None,
                     custom: None,
                 },

@@ -132,6 +132,16 @@
         },
         "instrument": { "$ref": "#/$defs/instrument" },
         "measurement_conditions": { "$ref": "#/$defs/measurement_conditions" },
+        "surface": {
+          "type": "string",
+          "description": "Type of surface for a reflective specimen.",
+          "examples": ["Matte", "Gloss", "Semigloss", "Metallic"]
+        },
+        "sample_backing": {
+          "type": "string",
+          "description": "Backing used behind the sample during measurement.",
+          "examples": ["Black", "White", "Substrate", "Self"]
+        },
         "tags": {
           "type": "array",
           "description": "Optional free-form tags for search and filtering.",
@@ -198,6 +208,16 @@
           "type": "number",
           "exclusiveMinimum": 0,
           "description": "Optical (spectral) resolution of the instrument in nm, typically the FWHM of the slit function."
+        },
+        "measurement_aperture_mm": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Instrument measurement aperture size in mm."
+        },
+        "measurement_filter": {
+          "type": "string",
+          "description": "Filter used on the spectrometer during measurement.",
+          "examples": ["UV Block", "Polarizer", "None"]
         }
       }
     },

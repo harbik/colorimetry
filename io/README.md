@@ -64,7 +64,9 @@ Each spectrum has four required sections and two optional ones.
 | `sample_id` | string | optional sample identifier |
 | `operator` | string | optional name or ID of the operator |
 | `instrument` | object | optional: `manufacturer`, `model`, `serial_number`, `detector_type`, `light_source` |
-| `measurement_conditions` | object | optional: `integration_time_ms`, `averaging`, `temperature_celsius`, `geometry`, `specular_component`, `spectral_resolution_nm` |
+| `measurement_conditions` | object | optional: `integration_time_ms`, `averaging`, `temperature_celsius`, `geometry`, `specular_component`, `spectral_resolution_nm`, `measurement_aperture_mm`, `measurement_filter` |
+| `surface` | string | optional surface type for reflective specimens (e.g. `"Matte"`, `"Gloss"`) |
+| `sample_backing` | string | optional backing used during measurement (e.g. `"Black"`, `"White"`) |
 | `tags` | string[] | optional free-form search/filter tags |
 | `custom` | object | optional user-defined key/value pairs |
 
