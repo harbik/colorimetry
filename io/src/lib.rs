@@ -575,7 +575,7 @@ impl SpectrumRecord {
             _ => return Err(colorimetry::Error::ErrorString("no spectral data".into())),
         };
 
-        let n_bins = ((wl_max - wl_min) / bin_width_nm).round() as usize + 1;
+        let n_bins = ((wl_max - wl_min) / bin_width_nm + 1e-9).floor() as usize + 1;
         let mut sums = vec![0f64; n_bins];
         let mut counts = vec![0u32; n_bins];
 
@@ -750,7 +750,10 @@ pub struct WavelengthRange {
 impl WavelengthRange {
     /// Expands the range into an explicit list of wavelength values in nm.
     pub fn expand(&self) -> Vec<f64> {
-        let n = ((self.end - self.start) / self.interval).round() as usize + 1;
+        // Use floor with a small epsilon so floating-point imprecision never
+        // produces an extra step beyond `end` (e.g. 40.9999… flooring to 40,
+        // not 41 after rounding).
+        let n = ((self.end - self.start) / self.interval + 1e-9).floor() as usize + 1;
         (0..n)
             .map(|i| self.start + i as f64 * self.interval)
             .collect()

@@ -58,7 +58,8 @@ pub(super) fn ss_parse(input: &str, source_file: Option<&str>) -> Result<Spectru
     let mut current_data: Vec<String> = Vec::new();
     let mut all_records: Vec<SpectrumRecord> = Vec::new();
     let mut global_idx: usize = 0;
-    let mut any_data_seen = false;
+    let mut saw_data_block = false;
+    let mut any_records_parsed = false;
 
     for line in input.lines() {
         let trimmed = line.trim();
@@ -80,13 +81,14 @@ pub(super) fn ss_parse(input: &str, source_file: Option<&str>) -> Result<Spectru
         if upper == "BEGIN_DATA" {
             current_data.clear();
             in_data = true;
+            saw_data_block = true;
             continue;
         }
         if upper == "END_DATA" {
             in_data = false;
             // Process the completed format+data section.
             if !current_format.is_empty() && !current_data.is_empty() {
-                any_data_seen = true;
+                any_records_parsed = true;
                 let n_fields = current_format.len();
                 if current_data.len() % n_fields != 0 {
                     return Err(SpectrumFileError::SchemaValidation(format!(
@@ -131,9 +133,16 @@ pub(super) fn ss_parse(input: &str, source_file: Option<&str>) -> Result<Spectru
         }
     }
 
-    if !any_data_seen {
+    if !saw_data_block {
         return Err(SpectrumFileError::SchemaValidation(
             "SpectraShop: no BEGIN_DATA/END_DATA block found".into(),
+        ));
+    }
+    if !any_records_parsed {
+        return Err(SpectrumFileError::SchemaValidation(
+            "SpectraShop: BEGIN_DATA/END_DATA block present but contained no parseable records \
+             (check that BEGIN_DATA_FORMAT is also present and non-empty)"
+                .into(),
         ));
     }
     if all_records.is_empty() {
@@ -344,8 +353,8 @@ fn ss_build_record(
     idx: usize,
     source_file: Option<&str>,
 ) -> Result<SpectrumRecord> {
-    // SAMPLE_ID1 = human name (becomes id + title)
-    // SAMPLE_ID2 = catalog code / colour number (becomes metadata.sample_id)
+    // SAMPLE_ID1 = machine/file id (becomes SpectrumRecord.id)
+    // SAMPLE_ID2 / SAMPLE_NAME = human label (becomes metadata.title; falls back to SAMPLE_ID1)
     // SAMPLE_ID3 = rarely used; goes to custom if non-empty
     let mut ss_id1: Option<String> = None;
     let mut ss_id2: Option<String> = None;
