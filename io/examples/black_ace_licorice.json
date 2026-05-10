@@ -1,0 +1,88 @@
+{
+  "file_type": "single",
+  "schema_version": "1.0.0",
+  "spectrum": {
+    "id": "Black Ace Licorice",
+    "metadata": {
+      "measurement_type": "reflectance",
+      "date": "2007-09-15",
+      "title": "Black Ace Licorice",
+      "operator": "Robin D. Myers",
+      "instrument": {
+        "model": "Spectrolino"
+      },
+      "measurement_conditions": {
+        "averaging": 9,
+        "geometry": "45/0",
+        "measurement_aperture_mm": 4.0,
+        "measurement_filter": "D65"
+      },
+      "surface": "Matte",
+      "sample_backing": "Self",
+      "copyright": "© Robin D. Myers, all rights reserved worldwide. Redistribution with attribution to Chromaxion.com or Robin Myers permitted. See https://www.chromaxion.com/spectral-library.php",
+      "custom": {
+        "manufacturer": "Food Savvy LLC",
+        "material": "Licorice",
+        "measurement_source": "D65",
+        "prod_date": "2007"
+      }
+    },
+    "wavelength_axis": {
+      "range_nm": {
+        "start": 380.0,
+        "end": 730.0,
+        "interval": 10.0
+      }
+    },
+    "spectral_data": {
+      "values": [
+        0.04588889,
+        0.04773333,
+        0.04816667,
+        0.04898889,
+        0.049,
+        0.04936666,
+        0.04961111,
+        0.04978889,
+        0.04983333,
+        0.05001111,
+        0.05003333,
+        0.05014444,
+        0.05036667,
+        0.05042222,
+        0.0508,
+        0.05067778,
+        0.05022222,
+        0.05015555,
+        0.05054444,
+        0.05153333,
+        0.05115555,
+        0.05043333,
+        0.05031111,
+        0.05093333,
+        0.05148889,
+        0.05161111,
+        0.05125555,
+        0.05154444,
+        0.05218889,
+        0.05354444,
+        0.05532222,
+        0.05702222,
+        0.05932222,
+        0.06144444,
+        0.0640111,
+        0.06696666
+      ]
+    },
+    "color_science": {
+      "illuminant": "D65",
+      "cie_observer": "CIE 1931 2 degree"
+    },
+    "provenance": {
+      "software": "SpectraShop",
+      "software_version": "5.0",
+      "source_file": "Black Ace Licorice.txt",
+      "source_format": "SpectraShop Text"
+    }
+  }
+}
