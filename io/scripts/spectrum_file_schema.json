@@ -147,6 +147,10 @@
           "description": "Optional free-form tags for search and filtering.",
           "items": { "type": "string" }
         },
+        "copyright": {
+          "type": "string",
+          "description": "Copyright notice for this spectrum (e.g. '© 2024 Acme Lab')."
+        },
         "custom": {
           "type": "object",
           "description": "Any additional user-defined metadata fields."

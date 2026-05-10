@@ -189,11 +189,33 @@ rather than picking isolated samples.
 
 ## Importing SpectraShop files
 
-[`SpectrumFile::from_spectrashop_path`] and [`SpectrumFile::from_spectrashop_str`]
+Requires the `spectrashop` feature (included by default).
+`SpectrumFile::from_spectrashop_path` and `SpectrumFile::from_spectrashop_str`
 parse the SpectraShop tab-separated text export format (`.txt`). Each data record
 in the `BEGIN_DATA`/`END_DATA` block becomes a [`SpectrumRecord`]; file-level
 metadata (spectrum type, illuminant, observer, geometry, etc.) is applied to every
 record. A file with one record returns [`SpectrumFile::Single`]; two or more return
 [`SpectrumFile::Batch`].
+
+### Format and data-file licensing
+
+The SpectraShop text format is a proprietary format defined by Robin Myers
+Imaging. A format specification is published at
+<https://www.chromaxion.com/spectral_library/SpectraShop_Import-Export_Format.pdf>
+with the explicit purpose of enabling third-party readers and writers.
+
+Spectral data files distributed by Robin Myers Imaging /
+[Chromaxion](https://www.chromaxion.com/) are subject to the following terms
+(as stated on the [Chromaxion Spectral Library](https://www.chromaxion.com/spectral-library.php)
+page):
+
+- **Personal, scientific, and teaching use** is free.
+- **Redistribution** is permitted only with attribution to *Chromaxion.com*
+  or *Robin Myers*.
+- **Commercial sale** of the data in any form requires express written
+  permission from Robin Myers.
+
+All data © Robin D. Myers, all rights reserved worldwide.
+Contact <robin@rmimaging.com> for commercial licensing enquiries.
 
 <!-- cargo-rdme end -->

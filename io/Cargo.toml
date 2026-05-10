@@ -7,8 +7,13 @@ license = "MIT"
 readme = "README.md"
 
 [features]
-default = ["colorimetry"]
+default = ["colorimetry", "spectrashop"]
 colorimetry = ["dep:colorimetry"]
+spectrashop = []
+
+[[example]]
+name = "spectrashop_to_json"
+required-features = ["spectrashop"]
 
 [dependencies]
 colorimetry = { workspace = true, optional = true }
