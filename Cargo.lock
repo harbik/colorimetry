@@ -384,6 +384,7 @@ dependencies = [
  "num-traits",
  "serde",
  "serde_json",
+ "spectral-io",
  "strum",
  "thiserror 1.0.63",
  "wasm-bindgen",
@@ -398,16 +399,6 @@ dependencies = [
  "colorimetry",
  "csv",
  "strum",
-]
-
-[[package]]
-name = "colorimetry-io"
-version = "0.1.0"
-dependencies = [
- "colorimetry",
- "serde",
- "serde_json",
- "thiserror 1.0.63",
 ]
 
 [[package]]
@@ -1675,6 +1666,15 @@ dependencies = [
  "num-traits",
  "robust",
  "smallvec",
+]
+
+[[package]]
+name = "spectral-io"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "thiserror 1.0.63",
 ]
 
 [[package]]

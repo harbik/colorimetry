@@ -807,3 +807,6 @@ pub mod traits;
 pub mod xyz;
 
 pub use error::Error;
+
+#[cfg(feature = "spectral-io")]
+pub use spectrum::from_spectral_io::IntoSpectrum;

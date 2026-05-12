@@ -18,7 +18,6 @@ members = [
     "plot",
     "cli",
     "xtask",
-    "io",
     "."  # main crate
 ]
 
@@ -39,9 +38,10 @@ strum = {version = "0.25", features = ["derive"]} # for enum iteration and deriv
 num-traits = "0.2.19"
 geo = "0.29.3"
 
-# Optional dependencies, used by xtask for example
+# Optional dependencies
 serde = { version = "1.0.219", features = ["derive"], optional = true}
 serde_json = { version = "1.0.140", optional = true}
+spectral-io = { version = "0.1", optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = "0.2"
@@ -56,6 +56,7 @@ munsell = []
 cfi = ["cct"]
 gamut-tables = []
 serde = ["dep:serde", "dep:serde_json", "nalgebra/serde-serialize"]
+spectral-io = ["dep:spectral-io"]
 
 [dev-dependencies] # for examples and tests
 argmin = "0.10.0"
@@ -85,4 +86,5 @@ all-features = true
 [patch.crates-io]
 # Use local path dependencies for development for these crates
 colorimetry = { path = "." }
+spectral-io = { path = "../spectral-io" }
 # cmx = { path = "../cmx" } # for now use crates.io version
