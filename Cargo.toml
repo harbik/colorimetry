@@ -26,7 +26,6 @@ version = "0.0.9"
 
 [workspace.dependencies]
 # Single source of truth for the colorimetry version used by plot and cli.
-# The [patch.crates-io] entry below redirects this to the local path during development.
 colorimetry = { version = "0.0.9" }
 
 [dependencies]
@@ -86,5 +85,4 @@ all-features = true
 [patch.crates-io]
 # Use local path dependencies for development for these crates
 colorimetry = { path = "." }
-spectral-io = { path = "../spectral-io" }
 # cmx = { path = "../cmx" } # for now use crates.io version
