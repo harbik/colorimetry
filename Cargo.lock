@@ -384,6 +384,7 @@ dependencies = [
  "num-traits",
  "serde",
  "serde_json",
+ "spectral-io",
  "strum",
  "thiserror 1.0.63",
  "wasm-bindgen",
@@ -1665,6 +1666,17 @@ dependencies = [
  "num-traits",
  "robust",
  "smallvec",
+]
+
+[[package]]
+name = "spectral-io"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f0fc95ce73db756dee9fd51111baffe0a0bcf53ef6583f94db698e01d13bf498"
+dependencies = [
+ "serde",
+ "serde_json",
+ "thiserror 1.0.63",
 ]
 
 [[package]]

@@ -26,7 +26,6 @@ version = "0.0.9"
 
 [workspace.dependencies]
 # Single source of truth for the colorimetry version used by plot and cli.
-# The [patch.crates-io] entry below redirects this to the local path during development.
 colorimetry = { version = "0.0.9" }
 
 [dependencies]
@@ -38,9 +37,10 @@ strum = {version = "0.25", features = ["derive"]} # for enum iteration and deriv
 num-traits = "0.2.19"
 geo = "0.29.3"
 
-# Optional dependencies, used by xtask for example
+# Optional dependencies
 serde = { version = "1.0.219", features = ["derive"], optional = true}
 serde_json = { version = "1.0.140", optional = true}
+spectral-io = { version = "0.1", optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = "0.2"
@@ -55,6 +55,7 @@ munsell = []
 cfi = ["cct"]
 gamut-tables = []
 serde = ["dep:serde", "dep:serde_json", "nalgebra/serde-serialize"]
+spectral-io = ["dep:spectral-io"]
 
 [dev-dependencies] # for examples and tests
 argmin = "0.10.0"

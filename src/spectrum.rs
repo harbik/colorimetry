@@ -30,6 +30,9 @@ pub use wavelength::{to_wavelength, wavelength, wavelengths};
 #[cfg(target_arch = "wasm32")]
 mod wasm;
 
+#[cfg(feature = "spectral-io")]
+pub mod from_spectral_io;
+
 /// The wavelength range of the spectrums supported by this library.
 ///
 /// From 380 to 780 nanometers, inclusive in both ends.

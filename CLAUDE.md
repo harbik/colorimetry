@@ -118,7 +118,34 @@ release notes.
 
 ### 6. Publish to crates.io
 
-Publish in dependency order (core library first, then dependents):
+`colorimetry-plot` depends on the external `cmx` crate (at `../cmx`), which in turn depends on
+`colorimetry`. Because `cmx` pins a specific `colorimetry` version, it must be updated and
+published **before** `colorimetry-plot` can be published.
+
+#### 6a. Update and publish `cmx` (at `../cmx`)
+
+```sh
+# In ../cmx:
+# 1. Bump colorimetry version in Cargo.toml to the new version
+# 2. Fix any compilation errors caused by renamed APIs
+# 3. Run tests: cargo test
+# 4. Commit and publish:
+git add Cargo.toml Cargo.lock <any changed src files>
+git commit -m "chore: bump colorimetry to x.y.z, release vA.B.C"
+cargo publish
+```
+
+#### 6b. Update `colorimetry-plot` to the new `cmx` version
+
+```sh
+# In plot/Cargo.toml, bump cmx to the version just published
+# Then commit:
+git add plot/Cargo.toml Cargo.lock
+git commit -m "chore: update colorimetry-plot to use cmx vA.B.C"
+git push origin main
+```
+
+#### 6c. Publish all three crates in dependency order
 
 ```sh
 cargo publish -p colorimetry
