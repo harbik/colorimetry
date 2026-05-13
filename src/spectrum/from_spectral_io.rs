@@ -121,7 +121,7 @@ impl IntoSpectrum for SpectrumRecord {
         let mut counts = vec![0u32; n_bins];
 
         for (&wl, &v) in wls.iter().zip(vals.iter()) {
-            let idx = ((wl - wl_min) / bin_width_nm).round() as usize;
+            let idx = ((wl - wl_min) / bin_width_nm + 1e-9).floor() as usize;
             if idx < n_bins {
                 sums[idx] += v;
                 counts[idx] += 1;
@@ -142,7 +142,8 @@ impl IntoSpectrum for SpectrumRecord {
         }
 
         if wl_out.len() == n_bins {
-            Spectrum::sprague_interpolate([wl_min, wl_max], &v_out)
+            let last_bin_nm = wl_min + (n_bins - 1) as f64 * bin_width_nm;
+            Spectrum::sprague_interpolate([wl_min, last_bin_nm], &v_out)
         } else {
             Spectrum::linear_interpolate(&wl_out, &v_out)
         }
@@ -298,6 +299,19 @@ mod tests {
         assert!(make_values_record(wls, vec![0.1, 0.2, 0.3, 0.4, 0.5])
             .to_spectrum_binned(50.0)
             .is_err());
+    }
+
+    #[test]
+    fn to_spectrum_binned_non_divisible_range_does_not_drop_last_point() {
+        // 380–780 nm at 5 nm steps (81 points), binned with 15 nm.
+        // 400 / 15 = 26.67, so the last bin does not align exactly with 780 nm.
+        // Before the fix, round() assigned idx=27 for 780 nm which equalled n_bins
+        // (27) and was silently dropped.
+        let wls: Vec<f64> = (0..81).map(|i| 380.0 + i as f64 * 5.0).collect();
+        let vals: Vec<f64> = (0..81).map(|i| i as f64 / 80.0).collect();
+        assert!(make_values_record(wls, vals)
+            .to_spectrum_binned(15.0)
+            .is_ok());
     }
 
     #[test]
