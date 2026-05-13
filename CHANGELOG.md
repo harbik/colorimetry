@@ -13,6 +13,29 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+* `spectral-io` optional feature — enables reading `spectral_io::SpectrumRecord` files
+  (the [spectral-io](https://crates.io/crates/spectral-io) crate) and converting them
+  into a `colorimetry::Spectrum` via the new `IntoSpectrum` extension trait.
+* `IntoSpectrum` trait (re-exported from crate root when the `spectral-io` feature is
+  enabled) with four conversion strategies:
+  * `to_spectrum_linear` — linear interpolation onto the 380–780 nm / 1 nm grid.
+  * `to_spectrum_sprague` — Sprague 5th-order interpolation (equidistant input required).
+  * `to_spectrum_smooth` — Gaussian-weighted kernel regression, parameterised by the
+    instrument FWHM.
+  * `to_spectrum_binned` — boxcar binning followed by Sprague interpolation; falls back
+    to linear if any bins are empty.
+
+### Fixed
+
+* `to_spectrum_binned`: bin-index assignment now uses `floor()` consistently with the
+  bin-count calculation. The previous `round()`-based assignment could silently drop
+  data points near the upper edge of the last bin when the wavelength span is not an
+  exact multiple of `bin_width_nm` (e.g. 780 nm with 15 nm bins over 380–780 nm).
+  The Sprague interpolation range is also corrected to the actual last bin centre rather
+  than `wl_max`.
+
 ## [0.0.9] - 2026-04-20
 
 ### Added
