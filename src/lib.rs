@@ -808,5 +808,4 @@ pub mod xyz;
 
 pub use error::Error;
 
-#[cfg(feature = "spectral-io")]
-pub use spectrum::from_spectral_io::IntoSpectrum;
+pub use spectrum::into_spectrum::{IntoSpectrum, MeasurementKind, SpectralSample};

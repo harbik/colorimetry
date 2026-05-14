@@ -30,6 +30,8 @@ pub use wavelength::{to_wavelength, wavelength, wavelengths};
 #[cfg(target_arch = "wasm32")]
 mod wasm;
 
+pub mod into_spectrum;
+
 #[cfg(feature = "spectral-io")]
 pub mod from_spectral_io;
 
