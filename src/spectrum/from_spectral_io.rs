@@ -3,7 +3,7 @@ use spectral_io::SpectrumRecord;
 use crate::spectrum::into_spectrum::{IntoSpectrum, MeasurementKind, SpectralSample};
 
 impl IntoSpectrum for SpectrumRecord {
-    fn spectral_data(&self) -> SpectralSample {
+    fn spectral_sample(&self) -> SpectralSample {
         let mut values = self.spectral_data.values.clone();
         if self.spectral_data.scale.as_deref() == Some("percent") {
             values.iter_mut().for_each(|v| *v /= 100.0);
@@ -203,7 +203,7 @@ mod tests {
     }
 
     #[test]
-    fn spectral_data_maps_measurement_kind() {
+    fn spectral_sample_maps_measurement_kind() {
         use spectral_io::MeasurementType as T;
         use MeasurementKind as K;
         let pairs = [
@@ -216,7 +216,7 @@ mod tests {
         for (src, expected) in pairs {
             let mut rec = make_range_record(vals_41());
             rec.metadata.measurement_type = src;
-            assert_eq!(rec.spectral_data().kind, expected);
+            assert_eq!(rec.spectral_sample().kind, expected);
         }
     }
 }

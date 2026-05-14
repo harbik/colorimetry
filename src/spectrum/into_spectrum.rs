@@ -10,7 +10,7 @@ pub enum MeasurementKind {
     Irradiance,
 }
 
-/// Raw spectral samples returned by [`IntoSpectrum::spectral_data`].
+/// Raw spectral samples returned by [`IntoSpectrum::spectral_sample`].
 ///
 /// Values must be in the natural scale for the measurement kind: reflectance
 /// and transmittance in `[0, 1]` (fractional), radiance and irradiance in
@@ -24,12 +24,12 @@ pub struct SpectralSample {
 
 /// Convert spectral data into a [`Spectrum`] on the 380–780 nm / 1 nm grid.
 ///
-/// Implementors provide only [`spectral_data`](IntoSpectrum::spectral_data);
+/// Implementors provide only [`spectral_sample`](IntoSpectrum::spectral_sample);
 /// the four interpolation / aggregation methods are provided as defaults.
 pub trait IntoSpectrum {
     /// Return the raw spectral samples: measurement kind, wavelengths (nm),
     /// and corresponding values normalised to the natural scale.
-    fn spectral_data(&self) -> SpectralSample;
+    fn spectral_sample(&self) -> SpectralSample;
 
     /// Linear interpolation onto the 380–780 nm / 1 nm grid.
     ///
@@ -39,7 +39,7 @@ pub trait IntoSpectrum {
             wavelengths_nm,
             values,
             ..
-        } = self.spectral_data();
+        } = self.spectral_sample();
         Spectrum::linear_interpolate(&wavelengths_nm, &values)
     }
 
@@ -52,7 +52,7 @@ pub trait IntoSpectrum {
             wavelengths_nm,
             values,
             ..
-        } = self.spectral_data();
+        } = self.spectral_sample();
         let range = equidistant_range(&wavelengths_nm).ok_or_else(|| {
             Error::ErrorString(
                 "Sprague interpolation requires equidistant data; \
@@ -77,7 +77,7 @@ pub trait IntoSpectrum {
             wavelengths_nm,
             values,
             ..
-        } = self.spectral_data();
+        } = self.spectral_sample();
         let sigma = spectral_resolution_nm / 2.355_f64;
         let cutoff = 4.0 * sigma;
 
@@ -126,7 +126,7 @@ pub trait IntoSpectrum {
             wavelengths_nm,
             values,
             ..
-        } = self.spectral_data();
+        } = self.spectral_sample();
 
         let (wl_min, wl_max) = match (wavelengths_nm.first(), wavelengths_nm.last()) {
             (Some(&a), Some(&b)) => (a, b),
