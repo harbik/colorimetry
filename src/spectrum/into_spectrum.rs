@@ -1,14 +1,6 @@
 use crate::{spectrum::Spectrum, Error};
 
-/// The physical quantity represented by a spectral measurement.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum MeasurementKind {
-    Reflectance,
-    Transmittance,
-    Absorbance,
-    Radiance,
-    Irradiance,
-}
+pub use spectral_io::MeasurementType;
 
 /// Raw spectral samples returned by [`IntoSpectrum::spectral_sample`].
 ///
@@ -17,7 +9,7 @@ pub enum MeasurementKind {
 /// their physical units. Implementors are responsible for any normalisation
 /// (e.g. converting percent to fractional) before returning.
 pub struct SpectralSample {
-    pub kind: MeasurementKind,
+    pub kind: MeasurementType,
     pub wavelengths_nm: Vec<f64>,
     pub values: Vec<f64>,
 }

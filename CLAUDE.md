@@ -61,12 +61,11 @@ the GitHub release tag.
 Move every entry under `## [Unreleased]` into a new dated section, e.g.:
 
 ```markdown
-## [0.0.9] - 2026-04-20
+## [0.1.0] - 2026-05-15
 ```
 
-Add a diff link at the bottom of the file following the existing pattern. All three changelogs
-(`CHANGELOG.md`, `cli/CHANGELOG.md`, `plot/CHANGELOG.md`) should be updated if they contain
-unreleased entries.
+Add a diff link at the bottom of the file following the existing pattern. Both changelogs
+(`CHANGELOG.md`, `cli/CHANGELOG.md`) should be updated if they contain unreleased entries.
 
 ### 2. Bump version numbers
 
@@ -77,11 +76,10 @@ All of the following must change from the old version to the new version in **on
 | `Cargo.toml` | `[workspace.package] version` |
 | `Cargo.toml` | `[workspace.dependencies] colorimetry` version pin |
 | `pkg/package.json` | `"version"` field (npm / WASM package) |
-| `README.md` | any `colorimetry = "x.y.z"` install snippets |
+| `README.md` | any `colorimetry = "x.y"` install snippets |
 | `cli/README.md` | any version-pinned install snippets |
-| `plot/README.md` | any version-pinned install snippets |
 
-The three Rust crates (`colorimetry`, `colorimetry-plot`, `colorimetry-cli`) inherit version via
+Both Rust crates (`colorimetry`, `colorimetry-cli`) inherit version via
 `version.workspace = true` — only `Cargo.toml` at the workspace root needs to change.
 
 ### 3. Run the full xtask pipeline
@@ -107,52 +105,29 @@ or as a follow-up commit before tagging.
 
 ```sh
 git add -p          # stage version bumps, CHANGELOG, pkg/ changes
-git commit -m "chore: release v0.0.9"
-git tag v0.0.9
+git commit -m "chore: release v0.1.0"
+git tag v0.1.0
 git push origin main --tags
 ```
 
 The tag triggers the GitHub release. Create a GitHub Release from the tag (via the web UI or
-`gh release create v0.0.9 --notes-from-tag`) and paste the relevant CHANGELOG section as the
+`gh release create v0.1.0 --notes-from-tag`) and paste the relevant CHANGELOG section as the
 release notes.
 
 ### 6. Publish to crates.io
 
-`colorimetry-plot` depends on the external `cmx` crate (at `../cmx`), which in turn depends on
-`colorimetry`. Because `cmx` pins a specific `colorimetry` version, it must be updated and
-published **before** `colorimetry-plot` can be published.
-
-#### 6a. Update and publish `cmx` (at `../cmx`)
-
-```sh
-# In ../cmx:
-# 1. Bump colorimetry version in Cargo.toml to the new version
-# 2. Fix any compilation errors caused by renamed APIs
-# 3. Run tests: cargo test
-# 4. Commit and publish:
-git add Cargo.toml Cargo.lock <any changed src files>
-git commit -m "chore: bump colorimetry to x.y.z, release vA.B.C"
-cargo publish
-```
-
-#### 6b. Update `colorimetry-plot` to the new `cmx` version
-
-```sh
-# In plot/Cargo.toml, bump cmx to the version just published
-# Then commit:
-git add plot/Cargo.toml Cargo.lock
-git commit -m "chore: update colorimetry-plot to use cmx vA.B.C"
-git push origin main
-```
-
-#### 6c. Publish all three crates in dependency order
+Publish both workspace crates in dependency order:
 
 ```sh
 cargo publish -p colorimetry
 # wait for crates.io to index it (usually ~30 seconds), then:
-cargo publish -p colorimetry-plot
 cargo publish -p colorimetry-cli
 ```
+
+**Note:** `colorimetry-plot` is now a standalone crate at
+<https://github.com/harbik/colorimetry-plot>. It has its own release process. It depends
+on `colorimetry` with a loose `"0.1"` pin, so patch releases of colorimetry do not
+require a `colorimetry-plot` release.
 
 ### 7. Publish to npm
 

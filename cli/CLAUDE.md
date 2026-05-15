@@ -6,7 +6,7 @@ there apply here as well.
 
 ## Version sync
 
-`colorimetry-cli` must always be at the same version as `colorimetry` and `colorimetry-plot`.
+`colorimetry-cli` must always be at the same version as `colorimetry`.
 Version is managed via Cargo workspace inheritance — this crate uses `version.workspace = true`
 and `colorimetry = {workspace = true, ...}`, so there is nothing to update here when bumping.
 
