@@ -13,6 +13,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-05-15
+
 ### Added
 
 * `spectral-io` optional feature — enables reading `spectral_io::SpectrumRecord` files
@@ -335,3 +337,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [0.0.2] - 2024-08-09
 
 ## [0.0.1] - 2024-08-09
+
+[0.1.0]: https://github.com/harbik/colorimetry/compare/v0.0.9...v0.1.0
+[0.0.9]: https://github.com/harbik/colorimetry/compare/v0.0.8...v0.0.9
