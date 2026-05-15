@@ -808,4 +808,4 @@ pub mod xyz;
 
 pub use error::Error;
 
-pub use spectrum::into_spectrum::{IntoSpectrum, MeasurementKind, SpectralSample};
+pub use spectrum::into_spectrum::{IntoSpectrum, MeasurementType, SpectralSample};

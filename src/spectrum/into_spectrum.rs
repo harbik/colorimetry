@@ -1,11 +1,6 @@
 use crate::{spectrum::Spectrum, Error};
 
-/// The physical quantity represented by a spectral measurement.
-///
-/// This is a re-export of [`spectral_io::MeasurementType`] so that callers
-/// that only depend on `colorimetry` do not need to import `spectral_io`
-/// directly to name the type.
-pub use spectral_io::MeasurementType as MeasurementKind;
+pub use spectral_io::MeasurementType;
 
 /// Raw spectral samples returned by [`IntoSpectrum::spectral_sample`].
 ///
@@ -14,7 +9,7 @@ pub use spectral_io::MeasurementType as MeasurementKind;
 /// their physical units. Implementors are responsible for any normalisation
 /// (e.g. converting percent to fractional) before returning.
 pub struct SpectralSample {
-    pub kind: MeasurementKind,
+    pub kind: MeasurementType,
     pub wavelengths_nm: Vec<f64>,
     pub values: Vec<f64>,
 }
