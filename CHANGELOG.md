@@ -27,8 +27,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
     instrument FWHM.
   * `to_spectrum_binned` — boxcar binning followed by Sprague interpolation; falls back
     to linear if any bins are empty.
-* `MeasurementKind` — re-exported from `spectral_io::MeasurementType` for use in
-  `IntoSpectrum` implementations without a direct `spectral-io` import.
+* `MeasurementType` — re-exported from `spectral_io::MeasurementType` at the crate root
+  (`colorimetry::MeasurementType`) for use in `IntoSpectrum` implementations.
 * `impl IntoSpectrum for spectral_io::SpectrumRecord` — converts a parsed spectral data
   file into a `Spectrum` using any of the four strategies above.
 
@@ -37,6 +37,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 * The `spectral-io` Cargo feature flag has been removed; `spectral-io` integration is
   now always compiled. Downstream code using `features = ["spectral-io"]` must remove
   that entry from `Cargo.toml`.
+* `MeasurementKind` renamed to `MeasurementType` (matching `spectral_io::MeasurementType`
+  directly). Update any `use colorimetry::MeasurementKind` to `use colorimetry::MeasurementType`.
 
 ### Removed
 
