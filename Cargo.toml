@@ -15,7 +15,6 @@ exclude = [".github", ".vscode", "pkg"]
 
 [workspace]
 members = [
-    "plot",
     "cli",
     "xtask",
     "."  # main crate
@@ -25,7 +24,7 @@ members = [
 version = "0.1.0"
 
 [workspace.dependencies]
-# Single source of truth for the colorimetry version used by plot and cli.
+# Single source of truth for the colorimetry version used by cli.
 colorimetry = { version = "0.1.0" }
 
 [dependencies]
