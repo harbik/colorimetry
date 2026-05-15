@@ -15,6 +15,7 @@ impl IntoSpectrum for SpectrumRecord {
                 spectral_io::MeasurementType::Absorbance => MeasurementKind::Absorbance,
                 spectral_io::MeasurementType::Radiance => MeasurementKind::Radiance,
                 spectral_io::MeasurementType::Irradiance => MeasurementKind::Irradiance,
+                spectral_io::MeasurementType::Emission => MeasurementKind::Emission,
             },
             wavelengths_nm: self.wavelength_axis.wavelengths_nm(),
             values,

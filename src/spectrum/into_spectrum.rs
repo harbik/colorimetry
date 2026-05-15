@@ -8,6 +8,7 @@ pub enum MeasurementKind {
     Absorbance,
     Radiance,
     Irradiance,
+    Emission,
 }
 
 /// Raw spectral samples returned by [`IntoSpectrum::spectral_sample`].
