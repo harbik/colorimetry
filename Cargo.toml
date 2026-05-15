@@ -35,11 +35,11 @@ thiserror = "1.0.63"
 strum = {version = "0.25", features = ["derive"]} # for enum iteration and derive macros
 num-traits = "0.2.19"
 geo = "0.29.3"
+spectral-io = { version = "0.2" }
 
 # Optional dependencies
 serde = { version = "1.0.219", features = ["derive"], optional = true}
 serde_json = { version = "1.0.140", optional = true}
-spectral-io = { version = "0.2" }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = "0.2"

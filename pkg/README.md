@@ -41,7 +41,7 @@ To use this library in a Rust application, run the command:
 or add this line to the dependencies in your Cargo.toml file:
 
 ```text
-    colorimetry = "0.0.9"
+    colorimetry = "0.1"
 ```
 
 ### JavaScript and WebAssembly
@@ -67,7 +67,7 @@ must be awaited before calling any library function.
 ```html
 <script type="module">
   import init, { Illuminant, CieIlluminant }
-    from "https://esm.sh/colorimetry@0.0.9";
+    from "https://esm.sh/colorimetry@0.1";
 
   await init();
 
@@ -82,7 +82,7 @@ Import from esm.sh using a URL import — no `npm:` prefix or local build requir
 
 ```typescript
 import init, { Illuminant, CieIlluminant }
-  from "https://esm.sh/colorimetry@0.0.9";
+  from "https://esm.sh/colorimetry@0.1";
 
 await init();
 
@@ -602,7 +602,7 @@ cargo add colorimetry --features cri,munsell
 Alternatively, configure features manually in your `Cargo.toml`:
 
 ```toml
-colorimetry = { version = "0.0.9", features = ["cri", "munsell"] }
+colorimetry = { version = "0.1", features = ["cri", "munsell"] }
 ```
 
 </details>

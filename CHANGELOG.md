@@ -38,6 +38,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   now always compiled. Downstream code using `features = ["spectral-io"]` must remove
   that entry from `Cargo.toml`.
 
+### Removed
+
+* `colorimetry-plot` has been extracted to its own repository at
+  <https://github.com/harbik/colorimetry-plot> and is no longer part of this workspace.
+  The crate name and crates.io slug are unchanged; update your `Cargo.toml` to depend on
+  `colorimetry-plot` directly and remove any path overrides pointing to the old
+  `plot/` subdirectory.
+
 ### Fixed
 
 * `to_spectrum_binned`: bin-index assignment now uses `floor()` consistently with the

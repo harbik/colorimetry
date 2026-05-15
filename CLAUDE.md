@@ -124,10 +124,10 @@ cargo publish -p colorimetry
 cargo publish -p colorimetry-cli
 ```
 
-**Note:** `colorimetry-plot` is now a standalone crate in a separate repository
-(`~/Projects/colorimetry-plot`). It has its own release process documented in
-`~/Projects/colorimetry-plot/CLAUDE.md`. It depends on `colorimetry` with a loose
-`"0.1"` pin, so patch releases of colorimetry do not require a `colorimetry-plot` release.
+**Note:** `colorimetry-plot` is now a standalone crate at
+<https://github.com/harbik/colorimetry-plot>. It has its own release process. It depends
+on `colorimetry` with a loose `"0.1"` pin, so patch releases of colorimetry do not
+require a `colorimetry-plot` release.
 
 ### 7. Publish to npm
 
