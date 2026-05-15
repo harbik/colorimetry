@@ -32,7 +32,6 @@ mod wasm;
 
 pub mod into_spectrum;
 
-#[cfg(feature = "spectral-io")]
 pub mod from_spectral_io;
 
 /// The wavelength range of the spectrums supported by this library.

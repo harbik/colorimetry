@@ -1,6 +1,6 @@
 use spectral_io::SpectrumRecord;
 
-use crate::spectrum::into_spectrum::{IntoSpectrum, MeasurementKind, SpectralSample};
+use crate::spectrum::into_spectrum::{IntoSpectrum, SpectralSample};
 
 impl IntoSpectrum for SpectrumRecord {
     fn spectral_sample(&self) -> SpectralSample {
@@ -9,14 +9,7 @@ impl IntoSpectrum for SpectrumRecord {
             values.iter_mut().for_each(|v| *v /= 100.0);
         }
         SpectralSample {
-            kind: match self.metadata.measurement_type {
-                spectral_io::MeasurementType::Reflectance => MeasurementKind::Reflectance,
-                spectral_io::MeasurementType::Transmittance => MeasurementKind::Transmittance,
-                spectral_io::MeasurementType::Absorbance => MeasurementKind::Absorbance,
-                spectral_io::MeasurementType::Radiance => MeasurementKind::Radiance,
-                spectral_io::MeasurementType::Irradiance => MeasurementKind::Irradiance,
-                spectral_io::MeasurementType::Emission => MeasurementKind::Emission,
-            },
+            kind: self.metadata.measurement_type,
             wavelengths_nm: self.wavelength_axis.wavelengths_nm(),
             values,
         }
@@ -204,20 +197,19 @@ mod tests {
     }
 
     #[test]
-    fn spectral_sample_maps_measurement_kind() {
-        use spectral_io::MeasurementType as T;
-        use MeasurementKind as K;
-        let pairs = [
-            (T::Reflectance, K::Reflectance),
-            (T::Transmittance, K::Transmittance),
-            (T::Absorbance, K::Absorbance),
-            (T::Radiance, K::Radiance),
-            (T::Irradiance, K::Irradiance),
-        ];
-        for (src, expected) in pairs {
+    fn spectral_sample_preserves_measurement_type() {
+        use spectral_io::MeasurementType;
+        for kind in [
+            MeasurementType::Reflectance,
+            MeasurementType::Transmittance,
+            MeasurementType::Absorbance,
+            MeasurementType::Radiance,
+            MeasurementType::Irradiance,
+            MeasurementType::Emission,
+        ] {
             let mut rec = make_range_record(vals_41());
-            rec.metadata.measurement_type = src;
-            assert_eq!(rec.spectral_sample().kind, expected);
+            rec.metadata.measurement_type = kind;
+            assert_eq!(rec.spectral_sample().kind, kind);
         }
     }
 }

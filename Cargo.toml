@@ -22,11 +22,11 @@ members = [
 ]
 
 [workspace.package]
-version = "0.0.9"
+version = "0.1.0"
 
 [workspace.dependencies]
 # Single source of truth for the colorimetry version used by plot and cli.
-colorimetry = { version = "0.0.9" }
+colorimetry = { version = "0.1.0" }
 
 [dependencies]
 nalgebra = "0.33"
@@ -40,7 +40,7 @@ geo = "0.29.3"
 # Optional dependencies
 serde = { version = "1.0.219", features = ["derive"], optional = true}
 serde_json = { version = "1.0.140", optional = true}
-spectral-io = { version = "0.1", optional = true }
+spectral-io = { version = "0.2" }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = "0.2"
@@ -55,7 +55,6 @@ munsell = []
 cfi = ["cct"]
 gamut-tables = []
 serde = ["dep:serde", "dep:serde_json", "nalgebra/serde-serialize"]
-spectral-io = ["dep:spectral-io"]
 
 [dev-dependencies] # for examples and tests
 argmin = "0.10.0"
@@ -85,4 +84,6 @@ all-features = true
 [patch.crates-io]
 # Use local path dependencies for development for these crates
 colorimetry = { path = "." }
+# Remove after spectral-io 0.2.0 is published to crates.io:
+spectral-io = { path = "../spectral-io" }
 # cmx = { path = "../cmx" } # for now use crates.io version

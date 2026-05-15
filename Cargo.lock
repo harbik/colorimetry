@@ -315,7 +315,7 @@ dependencies = [
  "approx",
  "chrono",
  "clap",
- "colorimetry",
+ "colorimetry 0.0.9",
  "delegate",
  "hex",
  "indexmap",
@@ -370,6 +370,23 @@ dependencies = [
 [[package]]
 name = "colorimetry"
 version = "0.0.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "414bd7683a5ae3971e6d15dd3abbdf0d336c55276934ee862e83ad8de7517e52"
+dependencies = [
+ "approx",
+ "geo",
+ "js-sys",
+ "libm",
+ "nalgebra",
+ "num-traits",
+ "strum",
+ "thiserror 1.0.63",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "colorimetry"
+version = "0.1.0"
 dependencies = [
  "approx",
  "argmin",
@@ -392,23 +409,23 @@ dependencies = [
 
 [[package]]
 name = "colorimetry-cli"
-version = "0.0.9"
+version = "0.1.0"
 dependencies = [
  "clap",
  "colored 3.0.0",
- "colorimetry",
+ "colorimetry 0.1.0",
  "csv",
  "strum",
 ]
 
 [[package]]
 name = "colorimetry-plot"
-version = "0.0.9"
+version = "0.1.0"
 dependencies = [
  "approx",
  "base64",
  "cmx",
- "colorimetry",
+ "colorimetry 0.1.0",
  "grass",
  "image",
  "nalgebra",
@@ -1670,9 +1687,7 @@ dependencies = [
 
 [[package]]
 name = "spectral-io"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f0fc95ce73db756dee9fd51111baffe0a0bcf53ef6583f94db698e01d13bf498"
+version = "0.2.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -2096,7 +2111,7 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "clap",
- "colorimetry",
+ "colorimetry 0.1.0",
  "glob",
  "handlebars",
  "serde",

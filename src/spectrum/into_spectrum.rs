@@ -1,15 +1,11 @@
 use crate::{spectrum::Spectrum, Error};
 
 /// The physical quantity represented by a spectral measurement.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum MeasurementKind {
-    Reflectance,
-    Transmittance,
-    Absorbance,
-    Radiance,
-    Irradiance,
-    Emission,
-}
+///
+/// This is a re-export of [`spectral_io::MeasurementType`] so that callers
+/// that only depend on `colorimetry` do not need to import `spectral_io`
+/// directly to name the type.
+pub use spectral_io::MeasurementType as MeasurementKind;
 
 /// Raw spectral samples returned by [`IntoSpectrum::spectral_sample`].
 ///
