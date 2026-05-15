@@ -84,6 +84,4 @@ all-features = true
 [patch.crates-io]
 # Use local path dependencies for development for these crates
 colorimetry = { path = "." }
-# Remove after spectral-io 0.2.0 is published to crates.io:
-spectral-io = { path = "../spectral-io" }
 # cmx = { path = "../cmx" } # for now use crates.io version
