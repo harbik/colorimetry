@@ -17,8 +17,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-* [`spectral-io`](https://crates.io/crates/spectral-io) is now a required dependency.
+* [`spectral-io`](https://crates.io/crates/spectral-io) 0.4 is now a required dependency.
   It provides `SpectrumRecord` for reading spectral data files in JSON format.
+  Because `colorimetry` re-exports `spectral_io` types in its public API, downstream
+  crates that also depend on `spectral-io` directly should use a compatible `0.4` pin —
+  a mismatched major/minor pulls in a second copy of the crate and its types will not
+  unify with the ones used by `IntoSpectrum`.
 * `IntoSpectrum` trait — re-exported unconditionally from the crate root — with four
   conversion strategies for turning any spectral data source into a `colorimetry::Spectrum`:
   * `to_spectrum_linear` — linear interpolation onto the 380–780 nm / 1 nm grid.

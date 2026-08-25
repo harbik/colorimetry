@@ -206,6 +206,7 @@ mod tests {
             MeasurementType::Radiance,
             MeasurementType::Irradiance,
             MeasurementType::Emission,
+            MeasurementType::Sensitivity,
         ] {
             let mut rec = make_range_record(vals_41());
             rec.metadata.measurement_type = kind;
