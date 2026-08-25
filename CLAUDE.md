@@ -61,11 +61,39 @@ the GitHub release tag.
 Move every entry under `## [Unreleased]` into a new dated section, e.g.:
 
 ```markdown
-## [0.1.0] - 2026-05-15
+## [0.1.0] - 2026-08-25
 ```
 
-Add a diff link at the bottom of the file following the existing pattern. Both changelogs
-(`CHANGELOG.md`, `cli/CHANGELOG.md`) should be updated if they contain unreleased entries.
+Add a diff link at the bottom of the file following the existing pattern.
+
+**Every released version gets a dated section in BOTH changelogs** (`CHANGELOG.md` and
+`cli/CHANGELOG.md`) — not only the ones that happen to have accumulated `Unreleased`
+entries. The CLI inherits its version from the workspace, so it ships on every release
+whether or not its own code changed. When nothing user-facing changed, say exactly that:
+
+```markdown
+## [0.0.9] - 2026-04-20
+
+### Changed
+
+* Version-alignment release: no changes to the `color` binary's commands, arguments,
+  or output.
+```
+
+"No user-facing change" is information a reader wants; a missing section just looks like
+an oversight. In 0.1.0 both CLI releases (0.0.9 and 0.1.0) were reconstructed from git
+history after the fact because an empty `## Unreleased` was read as "nothing to do".
+
+Before writing the sections, confirm nothing user-facing is unrecorded:
+
+```sh
+git log <previous-tag>..HEAD --oneline            # library
+git log <previous-tag>..HEAD --oneline -- cli/    # CLI
+```
+
+**Date the section with the day you actually publish, not the day you prepare it.** The
+0.1.0 section was written as `2026-05-15` and shipped on `2026-08-25`; re-check the date
+immediately before tagging (step 5) and correct it if the release slipped.
 
 ### 2. Bump version numbers
 
@@ -157,6 +185,9 @@ JSR versions are immutable — check <https://jsr.io/@harbik/colorimetry> first.
 ### Per-PR changelog and deprecation notes
 
 - `CHANGELOG.md` should be updated for any user-facing change, not just at release time.
+  A change that touches `cli/` goes in `cli/CHANGELOG.md` under its own `## Unreleased`.
+  Doing this per-PR is what keeps step 1 of the release a formality instead of an
+  archaeology exercise.
 - The version in `Cargo.toml` follows semver; the library is pre-1.0 so breaking changes are
   allowed but must be noted in the changelog.
 - Deprecated items use `#[deprecated(since = "x.y.z", note = "use X instead")]`.
