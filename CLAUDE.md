@@ -75,12 +75,16 @@ All of the following must change from the old version to the new version in **on
 |---|---|
 | `Cargo.toml` | `[workspace.package] version` |
 | `Cargo.toml` | `[workspace.dependencies] colorimetry` version pin |
-| `pkg/package.json` | `"version"` field (npm / WASM package) |
+| `deno.jsonc` | `"version"` field **and** the `jsr:@harbik/colorimetry@^x.y.z` import pin (JSR package) |
 | `README.md` | any `colorimetry = "x.y"` install snippets |
 | `cli/README.md` | any version-pinned install snippets |
 
 Both Rust crates (`colorimetry`, `colorimetry-cli`) inherit version via
 `version.workspace = true` — only `Cargo.toml` at the workspace root needs to change.
+
+`pkg/package.json` is **not** edited by hand and is git-ignored (`pkg/.gitignore` is `*`).
+wasm-pack regenerates it from `Cargo.toml` on every build, so its version follows from
+step 4 — verify it reads the new version with `npm pack --dry-run` before publishing.
 
 ### 3. Run the full xtask pipeline
 
@@ -99,7 +103,8 @@ cargo xtask wasm    # regenerates pkg/ via wasm-pack + wasm-opt
 ```
 
 Commit any changes to `pkg/` (`.wasm`, `.js`, `.d.ts` files) together with the version bump commit,
-or as a follow-up commit before tagging.
+or as a follow-up commit before tagging. Note that `colorimetry.d.ts` embeds the rustdoc comments
+of every `#[wasm_bindgen]` item, so doc-only edits to `src/**/wasm.rs` also require this rebuild.
 
 ### 5. Commit and tag
 
@@ -138,6 +143,16 @@ cd ..
 ```
 
 Verify the new version appears on npmjs.com before closing the release.
+
+### 8. Publish to JSR (Deno)
+
+```sh
+deno publish --dry-run
+deno publish
+```
+
+Publishes `@harbik/colorimetry` from `deno.jsonc`, which exports the same `pkg/` build.
+JSR versions are immutable — check <https://jsr.io/@harbik/colorimetry> first.
 
 ### Per-PR changelog and deprecation notes
 
