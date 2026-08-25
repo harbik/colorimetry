@@ -25,9 +25,12 @@ jobs:
             ~/.cargo/git
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      # 3. Install cargo-rdme once for the runner
+      # 3. Install cargo-rdme once for the runner.
+      # Pinned: an unpinned `cargo install` silently jumped 1.4.8 -> 2.2.1 and broke CI
+      # on an unchanged PR. 2.x also needs a date-pinned nightly for intralink resolution.
+      # Keep this in sync with the version developers run locally via `cargo xtask check`.
       - name: Install cargo-rdme
-        run: cargo install cargo-rdme --locked
+        run: cargo install cargo-rdme --version 1.4.8 --locked
 
       # 4. Fail if README.md is not generated from rustdoc
       - name: Verify README is up to date

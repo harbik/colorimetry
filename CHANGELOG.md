@@ -54,6 +54,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+* Removed five stray `use core::f64;` imports that shadowed the primitive type with the
+  `core::f64` module, so `f64::EPSILON`, `f64::MAX` and `f64::NAN` resolved to the
+  deprecated module constants. Rust 1.99 (beta) denies these under `-D warnings`;
+  without the fix, building the crate would emit deprecation warnings once 1.99 is stable.
 * WASM/JavaScript docs for `XYZ`: the example called `to_array()` and `luminousValue()`,
   neither of which exists in the JS bindings — the generated names are `values()` and `y()`.
   The example also redeclared `const xyz`, which would throw a `SyntaxError` if pasted as-is.

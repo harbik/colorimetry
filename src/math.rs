@@ -11,7 +11,6 @@
 use approx::abs_diff_eq;
 
 use crate::Error;
-use core::f64;
 use std::f64::consts::PI;
 
 /// Constant for converting a Gaussian distribution’s standard deviation (σ)
