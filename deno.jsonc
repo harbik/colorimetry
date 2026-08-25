@@ -10,14 +10,14 @@
     // - deno publish
     //
     "name": "@harbik/colorimetry",
-    "version": "0.0.2", // change imports as well!!
+    "version": "0.1.0", // change imports as well!!
     "exports": "./pkg/colorimetry.js",
     "types": "./pkg/colorimetry.d.ts",
     "publish": {
         "exclude": ["!./pkg/**", "./src", "./Cargo.*"] 
     },
     "imports": {
-        "@harbik/colorimetry": "jsr:@harbik/colorimetry@^0.0.2"
+        "@harbik/colorimetry": "jsr:@harbik/colorimetry@^0.1.0"
     },
     "tasks": {
         "test": "cargo test --all-features",

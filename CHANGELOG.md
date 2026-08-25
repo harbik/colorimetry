@@ -13,22 +13,54 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-05-15
+
 ### Added
 
-* `spectral-io` optional feature — enables reading `spectral_io::SpectrumRecord` files
-  (the [spectral-io](https://crates.io/crates/spectral-io) crate) and converting them
-  into a `colorimetry::Spectrum` via the new `IntoSpectrum` extension trait.
-* `IntoSpectrum` trait (re-exported from crate root when the `spectral-io` feature is
-  enabled) with four conversion strategies:
+* [`spectral-io`](https://crates.io/crates/spectral-io) 0.4 is now a required dependency.
+  It provides `SpectrumRecord` for reading spectral data files in JSON format.
+  Because `colorimetry` re-exports `spectral_io` types in its public API, downstream
+  crates that also depend on `spectral-io` directly should use a compatible `0.4` pin —
+  a mismatched major/minor pulls in a second copy of the crate and its types will not
+  unify with the ones used by `IntoSpectrum`.
+* `IntoSpectrum` trait — re-exported unconditionally from the crate root — with four
+  conversion strategies for turning any spectral data source into a `colorimetry::Spectrum`:
   * `to_spectrum_linear` — linear interpolation onto the 380–780 nm / 1 nm grid.
   * `to_spectrum_sprague` — Sprague 5th-order interpolation (equidistant input required).
   * `to_spectrum_smooth` — Gaussian-weighted kernel regression, parameterised by the
     instrument FWHM.
   * `to_spectrum_binned` — boxcar binning followed by Sprague interpolation; falls back
     to linear if any bins are empty.
+* `MeasurementType` — re-exported from `spectral_io::MeasurementType` at the crate root
+  (`colorimetry::MeasurementType`) for use in `IntoSpectrum` implementations.
+* `impl IntoSpectrum for spectral_io::SpectrumRecord` — converts a parsed spectral data
+  file into a `Spectrum` using any of the four strategies above.
+
+### Changed
+
+* The `spectral-io` Cargo feature flag has been removed; `spectral-io` integration is
+  now always compiled. Downstream code using `features = ["spectral-io"]` must remove
+  that entry from `Cargo.toml`.
+* `MeasurementKind` renamed to `MeasurementType` (matching `spectral_io::MeasurementType`
+  directly). Update any `use colorimetry::MeasurementKind` to `use colorimetry::MeasurementType`.
+
+### Removed
+
+* `colorimetry-plot` has been extracted to its own repository at
+  <https://github.com/harbik/colorimetry-plot> and is no longer part of this workspace.
+  The crate name and crates.io slug are unchanged; update your `Cargo.toml` to depend on
+  `colorimetry-plot` directly and remove any path overrides pointing to the old
+  `plot/` subdirectory.
 
 ### Fixed
 
+* Removed five stray `use core::f64;` imports that shadowed the primitive type with the
+  `core::f64` module, so `f64::EPSILON`, `f64::MAX` and `f64::NAN` resolved to the
+  deprecated module constants. Rust 1.99 (beta) denies these under `-D warnings`;
+  without the fix, building the crate would emit deprecation warnings once 1.99 is stable.
+* WASM/JavaScript docs for `XYZ`: the example called `to_array()` and `luminousValue()`,
+  neither of which exists in the JS bindings — the generated names are `values()` and `y()`.
+  The example also redeclared `const xyz`, which would throw a `SyntaxError` if pasted as-is.
 * `to_spectrum_binned`: bin-index assignment now uses `floor()` consistently with the
   bin-count calculation. The previous `round()`-based assignment could silently drop
   data points near the upper edge of the last bin when the wavelength span is not an
@@ -335,3 +367,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [0.0.2] - 2024-08-09
 
 ## [0.0.1] - 2024-08-09
+
+[0.1.0]: https://github.com/harbik/colorimetry/compare/v0.0.9...v0.1.0
+[0.0.9]: https://github.com/harbik/colorimetry/compare/v0.0.8...v0.0.9

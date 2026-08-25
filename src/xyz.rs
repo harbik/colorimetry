@@ -44,7 +44,6 @@ pub use rel_xyz::RelXYZ;
 #[cfg(feature = "gamut-tables")]
 pub use rel_xyz::RelXYZGamut;
 
-use core::f64;
 use std::fmt::Display;
 
 use crate::{error::Error, observer::Observer, rgb::RgbSpace, rgb::WideRgb};

@@ -39,7 +39,6 @@ CCT calculations are based on the **CIE 1931 Standard Observer**.
 
 */
 
-use core::f64;
 use std::sync::OnceLock;
 
 use approx::{ulps_eq, AbsDiffEq, RelativeEq, UlpsEq};

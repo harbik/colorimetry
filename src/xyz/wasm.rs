@@ -28,21 +28,19 @@ impl XYZ {
     ///
     /// // Get and check the corresponding tristimulus values, with a luminous value
     /// // of 100.0
-    /// const [x, y, z] = xyz.to_array();
+    /// const [x, y, z] = xyz.values();
     /// assert.assertAlmostEquals(x, 95.047, 5E-3); // D65 wikipedia
     /// assert.assertAlmostEquals(y, 100.0);
     /// assert.assertAlmostEquals(z, 108.883, 5E-3);
     ///
-    /// // and get back the orgiinal chromaticity coordinates:
+    /// // and get back the original chromaticity coordinates:
     /// const [xc, yc] = xyz.chromaticity();
     /// assert.assertAlmostEquals(xc, 0.31272);
     /// assert.assertAlmostEquals(yc, 0.32903);
     ///
     /// // to get the luminous value:
-    /// const l = xyz.luminousValue();
+    /// const l = xyz.y();
     /// assert.assertAlmostEquals(l, 100.0);
-    /// // D65 CIE 1931 chromaticity coordinates
-    /// const xyz = new cmt.XYZ(0.31272, 0.32903);
     /// ```
     #[wasm_bindgen(constructor, variadic)]
     pub fn new_js(x: f64, y: f64, opt: &js_sys::Array) -> Result<XYZ, crate::error::Error> {

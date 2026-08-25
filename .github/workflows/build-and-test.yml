@@ -12,6 +12,9 @@ env:
 jobs:
   build-and-test:
     strategy:
+      # Report every leg independently: a failure in one (e.g. beta) used to cancel
+      # the rest, hiding whether stable passed.
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         rust: [stable, beta]

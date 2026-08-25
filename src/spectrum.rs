@@ -10,7 +10,6 @@
 //! cells. The spectral composition of light, and the objects involved in its processing such as filters
 //! and painted patches, is represented by the [Spectrum]-object in this library.
 //! The spectral sensitivity of human vision is described by an [`Observer`](crate::observer::Observer).
-use core::f64;
 use std::{
     borrow::Cow,
     collections::BTreeMap,
@@ -32,7 +31,6 @@ mod wasm;
 
 pub mod into_spectrum;
 
-#[cfg(feature = "spectral-io")]
 pub mod from_spectral_io;
 
 /// The wavelength range of the spectrums supported by this library.

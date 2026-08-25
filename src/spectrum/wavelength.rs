@@ -18,7 +18,6 @@
 //!
 
 use crate::spectrum::SPECTRUM_WAVELENGTH_RANGE;
-use core::f64;
 use num_traits::ToPrimitive;
 
 #[inline(always)]
