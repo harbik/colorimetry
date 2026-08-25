@@ -11,7 +11,10 @@
     //
     "name": "@harbik/colorimetry",
     "version": "0.1.0", // change imports as well!!
-    "license": "MIT OR Apache-2.0",
+    // JSR accepts a single SPDX identifier only — no compound expressions.
+    // The crate stays dual-licensed (see LICENSE, LICENSE-MIT, LICENSE-APACHE,
+    // all shipped in the package); MIT is declared here as the JSR-visible option.
+    "license": "MIT",
     "exports": "./pkg/colorimetry.js",
     "types": "./pkg/colorimetry.d.ts",
     // Allow-list: the JSR package is the wasm build plus its docs and licences.
