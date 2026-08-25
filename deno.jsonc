@@ -11,10 +11,22 @@
     //
     "name": "@harbik/colorimetry",
     "version": "0.1.0", // change imports as well!!
+    "license": "MIT OR Apache-2.0",
     "exports": "./pkg/colorimetry.js",
     "types": "./pkg/colorimetry.d.ts",
+    // Allow-list: the JSR package is the wasm build plus its docs and licences.
+    // An exclude-list let the Rust sources, xtask, benches and CI config leak in.
     "publish": {
-        "exclude": ["!./pkg/**", "./src", "./Cargo.*"] 
+        "include": [
+            "pkg/colorimetry.js",
+            "pkg/colorimetry.d.ts",
+            "pkg/colorimetry_bg.wasm",
+            "pkg/colorimetry_bg.wasm.d.ts",
+            "README.md",
+            "LICENSE",
+            "LICENSE-APACHE",
+            "LICENSE-MIT"
+        ]
     },
     "imports": {
         "@harbik/colorimetry": "jsr:@harbik/colorimetry@^0.1.0"
