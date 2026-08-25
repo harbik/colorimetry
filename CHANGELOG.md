@@ -50,6 +50,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+* WASM/JavaScript docs for `XYZ`: the example called `to_array()` and `luminousValue()`,
+  neither of which exists in the JS bindings — the generated names are `values()` and `y()`.
+  The example also redeclared `const xyz`, which would throw a `SyntaxError` if pasted as-is.
 * `to_spectrum_binned`: bin-index assignment now uses `floor()` consistently with the
   bin-count calculation. The previous `round()`-based assignment could silently drop
   data points near the upper edge of the last bin when the wavelength span is not an

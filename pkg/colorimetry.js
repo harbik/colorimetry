@@ -1,118 +1,220 @@
-let wasm;
+/* @ts-self-types="./colorimetry.d.ts" */
 
-const cachedTextDecoder = (typeof TextDecoder !== 'undefined' ? new TextDecoder('utf-8', { ignoreBOM: true, fatal: true }) : { decode: () => { throw Error('TextDecoder not available') } } );
-
-if (typeof TextDecoder !== 'undefined') { cachedTextDecoder.decode(); };
-
-let cachedUint8ArrayMemory0 = null;
-
-function getUint8ArrayMemory0() {
-    if (cachedUint8ArrayMemory0 === null || cachedUint8ArrayMemory0.byteLength === 0) {
-        cachedUint8ArrayMemory0 = new Uint8Array(wasm.memory.buffer);
+/**
+ * Container for CIE 2017 Colour Fidelity Index (**R<sub>f</sub>**) calculations,
+ * including both the general color fidelity **R<sub>f</sub>** score and the 99 special color fidelity indices (**R<sub>f,1</sub>** to **R<sub>f,99</sub>**)
+ * as specified in [CIE 224:2017](https://cie.co.at/publications/colour-fidelity-index-accurate-scientific-use).
+ *
+ * # Requirements
+ * - Requires the `cfi` feature to access color evaluation samples (CES) used for testing.
+ *
+ * # Overview
+ * The CIE 2017 Colour Fidelity Index (CFI, or **R<sub>f</sub>**) is a modern metric for evaluating how accurately a light source renders colors.
+ * It uses 99 Color Evaluation Samples (CES) that cover a broad range of real-world colors, providing a much more comprehensive assessment
+ * than older metrics like the Color Rendering Index (CRI, or **R<sub>a</sub>**).
+ * - The general index (**R<sub>f</sub>**) gives an overall measure of color fidelity.
+ * - The special indices (**R<sub>f,1</sub>** to **R<sub>f,99</sub>**) show fidelity for each specific color sample.
+ *
+ * # Comparison with CRI
+ * The traditional **CRI** metric (Ra) uses only 8 or 14 pastel color samples and is known to be limited, especially for modern light sources such as LEDs.
+ * **CFI (Rf)** is a newer, more robust standard: it uses a much wider set of samples and is based on state-of-the-art color appearance models,
+ * providing a more accurate and reliable prediction of real-world color rendering.
+ * - **Use CRI** if you need compatibility with legacy systems or must comply with standards that specify CRI.
+ * - **Use CFI (Rf)** for a more precise and scientifically up-to-date assessment of color fidelity, especially with modern or tunable light sources.
+ *
+ * # TM-30 version
+ * This implementation follows **ANSI/IES TM-30-20** and **TM-30-24**, which are harmonised with
+ * **CIE 224:2017**. It does **not** implement the earlier TM-30-15 or TM-30-18 editions.
+ * The key difference from TM-30-15 is the scaling constant in the Rf formula: TM-30-15 used
+ * `CF = 7.54`; all later editions (TM-30-18, TM-30-20, TM-30-24, CIE 224:2017) use `CF = 6.73`,
+ * which this library implements.
+ *
+ * # Reference
+ * [CIE 224:2017 – CIE 2017 Colour Fidelity Index for accurate scientific use](https://cie.co.at/publications/colour-fidelity-index-accurate-scientific-use)
+ */
+export class CFI {
+    static __wrap(ptr) {
+        const obj = Object.create(CFI.prototype);
+        obj.__wbg_ptr = ptr;
+        CFIFinalization.register(obj, obj.__wbg_ptr, obj);
+        return obj;
     }
-    return cachedUint8ArrayMemory0;
-}
-
-function getStringFromWasm0(ptr, len) {
-    ptr = ptr >>> 0;
-    return cachedTextDecoder.decode(getUint8ArrayMemory0().subarray(ptr, ptr + len));
-}
-
-function isLikeNone(x) {
-    return x === undefined || x === null;
-}
-
-let cachedDataViewMemory0 = null;
-
-function getDataViewMemory0() {
-    if (cachedDataViewMemory0 === null || cachedDataViewMemory0.buffer.detached === true || (cachedDataViewMemory0.buffer.detached === undefined && cachedDataViewMemory0.buffer !== wasm.memory.buffer)) {
-        cachedDataViewMemory0 = new DataView(wasm.memory.buffer);
-    }
-    return cachedDataViewMemory0;
-}
-
-let WASM_VECTOR_LEN = 0;
-
-const cachedTextEncoder = (typeof TextEncoder !== 'undefined' ? new TextEncoder('utf-8') : { encode: () => { throw Error('TextEncoder not available') } } );
-
-const encodeString = (typeof cachedTextEncoder.encodeInto === 'function'
-    ? function (arg, view) {
-    return cachedTextEncoder.encodeInto(arg, view);
-}
-    : function (arg, view) {
-    const buf = cachedTextEncoder.encode(arg);
-    view.set(buf);
-    return {
-        read: arg.length,
-        written: buf.length
-    };
-});
-
-function passStringToWasm0(arg, malloc, realloc) {
-
-    if (realloc === undefined) {
-        const buf = cachedTextEncoder.encode(arg);
-        const ptr = malloc(buf.length, 1) >>> 0;
-        getUint8ArrayMemory0().subarray(ptr, ptr + buf.length).set(buf);
-        WASM_VECTOR_LEN = buf.length;
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        CFIFinalization.unregister(this);
         return ptr;
     }
-
-    let len = arg.length;
-    let ptr = malloc(len, 1) >>> 0;
-
-    const mem = getUint8ArrayMemory0();
-
-    let offset = 0;
-
-    for (; offset < len; offset++) {
-        const code = arg.charCodeAt(offset);
-        if (code > 0x7F) break;
-        mem[ptr + offset] = code;
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_cfi_free(ptr, 0);
     }
-
-    if (offset !== len) {
-        if (offset !== 0) {
-            arg = arg.slice(offset);
-        }
-        ptr = realloc(ptr, len, len = offset + arg.length * 3, 1) >>> 0;
-        const view = getUint8ArrayMemory0().subarray(ptr + offset, ptr + len);
-        const ret = encodeString(arg, view);
-
-        offset += ret.written;
-        ptr = realloc(ptr, len, offset, 1) >>> 0;
+    /**
+     * Chroma shift index Rcs,hj for each of the 16 hue bins (TM-30 / CIE 224:2017 §4.6).
+     *
+     * Returns a `Float64Array` of 16 values.  Positive means the test source boosts
+     * saturation in that hue direction; negative means desaturation.  Typical range ≈ −0.5…+0.5.
+     * @returns {Float64Array}
+     */
+    chromaShiftIndices() {
+        const ret = wasm.cfi_chromaShiftIndices(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
     }
-
-    WASM_VECTOR_LEN = offset;
-    return ptr;
-}
-
-let cachedFloat64ArrayMemory0 = null;
-
-function getFloat64ArrayMemory0() {
-    if (cachedFloat64ArrayMemory0 === null || cachedFloat64ArrayMemory0.byteLength === 0) {
-        cachedFloat64ArrayMemory0 = new Float64Array(wasm.memory.buffer);
+    /**
+     * General colour fidelity index Rf (0–100).
+     *
+     * A single overall score measuring how faithfully the test source renders the 99
+     * Colour Evaluation Samples compared to the reference illuminant.
+     * @returns {number}
+     */
+    colorFidelityIndex() {
+        const ret = wasm.cfi_colorFidelityIndex(this.__wbg_ptr);
+        return ret;
     }
-    return cachedFloat64ArrayMemory0;
+    /**
+     * General colour gamut index Rg.
+     *
+     * Measures the area of the gamut polygon relative to the reference (100 = same area).
+     * Values above 100 indicate a wider gamut than the reference; below 100 means narrower.
+     * @returns {number}
+     */
+    colorGamutIndex() {
+        const ret = wasm.cfi_colorGamutIndex(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * Hue shift index Rhs,hj for each of the 16 hue bins (TM-30 / CIE 224:2017 §4.7).
+     *
+     * Returns a `Float64Array` of 16 values in radians, wrapped to (−π, π].
+     * Positive means a counter-clockwise hue shift; negative means clockwise.
+     * @returns {Float64Array}
+     */
+    hueShiftIndices() {
+        const ret = wasm.cfi_hueShiftIndices(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * Local colour fidelity index Rf,hj for each of the 16 hue bins (TM-30 / CIE 224:2017 §4.5).
+     *
+     * Returns a `Float64Array` of 16 values.  Bin 0 starts at 0° (red), progressing
+     * counter-clockwise in 22.5° steps around the hue circle.
+     * @returns {Float64Array}
+     */
+    localColorFidelityIndices() {
+        const ret = wasm.cfi_localColorFidelityIndices(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * Special colour fidelity indices Rf,i for all 99 CES (CIE 224:2017 §7).
+     *
+     * Returns a `Float64Array` of 99 values, one per Colour Evaluation Sample.
+     * @returns {Float64Array}
+     */
+    specialColorFidelityIndices() {
+        const ret = wasm.cfi_specialColorFidelityIndices(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
 }
+if (Symbol.dispose) CFI.prototype[Symbol.dispose] = CFI.prototype.free;
 
-function passArrayF64ToWasm0(arg, malloc) {
-    const ptr = malloc(arg.length * 8, 8) >>> 0;
-    getFloat64ArrayMemory0().set(arg, ptr / 8);
-    WASM_VECTOR_LEN = arg.length;
-    return ptr;
+/**
+ * The **Color Rendering Index (CRI)** for a light source, computed according to CIE 13.3-1995.
+ *
+ * This struct holds the 14 individual rendering indices R₁…R₁₄ for the standard test color samples,
+ * and provides the general CRI, Rₐ, which is the average of the first eight Rᵢ values.
+ *
+ * # Calculation Method
+ * 1. The test illuminant is scaled to 100 lx and converted to CIE XYZ under the CIE 1931 observer.
+ * 2. Each of the 14 standard Colorant test spectra (TCS) is measured under both the test and the
+ *    reference illuminant (black-body or D-series at the test’s correlated color temperature).
+ * 3. For each sample, the color difference ΔE in CIE UVW space is computed, and
+ *    Rᵢ = 100 − 4.6 · ΔE.
+ * 4. The general CRI Rₐ is then
+ *    ```text
+ *    Rₐ = (R₁ + R₂ + … + R₈) / 8
+ *    ```
+ *
+ * # Examples
+ * ```rust
+ * use colorimetry::illuminant::{Illuminant, CRI};
+ *
+ * // Compute CRI for the D65 illuminant:
+ * let cri: CRI = (&Illuminant::d65()).try_into().unwrap();
+ *
+ * // General CRI:
+ * let ra = cri.ra();
+ * println!("General CRI Rₐ = {:.1}", ra);
+ *
+ * // All 14 individual Rᵢ values:
+ * let ri_values = cri.to_array();
+ * for (i, &ri) in ri_values.iter().enumerate() {
+ *     println!("R{} = {:.1}", i + 1, ri);
+ * }
+ * ```
+ *
+ * # Notes
+ * - This implementation uses the **CIE 1931** color space and requires the `"cri"` feature to be enabled in the crate.
+ * - The CRI-metric is now considered somewhat outdated; newer metrics (e.g., TM-30) are recommended for modern lighting applications.
+ *   However, CRI remains widely used and understood across the lighting industry.
+ *
+ * # Errors
+ * Constructing a `CRI` can fail if the illuminant’s correlated color temperature is out of the
+ * valid range (1000–25000 K) or its distance from the Planckian locus exceeds 0.05 Δuv.
+ */
+export class CRI {
+    static __wrap(ptr) {
+        const obj = Object.create(CRI.prototype);
+        obj.__wbg_ptr = ptr;
+        CRIFinalization.register(obj, obj.__wbg_ptr, obj);
+        return obj;
+    }
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        CRIFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_cri_free(ptr, 0);
+    }
+    /**
+     * Returns the general colour rendering index Rₐ (0–100),
+     * the average of the first eight special rendering indices R₁…R₈.
+     * @returns {number}
+     */
+    ra() {
+        const ret = wasm.cri_ra(this.__wbg_ptr);
+        return ret;
+    }
 }
+if (Symbol.dispose) CRI.prototype[Symbol.dispose] = CRI.prototype.free;
 
-function takeFromExternrefTable0(idx) {
-    const value = wasm.__wbindgen_export_0.get(idx);
-    wasm.__externref_table_dealloc(idx);
-    return value;
+/**
+ * A chromaticity coordinate with x and y values.
+ */
+export class Chromaticity {
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        ChromaticityFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_chromaticity_free(ptr, 0);
+    }
 }
+if (Symbol.dispose) Chromaticity.prototype[Symbol.dispose] = Chromaticity.prototype.free;
 
-function getArrayF64FromWasm0(ptr, len) {
-    ptr = ptr >>> 0;
-    return getFloat64ArrayMemory0().subarray(ptr / 8, ptr / 8 + len);
-}
 /**
  * A **lightweight enum** representing the CIE standard illuminants from the CIE 15:2018 datasets
  * (downloaded August 2024). Each variant holds a zero-cost reference to its precompiled spectrum,
@@ -190,6 +292,115 @@ export const CieIlluminant = Object.freeze({
     LED_V1: 38, "38": "LED_V1",
     LED_V2: 39, "39": "LED_V2",
 });
+
+export class CieLab {
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        CieLabFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_cielab_free(ptr, 0);
+    }
+}
+if (Symbol.dispose) CieLab.prototype[Symbol.dispose] = CieLab.prototype.free;
+
+/**
+ * # Illuminant
+ *
+ * An illuminant is a spectral power distribution that represents the
+ * spectral power density of a light source (sun, bulb, LED, etc.) in
+ * W/m²/nm over 380–780 nm (401 samples).
+ */
+export class Illuminant {
+    static __wrap(ptr) {
+        const obj = Object.create(Illuminant.prototype);
+        obj.__wbg_ptr = ptr;
+        IlluminantFinalization.register(obj, obj.__wbg_ptr, obj);
+        return obj;
+    }
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        IlluminantFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_illuminant_free(ptr, 0);
+    }
+    /**
+     * Returns the spectral data values, as a Float64Array containing 401 data
+     * points, over a wavelength domain from 380 t0 780 nanometer, with a
+     * stepsize of 1 nanometer.
+     * @returns {Float64Array}
+     */
+    Values() {
+        const ret = wasm.illuminant_Values(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * Calculates the Colour Fidelity Index (CFI / Rf) for this illuminant spectrum.
+     *
+     * Returns a `CFI` object exposing `rf()`, `rg()`, `rfHj()`, `rcsHj()`, `rhsHj()`,
+     * and `specialIndices()`.  Requires the `cfi` feature.
+     * @returns {CFI}
+     */
+    cfi() {
+        const ret = wasm.illuminant_cfi(this.__wbg_ptr);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return CFI.__wrap(ret[0]);
+    }
+    /**
+     * Calculates the Color Rendering Index for this illuminant spectrum.
+     *
+     * Returns a `CRI` object with a `ra()` method that gives the general colour
+     * rendering index Rₐ (average of R₁…R₈, scaled 0–100).
+     * @returns {CRI}
+     */
+    cri() {
+        const ret = wasm.illuminant_cri(this.__wbg_ptr);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return CRI.__wrap(ret[0]);
+    }
+    /**
+     * Get the CieIlluminant spectrum. Typically you don't need to use the Spectrum itself, as many
+     * methods just accept the CieIlluminant directly.
+     * @param {CieIlluminant} stdill
+     * @returns {Illuminant}
+     */
+    static illuminant(stdill) {
+        const ret = wasm.illuminant_illuminant(stdill);
+        return Illuminant.__wrap(ret);
+    }
+    /**
+     * Create a new illuminant spectrum from the given data.
+     *
+     * The data must be the 401 values from 380 to 780 nm, with an interval size of 1 nanometer.
+     * @param {Float64Array} data
+     */
+    constructor(data) {
+        const ptr0 = passArrayF64ToWasm0(data, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.illuminant_new_js(ptr0, len0);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        this.__wbg_ptr = ret[0];
+        IlluminantFinalization.register(this, this.__wbg_ptr, this);
+        return this;
+    }
+}
+if (Symbol.dispose) Illuminant.prototype[Symbol.dispose] = Illuminant.prototype.free;
+
 /**
  * Selects a CIE standard colorimetric observer.
  *
@@ -228,385 +439,7 @@ export const Observer = Object.freeze({
      */
     Cie2015_10: 3, "3": "Cie2015_10",
 });
-/**
- * Spectrally based color space, using spectral representations of the primaries and the
- * reference white.
- *
- * Using the CIE 1931 standard observer, using a wavelength domain from 380 top 780
- * nanometer with 1 nanometer steps, these result in their usual chromaticity
- * values.  The most common _sRGB_ color space is obtained using the
- * `RgbSpace::srgb()` constructor. For this instance, the blue and green primaries
- * are direct Gaussian-filtered D65 spectra. A mixture of the blue primary and a
- * G1aussian-filtered red component is used for the red primary. Similar
- * constructors are provided for the `Adobe` and `DisplayP3` color spaces.
- *
- * The benefit of spectral primaries is that color management and color profiles
- * can use updated Colorimetric Observers, such as the Cone-Fundamental based CIE
- * 2015 observers, which don't have the CIE 1931 deficiencies. For example, they
- * can also be optimized for special observers by considering an observer's age or
- * health conditions.
- * @enum {0 | 1 | 2 | 3}
- */
-export const RgbSpace = Object.freeze({
-    SRGB: 0, "0": "SRGB",
-    Adobe: 1, "1": "Adobe",
-    DisplayP3: 2, "2": "DisplayP3",
-    CieRGB: 3, "3": "CieRGB",
-});
 
-const CFIFinalization = (typeof FinalizationRegistry === 'undefined')
-    ? { register: () => {}, unregister: () => {} }
-    : new FinalizationRegistry(ptr => wasm.__wbg_cfi_free(ptr >>> 0, 1));
-/**
- * Container for CIE 2017 Colour Fidelity Index (**R<sub>f</sub>**) calculations,
- * including both the general color fidelity **R<sub>f</sub>** score and the 99 special color fidelity indices (**R<sub>f,1</sub>** to **R<sub>f,99</sub>**)
- * as specified in [CIE 224:2017](https://cie.co.at/publications/colour-fidelity-index-accurate-scientific-use).
- *
- * # Requirements
- * - Requires the `cfi` feature to access color evaluation samples (CES) used for testing.
- *
- * # Overview
- * The CIE 2017 Colour Fidelity Index (CFI, or **R<sub>f</sub>**) is a modern metric for evaluating how accurately a light source renders colors.
- * It uses 99 Color Evaluation Samples (CES) that cover a broad range of real-world colors, providing a much more comprehensive assessment
- * than older metrics like the Color Rendering Index (CRI, or **R<sub>a</sub>**).
- * - The general index (**R<sub>f</sub>**) gives an overall measure of color fidelity.
- * - The special indices (**R<sub>f,1</sub>** to **R<sub>f,99</sub>**) show fidelity for each specific color sample.
- *
- * # Comparison with CRI
- * The traditional **CRI** metric (Ra) uses only 8 or 14 pastel color samples and is known to be limited, especially for modern light sources such as LEDs.
- * **CFI (Rf)** is a newer, more robust standard: it uses a much wider set of samples and is based on state-of-the-art color appearance models,
- * providing a more accurate and reliable prediction of real-world color rendering.
- * - **Use CRI** if you need compatibility with legacy systems or must comply with standards that specify CRI.
- * - **Use CFI (Rf)** for a more precise and scientifically up-to-date assessment of color fidelity, especially with modern or tunable light sources.
- *
- * # TM-30 version
- * This implementation follows **ANSI/IES TM-30-20** and **TM-30-24**, which are harmonised with
- * **CIE 224:2017**. It does **not** implement the earlier TM-30-15 or TM-30-18 editions.
- * The key difference from TM-30-15 is the scaling constant in the Rf formula: TM-30-15 used
- * `CF = 7.54`; all later editions (TM-30-18, TM-30-20, TM-30-24, CIE 224:2017) use `CF = 6.73`,
- * which this library implements.
- *
- * # Reference
- * [CIE 224:2017 – CIE 2017 Colour Fidelity Index for accurate scientific use](https://cie.co.at/publications/colour-fidelity-index-accurate-scientific-use)
- */
-export class CFI {
-
-    static __wrap(ptr) {
-        ptr = ptr >>> 0;
-        const obj = Object.create(CFI.prototype);
-        obj.__wbg_ptr = ptr;
-        CFIFinalization.register(obj, obj.__wbg_ptr, obj);
-        return obj;
-    }
-
-    __destroy_into_raw() {
-        const ptr = this.__wbg_ptr;
-        this.__wbg_ptr = 0;
-        CFIFinalization.unregister(this);
-        return ptr;
-    }
-
-    free() {
-        const ptr = this.__destroy_into_raw();
-        wasm.__wbg_cfi_free(ptr, 0);
-    }
-    /**
-     * General colour fidelity index Rf (0–100).
-     *
-     * A single overall score measuring how faithfully the test source renders the 99
-     * Colour Evaluation Samples compared to the reference illuminant.
-     * @returns {number}
-     */
-    colorFidelityIndex() {
-        const ret = wasm.cfi_colorFidelityIndex(this.__wbg_ptr);
-        return ret;
-    }
-    /**
-     * General colour gamut index Rg.
-     *
-     * Measures the area of the gamut polygon relative to the reference (100 = same area).
-     * Values above 100 indicate a wider gamut than the reference; below 100 means narrower.
-     * @returns {number}
-     */
-    colorGamutIndex() {
-        const ret = wasm.cfi_colorGamutIndex(this.__wbg_ptr);
-        return ret;
-    }
-    /**
-     * Local colour fidelity index Rf,hj for each of the 16 hue bins (TM-30 / CIE 224:2017 §4.5).
-     *
-     * Returns a `Float64Array` of 16 values.  Bin 0 starts at 0° (red), progressing
-     * counter-clockwise in 22.5° steps around the hue circle.
-     * @returns {Float64Array}
-     */
-    localColorFidelityIndices() {
-        const ret = wasm.cfi_localColorFidelityIndices(this.__wbg_ptr);
-        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
-        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
-        return v1;
-    }
-    /**
-     * Chroma shift index Rcs,hj for each of the 16 hue bins (TM-30 / CIE 224:2017 §4.6).
-     *
-     * Returns a `Float64Array` of 16 values.  Positive means the test source boosts
-     * saturation in that hue direction; negative means desaturation.  Typical range ≈ −0.5…+0.5.
-     * @returns {Float64Array}
-     */
-    chromaShiftIndices() {
-        const ret = wasm.cfi_chromaShiftIndices(this.__wbg_ptr);
-        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
-        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
-        return v1;
-    }
-    /**
-     * Hue shift index Rhs,hj for each of the 16 hue bins (TM-30 / CIE 224:2017 §4.7).
-     *
-     * Returns a `Float64Array` of 16 values in radians, wrapped to (−π, π].
-     * Positive means a counter-clockwise hue shift; negative means clockwise.
-     * @returns {Float64Array}
-     */
-    hueShiftIndices() {
-        const ret = wasm.cfi_hueShiftIndices(this.__wbg_ptr);
-        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
-        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
-        return v1;
-    }
-    /**
-     * Special colour fidelity indices Rf,i for all 99 CES (CIE 224:2017 §7).
-     *
-     * Returns a `Float64Array` of 99 values, one per Colour Evaluation Sample.
-     * @returns {Float64Array}
-     */
-    specialColorFidelityIndices() {
-        const ret = wasm.cfi_specialColorFidelityIndices(this.__wbg_ptr);
-        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
-        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
-        return v1;
-    }
-}
-
-const CRIFinalization = (typeof FinalizationRegistry === 'undefined')
-    ? { register: () => {}, unregister: () => {} }
-    : new FinalizationRegistry(ptr => wasm.__wbg_cri_free(ptr >>> 0, 1));
-/**
- * The **Color Rendering Index (CRI)** for a light source, computed according to CIE 13.3-1995.
- *
- * This struct holds the 14 individual rendering indices R₁…R₁₄ for the standard test color samples,
- * and provides the general CRI, Rₐ, which is the average of the first eight Rᵢ values.
- *
- * # Calculation Method
- * 1. The test illuminant is scaled to 100 lx and converted to CIE XYZ under the CIE 1931 observer.
- * 2. Each of the 14 standard Colorant test spectra (TCS) is measured under both the test and the
- *    reference illuminant (black-body or D-series at the test’s correlated color temperature).
- * 3. For each sample, the color difference ΔE in CIE UVW space is computed, and
- *    Rᵢ = 100 − 4.6 · ΔE.
- * 4. The general CRI Rₐ is then
- *    ```text
- *    Rₐ = (R₁ + R₂ + … + R₈) / 8
- *    ```
- *
- * # Examples
- * ```rust
- * use colorimetry::illuminant::{Illuminant, CRI};
- *
- * // Compute CRI for the D65 illuminant:
- * let cri: CRI = (&Illuminant::d65()).try_into().unwrap();
- *
- * // General CRI:
- * let ra = cri.ra();
- * println!("General CRI Rₐ = {:.1}", ra);
- *
- * // All 14 individual Rᵢ values:
- * let ri_values = cri.to_array();
- * for (i, &ri) in ri_values.iter().enumerate() {
- *     println!("R{} = {:.1}", i + 1, ri);
- * }
- * ```
- *
- * # Notes
- * - This implementation uses the **CIE 1931** color space and requires the `"cri"` feature to be enabled in the crate.
- * - The CRI-metric is now considered somewhat outdated; newer metrics (e.g., TM-30) are recommended for modern lighting applications.
- *   However, CRI remains widely used and understood across the lighting industry.
- *
- * # Errors
- * Constructing a `CRI` can fail if the illuminant’s correlated color temperature is out of the
- * valid range (1000–25000 K) or its distance from the Planckian locus exceeds 0.05 Δuv.
- */
-export class CRI {
-
-    static __wrap(ptr) {
-        ptr = ptr >>> 0;
-        const obj = Object.create(CRI.prototype);
-        obj.__wbg_ptr = ptr;
-        CRIFinalization.register(obj, obj.__wbg_ptr, obj);
-        return obj;
-    }
-
-    __destroy_into_raw() {
-        const ptr = this.__wbg_ptr;
-        this.__wbg_ptr = 0;
-        CRIFinalization.unregister(this);
-        return ptr;
-    }
-
-    free() {
-        const ptr = this.__destroy_into_raw();
-        wasm.__wbg_cri_free(ptr, 0);
-    }
-    /**
-     * Returns the general colour rendering index Rₐ (0–100),
-     * the average of the first eight special rendering indices R₁…R₈.
-     * @returns {number}
-     */
-    ra() {
-        const ret = wasm.cri_ra(this.__wbg_ptr);
-        return ret;
-    }
-}
-
-const ChromaticityFinalization = (typeof FinalizationRegistry === 'undefined')
-    ? { register: () => {}, unregister: () => {} }
-    : new FinalizationRegistry(ptr => wasm.__wbg_chromaticity_free(ptr >>> 0, 1));
-/**
- * A chromaticity coordinate with x and y values.
- */
-export class Chromaticity {
-
-    __destroy_into_raw() {
-        const ptr = this.__wbg_ptr;
-        this.__wbg_ptr = 0;
-        ChromaticityFinalization.unregister(this);
-        return ptr;
-    }
-
-    free() {
-        const ptr = this.__destroy_into_raw();
-        wasm.__wbg_chromaticity_free(ptr, 0);
-    }
-}
-
-const CieLabFinalization = (typeof FinalizationRegistry === 'undefined')
-    ? { register: () => {}, unregister: () => {} }
-    : new FinalizationRegistry(ptr => wasm.__wbg_cielab_free(ptr >>> 0, 1));
-
-export class CieLab {
-
-    __destroy_into_raw() {
-        const ptr = this.__wbg_ptr;
-        this.__wbg_ptr = 0;
-        CieLabFinalization.unregister(this);
-        return ptr;
-    }
-
-    free() {
-        const ptr = this.__destroy_into_raw();
-        wasm.__wbg_cielab_free(ptr, 0);
-    }
-}
-
-const IlluminantFinalization = (typeof FinalizationRegistry === 'undefined')
-    ? { register: () => {}, unregister: () => {} }
-    : new FinalizationRegistry(ptr => wasm.__wbg_illuminant_free(ptr >>> 0, 1));
-/**
- * # Illuminant
- *
- * An illuminant is a spectral power distribution that represents the
- * spectral power density of a light source (sun, bulb, LED, etc.) in
- * W/m²/nm over 380–780 nm (401 samples).
- */
-export class Illuminant {
-
-    static __wrap(ptr) {
-        ptr = ptr >>> 0;
-        const obj = Object.create(Illuminant.prototype);
-        obj.__wbg_ptr = ptr;
-        IlluminantFinalization.register(obj, obj.__wbg_ptr, obj);
-        return obj;
-    }
-
-    __destroy_into_raw() {
-        const ptr = this.__wbg_ptr;
-        this.__wbg_ptr = 0;
-        IlluminantFinalization.unregister(this);
-        return ptr;
-    }
-
-    free() {
-        const ptr = this.__destroy_into_raw();
-        wasm.__wbg_illuminant_free(ptr, 0);
-    }
-    /**
-     * Create a new illuminant spectrum from the given data.
-     *
-     * The data must be the 401 values from 380 to 780 nm, with an interval size of 1 nanometer.
-     * @param {Float64Array} data
-     */
-    constructor(data) {
-        const ptr0 = passArrayF64ToWasm0(data, wasm.__wbindgen_malloc);
-        const len0 = WASM_VECTOR_LEN;
-        const ret = wasm.illuminant_new_js(ptr0, len0);
-        if (ret[2]) {
-            throw takeFromExternrefTable0(ret[1]);
-        }
-        this.__wbg_ptr = ret[0] >>> 0;
-        IlluminantFinalization.register(this, this.__wbg_ptr, this);
-        return this;
-    }
-    /**
-     * Returns the spectral data values, as a Float64Array containing 401 data
-     * points, over a wavelength domain from 380 t0 780 nanometer, with a
-     * stepsize of 1 nanometer.
-     * @returns {Float64Array}
-     */
-    Values() {
-        const ret = wasm.illuminant_Values(this.__wbg_ptr);
-        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
-        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
-        return v1;
-    }
-    /**
-     * Calculates the Color Rendering Index for this illuminant spectrum.
-     *
-     * Returns a `CRI` object with a `ra()` method that gives the general colour
-     * rendering index Rₐ (average of R₁…R₈, scaled 0–100).
-     * @returns {CRI}
-     */
-    cri() {
-        const ret = wasm.illuminant_cri(this.__wbg_ptr);
-        if (ret[2]) {
-            throw takeFromExternrefTable0(ret[1]);
-        }
-        return CRI.__wrap(ret[0]);
-    }
-    /**
-     * Calculates the Colour Fidelity Index (CFI / Rf) for this illuminant spectrum.
-     *
-     * Returns a `CFI` object exposing `rf()`, `rg()`, `rfHj()`, `rcsHj()`, `rhsHj()`,
-     * and `specialIndices()`.  Requires the `cfi` feature.
-     * @returns {CFI}
-     */
-    cfi() {
-        const ret = wasm.illuminant_cfi(this.__wbg_ptr);
-        if (ret[2]) {
-            throw takeFromExternrefTable0(ret[1]);
-        }
-        return CFI.__wrap(ret[0]);
-    }
-    /**
-     * Get the CieIlluminant spectrum. Typically you don't need to use the Spectrum itself, as many
-     * methods just accept the CieIlluminant directly.
-     * @param {CieIlluminant} stdill
-     * @returns {Illuminant}
-     */
-    static illuminant(stdill) {
-        const ret = wasm.illuminant_illuminant(stdill);
-        return Illuminant.__wrap(ret);
-    }
-}
-
-const RelXYZFinalization = (typeof FinalizationRegistry === 'undefined')
-    ? { register: () => {}, unregister: () => {} }
-    : new FinalizationRegistry(ptr => wasm.__wbg_relxyz_free(ptr >>> 0, 1));
 /**
  * # Related Tristimulus Values
  *
@@ -616,23 +449,19 @@ const RelXYZFinalization = (typeof FinalizationRegistry === 'undefined')
  * an Y-value of 100
  */
 export class RelXYZ {
-
     __destroy_into_raw() {
         const ptr = this.__wbg_ptr;
         this.__wbg_ptr = 0;
         RelXYZFinalization.unregister(this);
         return ptr;
     }
-
     free() {
         const ptr = this.__destroy_into_raw();
         wasm.__wbg_relxyz_free(ptr, 0);
     }
 }
+if (Symbol.dispose) RelXYZ.prototype[Symbol.dispose] = RelXYZ.prototype.free;
 
-const RgbFinalization = (typeof FinalizationRegistry === 'undefined')
-    ? { register: () => {}, unregister: () => {} }
-    : new FinalizationRegistry(ptr => wasm.__wbg_rgb_free(ptr >>> 0, 1));
 /**
  * Represents a color stimulus using Red, Green, and Blue (RGB) values constrained to the `[0.0, 1.0]` range.
  * Each component is a floating-point value representing the relative intensity of the respective primary color
@@ -664,23 +493,45 @@ const RgbFinalization = (typeof FinalizationRegistry === 'undefined')
  *   enhancing the reliability of transformations to other color spaces such as XYZ.
  */
 export class Rgb {
-
     __destroy_into_raw() {
         const ptr = this.__wbg_ptr;
         this.__wbg_ptr = 0;
         RgbFinalization.unregister(this);
         return ptr;
     }
-
     free() {
         const ptr = this.__destroy_into_raw();
         wasm.__wbg_rgb_free(ptr, 0);
     }
 }
+if (Symbol.dispose) Rgb.prototype[Symbol.dispose] = Rgb.prototype.free;
 
-const SpectrumFinalization = (typeof FinalizationRegistry === 'undefined')
-    ? { register: () => {}, unregister: () => {} }
-    : new FinalizationRegistry(ptr => wasm.__wbg_spectrum_free(ptr >>> 0, 1));
+/**
+ * Spectrally based color space, using spectral representations of the primaries and the
+ * reference white.
+ *
+ * Using the CIE 1931 standard observer, using a wavelength domain from 380 top 780
+ * nanometer with 1 nanometer steps, these result in their usual chromaticity
+ * values.  The most common _sRGB_ color space is obtained using the
+ * `RgbSpace::srgb()` constructor. For this instance, the blue and green primaries
+ * are direct Gaussian-filtered D65 spectra. A mixture of the blue primary and a
+ * G1aussian-filtered red component is used for the red primary. Similar
+ * constructors are provided for the `Adobe` and `DisplayP3` color spaces.
+ *
+ * The benefit of spectral primaries is that color management and color profiles
+ * can use updated Colorimetric Observers, such as the Cone-Fundamental based CIE
+ * 2015 observers, which don't have the CIE 1931 deficiencies. For example, they
+ * can also be optimized for special observers by considering an observer's age or
+ * health conditions.
+ * @enum {0 | 1 | 2 | 3}
+ */
+export const RgbSpace = Object.freeze({
+    SRGB: 0, "0": "SRGB",
+    Adobe: 1, "1": "Adobe",
+    DisplayP3: 2, "2": "DisplayP3",
+    CieRGB: 3, "3": "CieRGB",
+});
+
 /**
  *
  * This container holds spectral values within a wavelength domain ranging from 380
@@ -695,46 +546,21 @@ const SpectrumFinalization = (typeof FinalizationRegistry === 'undefined')
  *
  */
 export class Spectrum {
-
     static __wrap(ptr) {
-        ptr = ptr >>> 0;
         const obj = Object.create(Spectrum.prototype);
         obj.__wbg_ptr = ptr;
         SpectrumFinalization.register(obj, obj.__wbg_ptr, obj);
         return obj;
     }
-
     __destroy_into_raw() {
         const ptr = this.__wbg_ptr;
         this.__wbg_ptr = 0;
         SpectrumFinalization.unregister(this);
         return ptr;
     }
-
     free() {
         const ptr = this.__destroy_into_raw();
         wasm.__wbg_spectrum_free(ptr, 0);
-    }
-    /**
-     * Create a new spectrum from the given data.
-     *
-     * The data must be the 401 values from 380 to 780 nm, with an interval size of 1 nanometer.
-     *
-     * If the Spectral data you have uses another wavelength domain and/or a different
-     * wavelength interval, use the linear interpolate constructor,
-     * which takes a wavelength domain and spectral data as arguments.
-     * @param {Float64Array} data
-     */
-    constructor(data) {
-        const ptr0 = passArrayF64ToWasm0(data, wasm.__wbindgen_malloc);
-        const len0 = WASM_VECTOR_LEN;
-        const ret = wasm.spectrum_new_js(ptr0, len0);
-        if (ret[2]) {
-            throw takeFromExternrefTable0(ret[1]);
-        }
-        this.__wbg_ptr = ret[0] >>> 0;
-        SpectrumFinalization.register(this, this.__wbg_ptr, this);
-        return this;
     }
     /**
      * Returns the spectral data values, as a Float64Array containing 401 data
@@ -803,11 +629,30 @@ export class Spectrum {
         }
         return Spectrum.__wrap(ret[0]);
     }
+    /**
+     * Create a new spectrum from the given data.
+     *
+     * The data must be the 401 values from 380 to 780 nm, with an interval size of 1 nanometer.
+     *
+     * If the Spectral data you have uses another wavelength domain and/or a different
+     * wavelength interval, use the linear interpolate constructor,
+     * which takes a wavelength domain and spectral data as arguments.
+     * @param {Float64Array} data
+     */
+    constructor(data) {
+        const ptr0 = passArrayF64ToWasm0(data, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.spectrum_new_js(ptr0, len0);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        this.__wbg_ptr = ret[0];
+        SpectrumFinalization.register(this, this.__wbg_ptr, this);
+        return this;
+    }
 }
+if (Symbol.dispose) Spectrum.prototype[Symbol.dispose] = Spectrum.prototype.free;
 
-const ViewConditionsFinalization = (typeof FinalizationRegistry === 'undefined')
-    ? { register: () => {}, unregister: () => {} }
-    : new FinalizationRegistry(ptr => wasm.__wbg_viewconditions_free(ptr >>> 0, 1));
 /**
  * CIECAM viewing conditions.
  *
@@ -820,46 +665,38 @@ const ViewConditionsFinalization = (typeof FinalizationRegistry === 'undefined')
  * The TM30 and Color Fidelity ViewConditions are provided as [`TM30VC`].
  */
 export class ViewConditions {
-
     __destroy_into_raw() {
         const ptr = this.__wbg_ptr;
         this.__wbg_ptr = 0;
         ViewConditionsFinalization.unregister(this);
         return ptr;
     }
-
     free() {
         const ptr = this.__destroy_into_raw();
         wasm.__wbg_viewconditions_free(ptr, 0);
     }
 }
+if (Symbol.dispose) ViewConditions.prototype[Symbol.dispose] = ViewConditions.prototype.free;
 
-const WideRgbFinalization = (typeof FinalizationRegistry === 'undefined')
-    ? { register: () => {}, unregister: () => {} }
-    : new FinalizationRegistry(ptr => wasm.__wbg_widergb_free(ptr >>> 0, 1));
 /**
  * Represents a color stimulus using unconstrained Red, Green, and Blue (RGB) floating-point values
  * within a device's RGB color space. The values can extend beyond the typical 0.0 to 1.0 range,
  * allowing for out-of-gamut colors that cannot be accurately represented by the device.
  */
 export class WideRgb {
-
     __destroy_into_raw() {
         const ptr = this.__wbg_ptr;
         this.__wbg_ptr = 0;
         WideRgbFinalization.unregister(this);
         return ptr;
     }
-
     free() {
         const ptr = this.__destroy_into_raw();
         wasm.__wbg_widergb_free(ptr, 0);
     }
 }
+if (Symbol.dispose) WideRgb.prototype[Symbol.dispose] = WideRgb.prototype.free;
 
-const XYZFinalization = (typeof FinalizationRegistry === 'undefined')
-    ? { register: () => {}, unregister: () => {} }
-    : new FinalizationRegistry(ptr => wasm.__wbg_xyz_free(ptr >>> 0, 1));
 /**
  * Represents a color by its tristimulus value XYZ color space.
  *
@@ -867,17 +704,23 @@ const XYZFinalization = (typeof FinalizationRegistry === 'undefined')
  * The observer defines the color matching functions used for the conversion.
  */
 export class XYZ {
-
     __destroy_into_raw() {
         const ptr = this.__wbg_ptr;
         this.__wbg_ptr = 0;
         XYZFinalization.unregister(this);
         return ptr;
     }
-
     free() {
         const ptr = this.__destroy_into_raw();
         wasm.__wbg_xyz_free(ptr, 0);
+    }
+    /**
+     * Get the chromaticity coordinates
+     * @returns {Array<any>}
+     */
+    chromaticity() {
+        const ret = wasm.xyz_chromaticity(this.__wbg_ptr);
+        return ret;
     }
     /**
      * Create an XYZ Tristimuls Values object.
@@ -898,21 +741,19 @@ export class XYZ {
      *
      * // Get and check the corresponding tristimulus values, with a luminous value
      * // of 100.0
-     * const [x, y, z] = xyz.to_array();
+     * const [x, y, z] = xyz.values();
      * assert.assertAlmostEquals(x, 95.047, 5E-3); // D65 wikipedia
      * assert.assertAlmostEquals(y, 100.0);
      * assert.assertAlmostEquals(z, 108.883, 5E-3);
      *
-     * // and get back the orgiinal chromaticity coordinates:
+     * // and get back the original chromaticity coordinates:
      * const [xc, yc] = xyz.chromaticity();
      * assert.assertAlmostEquals(xc, 0.31272);
      * assert.assertAlmostEquals(yc, 0.32903);
      *
      * // to get the luminous value:
-     * const l = xyz.luminousValue();
+     * const l = xyz.y();
      * assert.assertAlmostEquals(l, 100.0);
-     * // D65 CIE 1931 chromaticity coordinates
-     * const xyz = new cmt.XYZ(0.31272, 0.32903);
      * ```
      * @param {number} x
      * @param {number} y
@@ -923,7 +764,7 @@ export class XYZ {
         if (ret[2]) {
             throw takeFromExternrefTable0(ret[1]);
         }
-        this.__wbg_ptr = ret[0] >>> 0;
+        this.__wbg_ptr = ret[0];
         XYZFinalization.register(this, this.__wbg_ptr, this);
         return this;
     }
@@ -936,14 +777,6 @@ export class XYZ {
         return ret;
     }
     /**
-     * Get the chromaticity coordinates
-     * @returns {Array<any>}
-     */
-    chromaticity() {
-        const ret = wasm.xyz_chromaticity(this.__wbg_ptr);
-        return ret;
-    }
-    /**
      * Get the luminous value, Y.
      * @returns {number}
      */
@@ -952,127 +785,275 @@ export class XYZ {
         return ret;
     }
 }
+if (Symbol.dispose) XYZ.prototype[Symbol.dispose] = XYZ.prototype.free;
+function __wbg_get_imports() {
+    const import0 = {
+        __proto__: null,
+        __wbg_Error_bce6d499ff0a4aff: function(arg0, arg1) {
+            const ret = Error(getStringFromWasm0(arg0, arg1));
+            return ret;
+        },
+        __wbg___wbindgen_number_get_f73a1244370fcc2c: function(arg0, arg1) {
+            const obj = arg1;
+            const ret = typeof(obj) === 'number' ? obj : undefined;
+            getDataViewMemory0().setFloat64(arg0 + 8 * 1, isLikeNone(ret) ? 0 : ret, true);
+            getDataViewMemory0().setInt32(arg0 + 4 * 0, !isLikeNone(ret), true);
+        },
+        __wbg___wbindgen_string_get_d109740c0d18f4d7: function(arg0, arg1) {
+            const obj = arg1;
+            const ret = typeof(obj) === 'string' ? obj : undefined;
+            var ptr1 = isLikeNone(ret) ? 0 : passStringToWasm0(ret, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+            var len1 = WASM_VECTOR_LEN;
+            getDataViewMemory0().setInt32(arg0 + 4 * 1, len1, true);
+            getDataViewMemory0().setInt32(arg0 + 4 * 0, ptr1, true);
+        },
+        __wbg___wbindgen_throw_9c31b086c2b26051: function(arg0, arg1) {
+            throw new Error(getStringFromWasm0(arg0, arg1));
+        },
+        __wbg_get_98fdf51d029a75eb: function(arg0, arg1) {
+            const ret = arg0[arg1 >>> 0];
+            return ret;
+        },
+        __wbg_length_2591a0f4f659a55c: function(arg0) {
+            const ret = arg0.length;
+            return ret;
+        },
+        __wbg_of_5ac20b48264ca018: function(arg0, arg1) {
+            const ret = Array.of(arg0, arg1);
+            return ret;
+        },
+        __wbg_of_d77919dcf5640358: function(arg0, arg1, arg2) {
+            const ret = Array.of(arg0, arg1, arg2);
+            return ret;
+        },
+        __wbindgen_cast_0000000000000001: function(arg0) {
+            // Cast intrinsic for `F64 -> Externref`.
+            const ret = arg0;
+            return ret;
+        },
+        __wbindgen_cast_0000000000000002: function(arg0, arg1) {
+            // Cast intrinsic for `Ref(String) -> Externref`.
+            const ret = getStringFromWasm0(arg0, arg1);
+            return ret;
+        },
+        __wbindgen_init_externref_table: function() {
+            const table = wasm.__wbindgen_externrefs;
+            const offset = table.grow(4);
+            table.set(0, undefined);
+            table.set(offset + 0, undefined);
+            table.set(offset + 1, null);
+            table.set(offset + 2, true);
+            table.set(offset + 3, false);
+        },
+    };
+    return {
+        __proto__: null,
+        "./colorimetry_bg.js": import0,
+    };
+}
+
+const CFIFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_cfi_free(ptr, 1));
+const CRIFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_cri_free(ptr, 1));
+const ChromaticityFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_chromaticity_free(ptr, 1));
+const CieLabFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_cielab_free(ptr, 1));
+const IlluminantFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_illuminant_free(ptr, 1));
+const RelXYZFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_relxyz_free(ptr, 1));
+const RgbFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_rgb_free(ptr, 1));
+const SpectrumFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_spectrum_free(ptr, 1));
+const ViewConditionsFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_viewconditions_free(ptr, 1));
+const WideRgbFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_widergb_free(ptr, 1));
+const XYZFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_xyz_free(ptr, 1));
+
+function getArrayF64FromWasm0(ptr, len) {
+    ptr = ptr >>> 0;
+    return getFloat64ArrayMemory0().subarray(ptr / 8, ptr / 8 + len);
+}
+
+let cachedDataViewMemory0 = null;
+function getDataViewMemory0() {
+    if (cachedDataViewMemory0 === null || cachedDataViewMemory0.buffer.detached === true || (cachedDataViewMemory0.buffer.detached === undefined && cachedDataViewMemory0.buffer !== wasm.memory.buffer)) {
+        cachedDataViewMemory0 = new DataView(wasm.memory.buffer);
+    }
+    return cachedDataViewMemory0;
+}
+
+let cachedFloat64ArrayMemory0 = null;
+function getFloat64ArrayMemory0() {
+    if (cachedFloat64ArrayMemory0 === null || cachedFloat64ArrayMemory0.byteLength === 0) {
+        cachedFloat64ArrayMemory0 = new Float64Array(wasm.memory.buffer);
+    }
+    return cachedFloat64ArrayMemory0;
+}
+
+function getStringFromWasm0(ptr, len) {
+    return decodeText(ptr >>> 0, len);
+}
+
+let cachedUint8ArrayMemory0 = null;
+function getUint8ArrayMemory0() {
+    if (cachedUint8ArrayMemory0 === null || cachedUint8ArrayMemory0.byteLength === 0) {
+        cachedUint8ArrayMemory0 = new Uint8Array(wasm.memory.buffer);
+    }
+    return cachedUint8ArrayMemory0;
+}
+
+function isLikeNone(x) {
+    return x === undefined || x === null;
+}
+
+function passArrayF64ToWasm0(arg, malloc) {
+    const ptr = malloc(arg.length * 8, 8) >>> 0;
+    getFloat64ArrayMemory0().set(arg, ptr / 8);
+    WASM_VECTOR_LEN = arg.length;
+    return ptr;
+}
+
+function passStringToWasm0(arg, malloc, realloc) {
+    if (realloc === undefined) {
+        const buf = cachedTextEncoder.encode(arg);
+        const ptr = malloc(buf.length, 1) >>> 0;
+        getUint8ArrayMemory0().subarray(ptr, ptr + buf.length).set(buf);
+        WASM_VECTOR_LEN = buf.length;
+        return ptr;
+    }
+
+    let len = arg.length;
+    let ptr = malloc(len, 1) >>> 0;
+
+    const mem = getUint8ArrayMemory0();
+
+    let offset = 0;
+
+    for (; offset < len; offset++) {
+        const code = arg.charCodeAt(offset);
+        if (code > 0x7F) break;
+        mem[ptr + offset] = code;
+    }
+    if (offset !== len) {
+        if (offset !== 0) {
+            arg = arg.slice(offset);
+        }
+        ptr = realloc(ptr, len, len = offset + arg.length * 3, 1) >>> 0;
+        const view = getUint8ArrayMemory0().subarray(ptr + offset, ptr + len);
+        const ret = cachedTextEncoder.encodeInto(arg, view);
+
+        offset += ret.written;
+        ptr = realloc(ptr, len, offset, 1) >>> 0;
+    }
+
+    WASM_VECTOR_LEN = offset;
+    return ptr;
+}
+
+function takeFromExternrefTable0(idx) {
+    const value = wasm.__wbindgen_externrefs.get(idx);
+    wasm.__externref_table_dealloc(idx);
+    return value;
+}
+
+let cachedTextDecoder = new TextDecoder('utf-8', { ignoreBOM: true, fatal: true });
+cachedTextDecoder.decode();
+const MAX_SAFARI_DECODE_BYTES = 2146435072;
+let numBytesDecoded = 0;
+function decodeText(ptr, len) {
+    numBytesDecoded += len;
+    if (numBytesDecoded >= MAX_SAFARI_DECODE_BYTES) {
+        cachedTextDecoder = new TextDecoder('utf-8', { ignoreBOM: true, fatal: true });
+        cachedTextDecoder.decode();
+        numBytesDecoded = len;
+    }
+    return cachedTextDecoder.decode(getUint8ArrayMemory0().subarray(ptr, ptr + len));
+}
+
+const cachedTextEncoder = new TextEncoder();
+
+if (!('encodeInto' in cachedTextEncoder)) {
+    cachedTextEncoder.encodeInto = function (arg, view) {
+        const buf = cachedTextEncoder.encode(arg);
+        view.set(buf);
+        return {
+            read: arg.length,
+            written: buf.length
+        };
+    };
+}
+
+let WASM_VECTOR_LEN = 0;
+
+let wasmModule, wasmInstance, wasm;
+function __wbg_finalize_init(instance, module) {
+    wasmInstance = instance;
+    wasm = instance.exports;
+    wasmModule = module;
+    cachedDataViewMemory0 = null;
+    cachedFloat64ArrayMemory0 = null;
+    cachedUint8ArrayMemory0 = null;
+    wasm.__wbindgen_start();
+    return wasm;
+}
 
 async function __wbg_load(module, imports) {
     if (typeof Response === 'function' && module instanceof Response) {
         if (typeof WebAssembly.instantiateStreaming === 'function') {
             try {
                 return await WebAssembly.instantiateStreaming(module, imports);
-
             } catch (e) {
-                if (module.headers.get('Content-Type') != 'application/wasm') {
+                const validResponse = module.ok && expectedResponseType(module.type);
+
+                if (validResponse && module.headers.get('Content-Type') !== 'application/wasm') {
                     console.warn("`WebAssembly.instantiateStreaming` failed because your server does not serve Wasm with `application/wasm` MIME type. Falling back to `WebAssembly.instantiate` which is slower. Original error:\n", e);
 
-                } else {
-                    throw e;
-                }
+                } else { throw e; }
             }
         }
 
         const bytes = await module.arrayBuffer();
         return await WebAssembly.instantiate(bytes, imports);
-
     } else {
         const instance = await WebAssembly.instantiate(module, imports);
 
         if (instance instanceof WebAssembly.Instance) {
             return { instance, module };
-
         } else {
             return instance;
         }
     }
-}
 
-function __wbg_get_imports() {
-    const imports = {};
-    imports.wbg = {};
-    imports.wbg.__wbg_get_0c3cc364764a0b98 = function(arg0, arg1) {
-        const ret = arg0[arg1 >>> 0];
-        return ret;
-    };
-    imports.wbg.__wbg_length_12246a78d2f65d3a = function(arg0) {
-        const ret = arg0.length;
-        return ret;
-    };
-    imports.wbg.__wbg_of_894f51209b51cdf4 = function(arg0, arg1) {
-        const ret = Array.of(arg0, arg1);
-        return ret;
-    };
-    imports.wbg.__wbg_of_968f342775805f3a = function(arg0, arg1, arg2) {
-        const ret = Array.of(arg0, arg1, arg2);
-        return ret;
-    };
-    imports.wbg.__wbindgen_error_new = function(arg0, arg1) {
-        const ret = new Error(getStringFromWasm0(arg0, arg1));
-        return ret;
-    };
-    imports.wbg.__wbindgen_init_externref_table = function() {
-        const table = wasm.__wbindgen_export_0;
-        const offset = table.grow(4);
-        table.set(0, undefined);
-        table.set(offset + 0, undefined);
-        table.set(offset + 1, null);
-        table.set(offset + 2, true);
-        table.set(offset + 3, false);
-        ;
-    };
-    imports.wbg.__wbindgen_number_get = function(arg0, arg1) {
-        const obj = arg1;
-        const ret = typeof(obj) === 'number' ? obj : undefined;
-        getDataViewMemory0().setFloat64(arg0 + 8 * 1, isLikeNone(ret) ? 0 : ret, true);
-        getDataViewMemory0().setInt32(arg0 + 4 * 0, !isLikeNone(ret), true);
-    };
-    imports.wbg.__wbindgen_number_new = function(arg0) {
-        const ret = arg0;
-        return ret;
-    };
-    imports.wbg.__wbindgen_string_get = function(arg0, arg1) {
-        const obj = arg1;
-        const ret = typeof(obj) === 'string' ? obj : undefined;
-        var ptr1 = isLikeNone(ret) ? 0 : passStringToWasm0(ret, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-        var len1 = WASM_VECTOR_LEN;
-        getDataViewMemory0().setInt32(arg0 + 4 * 1, len1, true);
-        getDataViewMemory0().setInt32(arg0 + 4 * 0, ptr1, true);
-    };
-    imports.wbg.__wbindgen_string_new = function(arg0, arg1) {
-        const ret = getStringFromWasm0(arg0, arg1);
-        return ret;
-    };
-    imports.wbg.__wbindgen_throw = function(arg0, arg1) {
-        throw new Error(getStringFromWasm0(arg0, arg1));
-    };
-    imports.wbg.__wbindgen_try_into_number = function(arg0) {
-        let result;
-        try { result = +arg0 } catch (e) { result = e }
-        const ret = result;
-        return ret;
-    };
-
-    return imports;
-}
-
-function __wbg_init_memory(imports, memory) {
-
-}
-
-function __wbg_finalize_init(instance, module) {
-    wasm = instance.exports;
-    __wbg_init.__wbindgen_wasm_module = module;
-    cachedDataViewMemory0 = null;
-    cachedFloat64ArrayMemory0 = null;
-    cachedUint8ArrayMemory0 = null;
-
-
-    wasm.__wbindgen_start();
-    return wasm;
+    function expectedResponseType(type) {
+        switch (type) {
+            case 'basic': case 'cors': case 'default': return true;
+        }
+        return false;
+    }
 }
 
 function initSync(module) {
     if (wasm !== undefined) return wasm;
 
 
-    if (typeof module !== 'undefined') {
+    if (module !== undefined) {
         if (Object.getPrototypeOf(module) === Object.prototype) {
             ({module} = module)
         } else {
@@ -1081,15 +1062,10 @@ function initSync(module) {
     }
 
     const imports = __wbg_get_imports();
-
-    __wbg_init_memory(imports);
-
     if (!(module instanceof WebAssembly.Module)) {
         module = new WebAssembly.Module(module);
     }
-
     const instance = new WebAssembly.Instance(module, imports);
-
     return __wbg_finalize_init(instance, module);
 }
 
@@ -1097,7 +1073,7 @@ async function __wbg_init(module_or_path) {
     if (wasm !== undefined) return wasm;
 
 
-    if (typeof module_or_path !== 'undefined') {
+    if (module_or_path !== undefined) {
         if (Object.getPrototypeOf(module_or_path) === Object.prototype) {
             ({module_or_path} = module_or_path)
         } else {
@@ -1105,7 +1081,7 @@ async function __wbg_init(module_or_path) {
         }
     }
 
-    if (typeof module_or_path === 'undefined') {
+    if (module_or_path === undefined) {
         module_or_path = new URL('colorimetry_bg.wasm', import.meta.url);
     }
     const imports = __wbg_get_imports();
@@ -1114,12 +1090,9 @@ async function __wbg_init(module_or_path) {
         module_or_path = fetch(module_or_path);
     }
 
-    __wbg_init_memory(imports);
-
     const { instance, module } = await __wbg_load(await module_or_path, imports);
 
     return __wbg_finalize_init(instance, module);
 }
 
-export { initSync };
-export default __wbg_init;
+export { initSync, __wbg_init as default };

@@ -629,10 +629,10 @@ color --help
 
 ## Color Plots
 
-The `colorimetry` library includes a plotting module, in an associated `colorimetry-plot` crate
-that can be used to generate chromaticity diagrams, spectral plots, and color rendering
-visualizations. Output is in SVG format, viewable in any modern web browser or vector
-graphics editor such as Inkscape.
+The companion crate [`colorimetry-plot`](https://crates.io/crates/colorimetry-plot)
+generates chromaticity diagrams, spectral plots, and color rendering visualizations.
+Output is in SVG format, viewable in any modern web browser or vector graphics editor
+such as Inkscape.
 
 ```bash
 cargo add colorimetry-plot
