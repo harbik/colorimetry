@@ -13,7 +13,24 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
-## [0.1.0] - 2026-05-15
+### Fixed
+
+* JSR packaging (`deno.jsonc`): added a `license` field. `deno publish` rejected the package
+  with `invalidLicense` — JSR accepts a single SPDX identifier (not an expression such as
+  `MIT OR Apache-2.0`), and its file-based fallback only recognises verbatim licence text in
+  `LICENSE`/`LICENCE`, which the dual-licence pointer here is not. `deno publish --dry-run`
+  does not validate the field, so this only surfaced on the server. The JSR package declares
+  `MIT`; the project remains dual-licensed and ships `LICENSE`, `LICENSE-MIT` and
+  `LICENSE-APACHE`.
+* JSR packaging: replaced `publish.exclude` with an allow-list. The exclude form shipped 60
+  files — the `cli/` and `xtask/` Rust sources, benches, docs, `.github` and editor config —
+  where the package needs 9: the WASM build, its type declarations, README and licences.
+
+Both fixes landed after the `v0.1.0` tag and are therefore present in the published
+`@harbik/colorimetry@0.1.0` JSR package while not being part of the tagged tree. Neither
+affects the crates.io or npm artifacts.
+
+## [0.1.0] - 2026-08-25
 
 ### Added
 
