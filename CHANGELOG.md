@@ -15,6 +15,32 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+* `CieLChGamut::max_chroma` returned `None` for every hue below L\* 30, and for several hues at
+  higher lightness (h=90 and h=150 at L\* 50 and 70 in sRGB). Its in-gamut test rejected only
+  channel values above 1.0 and never negative ones, so at any lightness and hue where no channel
+  reaches 1.0 the binary search ran away to the 500 chroma ceiling; the spectral-locus check at the
+  end then turned that into `None`. Where it did return a value, the value was too large — sRGB at
+  L\* 50, h=0 reported a chroma of 98.4 where green leaves the gamut at 66. The search now uses
+  `WideRgb::is_in_gamut`, and the returned chroma is verified against the sRGB primaries and
+  secondaries and against a brute-force scan of the lightness/hue plane.
+* `CieLChGamut::max_chroma` no longer returns a color that is itself out of gamut. For an RGB space
+  whose primaries do not reproduce its own white point, the neutral axis leaves the gamut above some
+  lightness and no chroma there is realizable; the neutral starting point is now checked and `None`
+  returned. This affects `RgbSpace::CieRGB`, whose RGB-to-XYZ matrix maps (1,1,1) to D65 rather than
+  to its declared white point E.
+* `CieLChGamut::max_chroma` now runs enough bisection steps (26) to actually reach its stated
+  `CONVERGENCE_THRESHOLD` of 1e-5 over the 0..500 chroma range. At 20 steps the threshold was
+  unreachable and the search always stopped at a resolution of about 5e-4.
+
+### Known limitations
+
+* `CieLChGamut::max_chroma` bisects, which assumes the in-gamut chroma values at a given lightness
+  and hue form a single interval starting at zero. A line of constant lightness and hue in CIELAB is
+  a curve in XYZ and can leave the convex RGB gamut and re-enter it near a corner of the RGB cube;
+  there the first crossing is returned instead of the outermost one. For sRGB this affects about
+  0.01% of the lightness/hue plane, confined to L\* above roughly 96 near the yellow corner, where
+  the chroma can be under-reported by as much as 69.
+
 * JSR packaging (`deno.jsonc`): added a `license` field. `deno publish` rejected the package
   with `invalidLicense` — JSR accepts a single SPDX identifier (not an expression such as
   `MIT OR Apache-2.0`), and its file-based fallback only recognises verbatim licence text in
