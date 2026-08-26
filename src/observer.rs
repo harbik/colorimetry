@@ -576,6 +576,27 @@ mod obs_test {
     use approx::{assert_abs_diff_eq, assert_ulps_eq};
     use strum::IntoEnumIterator as _;
 
+    /// The cached matrices must agree with what the generator produces today, so that a change to a
+    /// color space definition cannot silently leave the generated table behind.
+    /// Regenerate with `cargo xtask gen rgb-transforms` if this fails.
+    #[test]
+    fn cached_rgb_xyz_matrices_are_not_stale() {
+        for observer in Observer::iter() {
+            for space in RgbSpace::iter() {
+                assert_abs_diff_eq!(
+                    *observer.rgb2xyz_matrix(space),
+                    observer.calc_rgb2xyz_matrix(space),
+                    epsilon = 1E-10
+                );
+                assert_abs_diff_eq!(
+                    *observer.xyz2rgb_matrix(space),
+                    observer.calc_xyz2rgb_matrix(space),
+                    epsilon = 1E-10
+                );
+            }
+        }
+    }
+
     #[test]
     fn test_rel_xyz() {
         use crate::colorant::Colorant;
@@ -789,20 +810,28 @@ mod obs_test {
         assert_eq!(Observer::Cie2015_10.as_ref(), "Cie2015_10");
     }
 
+    /// Every RGB space must reproduce its own white point: (1, 1, 1) and the white the space
+    /// declares have to map onto each other in both directions.
+    ///
+    /// Regression test: this used to compare against D65 for every space, which is only correct for
+    /// the three D65-based ones. That assumption is what let the generated matrix table go stale
+    /// after `RgbSpace::CieRGB`'s white was changed to Illuminant E — its matrices still mapped
+    /// (1, 1, 1) to D65, so in that space the neutral axis was not neutral and above L* 90 it left
+    /// the RGB gamut entirely.
     #[test]
-    // Test white point, should be
     fn test_rgb_xyz_white() {
+        use crate::traits::Light as _;
+
         for obs in Observer::iter() {
             for space in RgbSpace::iter() {
-                let d65 = obs.xyz_d65().set_illuminance(1.0);
-                let xyz2rgb = obs.xyz2rgb_matrix(space);
-                let rgb = xyz2rgb * d65.xyz;
+                let white = space.white().white_point(obs).set_illuminance(1.0);
+                let rgb = obs.xyz2rgb_matrix(space) * white.xyz;
                 rgb.iter().for_each(|&v| {
                     assert_abs_diff_eq!(v, 1.0, epsilon = 2E-6);
                 });
 
                 let xyz_round_trip = XYZ::from_vec(obs.rgb2xyz_matrix(space) * rgb, obs);
-                assert_abs_diff_eq!(d65, xyz_round_trip, epsilon = 2E-6);
+                assert_abs_diff_eq!(white, xyz_round_trip, epsilon = 2E-6);
             }
         }
     }

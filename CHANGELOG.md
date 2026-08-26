@@ -15,6 +15,26 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+* `RgbSpace::CieRGB` did not reproduce its own white point: its RGB-to-XYZ matrices mapped (1, 1, 1)
+  to D65 instead of to the Illuminant E white it declares. The neutral axis was therefore not
+  neutral in that space — a grey at L\* 90 converted to `[0.907, 0.738, 0.700]` — and above L\* 90
+  it left the RGB gamut entirely, so no color at that lightness was representable. The generated
+  matrix table in `src/observer/rgbxyz.rs` had gone stale after the CieRGB white was changed to E;
+  the generator itself was correct. Regenerated with `cargo xtask gen rgb-transforms`. All eight
+  `CieRGB` matrices change; the 24 matrices of the three D65-based spaces are bit-identical.
+
+  **This changes results for every `RgbSpace::CieRGB` conversion.** The other RGB spaces are
+  unaffected.
+
+* `Observer::xyz2rgb_matrix`/`rgb2xyz_matrix` white point round-trip is now tested against each
+  space's own declared white rather than against D65. The previous test hardcoded D65 for every
+  space, which is what allowed the stale `CieRGB` table to go unnoticed. A second test asserts the
+  cached matrices still agree with `calc_rgb2xyz_matrix`/`calc_xyz2rgb_matrix`, so a color space
+  definition can no longer silently drift away from the generated table.
+
+* The `xtask` template for `src/observer/rgbxyz.rs` now emits the SPDX license header. It was
+  previously added to the generated file by hand, and every regeneration stripped it.
+
 * JSR packaging (`deno.jsonc`): added a `license` field. `deno publish` rejected the package
   with `invalidLicense` — JSR accepts a single SPDX identifier (not an expression such as
   `MIT OR Apache-2.0`), and its file-based fallback only recognises verbatim licence text in
