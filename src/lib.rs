@@ -28,6 +28,52 @@ This approach is the foundation of all rigorous colorimetry work: lighting produ
 and qualification, ICC color profile construction, paint-to-screen matching, gamut analysis,
 and anything else where "what the camera sees" must match "what the eye sees."
 
+# Which function do I want?
+
+Most tasks are one or two calls, but the names alone do not always say which.
+The table below is the short answer; the linked items carry the detail.
+
+| I want | Call |
+|---|---|
+| the color of a sample under a light | [`Observer::lab`], or [`Observer::rel_xyz`] if you need XYZ and its white point |
+| display values for a sample | [`XYZ::rgb_u8`] |
+| a light's own tristimulus values and illuminance | [`Observer::xyz`] with no filter |
+| chromaticity coordinates | [`XYZ::chromaticity`] |
+| the difference between two colors | [`CieLab::ciede2000`], or [`CieLab::ciede`] for the 1976 formula |
+| correlated color temperature | [`XYZ::cct`] |
+| color rendering of a light source | `Illuminant::cri`, `Illuminant::cfi` |
+
+Two distinctions catch people out, because in both cases the shorter name is
+the lower-level one:
+
+- **Absolute versus relative tristimulus.** [`Observer::xyz`] returns a light's
+  absolute values when given no filter, and values normalised to a Y = 100
+  white when given one. For a sample color prefer [`Observer::rel_xyz`] or
+  [`Observer::lab`], which carry the stimulus and its white point together and
+  so cannot be mismatched.
+- **Linear versus encoded RGB.** [`XYZ::rgb`] returns *linear* `WideRgb`,
+  which is what you want for arithmetic and not what a display expects. Use
+  [`XYZ::rgb_u8`], or [`Rgb::to_u8`] once you have chosen how to handle colors
+  outside the space — `WideRgb::to_rgb`, `WideRgb::clamp`, or
+  `WideRgb::compress`.
+
+[`Observer::lab`]: crate::observer::Observer::lab
+[`Observer::rel_xyz`]: crate::observer::Observer::rel_xyz
+[`Observer::xyz`]: crate::observer::Observer::xyz
+[`XYZ::rgb`]: crate::xyz::XYZ::rgb
+[`XYZ::rgb_u8`]: crate::xyz::XYZ::rgb_u8
+[`XYZ::chromaticity`]: crate::xyz::XYZ::chromaticity
+[`XYZ::cct`]: crate::xyz::XYZ::cct
+[`CieLab::ciede`]: crate::lab::CieLab::ciede
+[`CieLab::ciede2000`]: crate::lab::CieLab::ciede2000
+[`Rgb::to_u8`]: crate::rgb::Rgb::to_u8
+`WideRgb`: crate::rgb::widergb::WideRgb
+`WideRgb::to_rgb`: crate::rgb::widergb::WideRgb::to_rgb
+`WideRgb::clamp`: crate::rgb::widergb::WideRgb::clamp
+`WideRgb::compress`: crate::rgb::widergb::WideRgb::compress
+`Illuminant::cri`: crate::illuminant::Illuminant::cri
+`Illuminant::cfi`: crate::illuminant::Illuminant::cfi
+
 # Usage
 
 To use this library in a Rust application, run the command:

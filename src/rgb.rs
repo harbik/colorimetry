@@ -191,6 +191,53 @@ impl Rgb {
         Rgb::new(r, g, b, observer, Some(space)).unwrap()
     }
 
+    /// Encode to 8-bit-per-channel display values, applying this space's
+    /// transfer function.
+    ///
+    /// The inverse of [`Rgb::from_u8`]. The values held in an `Rgb` are
+    /// **linear**, so they cannot be scaled to bytes directly — doing so
+    /// produces an image that is far too dark. This applies the gamma encoding
+    /// first, which is almost always what you want when handing values to a
+    /// display, an image file, or a document.
+    ///
+    /// `Rgb` is the in-gamut type, so there is nothing to clip here. To get one
+    /// from an [`XYZ`] you first choose what to do about colors the space
+    /// cannot hold — see [`WideRgb::to_rgb`], [`WideRgb::clamp`], and
+    /// [`WideRgb::compress`] — or use [`XYZ::rgb_u8`] for the common case.
+    ///
+    /// ```
+    /// use colorimetry::rgb::Rgb;
+    ///
+    /// let grey = Rgb::from_u8(128, 128, 128, None, None);
+    /// assert_eq!(grey.to_u8(), [128, 128, 128]);
+    ///
+    /// // Half of full linear intensity is not half of the encoded range.
+    /// let half_linear = Rgb::new(0.5, 0.5, 0.5, None, None).unwrap();
+    /// assert_eq!(half_linear.to_u8(), [188, 188, 188]);
+    /// ```
+    pub fn to_u8(&self) -> [u8; 3] {
+        let gamma = self.space.gamma();
+        [self.rgb.x, self.rgb.y, self.rgb.z].map(|v| gamma.encode_u8(v, None, None))
+    }
+
+    /// Encode to 16-bit-per-channel display values, applying this space's
+    /// transfer function.
+    ///
+    /// The inverse of [`Rgb::from_u16`]. See [`Rgb::to_u8`] for why the
+    /// encoding step is not optional.
+    ///
+    /// ```
+    /// use colorimetry::rgb::Rgb;
+    ///
+    /// let grey = Rgb::from_u16(32768, 32768, 32768, None, None);
+    /// let [r, g, b] = grey.to_u16();
+    /// assert!(r.abs_diff(32768) <= 1 && g.abs_diff(32768) <= 1 && b.abs_diff(32768) <= 1);
+    /// ```
+    pub fn to_u16(&self) -> [u16; 3] {
+        let gamma = self.space.gamma();
+        [self.rgb.x, self.rgb.y, self.rgb.z].map(|v| (gamma.encode(v) * 65_535.0).round() as u16)
+    }
+
     /// Returns the value of the red channel.
     pub fn r(&self) -> f64 {
         self.rgb.x
