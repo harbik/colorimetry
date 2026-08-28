@@ -13,6 +13,18 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Changed
+
+* `Observer::xyz` now documents its two scale conventions. Called without a filter it returns
+  the light's absolute tristimulus, carrying illuminance; called with one it returns the
+  filtered stimulus normalised so the unfiltered light has Y = 100. Both behaviours are
+  unchanged — only the documentation is new. The returned `XYZ` does not record which
+  convention produced it, so pairing a white point from the unfiltered form with a stimulus
+  from the filtered form mixes scales and yields near-zero colour differences rather than an
+  error. The doc now points to `Observer::rel_xyz` and `Observer::lab` for sample colours,
+  which carry the stimulus and its white point together, and a doctest demonstrates the
+  difference.
+
 ### Fixed
 
 * JSR packaging (`deno.jsonc`): added a `license` field. `deno publish` rejected the package

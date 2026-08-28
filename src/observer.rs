@@ -161,6 +161,44 @@ impl Observer {
     /// [`Rgb`](crate::rgb::Rgb), which represents a display pixel, implements both in this library.
     /// As a light, it is the light emitted from the pixel, as a filter it is the RGB-composite
     /// filter which is applied to the underlying standard illuminant of color space.
+    ///
+    /// # Scale
+    ///
+    /// The two forms return values on different scales, and the returned
+    /// [`XYZ`] does not record which:
+    ///
+    /// - **Without a filter**, the result is the light's *absolute* tristimulus,
+    ///   carrying its illuminance. This is what you want when the light source
+    ///   itself is the subject.
+    /// - **With a filter**, the result is the filtered stimulus *normalised* so
+    ///   that the unfiltered light has Y = 100.
+    ///
+    /// For a sample colour, prefer [`Observer::rel_xyz`], which returns a
+    /// [`RelXYZ`] carrying the stimulus and its white point normalised together,
+    /// or [`Observer::lab`], which goes straight to [`CieLab`].
+    /// Pairing a white point taken from the unfiltered form with a stimulus taken
+    /// from the filtered form mixes the two scales, and silently yields
+    /// near-zero colour differences rather than an error.
+    ///
+    /// ```
+    /// use colorimetry::{observer::Observer::Cie1931, illuminant::D65, colorant::Colorant};
+    ///
+    /// let grey = Colorant::gray(0.5);
+    ///
+    /// // Absolute: the illuminant's own tristimulus, not relative to anything.
+    /// let absolute = Cie1931.xyz(&D65, None);
+    ///
+    /// // Normalised: the filtered stimulus, against a Y = 100 white.
+    /// let relative = Cie1931.xyz(&D65, Some(&grey));
+    /// assert!(relative.y() < 100.0);
+    ///
+    /// // The white point that belongs with `relative` is not `absolute`.
+    /// assert!(absolute.y() > relative.y() * 1000.0);
+    ///
+    /// // Prefer this for a sample colour: the white point comes with it.
+    /// let rel = Cie1931.rel_xyz(&D65, &grey);
+    /// assert!((rel.white_point().y() - 100.0).abs() < 1e-9);
+    /// ```
     pub fn xyz(&self, light: &dyn Light, filter: Option<&dyn Filter>) -> XYZ {
         let xyzn = light.xyzn(self.data().tag, None);
         if let Some(flt) = filter {
