@@ -235,8 +235,7 @@ impl Rgb {
     /// ```
     pub fn to_u16(&self) -> [u16; 3] {
         let gamma = self.space.gamma();
-        [self.rgb.x, self.rgb.y, self.rgb.z]
-            .map(|v| (gamma.encode(v) * 65_535.0).round() as u16)
+        [self.rgb.x, self.rgb.y, self.rgb.z].map(|v| (gamma.encode(v) * 65_535.0).round() as u16)
     }
 
     /// Returns the value of the red channel.
