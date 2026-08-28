@@ -346,6 +346,46 @@ impl XYZ {
             rgb: data,
         }
     }
+
+    /// Convert to 8-bit-per-channel display values in the given RGB space,
+    /// clipping anything the space cannot hold.
+    ///
+    /// This is the short path from a tristimulus value to something you can put
+    /// on a screen or in a file, and it does two things [`XYZ::rgb`] does not:
+    /// it applies the space's transfer function, and it resolves colors that
+    /// fall outside the space.
+    ///
+    /// **It clips.** Out-of-gamut colors are clamped per channel, which is the
+    /// common default but not the only choice, and it is silent. When the
+    /// answer matters, take the longer route and decide for yourself:
+    ///
+    /// ```
+    /// use colorimetry::{observer::Observer::Cie1931, illuminant::D65,
+    ///                   colorant::Colorant, rgb::RgbSpace};
+    ///
+    /// let sample = Colorant::gray(0.5);
+    /// let wide = Cie1931.xyz(&D65, Some(&sample)).rgb(RgbSpace::SRGB);
+    ///
+    /// if wide.is_in_gamut() {
+    ///     let _exact = wide.to_rgb().unwrap().to_u8();   // representable as-is
+    /// } else {
+    ///     let _clipped = wide.clamp().to_u8();           // nearest in-gamut
+    ///     let _mapped = wide.compress().to_u8();         // gamut-compressed
+    /// }
+    /// ```
+    ///
+    /// ```
+    /// use colorimetry::{observer::Observer::Cie1931, illuminant::D65,
+    ///                   colorant::Colorant, rgb::RgbSpace};
+    ///
+    /// // A mid grey under D65, straight to display values.
+    /// let grey = Colorant::gray(0.5);
+    /// let [r, g, b] = Cie1931.xyz(&D65, Some(&grey)).rgb_u8(RgbSpace::SRGB);
+    /// assert!(r > 150 && r < 210 && r == g && g == b);
+    /// ```
+    pub fn rgb_u8(&self, space: RgbSpace) -> [u8; 3] {
+        self.rgb(space).clamp().to_u8()
+    }
 }
 
 impl From<XYZ> for [f64; 3] {

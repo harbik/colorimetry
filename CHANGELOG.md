@@ -13,6 +13,20 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+* `Rgb::to_u8` and `Rgb::to_u16` — the inverses of `Rgb::from_u8` and `Rgb::from_u16`, which had
+  none. The values held in an `Rgb` are linear, so scaling them to bytes directly produces an
+  image that is far too dark; these apply the space's transfer function first.
+* `XYZ::rgb_u8` — the short path from a tristimulus value to display bytes, applying the transfer
+  function and clipping out-of-gamut colors. The clipping is documented rather than silent, and
+  the doc shows the longer route (`WideRgb::is_in_gamut`, `to_rgb`, `clamp`, `compress`) for when
+  the choice matters.
+* A "Which function do I want?" table in the crate documentation, mapping common tasks to the
+  call that performs them, and naming the two distinctions where the shorter name is the
+  lower-level one: absolute versus relative tristimulus, and linear versus encoded RGB.
+
+
 ### Fixed
 
 * JSR packaging (`deno.jsonc`): added a `license` field. `deno publish` rejected the package
